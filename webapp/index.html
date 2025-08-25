@@ -1,9 +1,9 @@
 <!doctype html>
 <html lang="ru">
 <head>
-  <script>
+  <script src="https://telegram.org/js/telegram-web-app.js"></script>
+<script>
 (function(){
-  // включаем только если ?debug=1 или start_param=debug
   const qp = new URLSearchParams(location.search);
   const byQuery = qp.get('debug') === '1';
   const startParam = window.Telegram?.WebApp?.initDataUnsafe?.start_param;
@@ -11,38 +11,47 @@
   const DEBUG = byQuery || byStartApp;
   if (!DEBUG) return;
 
-  const tg = window.Telegram?.WebApp || null;
-  const inside = !!tg;
-  const initLen = (tg?.initData || '').length;
-  const user = tg?.initDataUnsafe?.user || null;
-
-  // Покажем всплывашку прямо в Telegram (работает и на мобиле, и на Desktop)
-  if (tg && tg.showAlert) {
-    tg.showAlert(JSON.stringify({
-      inside_webapp: inside,
-      initData_length: initLen,
-      user
-    }, null, 2));
-  } else {
-    alert('Похоже, это НЕ Telegram WebApp (нет Telegram.WebApp)');
+  function waitForTG(timeoutMs=5000){
+    return new Promise((resolve,reject)=>{
+      const t0 = Date.now();
+      (function tick(){
+        if (window.Telegram && window.Telegram.WebApp) return resolve(window.Telegram.WebApp);
+        if (Date.now()-t0 >= timeoutMs) return reject(new Error('tg_timeout'));
+        setTimeout(tick, 50);
+      })();
+    });
   }
 
-  // Дополнительно спросим сервер (если сделаешь /api/debug)
-  try {
-    const initData = tg?.initData || '';
-    const h = {'Content-Type':'application/json'};
+  function show(msg){
+    try { Telegram.WebApp.showAlert(msg); }
+    catch { alert(msg); }
+  }
+
+  waitForTG().then(async (tg)=>{
+    const clientInfo = {
+      inside_webapp: true,
+      initData_length: (tg.initData||'').length,
+      user: tg.initDataUnsafe?.user || null
+    };
+    show(JSON.stringify(clientInfo, null, 2));
+
+    // Доп. проверка сервера (если сделаешь /api/debug)
+    const initData = tg.initData || '';
+    const headers = {'Content-Type':'application/json'};
+    if (initData) headers['X-Telegram-InitData'] = initData;
     let url = '/api/debug?v=1';
-    if (initData) {
-      h['X-Telegram-InitData'] = initData;
-      url += '&tgWebAppData=' + encodeURIComponent(initData); // дубль на случай редиректа
-    }
-    fetch(url, {headers: h, credentials:'include'})
-      .then(r=>r.json())
-      .then(j=> tg?.showAlert?.('SERVER:\n' + JSON.stringify(j, null, 2)))
-      .catch(()=>{});
-  } catch(_) {}
+    if (initData) url += '&tgWebAppData=' + encodeURIComponent(initData);
+    try{
+      const r = await fetch(url, {headers, credentials:'include'});
+      const j = await r.json();
+      show('SERVER:\n' + JSON.stringify(j, null, 2));
+    }catch(_){}
+  }).catch(e=>{
+    show('Telegram.WebApp не успел появиться ('+e.message+'). Это гонка и её надо переждать.');
+  });
 })();
 </script>
+
   <!-- 1) Сначала кодировка -->
   <meta charset="utf-8" />
   
