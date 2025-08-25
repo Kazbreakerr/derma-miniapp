@@ -1,0 +1,196 @@
+<!doctype html>
+<html lang="ru">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Derma Mini‑App — Важные предупреждения</title>
+  <style>
+    :root{
+      --bg:#0B1220; --surface:#0E1726; --card:#121C2E; --border:#1F2A3C;
+      --primary:#14B8A6; --info:#60A5FA; --warning:#F59E0B; --danger:#EF4444;
+      --text-high:#F3F7FF; --text-mid:#C7D2FE; --text-low:#93A3BF; --focus-ring:#93C5FD;
+    }
+    html,body{height:100%}
+    body{margin:0;background:var(--bg);color:var(--text-high);
+      font-family:ui-sans-serif,system-ui,-apple-system,Segoe UI,Roboto,Inter,Manrope,Helvetica,Arial;
+      font-size:16px;line-height:1.5}
+    .container{max-width:840px;margin:0 auto;padding:24px 24px 40px}
+    h1{font-size:28px;line-height:34px;margin:0;font-weight:600}
+    header{display:flex;align-items:center;justify-content:space-between;padding:16px 0}
+    .shield{width:24px;height:24px;color:var(--info);flex:0 0 auto}
+    .card{position:relative;background:var(--card);border:1px solid var(--border);border-radius:16px;
+      padding:20px;box-shadow:0 8px 24px rgba(0,0,0,.35);overflow:hidden;transform:scale(.95);opacity:0;animation:pop .18s ease-out forwards}
+    @keyframes pop {to{transform:scale(1);opacity:1}}
+    .glow{position:absolute;inset:0;pointer-events:none;background:radial-gradient(120% 120% at 10% 0%, rgba(20,184,166,.18) 0%, rgba(18,28,46,0) 50%)}
+    .title{display:flex;align-items:center;gap:12px;margin-bottom:12px}
+    .title h2{font-size:22px;line-height:28px;margin:0;font-weight:600}
+    .list{border-radius:12px;overflow:hidden;margin:0;padding:0;list-style:none}
+    .row{display:flex;gap:12px;padding:14px;background:var(--surface);border-top:1px solid rgba(255,255,255,.06)}
+    .row.first{border-top:1px solid var(--border)}
+    .row.last{border-bottom:1px solid var(--border)}
+    .row .ico{color:var(--text-mid);margin-top:2px;flex:0 0 auto}
+    .badge{display:inline-flex;align-items:center;gap:6px;padding:4px 10px;border-radius:999px;font-size:12px;line-height:16px;font-weight:600;border:1px solid transparent;margin-bottom:6px}
+    .badge.danger{background:rgba(239,68,68,0.08);border-color:#FCA5A5;color:var(--danger)}
+    .badge.warning{background:rgba(245,158,11,0.12);border-color:#FBBF24;color:var(--warning)}
+    .badge.info{background:rgba(96,165,250,0.12);border-color:#93C5FD;color:var(--info)}
+    .consent{display:flex;align-items:flex-start;gap:12px;margin-top:16px}
+    .switch{position:relative;width:40px;height:24px;border-radius:999px;background:#152235;border:none;cursor:pointer;outline:none;transition:background .15s}
+    .switch:focus-visible{box-shadow:0 0 0 2px var(--focus-ring),0 0 0 4px rgba(11,18,32,.7)}
+    .thumb{position:absolute;top:2px;left:2px;width:20px;height:20px;border-radius:999px;background:white;transition:transform .15s}
+    .switch[aria-pressed='true']{background:var(--primary)}
+    .switch[aria-pressed='true'] .thumb{transform:translateX(16px)}
+    .actions{display:flex;align-items:center;gap:18px;margin-top:16px;flex-wrap:wrap}
+    .cta{height:48px;padding:0 20px;border-radius:12px;border:none;font-weight:600;cursor:pointer;
+         background-image:linear-gradient(135deg,#22D3EE 0%, #14B8A6 100%); color:#07121F;
+         box-shadow:0 6px 16px rgba(0,0,0,.25)}
+    .cta:disabled{opacity:.5;background-image:none;background:#1F2A3C;cursor:not-allowed;color:#AEB6C8}
+    .link{color:var(--text-mid);text-decoration:underline;text-underline-offset:3px}
+    .foot{color:var(--text-low);font-size:13px;line-height:18px;margin-top:18px}
+    svg{display:block} b{font-weight:700}
+    @media (max-width:480px){ .container{padding:16px 16px 28px} .row{padding:12px} }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <header>
+      <h1>Derma Mini‑App</h1>
+      <svg class="shield" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+        <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10"/>
+        <path d="m9 12 2 2 4-4"/>
+      </svg>
+    </header>
+
+    <section class="card" aria-labelledby="safety-title">
+      <div class="glow"></div>
+      <div class="title">
+        <svg class="shield" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" style="color:var(--info)">
+          <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10"/>
+          <path d="m9 12 2 2 4-4"/>
+        </svg>
+        <h2 id="safety-title">Безопасность и согласие</h2>
+      </div>
+
+      <ul class="list" role="list">
+        <li class="row first">
+          <div class="ico">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M10.29 3.86 1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0Z"/>
+              <line x1="12" y1="9" x2="12" y2="13"/>
+              <line x1="12" y1="17" x2="12.01" y2="17"/>
+            </svg>
+          </div>
+          <div>
+            <span class="badge danger">Опасность</span>
+            <div><b>Тератогенность:</b> изотретиноин может вызывать тяжёлые пороки развития плода.</div>
+          </div>
+        </li>
+        <li class="row">
+          <div class="ico">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+              <circle cx="12" cy="12" r="10"></circle>
+              <path d="m4.9 4.9 14.2 14.2"></path>
+            </svg>
+          </div>
+          <div>
+            <span class="badge warning">Внимание</span>
+            <div>Донорство крови: запрещено во время курса и 1 месяц после.</div>
+          </div>
+        </li>
+        <li class="row">
+          <div class="ico">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M6 3v4a4 4 0 0 0 8 0V3"/>
+              <path d="M11 17a5 5 0 0 0 10 0v-3"/>
+              <circle cx="20" cy="10" r="2"/>
+              <path d="M4 3v7a6 6 0 0 0 12 0V3"/>
+            </svg>
+          </div>
+          <div>
+            <span class="badge info">Информация</span>
+            <div>Решения принимает врач: приложение только для отслеживания.</div>
+          </div>
+        </li>
+        <li class="row last">
+          <div class="ico">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M8 2v4"/><path d="M16 2v4"/>
+              <rect x="3" y="4" width="18" height="18" rx="2"/>
+              <path d="M3 10h18"/>
+            </svg>
+          </div>
+          <div>
+            <span class="badge info">Информация</span>
+            <div>Мониторинг: анализы крови каждые 4 недели.</div>
+          </div>
+        </li>
+      </ul>
+
+      <div class="consent">
+        <button id="switch" class="switch" aria-pressed="false" aria-label="Согласие">
+          <span class="thumb"></span>
+        </button>
+        <label for="switch" id="consent-label">Я понимаю риски и буду следовать рекомендациям врача.</label>
+      </div>
+
+      <div class="actions">
+        <button class="cta" id="start" disabled>Начать отслеживание</button>
+        <a class="link" href="#policy">Политика безопасности и отказ от ответственности</a>
+      </div>
+    </section>
+
+    <p class="foot">Приложение не даёт медицинских рекомендаций. Решения — только с врачом.</p>
+  </div>
+
+  <script>
+  const switchBtn = document.getElementById('switch');
+  const startBtn  = document.getElementById('start');
+  const tgApp = window.Telegram?.WebApp || null;
+
+  // tg-id берём ИЗ ?tg=... (dev) ИЛИ из Telegram.initDataUnsafe (в реальном WebApp)
+  function getUid(){
+    try{
+      const qs  = new URLSearchParams(location.search);
+      const dev = qs.get('tg') || '';
+      if (dev) return String(dev);
+      const u = tgApp?.initDataUnsafe?.user;
+      return (u && u.id) ? String(u.id) : 'anon';
+    }catch(_){ return 'anon'; }
+  }
+  function nsKey(k){ return `dermaApp:${getUid()}:${k}`; }
+
+  function setConsent(on){
+    try{
+      localStorage.setItem('derma_consent', on ? '1' : '0');              // глобальный флаг
+      localStorage.setItem(nsKey('consentAccepted'), on ? '1' : '0');     // именной флаг по tg-id или ?tg
+    }catch(_){}
+  }
+
+  // Если согласие уже есть — включаем кнопку и ставим переключатель
+  const has = (localStorage.getItem('derma_consent') === '1') ||
+              (localStorage.getItem(nsKey('consentAccepted')) === '1');
+  if (has){
+    switchBtn.setAttribute('aria-pressed','true');
+    startBtn.disabled = false;
+  }
+
+  function setEnabled(on){
+    startBtn.disabled = !on;
+    switchBtn.setAttribute('aria-pressed', String(on));
+  }
+
+  switchBtn.addEventListener('click', () => {
+    const next = switchBtn.getAttribute('aria-pressed') !== 'true';
+    setEnabled(next);
+  });
+
+  // Старт: фиксируем согласие, помечаем следующий шаг и возвращаемся в index С СОХРАНЕНИЕМ ?tg
+  startBtn.addEventListener('click', () => {
+    setConsent(true);
+    try{ localStorage.setItem('derma_next', 'profile'); }catch(_){}
+    const qs = location.search || '';
+    location.replace('./index.html' + qs);
+  }, { once: true });
+</script>
+
+</body>
+</html>

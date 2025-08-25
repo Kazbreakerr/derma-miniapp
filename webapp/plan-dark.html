@@ -1,0 +1,92 @@
+<!doctype html><html lang="ru"><head><meta charset="utf-8"/>
+<script>
+  (function(){
+    try{
+      const qs  = location.search || '';
+      const dev = new URLSearchParams(qs).get('tg') || '';
+      const tg  = window.Telegram?.WebApp;
+      const uid = String(dev || tg?.initDataUnsafe?.user?.id || '');
+      const hasNs  = uid && localStorage.getItem(`dermaApp:${uid}:consentAccepted`) === '1';
+      const hasOld = localStorage.getItem('derma_consent') === '1';
+      if (!(hasNs || hasOld)) { location.replace('./warnings.html' + qs); }
+    }catch(_){}
+  })();
+</script>
+<meta name="viewport" content="width=device-width, initial-scale=1"/>
+<title>Derma Mini‑App — План курса</title>
+<script src="https://telegram.org/js/telegram-web-app.js"></script>
+<script>window.API_BASE=window.API_BASE||'';</script>
+<style>
+:root{--bg:#0B1220;--surface:#0E1726;--card:#121C2E;--border:#1F2A3C;--primary:#14B8A6;--text-high:#F3F7FF;--text-low:#93A3BF;--info:#60A5FA;--focus-ring:#93C5FD}
+*{box-sizing:border-box}html,body{height:100%}body{margin:0;background:var(--bg);color:var(--text-high);font-family:ui-sans-serif,system-ui,-apple-system,Segoe UI,Roboto,Inter,Manrope,Helvetica,Arial;font-size:16px;line-height:1.5}
+.wrap{max-width:900px;margin:0 auto;padding:24px 24px 40px}h1{font-size:28px;line-height:34px;margin:0 0 16px;font-weight:600}
+.card{position:relative;background:var(--card);border:1px solid var(--border);border-radius:16px;padding:20px;box-shadow:0 8px 24px rgba(0,0,0,.35)}
+.glow{position:absolute;inset:0;pointer-events:none;background:radial-gradient(120% 120% at 10% 0%, rgba(20,184,166,.18) 0%, rgba(18,28,46,0) 50%)}
+.title{display:flex;gap:12px;align-items:center;margin-bottom:12px}.title h2{margin:0;font-size:22px;line-height:28px;font-weight:600}
+.row{display:flex;flex-wrap:wrap;gap:12px;align-items:center}.muted{color:var(--text-low)}.field{display:flex;flex-direction:column;gap:6px}.inline{display:flex;gap:12px;flex-wrap:wrap}
+label{display:inline-flex;gap:8px;align-items:center}
+input[type=number],input[type=date],select{background:var(--surface);border:1px solid var(--border);color:var(--text-high);border-radius:12px;padding:10px 12px;font-size:16px;line-height:24px;outline:none}
+input:focus,select:focus{border-color:#0EA5A6;box-shadow:0 0 0 2px var(--focus-ring)}
+.cta{height:48px;padding:0 20px;border-radius:12px;border:none;font-weight:600;cursor:pointer;background-image:linear-gradient(135deg,#22D3EE 0%,#14B8A6 100%);color:#07121F;box-shadow:0 6px 16px rgba(0,0,0,.25)}
+footer{margin:24px 0 8px;color:var(--text-low);text-align:center;font-size:13px}.rec{background:#0e1524;border:1px solid #1f2a3c;border-radius:12px;padding:14px}.rec h3{margin:0 0 8px;font-size:18px}
+</style></head>
+<body><div class="wrap"><h1>Derma Mini‑App</h1>
+<section class="card" aria-labelledby="plan-title"><div class="glow"></div>
+  <div class="title">
+    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#60A5FA" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+      <rect x="3" y="4" width="18" height="18" rx="2"/><path d="M3 10h18"/><path d="M8 2v4"/><path d="M16 2v4"/></svg>
+    <h2 id="plan-title">План курса</h2>
+  </div>
+  <div class="field" style="max-width:340px"><label for="plan_drug">Препарат:</label>
+    <select id="plan_drug"><option value="roaccutane">Роаккутан</option><option value="aknekutan">Акнекутан</option><option value="other">Другое</option></select>
+  </div>
+  <div class="inline" style="margin-top:8px"><span class="muted">Тип капсул:</span>
+    <label><input type="radio" name="capmg" value="10" checked> <span id="capLabel1">10 мг</span></label>
+    <label><input type="radio" name="capmg" value="20"> <span id="capLabel2">20 мг</span></label>
+  </div>
+  <div class="field" style="margin-top:8px;max-width:220px"><label for="plan_start">Дата начала курса:</label><input id="plan_start" type="date"></div>
+  <div class="rec" style="margin-top:12px">
+    <h3>Рекомендуемая кумулятивная доза</h3>
+    <div><b>Минимальная (120 мг/кг):</b> <span id="minDose">—</span> мг</div>
+    <div><b>Оптимальная (135 мг/кг):</b> <span id="optDose">—</span> мг</div>
+    <div><b>Максимальная (150 мг/кг):</b> <span id="maxDose">—</span> мг</div>
+    <div class="muted" style="margin-top:6px">Суточная доза варьируется от 10–20 мг в начале до 60–80 мг в пике.</div>
+  </div>
+  <div class="inline" style="margin-top:14px"><label><input id="alreadyCourse" type="checkbox"> Я уже на курсе</label></div>
+  <div id="alreadyWrap" class="inline" style="display:none;margin-top:6px">
+    <div class="field"><label for="alreadyMg">Уже принял(а), примерно (мг):</label><input id="alreadyMg" type="number" placeholder="например, 2400" style="width:200px"></div>
+    <div class="muted" style="max-width:360px">Нужно, чтобы учесть это на главной. Можно округлить.</div>
+  </div>
+  <div class="inline" style="margin-top:16px"><button class="cta" id="btnSavePlan">Сохранить план</button><div id="planMsg" class="muted"></div></div>
+</section>
+<footer>Приложение не даёт медицинских рекомендаций. Решения — только с врачом.</footer></div>
+<script>
+const tgApp=(window.Telegram&&window.Telegram.WebApp)?window.Telegram.WebApp:null;if(tgApp&&tgApp.ready)tgApp.ready();if(tgApp&&tgApp.expand)tgApp.expand();
+const initData=(tgApp&&tgApp.initData)?tgApp.initData:'';const API_BASE=String(window.API_BASE||'').replace(/\/$/,'');const devTg=new URLSearchParams(location.search).get('tg')||'1002';
+function api(path,opts={}){let url=/^https?:\/\//i.test(path)?path:(API_BASE+path);const p=[];if(!initData&&devTg)p.push('tg='+encodeURIComponent(devTg));p.push('v=plan-2025-08-24');url+=(url.includes('?')?'&':'?')+p.join('&');const h={'Content-Type':'application/json',...(opts.headers||{})};if(initData)h['X-Telegram-InitData']=initData;return fetch(url,{...opts,headers:h});}
+const MAP={roaccutane:[10,20],aknekutan:[8,16]};
+function updateCaps(){const drug=document.getElementById('plan_drug').value;const [c1,c2]=MAP[drug]||[10,20];
+  document.querySelector('input[name=capmg][value="10"]').value=c1;document.querySelector('input[name=capmg][value="20"]').value=c2;
+  document.getElementById('capLabel1').textContent=c1+' мг';document.getElementById('capLabel2').textContent=c2+' мг';
+  document.querySelector('input[name=capmg][value="'+c1+'"]').checked=true;}
+document.getElementById('plan_drug').addEventListener('change',updateCaps);updateCaps();
+const already=document.getElementById('alreadyCourse'),wrap=document.getElementById('alreadyWrap');already.addEventListener('change',()=>{wrap.style.display=already.checked?'':'none'});
+(async function preload(){try{const r=await api('/api/me');if(!r.ok)return;const me=await r.json();const w=Number(me.weight_kg||0);if(w>0){document.getElementById('minDose').textContent=Math.round(120*w);document.getElementById('optDose').textContent=Math.round(135*w);document.getElementById('maxDose').textContent=Math.round(150*w);}}catch(e){}})();
+function prevDay(iso){try{const d=new Date(iso);d.setDate(d.getDate()-1);return d.toISOString().slice(0,10)}catch(_){return null}}
+document.getElementById('btnSavePlan').addEventListener('click',async()=>{
+  const msg=document.getElementById('planMsg');const drug=document.getElementById('plan_drug').value;
+  const cap=Number((document.querySelector('input[name=capmg]:checked')||{}).value||0);
+  const start=(document.getElementById('plan_start').value)||null;const taken=Number(document.getElementById('alreadyMg').value||0);
+  if(!cap){msg.textContent='Выберите тип капсул';return;}msg.textContent='Сохраняю план...';
+  try{
+    const r=await api('/api/plan',{method:'POST',body:JSON.stringify({drug,capsule_mg:cap,start_date:start})});if(!r.ok){msg.textContent='Ошибка '+r.status;return;}
+    if(already.checked&&taken>0){msg.textContent='Сохраняю учтённую дозу...';let seeded=false;
+      try{const s=await api('/api/progress/seed',{method:'POST',body:JSON.stringify({cum_mg:Math.round(taken),as_of:(start||new Date().toISOString().slice(0,10))})});if(s.ok)seeded=true;}catch(_){}
+      if(!seeded){const d=start?prevDay(start):new Date().toISOString().slice(0,10);try{const dres=await api('/api/dose',{method:'POST',body:JSON.stringify({mg:Math.round(taken),date:d,note:'seed:already_taken'})});seeded=dres.ok;}catch(_){}} 
+      if(!seeded){try{localStorage.setItem('derma_seed_cum_mg',String(Math.round(taken)));}catch(_){}}}
+    msg.textContent='Готово';try{localStorage.setItem('derma_next','main')}catch(_){}
+    const qs = location.search || '';
+location.replace('./index.html' + qs);
+  }catch(e){msg.textContent='Ошибка сети';}
+});
+</script></body></html>

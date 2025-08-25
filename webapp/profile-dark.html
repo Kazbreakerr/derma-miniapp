@@ -1,0 +1,242 @@
+<!doctype html>
+<html lang="ru">
+<head>
+  <meta charset="utf-8" />
+  <!-- ГЕЙТ: без согласия показываем предупреждения -->
+  <script>
+  (function(){
+    try{
+      const qs  = location.search || '';
+      const dev = new URLSearchParams(qs).get('tg') || '';
+      const tg  = window.Telegram?.WebApp;
+      const uid = String(dev || tg?.initDataUnsafe?.user?.id || '');
+      const hasNs  = uid && localStorage.getItem(`dermaApp:${uid}:consentAccepted`) === '1';
+      const hasOld = localStorage.getItem('derma_consent') === '1';
+      if (!(hasNs || hasOld)) { location.replace('./warnings.html' + qs); }
+    }catch(_){}
+  })();
+</script>
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Derma Mini‑App — Профиль пациента</title>
+  <script src="https://telegram.org/js/telegram-web-app.js"></script>
+  <script>window.API_BASE = window.API_BASE || '';</script>
+  <style>
+    :root{
+      --bg:#0B1220; --surface:#0E1726; --card:#121C2E; --border:#1F2A3C;
+      --primary:#14B8A6; --primary-700:#0EA5A6; --primary-300:#5EEAD4;
+      --info:#60A5FA; --success:#22C55E; --warning:#F59E0B; --danger:#EF4444;
+      --text-high:#F3F7FF; --text-mid:#C7D2FE; --text-low:#93A3BF; --focus-ring:#93C5FD;
+    }
+    *{box-sizing:border-box}
+    html,body{height:100%}
+    body{margin:0;background:var(--bg);color:var(--text-high);
+         font-family:ui-sans-serif,system-ui,-apple-system,Segoe UI,Roboto,Inter,Manrope,Helvetica,Arial;
+         font-size:16px;line-height:1.5}
+    .wrap{max-width:900px;margin:0 auto;padding:24px 24px 40px}
+    h1{font-size:28px;line-height:34px;margin:0 0 16px;font-weight:600}
+    .card{position:relative;background:var(--card);border:1px solid var(--border);border-radius:16px;
+          padding:20px;box-shadow:0 8px 24px rgba(0,0,0,.35);overflow:hidden;transform:scale(.95);opacity:0;animation:pop .12s ease-out forwards}
+    @keyframes pop {to{transform:scale(1);opacity:1}}
+    .glow{position:absolute;inset:0;pointer-events:none;background:radial-gradient(120% 120% at 10% 0%, rgba(20,184,166,.18) 0%, rgba(18,28,46,0) 50%)}
+    .title{display:flex;align-items:center;gap:12px;margin-bottom:12px}
+    .title h2{font-size:22px;line-height:28px;margin:0;font-weight:600}
+    .row{display:flex;flex-wrap:wrap;gap:12px;align-items:center}
+    .muted{color:var(--text-low)}
+    .avatar{width:48px;height:48px;border-radius:50%;display:grid;place-items:center;font-weight:700;
+            background:#0E1726;border:1px solid var(--border);color:var(--text-mid);overflow:hidden}
+    .avatar img{width:100%;height:100%;object-fit:cover}
+    label{display:inline-flex;gap:8px;align-items:center}
+    .field{display:flex;flex-direction:column;gap:6px}
+    .inline{display:flex;gap:12px;flex-wrap:wrap}
+    input[type="number"],input[type="date"],input[type="text"],select{
+      background:var(--surface);border:1px solid var(--border);color:var(--text-high);
+      border-radius:12px;padding:10px 12px;font-size:16px;line-height:24px; font-variant-numeric: tabular-nums;
+      outline: none;
+    }
+    input:focus,select:focus,textarea:focus{border-color:var(--primary-700);box-shadow:0 0 0 2px var(--focus-ring)}
+    .chips{display:flex;gap:16px;flex-wrap:wrap}
+    .checklist{display:grid;grid-template-columns:repeat(auto-fit,minmax(230px,1fr));gap:10px;margin-top:4px}
+    .cta{height:48px;padding:0 20px;border-radius:12px;border:none;font-weight:600;cursor:pointer;
+         background-image:linear-gradient(135deg,#22D3EE 0%, #14B8A6 100%); color:#07121F;
+         box-shadow:0 6px 16px rgba(0,0,0,.25)}
+    .cta:disabled{opacity:.5;background-image:none;background:#1F2A3C;cursor:not-allowed;color:#AEB6C8}
+    footer{margin:24px 0 8px;color:var(--text-low);text-align:center;font-size:13px}
+    .badge{display:inline-flex;align-items:center;gap:6px;padding:4px 10px;border-radius:999px;font-size:12px;
+           border:1px solid #2a3a52;color:var(--text-mid);background:#0f1a2b}
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <h1>Derma Mini‑App</h1>
+
+    <section class="card" aria-labelledby="profile-title">
+      <div class="glow"></div>
+      <div class="title">
+        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#60A5FA" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+          <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/>
+          <circle cx="12" cy="7" r="4"/>
+        </svg>
+        <h2 id="profile-title">Профиль пациента</h2>
+      </div>
+
+      <div class="row" style="margin-bottom:8px">
+        <div class="avatar" id="ava">ДД</div>
+        <div style="display:flex;flex-direction:column">
+          <div id="tgName" style="font-weight:700">—</div>
+          <div class="muted">Telegram</div>
+        </div>
+        <span class="badge" id="profileHint" style="margin-left:auto">Заполните вес, чтобы продолжить</span>
+      </div>
+
+      <div class="inline" style="margin:10px 0 6px">
+        <span class="muted">Пол:</span>
+        <label><input type="radio" name="sex" value="M"> Мужской</label>
+        <label><input type="radio" name="sex" value="F"> Женский</label>
+      </div>
+
+      <div class="inline">
+        <div class="field">
+          <label for="p_weight">Вес (кг)*</label>
+          <input id="p_weight" type="number" inputmode="decimal" placeholder="70" style="width:140px">
+        </div>
+        <div class="field">
+          <label for="p_height">Рост (см)</label>
+          <input id="p_height" type="number" inputmode="decimal" placeholder="175" style="width:140px">
+        </div>
+      </div>
+
+      <div class="field" style="margin-top:8px;max-width:240px">
+        <label for="p_birth">Дата рождения</label>
+        <input id="p_birth" type="date">
+      </div>
+
+      <div style="margin-top:12px">
+        <div><b>Аллергии</b> <span class="muted">(выберите из списка или укажите свою):</span></div>
+        <div class="checklist" style="margin-top:6px">
+          <label><input type="checkbox" name="alg" value="retinoids"> Изотретиноин/ретиноиды</label>
+          <label><input type="checkbox" name="alg" value="soy"> Соя</label>
+          <label><input type="checkbox" name="alg" value="peanut"> Арахис</label>
+          <label><input type="checkbox" name="alg" value="parabens"> Парабены</label>
+          <label><input type="checkbox" name="alg" value="gelatin"> Желатин</label>
+          <label><input type="checkbox" name="alg" value="lactose"> Лактоза</label>
+          <label><input type="checkbox" name="alg" value="antibiotics"> Антибиотики (тетра/докси)</label>
+          <label><input type="checkbox" name="alg" value="unknown"> Не знаю</label>
+        </div>
+        <div class="inline" style="margin-top:10px">
+          <label for="alg_other" class="muted" style="min-width:64px">Другое:</label>
+          <input id="alg_other" type="text" placeholder="уточните" style="flex:1;min-width:260px">
+        </div>
+        <div class="inline" style="margin-top:8px">
+          <label><input id="noAllergies" type="checkbox"> Нет аллергий</label>
+        </div>
+      </div>
+
+      <div class="inline" style="margin-top:14px">
+        <button id="btnSaveProfile" class="cta" disabled>Сохранить профиль</button>
+        <div id="profMsg" class="muted"></div>
+      </div>
+    </section>
+
+    <footer>Приложение не даёт медицинских рекомендаций. Решения — только с врачом.</footer>
+  </div>
+
+  <script>
+    // ====== TG user / avatar ======
+    const tgApp = (window.Telegram && window.Telegram.WebApp) ? window.Telegram.WebApp : null;
+    if (tgApp && tgApp.ready) tgApp.ready();
+    if (tgApp && tgApp.expand) tgApp.expand();
+    const initUser = (tgApp && tgApp.initDataUnsafe && tgApp.initDataUnsafe.user) ? tgApp.initDataUnsafe.user : null;
+    (function fillHeader(){
+      const name = initUser ? [initUser.first_name, initUser.last_name].filter(Boolean).join(' ') : '—';
+      const ava = document.getElementById('ava');
+      const nm  = document.getElementById('tgName');
+      if (nm) nm.textContent = name;
+      if (ava){
+        if (initUser && initUser.photo_url){ ava.innerHTML = '<img alt="" src="'+initUser.photo_url+'">'; }
+        else{
+          const initials = (name||'').trim().split(/\s+/).slice(0,2).map(s=>s[0]||'').join('').toUpperCase() || 'U';
+          ava.textContent = initials;
+        }
+      }
+    })();
+
+    const initData = (tgApp && tgApp.initData) ? tgApp.initData : '';
+    const API_BASE = String(window.API_BASE||'').replace(/\/$/, '');
+    const devTg = new URLSearchParams(location.search).get('tg') || '1002';
+    function api(path, opts={}){
+      let url = /^https?:\/\//i.test(path) ? path : (API_BASE + path);
+      const params = [];
+      if (!initData && devTg) params.push('tg=' + encodeURIComponent(devTg));
+      params.push('v=profile-2025-08-24');
+      url += (url.includes('?') ? '&' : '?') + params.join('&');
+      const headers = { 'Content-Type': 'application/json', ...(opts.headers||{}) };
+      if (initData) headers['X-Telegram-InitData'] = initData;
+      return fetch(url, { ...opts, headers });
+    }
+
+    // ====== Allergies UX ======
+    document.getElementById('noAllergies').addEventListener('change', (e)=>{
+      const on=e.target.checked;
+      document.querySelectorAll('input[name="alg"]').forEach(cb=>{ cb.checked=false; cb.disabled=on; });
+      document.getElementById('alg_other').value='';
+    });
+
+    // ====== Enable Save only with plausible weight ======
+    function syncSaveBtn(){
+      const w = Number(document.getElementById('p_weight').value || 0);
+      const ok = w>20 && w<200;
+      const btn = document.getElementById('btnSaveProfile');
+      const hint = document.getElementById('profileHint');
+      btn.disabled = !ok;
+      hint.textContent = ok ? 'Готово к сохранению' : 'Заполните вес, чтобы продолжить';
+      hint.style.color = ok ? '#5EEAD4' : '';
+      return ok;
+    }
+    ['input','change','keyup','blur'].forEach(ev => document.getElementById('p_weight').addEventListener(ev, syncSaveBtn, {passive:true}));
+
+    // ====== Prefill from server ======
+    (async function loadMe(){
+      try{
+        const r = await api('/api/me');
+        if (!r.ok) return;
+        const me = await r.json();
+        if (me.sex){ const sx = document.querySelector('input[name="sex"][value="'+me.sex+'"]'); if (sx) sx.checked = true; }
+        if (me.weight_kg) document.getElementById('p_weight').value = me.weight_kg;
+        if (me.height_cm) document.getElementById('p_height').value = me.height_cm;
+        if (me.birth_date) document.getElementById('p_birth').value = me.birth_date;
+        (me.allergies||[]).forEach(v=>{
+          const cb = document.querySelector('input[name="alg"][value="'+v+'"]');
+          if (cb) cb.checked = true; else if (String(v).startsWith('other:')){ document.getElementById('alg_other').value = String(v).slice(6); }
+        });
+        syncSaveBtn();
+      }catch(_){ /* ignore */ }
+    })();
+
+    // ====== Save ======
+     document.getElementById('btnSaveProfile').addEventListener('click', async ()=>{
+    const msg = document.getElementById('profMsg');
+    const sex = (document.querySelector('input[name="sex"]:checked')||{}).value || null;
+    const weight_kg = Number(document.getElementById('p_weight').value || 0);
+    const height_cm = Number(document.getElementById('p_height').value || 0) || null;
+    const birth_date = document.getElementById('p_birth').value || null;
+    const checked = [...document.querySelectorAll('input[name="alg"]:checked')].map(i=>i.value);
+    const other = document.getElementById('alg_other').value.trim();
+    const noAll = document.getElementById('noAllergies').checked;
+    const allergies = noAll ? [] : (other ? [...checked, `other:${other}`] : checked);
+
+    msg.textContent = 'Сохраняю...';
+    try{
+      const r = await api('/api/me', { method:'POST', body: JSON.stringify({ sex, weight_kg, height_cm, birth_date, allergies }) });
+      if (!r.ok){ let text='Ошибка '+r.status; try{const j=await r.json(); if(j&&j.error) text=j.error;}catch{} msg.textContent=text; return; }
+      msg.textContent = 'Сохранено';
+      try{ localStorage.setItem('derma_next','plan'); }catch(_){}
+      const qs = location.search || '';
+      setTimeout(()=>location.replace('./index.html' + qs), 200);
+    }catch(_){ msg.textContent='Ошибка сети'; }
+  }, { once:true });  // защита от двойного клика
+
+    // начальная валидация
+    syncSaveBtn();
+  </script>
+</body>
+</html>

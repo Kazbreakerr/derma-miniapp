@@ -1,0 +1,113 @@
+<!doctype html>
+<html lang="ru">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Roaccutane Tracker — Добро пожаловать</title>
+  <script src="https://telegram.org/js/telegram-web-app.js"></script>
+  <style>
+    :root{
+      --bg:#0B1220; --surface:#0E1726; --card:#121C2E; --border:#1F2A3C;
+      --primary:#14B8A6; --primary-300:#5EEAD4;
+      --info:#60A5FA; --warning:#F59E0B; --danger:#EF4444;
+      --text-high:#F3F7FF; --text-mid:#C7D2FE; --text-low:#93A3BF;
+    }
+    *{box-sizing:border-box}
+    body{margin:0;background:radial-gradient(100% 60% at 20% 0%, rgba(20,184,166,.10), transparent 60%),
+                     radial-gradient(100% 60% at 80% 10%, rgba(96,165,250,.10), transparent 60%),
+                     var(--bg);
+         color:var(--text-high);
+         font-family:ui-sans-serif,system-ui,-apple-system,Segoe UI,Roboto,Inter,Manrope,Helvetica,Arial;
+         min-height:100dvh; display:grid; place-items:center}
+    .wrap{width:min(980px,94vw); padding:24px}
+    .card{background:var(--card); border:1px solid var(--border); border-radius:20px; padding:28px;
+          box-shadow:0 16px 48px rgba(0,0,0,.40); overflow:hidden; position:relative}
+    .glow{position:absolute; inset:0; pointer-events:none;
+          background:radial-gradient(120% 80% at 10% 0%, rgba(20,184,166,.18), transparent 50%),
+                     radial-gradient(120% 80% at 90% 20%, rgba(96,165,250,.18), transparent 60%)}
+    h1{margin:0 0 8px; font-weight:800; font-size:28px}
+    p{margin:6px 0; color:var(--text-mid); font-size:16px}
+    .row{display:flex; gap:20px; align-items:center; flex-wrap:wrap}
+    .cta{display:flex; gap:12px; align-items:center; margin-top:16px; flex-wrap:wrap}
+    .btn{appearance:none; border:none; background:var(--primary); color:#001016; font-weight:700;
+         padding:12px 16px; border-radius:12px; cursor:pointer; box-shadow:0 8px 24px rgba(20,184,166,.25)}
+    .btn:active{transform:translateY(1px)}
+    .tag{display:inline-flex; gap:6px; align-items:center; padding:6px 10px; border-radius:999px;
+         border:1px solid var(--border); color:var(--text-mid); font-size:13px}
+    /* Anim */
+    .stage{position:relative; width:140px; height:140px; border-radius:16px;
+           background:linear-gradient(160deg,#0E1726,#101b2b);
+           border:1px solid var(--border); display:grid; place-items:center}
+    .pill{width:84px; height:36px}
+    .pill .left{fill:#fff}
+    .pill .right{fill:#14b8a6}
+    .pill{animation:bob 2.4s ease-in-out infinite}
+    @keyframes bob{ 0%,100%{ transform:translateY(0)} 50%{ transform:translateY(-6px)} }
+    .ring{position:absolute; width:110px; height:110px; border-radius:999px; pointer-events:none;
+          border:3px solid rgba(94,234,212,.35); animation:ripple 2.8s ease-out infinite}
+    @keyframes ripple{ 0%{ transform:scale(.85); opacity:.8 } 80%{ transform:scale(1.15); opacity:.08 } 100%{opacity:0} }
+    @media (max-width:600px){
+      .stage{width:120px;height:120px}
+      .pill{width:76px;height:34px}
+    }
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <div class="card">
+      <div class="glow"></div>
+      <div class="row">
+        <div class="stage" aria-hidden="true">
+          <div class="ring"></div>
+          <svg class="pill" viewBox="0 0 200 86" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="Капсула">
+            <defs>
+              <clipPath id="capsule"><rect x="0" y="0" rx="43" ry="43" width="200" height="86"/></clipPath>
+            </defs>
+            <g clip-path="url(#capsule)">
+              <rect class="left"  x="0"   y="0" width="100" height="86"/>
+              <rect class="right" x="100" y="0" width="100" height="86"/>
+              <rect x="94" y="0" width="12" height="86" fill="#0E1726" opacity=".45"/>
+            </g>
+            <rect x="0" y="0" rx="43" ry="43" width="200" height="86"
+                  fill="none" stroke="rgba(255,255,255,.65)" stroke-width="2"/>
+          </svg>
+        </div>
+
+        <div style="flex:1; min-width:240px">
+          <h1>Добро пожаловать в Roaccutane Tracker</h1>
+          <p>Поможем аккуратно пройти курс: фиксируйте дозы, следите за прогрессом и не пропускайте приём.</p>
+          <div class="cta">
+            <button id="startBtn" class="btn">Начать</button>
+            <span class="tag">TG WebApp готов</span>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script>
+  const tgApp = window.Telegram?.WebApp || null;
+  tgApp?.ready?.();
+  tgApp?.expand?.();
+
+  function getTgId() {
+    try {
+      const qs  = new URLSearchParams(location.search);
+      const dev = qs.get('tg') || '';
+      if (dev) return String(dev);
+      const u = tgApp?.initDataUnsafe?.user;
+      return u?.id ? String(u.id) : '';
+    } catch (_) { return ''; }
+  }
+
+  const tgId    = getTgId();
+  const tgQuery = tgId ? ('?tg=' + encodeURIComponent(tgId)) : '';
+
+  document.getElementById('startBtn').addEventListener('click', () => {
+    // идём на предупреждения, обязательно с ?tg
+    location.replace('./warnings.html' + tgQuery);
+  }, { once: true });
+</script>
+
+</body>
+</html>

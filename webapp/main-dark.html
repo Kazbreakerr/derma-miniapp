@@ -1,0 +1,308 @@
+<!doctype html>
+<html lang="ru">
+<head>
+  <meta charset="utf-8" />
+  <script>try{ if(localStorage.getItem('derma_consent')!=='1'){ location.replace('./warnings.html'); } }catch(_){}</script>
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Derma Mini‑App — Главная</title>
+  <script src="https://telegram.org/js/telegram-web-app.js"></script>
+  <script>window.API_BASE = window.API_BASE || '';</script>
+  <style>
+    :root{
+      --bg:#0B1220; --surface:#0E1726; --card:#121C2E; --border:#1F2A3C;
+      --primary:#14B8A6; --primary-700:#0EA5A6; --primary-300:#5EEAD4;
+      --info:#60A5FA; --success:#22C55E; --warning:#F59E0B; --danger:#EF4444;
+      --text-high:#F3F7FF; --text-mid:#C7D2FE; --text-low:#93A3BF; --focus-ring:#93C5FD;
+      --ring-gray:#2a3342; --ring-ok:#22C55E;
+    }
+    *{box-sizing:border-box}
+    html,body{height:100%}
+    body{margin:0;background:var(--bg);color:var(--text-high);
+         font-family:ui-sans-serif,system-ui,-apple-system,Segoe UI,Roboto,Inter,Manrope,Helvetica,Arial;
+         font-size:16px;line-height:1.5}
+    .wrap{max-width:980px;margin:0 auto;padding:24px 24px 40px}
+    h1{font-size:28px;line-height:34px;margin:0 0 16px;font-weight:600}
+    h2{font-size:22px;line-height:28px;margin:0 0 12px;font-weight:600}
+    .card{position:relative;background:var(--card);border:1px solid var(--border);border-radius:16px;
+          padding:16px;box-shadow:0 8px 24px rgba(0,0,0,.35);overflow:hidden}
+    .glow{position:absolute;inset:0;pointer-events:none;background:radial-gradient(120% 120% at 10% 0%, rgba(20,184,166,.18) 0%, rgba(18,28,46,0) 50%)}
+    .row{display:flex;gap:12px;align-items:center;flex-wrap:wrap}
+    .muted{color:var(--text-low)}
+    .ava{width:44px;height:44px;border-radius:50%;display:grid;place-items:center;font-weight:700;background:#0E1726;border:1px solid var(--border);color:var(--text-mid);overflow:hidden}
+    .ava img{width:100%;height:100%;object-fit:cover}
+    .clickable{cursor:pointer}
+    input,button{font:inherit}
+    input[type="number"], input[type="date"]{
+      background:var(--surface);border:1px solid var(--border);color:var(--text-high);
+      border-radius:12px;padding:10px 12px;font-size:16px;line-height:24px;outline:none
+    }
+    input:focus{border-color:var(--primary-700);box-shadow:0 0 0 2px var(--focus-ring)}
+    .cta{height:44px;padding:0 16px;border-radius:12px;border:none;font-weight:600;cursor:pointer;
+         background-image:linear-gradient(135deg,#22D3EE 0%, #14B8A6 100%); color:#07121F;
+         box-shadow:0 6px 16px rgba(0,0,0,.25)}
+    .chip{min-width:48px;height:44px;display:inline-flex;align-items:center;justify-content:center;border-radius:12px;padding:0 14px;margin-right:10px;background:#152235;color:#F3F7FF;border:1px solid transparent;font-weight:600}
+    .chip:hover{border-color:#14B8A6}
+    .section{margin-top:16px}
+    .progress-grid{display:grid;grid-template-columns:1fr minmax(160px,220px) 1fr;gap:18px;align-items:center}
+    .ring-wrap{position:relative;display:grid;place-items:center}
+    .ring-wrap svg{width:160px;height:160px}
+    .ring-label{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;font-weight:700;font-size:20px}
+    @media (max-width:600px){
+      .progress-grid{grid-template-columns:1fr;gap:10px}
+      .ring-wrap svg{width:120px;height:120px}
+      .ring-label{font-size:18px}
+    }
+    .preview-row{display:flex;gap:10px;overflow:auto;padding-bottom:8px}
+    .day-card{min-width:88px;border:1px solid var(--border);background:#0E1726;border-radius:12px;padding:8px 10px}
+    .day-card b{display:block}
+    a{color:var(--text-mid);text-decoration:underline;text-underline-offset:3px}
+    footer{margin:24px 0 8px;color:var(--text-low);text-align:center;font-size:13px}
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <h1>Derma Mini‑App</h1>
+
+    <section class="card clickable" id="cardProfile" aria-label="Профиль">
+      <div class="glow"></div>
+      <div class="row">
+        <div class="ava" id="ava">ДД</div>
+        <div style="flex:1">
+          <div id="fullName" style="font-weight:700">—</div>
+          <div class="muted">День курса: <span id="courseDay">—</span> · Выпито: <span id="consumedTop">0</span> мг</div>
+        </div>
+      </div>
+    </section>
+
+    <section class="card section" aria-labelledby="progress-title">
+      <div class="glow"></div>
+      <h2 id="progress-title" style="margin-bottom:12px">Прогресс</h2>
+
+      <div class="progress-grid">
+        <div><div><b>Кумулятивно:</b> <span id="cumMg">0</span> мг</div></div>
+        <div class="ring-wrap">
+          <svg viewBox="0 0 110 110">
+            <circle cx="55" cy="55" r="50" stroke="var(--ring-gray)" stroke-width="10" fill="none"></circle>
+            <circle id="ringArc" cx="55" cy="55" r="50" stroke="var(--ring-ok)" stroke-width="10" fill="none"
+                    stroke-linecap="round" stroke-dasharray="314.159" stroke-dashoffset="314.159"></circle>
+          </svg>
+          <div id="ringPct" class="ring-label">0,00%</div>
+        </div>
+        <div style="text-align:right">
+          <div><b>Всего:</b> <span id="cumPerKg">0,00</span> мг/кг</div>
+          <div class="muted">к 135 мг/кг</div>
+        </div>
+      </div>
+
+      <div class="section" id="infoLines">
+        <div><b>Вес:</b> <span id="weightLine">—</span> кг</div>
+        <div><b>Средняя доза:</b> <span id="avg7">0</span>/<span id="avg14">0</span> мг/день (7/14)</div>
+        <div id="goalsLine"><b>Цели:</b> 120 / <b>135</b> / 150 мг/кг <span id="goalsByWeight" class="muted"></span></div>
+        <div><b>Ориентировочная дата достижения 135 мг/кг:</b> <span id="eta135">—</span></div>
+      </div>
+    </section>
+
+    <section class="card section" aria-labelledby="dose-title">
+      <div class="glow"></div>
+      <h2 id="dose-title" style="margin-bottom:8px">Отметить приём</h2>
+      <div class="row">
+        <div>Мг:</div>
+        <input id="mg" type="number" step="1" value="20" style="width:140px">
+        <div>Дата:</div>
+        <input id="date" type="date" style="width:180px">
+        <button id="save" class="cta">Сохранить</button>
+      </div>
+      <div class="row" id="chips" style="margin-top:10px"></div>
+      <div id="saveStatus" class="muted" style="margin-top:8px"></div>
+    </section>
+
+    <section class="card section" aria-labelledby="last-title">
+      <div class="glow"></div>
+      <h2 id="last-title" style="margin-bottom:8px">Последние отметки</h2>
+      <div id="lastDoses" class="muted">Нет отметок</div>
+    </section>
+
+    <section class="card section clickable" id="cardCalendar" aria-label="Календарь">
+      <div class="glow"></div>
+      <div class="row" style="justify-content:space-between"><h2 style="margin:0">Календарь (превью)</h2><a>Открыть</a></div>
+      <div id="calPreview" class="preview-row" style="margin-top:10px"></div>
+    </section>
+
+    <section class="card section clickable" id="cardPhotos" aria-label="Фото">
+      <div class="glow"></div>
+      <div class="row" style="justify-content:space-between"><h2 style="margin:0">Фотографии на курсе</h2><a>Открыть</a></div>
+    </section>
+
+    <section class="card section" aria-label="FAQ">
+      <div class="glow"></div>
+      <h2 style="margin-bottom:8px">FAQ</h2>
+      <a href="/faq#start">Как начать</a>
+    </section>
+
+    <footer>Приложение не даёт медицинских рекомендаций. Решения — только с врачом.</footer>
+  </div>
+
+  <script>
+    const tgApp = (window.Telegram && window.Telegram.WebApp) ? window.Telegram.WebApp : null;
+    if (tgApp && tgApp.ready) tgApp.ready();
+    if (tgApp && tgApp.expand) tgApp.expand();
+    const initUser = tgApp?.initDataUnsafe?.user || null;
+    const initData = tgApp?.initData || '';
+
+    const API_BASE = String(window.API_BASE||'').replace(/\/$/, '');
+    const devTg = new URLSearchParams(location.search).get('tg') || '1002';
+    function api(path, opts={}){
+      let url = /^https?:\/\//i.test(path) ? path : (API_BASE + path);
+      const params = []; if (!initData && devTg) params.push('tg='+encodeURIComponent(devTg)); params.push('v=main-2025-08-24');
+      url += (url.includes('?') ? '&' : '?') + params.join('&');
+      const headers = {'Content-Type':'application/json', ...(opts.headers||{})};
+      if (initData) headers['X-Telegram-InitData'] = initData;
+      return fetch(url, {...opts, headers});
+    }
+
+    function initials(name){ return (name||'').trim().split(/\s+/).slice(0,2).map(s=>s[0]||'').join('').toUpperCase() || 'U'; }
+    const fmtInt = n => Number(n||0).toLocaleString('ru-RU');
+    const fmt2   = n => Number(n||0).toLocaleString('ru-RU',{minimumFractionDigits:2,maximumFractionDigits:2});
+    const todayISO = () => { const d=new Date(); d.setMinutes(d.getMinutes()-d.getTimezoneOffset()); return d.toISOString().slice(0,10); };
+    function ddmmyyyy(iso){ if(!iso) return '—'; const d=new Date(iso); return String(d.getDate()).padStart(2,'0')+'.'+String(d.getMonth()+1).padStart(2,'0')+'.'+d.getFullYear(); }
+    function daysDiffUTC(aISO,bISO){ try{ const a=new Date(aISO), b=new Date(bISO); const ad=Date.UTC(a.getFullYear(),a.getMonth(),a.getDate()); const bd=Date.UTC(b.getFullYear(),b.getMonth(),b.getDate()); return Math.floor((ad-bd)/86400000);}catch{ return 0; } }
+
+    function go(path){ try{ history.pushState(null,'',path); location.assign(path);}catch{ location.href = path; } }
+    document.getElementById('cardProfile').addEventListener('click',()=>go('/profile'));
+    document.getElementById('cardCalendar').addEventListener('click',()=>go('/calendar'));
+    document.getElementById('cardPhotos').addEventListener('click',()=>go('/photos'));
+
+    let ME=null, PLAN=null, DOSES=[];
+
+    (function fillHeader(){
+      const name = initUser ? [initUser.first_name, initUser.last_name].filter(Boolean).join(' ') : '—';
+      document.getElementById('fullName').textContent = name;
+      const ava = document.getElementById('ava');
+      if (initUser && initUser.photo_url){ ava.innerHTML = '<img alt="" src="'+initUser.photo_url+'">'; }
+      else{ ava.textContent = initials(name); }
+    })();
+
+    const RING_C = 2*Math.PI*50;
+    function setRing(pct){
+      const arc=document.getElementById('ringArc');
+      const lbl=document.getElementById('ringPct');
+      const p = Math.max(0, Math.min(100, Number(pct)||0));
+      arc.style.strokeDasharray = String(RING_C);
+      arc.style.strokeDashoffset = String(RING_C*(1-p/100));
+      lbl.textContent = fmt2(p) + '%';
+    }
+
+    function renderChips(drug){
+      const box = document.getElementById('chips'); box.innerHTML='';
+      const arr = (drug==='aknekutan') ? [8,16,24,32,40,48,56,64] : [10,20,30,40,50,60];
+      arr.forEach(v=>{
+        const b=document.createElement('button'); b.className='chip'; b.textContent=String(v); b.dataset.mg=String(v);
+        b.addEventListener('click',()=>{ document.getElementById('mg').value = v; });
+        box.appendChild(b);
+      });
+    }
+
+    function renderCalPreview(){
+      const box=document.getElementById('calPreview'); box.innerHTML='';
+      const map = new Map();
+      DOSES.forEach(x=>{ const k=(x.date||'').slice(0,10); map.set(k, (map.get(k)||0) + Number(x.mg_taken||x.mg||0)); });
+      const start = new Date(); start.setHours(0,0,0,0);
+      for(let i=0;i<10;i++){
+        const d = new Date(start); d.setDate(start.getDate()+i);
+        const iso = d.toISOString().slice(0,10);
+        const card = document.createElement('div'); card.className='day-card';
+        const mg = map.get(iso);
+        card.innerHTML = '<b>'+ddmmyyyy(iso)+'</b><div class="muted">'+(mg? (fmtInt(mg)+' мг 💊') : '—')+'</div>';
+        box.appendChild(card);
+      }
+    }
+
+    function updateSummary(){
+      const ms = DOSES.map(x=>Number(x.mg_taken||x.mg||0));
+      let cum = ms.reduce((a,b)=>a+b,0);
+      try{ const seed = Number(localStorage.getItem('derma_seed_cum_mg')||0); if (seed>0) cum += seed; }catch(_){}
+      const w = Number(ME?.weight_kg||0) || Number(PLAN?.weight_kg||0) || 0;
+
+      document.getElementById('cumMg').textContent    = fmtInt(cum);
+      document.getElementById('consumedTop').textContent = fmtInt(cum);
+      document.getElementById('weightLine').textContent = w>0?fmtInt(w):'—';
+
+      const byDate = {}; DOSES.forEach(x=>{ const k=(x.date||'').slice(0,10); byDate[k]=(byDate[k]||0)+Number(x.mg_taken||x.mg||0); });
+      const today = todayISO();
+      function sumDays(n){
+        let s=0; for(let i=0;i<n;i++){ const d=new Date(today); d.setDate(d.getDate()-i); const iso=d.toISOString().slice(0,10); s += (byDate[iso]||0); } return s;
+      }
+      const a7 = sumDays(7)/7; const a14=sumDays(14)/14;
+      document.getElementById('avg7').textContent  = fmtInt(Math.round(a7));
+      document.getElementById('avg14').textContent = fmtInt(Math.round(a14));
+
+      const perKg = (w>0) ? (cum / w) : 0;
+      document.getElementById('cumPerKg').textContent = fmt2(perKg);
+      const pct = (w>0) ? (100 * cum / (135*w)) : 0;
+      setRing(pct);
+
+      const goalsSpan = document.getElementById('goalsByWeight');
+      if (w>0){
+        goalsSpan.textContent = ' · по вашему весу: '+fmtInt(Math.round(120*w))+' / '+fmtInt(Math.round(135*w))+' / '+fmtInt(Math.round(150*w))+' мг';
+      }else{
+        goalsSpan.textContent = '';
+      }
+
+      let eta = '—';
+      const avgForEta = a14>0? a14 : (a7>0? a7 : 0);
+      if (w>0 && avgForEta>0){
+        const left = Math.max(0, 135*w - cum);
+        const days = Math.ceil(left / avgForEta);
+        const dt = new Date(); dt.setDate(dt.getDate()+days);
+        eta = ddmmyyyy(dt.toISOString().slice(0,10));
+      }
+      document.getElementById('eta135').textContent = eta;
+
+      let day='—';
+      if (PLAN?.start_date){
+        const diff = daysDiffUTC(new Date().toISOString().slice(0,10), PLAN.start_date);
+        day = diff>=0 ? String(1+diff) : '—';
+      }
+      document.getElementById('courseDay').textContent = day;
+    }
+
+    function renderLast(){
+      const box = document.getElementById('lastDoses');
+      if (!DOSES.length){ box.textContent='Нет отметок'; return; }
+      const rows = DOSES.slice(0,4).map(x => ddmmyyyy((x.date||'').slice(0,10))+': '+fmtInt(Number(x.mg_taken||x.mg||0))+' мг 💊');
+      box.innerHTML = rows.join('<br>');
+    }
+
+    async function loadAll(){
+      try{
+        const [meR, planR, doseR] = await Promise.all([ api('/api/me'), api('/api/plan'), api('/api/dose?limit=60') ]);
+        ME   = meR.ok ? await meR.json()   : null;
+        PLAN = planR.ok ? await planR.json() : null;
+        DOSES= doseR.ok ? await doseR.json() : [];
+        renderChips((PLAN?.drug||'roaccutane').toLowerCase());
+        document.getElementById('date').value = todayISO();
+        updateSummary(); renderLast(); renderCalPreview();
+      }catch(e){
+        renderChips('roaccutane');
+      }
+    }
+
+    document.getElementById('save').addEventListener('click', async ()=>{
+      const mg = Number(document.getElementById('mg').value||0);
+      const date = document.getElementById('date').value || todayISO();
+      const st = document.getElementById('saveStatus');
+      if (!(mg>0)){ st.textContent='Введите дозу > 0'; return; }
+      st.textContent='Сохраняю...';
+      try{
+        const r = await api('/api/dose',{method:'POST', body: JSON.stringify({ mg, date })});
+        if (!r.ok){ st.textContent='Ошибка '+r.status; return; }
+        st.textContent='Сохранено';
+        DOSES.unshift({ mg_taken:mg, date:date });
+        updateSummary(); renderLast(); renderCalPreview();
+      }catch(e){ st.textContent='Ошибка сети'; }
+    });
+
+    loadAll();
+  </script>
+</body>
+</html>
