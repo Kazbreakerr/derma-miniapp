@@ -1,30 +1,50 @@
 <!doctype html>
 <html lang="ru">
 <head>
-  <!-- 1) Сначала кодировка -->
-  <meta charset="utf-8" />
-<script>
+  <script>
 (function(){
-  const params = new URLSearchParams(location.search);
-  const DEBUG  = params.get('debug') === '1';        // включаем только с ?debug=1
+  // включаем только если ?debug=1 или start_param=debug
+  const qp = new URLSearchParams(location.search);
+  const byQuery = qp.get('debug') === '1';
+  const startParam = window.Telegram?.WebApp?.initDataUnsafe?.start_param;
+  const byStartApp = startParam === 'debug';
+  const DEBUG = byQuery || byStartApp;
   if (!DEBUG) return;
 
-  const tg   = window.Telegram?.WebApp || null;
+  const tg = window.Telegram?.WebApp || null;
+  const inside = !!tg;
+  const initLen = (tg?.initData || '').length;
   const user = tg?.initDataUnsafe?.user || null;
-  const init = tg?.initData || '';
 
-  // Покажем в Telegram всплывающее окно
+  // Покажем всплывашку прямо в Telegram (работает и на мобиле, и на Desktop)
   if (tg && tg.showAlert) {
-    tg.showAlert(JSON.stringify(user || { no: 'user' }, null, 2));
+    tg.showAlert(JSON.stringify({
+      inside_webapp: inside,
+      initData_length: initLen,
+      user
+    }, null, 2));
   } else {
-    alert('Похоже, это не Telegram WebApp (нет Telegram.WebApp)');
+    alert('Похоже, это НЕ Telegram WebApp (нет Telegram.WebApp)');
   }
 
-  // Параллельно — в консоль (видно в обычном браузере)
-  console.log('initData length:', init?.length || 0);
-  console.log('user:', user);
+  // Дополнительно спросим сервер (если сделаешь /api/debug)
+  try {
+    const initData = tg?.initData || '';
+    const h = {'Content-Type':'application/json'};
+    let url = '/api/debug?v=1';
+    if (initData) {
+      h['X-Telegram-InitData'] = initData;
+      url += '&tgWebAppData=' + encodeURIComponent(initData); // дубль на случай редиректа
+    }
+    fetch(url, {headers: h, credentials:'include'})
+      .then(r=>r.json())
+      .then(j=> tg?.showAlert?.('SERVER:\n' + JSON.stringify(j, null, 2)))
+      .catch(()=>{});
+  } catch(_) {}
 })();
 </script>
+  <!-- 1) Сначала кодировка -->
+  <meta charset="utf-8" />
   
 <script>
 (function(){
