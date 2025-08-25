@@ -39,6 +39,9 @@ try { console.log('PG host:', new URL(dsn).hostname); } catch {}
 // Берём токен из ENV, а если его забыли — из уже созданного экземпляра бота
 const BOT_TOKEN = process.env.BOT_TOKEN || (bot?.telegram?.token ?? '');
 console.log('Auth token ends with:', (BOT_TOKEN || '').slice(-6));
+if (!BOT_TOKEN) {
+  console.error('BOT_TOKEN is missing'); process.exit(1);
+}
 
 function parseAndVerifyInitData(initData) {
   if (!BOT_TOKEN) throw new Error('BOT_TOKEN missing');
