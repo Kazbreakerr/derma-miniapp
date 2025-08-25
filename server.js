@@ -15,8 +15,12 @@ const { Pool } = pg;
 console.log('Boot server.js at', new Date().toISOString());
 
 const app = express();
-app.use(express.json()); // один раз
-app.use(cors());
+app.use(express.json());
+app.use(cors({
+  origin: true,
+  credentials: true,
+  allowedHeaders: ['Content-Type', 'X-Telegram-InitData', 'tgwebappdata']
+}));
 
 
 
@@ -63,7 +67,10 @@ function parseAndVerifyInitData(initData) {
 
 // DEV-дружественная аутентификация: либо initData, либо ?tg=...
 function tgAuth(req, res, next) {
-  const initData = req.get('X-Telegram-InitData') || req.query.initData || '';
+  const initData = req.get('X-Telegram-InitData')
+               || req.query.tgWebAppData
+               || req.query.initData
+               || '';
   if (!initData) {
     const tg = req.query.tg;
     if (tg) { req.tg = Number(tg); return next(); }
@@ -101,7 +108,10 @@ async function ensureUser(req) {
     // 1) Достаём tg_id из заголовка initData (Telegram) или ?tg (DEV)
     let tgId = null, fullName = null, username = null;
 
-    const initDataRaw = req.get('X-Telegram-InitData');
+    const initDataRaw = req.get('X-Telegram-InitData')
+                   || req.query.tgWebAppData
+                   || req.query.initData
+                   || '';
     if (initDataRaw) {
       const p = new URLSearchParams(initDataRaw);
       const userStr = p.get('user');
@@ -126,12 +136,12 @@ async function ensureUser(req) {
     // 2) Заводим/обновляем пользователя
     const { rows } = await pool.query(
       `insert into derma.users (tg_id, full_name)
-       values ($1, $2)
-       on conflict (tg_id) do update
-         set full_name = coalesce(EXCLUDED.full_name, derma.users.full_name),
-             updated_at = now()
-       returning *`,
-      [tgId, fullName]
+ values ($1::bigint, $2)
+ on conflict (tg_id) do update
+   set full_name = coalesce(EXCLUDED.full_name, derma.users.full_name),
+       updated_at = now()
+ returning *`,
+[tgId, fullName]
     );
     return rows[0] || null;
   } catch (e) {
@@ -151,6 +161,35 @@ app.get('/api/db-test', async (req, res) => {
     res.json(rows[0]);
   } catch (e) {
     res.status(500).json({ error: String(e.message || e) });
+  }
+});
+// ===== DEBUG: покажет, долетело ли initData, валиден ли хеш и куда подключена БД
+app.get('/api/debug', async (req, res) => {
+  try {
+    const rawHeader = req.get('X-Telegram-InitData') || '';
+    const rawQuery  = req.query.tgWebAppData || req.query.initData || '';
+    let valid = false, user = null, err = null;
+
+    try {
+      const parsed = parseAndVerifyInitData(rawHeader || rawQuery);
+      valid = !!parsed?.user?.id;
+      user = parsed?.user || null;
+    } catch (e) { err = String(e.message || e); }
+
+    const { rows: [db] } = await pool.query(`SELECT current_database() AS db, current_user AS "user"`);
+    const { rows: [sp] } = await pool.query(`SHOW search_path`);
+
+    res.json({
+      got_header: !!rawHeader,
+      got_query:  !!rawQuery,
+      valid,
+      user,
+      db,
+      search_path: sp.search_path,
+      error: err
+    });
+  } catch (e) {
+    res.status(500).json({ error: String(e) });
   }
 });
 

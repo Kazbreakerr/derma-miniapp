@@ -2,6 +2,78 @@
 <html lang="ru">
 <head>
   <script src="https://telegram.org/js/telegram-web-app.js"></script>
+  <script>
+  // Глобальный helper для всех запросов: передаёт initData в заголовке + в URL (fallback).
+  window.api = function api(path, opts){
+    opts = opts || {};
+    const base     = String(window.API_BASE || '').replace(/\/$/,'');
+    const initData = window.Telegram?.WebApp?.initData || '';
+    const devTg    = new URLSearchParams(location.search).get('tg'); // только вне Telegram
+
+    const headers = Object.assign({'Content-Type':'application/json'}, opts.headers || {});
+    if (initData) headers['X-Telegram-InitData'] = initData;
+
+    let url = base + path;
+
+    // dev ?tg=... разрешаем ТОЛЬКО когда нет initData (не внутри Telegram)
+    if (!initData && devTg) {
+      url += (url.includes('?') ? '&' : '?') + 'tg=' + encodeURIComponent(devTg);
+    }
+
+    // защита от кэша
+    url += (url.includes('?') ? '&' : '?') + 'v=' + Date.now();
+
+    // дубль initData в query, чтобы пережить 301/302
+    if (initData) url += '&tgWebAppData=' + encodeURIComponent(initData);
+
+    return fetch(url, { ...opts, headers, credentials:'include' });
+  };
+</script>
+<script>
+(function(){
+  const qp = new URLSearchParams(location.search);
+  const startParam = window.Telegram?.WebApp?.initDataUnsafe?.start_param;
+  const DEBUG = qp.get('debug') === '1' || startParam === 'debug';
+  if (!DEBUG) return;
+
+  const btn = document.createElement('button');
+  btn.textContent = 'Server debug';
+  btn.style.cssText = 'position:fixed;right:12px;bottom:12px;z-index:99999;padding:10px 14px;border-radius:10px;border:none;box-shadow:0 2px 8px rgba(0,0,0,.2);';
+  btn.onclick = () => {
+    window.api('/api/debug')
+      .then(r=>r.json())
+      .then(j=>Telegram.WebApp.showAlert(JSON.stringify(j,null,2)))
+      .catch(e=>Telegram.WebApp.showAlert('Error: '+e));
+  };
+  document.addEventListener('DOMContentLoaded', () => document.body.appendChild(btn));
+})();
+</script>
+  <script>
+  // Глобальный helper для всех запросов: шлёт initData в заголовке + в URL (fallback),
+  // всегда добавляет credentials, поддерживает dev ?tg=... только вне Telegram.
+  window.api = function api(path, opts){
+    opts = opts || {};
+    const base = String(window.API_BASE || '').replace(/\/$/,'');
+    const initData = window.Telegram?.WebApp?.initData || '';
+    const devTg = new URLSearchParams(location.search).get('tg'); // юзаем только если не в TG
+
+    const headers = Object.assign({'Content-Type':'application/json'}, opts.headers || {});
+    if (initData) headers['X-Telegram-InitData'] = initData;
+
+    let url = base + path;
+
+    // dev-режим (?tg=...) разрешаем только когда initData нет (т.е. не в Telegram)
+    if (!initData && devTg) url += (url.includes('?') ? '&' : '?') + 'tg=' + encodeURIComponent(devTg);
+
+    // версия, чтобы не ловить кэш
+    url += (url.includes('?') ? '&' : '?') + 'v=' + Date.now();
+
+    // дублируем initData в query, чтобы пережить возможные 301/302
+    if (initData) url += '&tgWebAppData=' + encodeURIComponent(initData);
+
+    return fetch(url, { ...opts, headers, credentials: 'include' });
+  };
+</script>
 <script>
 (function(){
   const qp = new URLSearchParams(location.search);
@@ -89,11 +161,11 @@ try{
   // 2.4: fallback по данным API
   (async () => {
     const pqs = qs || '';
-    const meRes   = await fetch('/api/me'   + pqs, { credentials:'include' }).catch(()=>null);
+    const meRes   = await window.api('/api/me'   + pqs).catch(()=>null);
     const me      = meRes && meRes.ok ? await meRes.json() : null;
     if (!me || !me.weight) { location.replace('./profile-dark.html' + qs); return; }
 
-    const planRes = await fetch('/api/plan' + pqs, { credentials:'include' }).catch(()=>null);
+    const planRes = await window.api('/api/plan' + pqs).catch(()=>null);
     const plan    = planRes && planRes.ok ? await planRes.json() : null;
     if (!plan || !plan.id) { location.replace('./plan-dark.html' + qs); return; }
 
@@ -553,14 +625,8 @@ const fmt2   = n => Number(n || 0).toLocaleString('ru-RU', {minimumFractionDigit
 
 
     function api(path, opts = {}) {
-      const useDev = !initData && devTg;
-      const sep = path.includes('?') ? '&' : '?';
-      let url = useDev ? `${path}${sep}tg=${encodeURIComponent(devTg)}` : path;
-      url += (url.indexOf('?') >= 0 ? '&' : '?') + 'v=' + APP_VERSION;
-      const headers = { 'Content-Type': 'application/json', ...(opts.headers || {}) };
-      if (initData) headers['X-Telegram-InitData'] = initData;
-      return fetch(url, { ...opts, headers });
-    }
+  return window.api(path, opts);
+}
 
     // ======== LocalStorage flags =========
     const LS_KEY = 'dermaApp:state';
