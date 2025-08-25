@@ -36,7 +36,9 @@ const pool = new Pool({
 try { console.log('PG host:', new URL(dsn).hostname); } catch {}
 
 // ====== TG WebApp auth helpers ======
-const BOT_TOKEN = process.env.BOT_TOKEN || '';
+// Берём токен из ENV, а если его забыли — из уже созданного экземпляра бота
+const BOT_TOKEN = process.env.BOT_TOKEN || (bot?.telegram?.token ?? '');
+console.log('Auth token ends with:', (BOT_TOKEN || '').slice(-6));
 
 function parseAndVerifyInitData(initData) {
   if (!BOT_TOKEN) throw new Error('BOT_TOKEN missing');
@@ -161,6 +163,15 @@ app.get('/api/db-test', async (req, res) => {
     res.json(rows[0]);
   } catch (e) {
     res.status(500).json({ error: String(e.message || e) });
+  }
+});
+// Проверка, каким ботом мы сейчас живём
+app.get('/api/_bot', async (_, res) => {
+  try {
+    const me = await bot.getMe();
+    res.json({ ok: true, username: me.username, id: me.id });
+  } catch (e) {
+    res.status(500).json({ ok: false, error: String(e) });
   }
 });
 // ===== DEBUG: покажет, долетело ли initData, валиден ли хеш и куда подключена БД
