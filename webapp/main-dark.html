@@ -172,7 +172,7 @@
     document.getElementById('cardCalendar').addEventListener('click',()=>go('/calendar'));
     document.getElementById('cardPhotos').addEventListener('click',()=>go('/photos'));
 
-    let ME=null, PLAN=null, DOSES=[];
+    let ME=null, PLAN=null, DOSES=[], PROGRESS=null; 
 
     (function fillHeader(){
       const name = initUser ? [initUser.first_name, initUser.last_name].filter(Boolean).join(' ') : '—';
@@ -218,53 +218,70 @@
     }
 
     function updateSummary(){
-      const ms = DOSES.map(x=>Number(x.mg_taken||x.mg||0));
-      let cum = ms.reduce((a,b)=>a+b,0);
-      try{ const seed = Number(localStorage.getItem('derma_seed_cum_mg')||0); if (seed>0) cum += seed; }catch(_){}
-      const w = Number(ME?.weight_kg||0) || Number(PLAN?.weight_kg||0) || 0;
+  // сумма по локальному списку (на случай отсутствия прогресса)
+  const ms  = DOSES.map(x=>Number(x.mg_taken||x.mg||0));
+  let cum   = ms.reduce((a,b)=>a+b,0);
+  try{ const seed = Number(localStorage.getItem('derma_seed_cum_mg')||0); if (seed>0) cum += seed; }catch(_){}
 
-      document.getElementById('cumMg').textContent    = fmtInt(cum);
-      document.getElementById('consumedTop').textContent = fmtInt(cum);
-      document.getElementById('weightLine').textContent = w>0?fmtInt(w):'—';
+  // если сервер уже посчитал — используем его cum_mg
+  if (PROGRESS && Number.isFinite(Number(PROGRESS.cum_mg))) {
+    cum = Number(PROGRESS.cum_mg);
+  }
 
-      const byDate = {}; DOSES.forEach(x=>{ const k=(x.date||'').slice(0,10); byDate[k]=(byDate[k]||0)+Number(x.mg_taken||x.mg||0); });
-      const today = todayISO();
-      function sumDays(n){
-        let s=0; for(let i=0;i<n;i++){ const d=new Date(today); d.setDate(d.getDate()-i); const iso=d.toISOString().slice(0,10); s += (byDate[iso]||0); } return s;
-      }
-      const a7 = sumDays(7)/7; const a14=sumDays(14)/14;
-      document.getElementById('avg7').textContent  = fmtInt(Math.round(a7));
-      document.getElementById('avg14').textContent = fmtInt(Math.round(a14));
+  const w = Number(
+    (ME?.weight_kg ?? ME?.weight ?? PROGRESS?.weight_kg ?? 0)
+  );
 
-      const perKg = (w>0) ? (cum / w) : 0;
-      document.getElementById('cumPerKg').textContent = fmt2(perKg);
-      const pct = (w>0) ? (100 * cum / (135*w)) : 0;
-      setRing(pct);
+  document.getElementById('cumMg').textContent       = fmtInt(cum);
+  document.getElementById('consumedTop').textContent = fmtInt(cum);
+  document.getElementById('weightLine').textContent  = w>0 ? fmtInt(w) : '—';
 
-      const goalsSpan = document.getElementById('goalsByWeight');
-      if (w>0){
-        goalsSpan.textContent = ' · по вашему весу: '+fmtInt(Math.round(120*w))+' / '+fmtInt(Math.round(135*w))+' / '+fmtInt(Math.round(150*w))+' мг';
-      }else{
-        goalsSpan.textContent = '';
-      }
+  const perKg = (w>0) ? (cum / w) : 0;
+  document.getElementById('cumPerKg').textContent = w>0 ? fmt2(perKg) : '—';
 
-      let eta = '—';
-      const avgForEta = a14>0? a14 : (a7>0? a7 : 0);
-      if (w>0 && avgForEta>0){
-        const left = Math.max(0, 135*w - cum);
-        const days = Math.ceil(left / avgForEta);
-        const dt = new Date(); dt.setDate(dt.getDate()+days);
-        eta = ddmmyyyy(dt.toISOString().slice(0,10));
-      }
-      document.getElementById('eta135').textContent = eta;
+  const pct = (w>0) ? (100 * cum / (135*w)) : 0;
+  setRing(pct);
 
-      let day='—';
-      if (PLAN?.start_date){
-        const diff = daysDiffUTC(new Date().toISOString().slice(0,10), PLAN.start_date);
-        day = diff>=0 ? String(1+diff) : '—';
-      }
-      document.getElementById('courseDay').textContent = day;
-    }
+  // цели «по вашему весу»
+  const goalsSpan = document.getElementById('goalsByWeight');
+  if (w>0){
+    goalsSpan.textContent = ' · по вашему весу: '
+      + fmtInt(Math.round(120*w)) + ' / '
+      + fmtInt(Math.round(135*w)) + ' / '
+      + fmtInt(Math.round(150*w)) + ' мг';
+  } else {
+    goalsSpan.textContent = '';
+  }
+
+  // ETA и день курса — как было
+  const byDate = {}; DOSES.forEach(x=>{
+    const k=(x.date||'').slice(0,10);
+    byDate[k]=(byDate[k]||0)+Number(x.mg_taken||x.mg||0);
+  });
+  const today = todayISO();
+  const sumDays = (n)=>{ let s=0; for(let i=0;i<n;i++){ const d=new Date(today); d.setDate(d.getDate()-i); const iso=d.toISOString().slice(0,10); s += (byDate[iso]||0);} return s; };
+  const a7  = sumDays(7)/7;
+  const a14 = sumDays(14)/14;
+  document.getElementById('avg7').textContent  = fmtInt(Math.round(a7));
+  document.getElementById('avg14').textContent = fmtInt(Math.round(a14));
+
+  let eta = '—';
+  const avgForEta = a14>0? a14 : (a7>0? a7 : 0);
+  if (w>0 && avgForEta>0){
+    const left = Math.max(0, 135*w - cum);
+    const days = Math.ceil(left / avgForEta);
+    const dt = new Date(); dt.setDate(dt.getDate()+days);
+    eta = ddmmyyyy(dt.toISOString().slice(0,10));
+  }
+  document.getElementById('eta135').textContent = eta;
+
+  let day='—';
+  if (PLAN?.start_date){
+    const diff = daysDiffUTC(new Date().toISOString().slice(0,10), PLAN.start_date);
+    day = diff>=0 ? String(1+diff) : '—';
+  }
+  document.getElementById('courseDay').textContent = day;
+}
 
     function renderLast(){
       const box = document.getElementById('lastDoses');
@@ -273,34 +290,51 @@
       box.innerHTML = rows.join('<br>');
     }
 
-    async function loadAll(){
-      try{
-        const [meR, planR, doseR] = await Promise.all([ api('/api/me'), api('/api/plan'), api('/api/dose?limit=60') ]);
-        ME   = meR.ok ? await meR.json()   : null;
-        PLAN = planR.ok ? await planR.json() : null;
-        DOSES= doseR.ok ? await doseR.json() : [];
-        renderChips((PLAN?.drug||'roaccutane').toLowerCase());
-        document.getElementById('date').value = todayISO();
-        updateSummary(); renderLast(); renderCalPreview();
-      }catch(e){
-        renderChips('roaccutane');
-      }
-    }
+   async function loadAll(){
+  try{
+    const [meR, planR, doseR, prR] = await Promise.all([
+      api('/api/me'),
+      api('/api/plan'),
+      api('/api/dose?limit=60'),
+      api('/api/progress')
+    ]);
+    ME        = meR.ok   ? await meR.json()   : null;
+    PLAN      = planR.ok ? await planR.json() : null;
+    DOSES     = doseR.ok ? await doseR.json() : [];
+    PROGRESS  = prR.ok   ? await prR.json()   : null;
+
+    renderChips((PLAN?.drug||'roaccutane').toLowerCase());
+    document.getElementById('date').value = todayISO();
+    updateSummary(); renderLast(); renderCalPreview();
+  }catch(e){
+    renderChips('roaccutane');
+  }
+}
 
     document.getElementById('save').addEventListener('click', async ()=>{
-      const mg = Number(document.getElementById('mg').value||0);
-      const date = document.getElementById('date').value || todayISO();
-      const st = document.getElementById('saveStatus');
-      if (!(mg>0)){ st.textContent='Введите дозу > 0'; return; }
-      st.textContent='Сохраняю...';
-      try{
-        const r = await api('/api/dose',{method:'POST', body: JSON.stringify({ mg, date })});
-        if (!r.ok){ st.textContent='Ошибка '+r.status; return; }
-        st.textContent='Сохранено';
-        DOSES.unshift({ mg_taken:mg, date:date });
-        updateSummary(); renderLast(); renderCalPreview();
-      }catch(e){ st.textContent='Ошибка сети'; }
-    });
+  const mg   = Number(document.getElementById('mg').value || 0);
+  const date = document.getElementById('date').value || todayISO();
+  const st   = document.getElementById('saveStatus');
+
+  if (!(mg > 0)) { st.textContent = 'Введите дозу > 0'; return; }
+  st.textContent = 'Сохраняю...';
+
+  try {
+    const r = await api('/api/dose', { method: 'POST', body: JSON.stringify({ mg, date }) });
+    if (!r.ok) { st.textContent = 'Ошибка ' + r.status; return; }
+
+    st.textContent = 'Сохранено';
+
+    // Мгновенно обновим локальный список (оптимистично)
+    DOSES.unshift({ mg_taken: mg, date: date });
+
+    // ⬇️ КЛЮЧЕВАЯ СТРОКА: подтянуть свежие me/plan/progress и пересчитать кольцо
+    await loadAll();
+
+  } catch (e) {
+    st.textContent = 'Ошибка сети';
+  }
+});
 // === TG avatar + name hydrate (Telegram + dev via ?tg_name & ?tg_photo) ===
 (function hydrateTgUser(){
   const tg = window.Telegram?.WebApp;

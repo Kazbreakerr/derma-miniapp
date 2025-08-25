@@ -3,6 +3,37 @@
 <head>
   <script src="https://telegram.org/js/telegram-web-app.js"></script>
   <script>
+  (function patchFetchForTelegram(){
+  const origFetch = window.fetch;
+  window.fetch = function(input, init) {
+    // нормализуем аргументы
+    let url = (typeof input === 'string') ? input : (input && input.url) || String(input || '');
+    init = init || {};
+
+    // интересуют только наши API-запросы
+    if (url.startsWith('/api/')) {
+      const initData = window.Telegram?.WebApp?.initData || '';
+      const headers = new Headers(init.headers || {});
+      if (initData) headers.set('X-Telegram-InitData', initData);
+
+      // добавим дубль в query, чтобы пережить возможные 301/302
+      const u = new URL(url, location.origin);
+      if (initData) u.searchParams.set('tgWebAppData', initData);
+      // анти-кэш
+      u.searchParams.set('v', Date.now());
+
+      return origFetch(u.toString(), {
+        ...init,
+        headers,
+        credentials: 'include'
+      });
+    }
+    // для всех остальных адресов — как было
+    return origFetch(input, init);
+  };
+})();
+</script>
+  <script>
   // Глобальный helper для всех запросов: передаёт initData в заголовке + в URL (fallback).
   window.api = function api(path, opts){
     opts = opts || {};
@@ -127,52 +158,94 @@
   <!-- 1) Сначала кодировка -->
   <meta charset="utf-8" />
   
+<!-- ROUTER v2: splash → welcome → warnings → profile → plan → main -->
 <script>
 (function(){
-  const qs  = location.search || '';
-  const tg  = window.Telegram?.WebApp;
-  const dev = new URLSearchParams(qs).get('tg') || '';
-  const uid = String(dev || tg?.initDataUnsafe?.user?.id || '');
+  // --- helpers ---
+  const qp = new URLSearchParams(location.search);
+  const tg = window.Telegram?.WebApp;
+  const devTg = qp.get('tg') || '';
+  const uid = String(devTg || tg?.initDataUnsafe?.user?.id || '');
 
-  // 2.1: одноразовый сплэш (считаем просмотренным, если отмечен именной ИЛИ глобальный ключ)
-try{
-  const seenNs     = uid && localStorage.getItem(`dermaApp:${uid}:splash_seen`) === '1';
-  const seenGlobal = localStorage.getItem('derma_splash_seen') === '1';
-  if (!(seenNs || seenGlobal)) {
-    location.replace('./splash-video.html' + qs);
+  // переносим все текущие query-параметры (кроме reset)
+  function keepQS(extra = {}) {
+    const q = new URLSearchParams(location.search);
+    q.delete('reset');
+    for (const [k,v] of Object.entries(extra)) {
+      if (v === null) q.delete(k);
+      else if (v !== undefined) q.set(k, v);
+    }
+    const s = q.toString();
+    return s ? '?' + s : '';
+  }
+  const go = (page, extra) => location.replace('./' + page + keepQS(extra));
+
+  // --- 0) reset для тестов (?reset=1) ---
+  if (qp.get('reset') === '1') {
+    try {
+      localStorage.removeItem('derma_splash_seen');
+      localStorage.removeItem('derma_consent');
+      localStorage.removeItem('derma_next');
+      localStorage.removeItem('derma_seed_cum_mg');
+      if (uid) {
+        localStorage.removeItem(`dermaApp:${uid}:splash_seen`);
+        localStorage.removeItem(`dermaApp:${uid}:consentAccepted`);
+      }
+    } catch(_) {}
+    location.replace('./index.html' + keepQS());
     return;
   }
-}catch(_){}
 
-  // 2.2: приоритет явного шага (из warnings/profile/plan)
-  try{
-    const next = localStorage.getItem('derma_next');
-    const to = { profile:'./profile-dark.html', plan:'./plan-dark.html', main:'./main-dark.html' }[next];
-    if (to) { location.replace(to + qs); return; }
-  }catch(_){}
+  // --- 1) splash: показываем один раз (учитываем глобальный и именной ключи) ---
+  let splashSeen = false;
+  try {
+    splashSeen = (localStorage.getItem('derma_splash_seen') === '1') ||
+                 (uid && localStorage.getItem(`dermaApp:${uid}:splash_seen`) === '1');
+  } catch(_) {}
+  if (!splashSeen) { go('splash-video.html'); return; }
 
-  // 2.3: нет согласия → warnings
-  try{
-    const hasNs  = uid && localStorage.getItem(`dermaApp:${uid}:consentAccepted`) === '1';
-    const hasOld = localStorage.getItem('derma_consent') === '1';
-    if (!(hasNs || hasOld)) { location.replace('./warnings.html' + qs); return; }
-  }catch(_){}
+  // --- 2) явный следующий шаг (one-shot) ---
+  try {
+    const next = (localStorage.getItem('derma_next') || '').trim();
+    if (next) localStorage.removeItem('derma_next');
+    if (next === 'profile') { go('profile-dark.html'); return; }
+    if (next === 'plan')    { go('plan-dark.html');    return; }
+    if (next === 'main')    { go('main-dark.html');    return; }
+  } catch(_) {}
 
-  // 2.4: fallback по данным API
+  // --- 3) согласие: без него дальше нельзя ---
+  let consent = false;
+  try {
+    consent = (localStorage.getItem('derma_consent') === '1') ||
+              (uid && localStorage.getItem(`dermaApp:${uid}:consentAccepted`) === '1');
+  } catch(_) {}
+  if (!consent) { go('warnings.html'); return; }
+
+  // --- 4) fallback по данным API ---
   (async () => {
-    const pqs = qs || '';
-    const meRes   = await window.api('/api/me'   + pqs).catch(()=>null);
-    const me      = meRes && meRes.ok ? await meRes.json() : null;
-    if (!me || !me.weight) { location.replace('./profile-dark.html' + qs); return; }
+    try {
+      // /api/me: считаем профиль заполненным, если есть вес (weight_kg или weight)
+      const meRes = await window.api('/api/me').catch(()=>null);
+      const me = meRes && meRes.ok ? await meRes.json() : null;
+      const hasWeight = me && Number(me.weight_kg ?? me.weight) > 0;
+      if (!hasWeight) { go('profile-dark.html'); return; }
 
-    const planRes = await window.api('/api/plan' + pqs).catch(()=>null);
-    const plan    = planRes && planRes.ok ? await planRes.json() : null;
-    if (!plan || !plan.id) { location.replace('./plan-dark.html' + qs); return; }
+      // /api/plan: план есть, если есть id/ start_date / capsule_mg
+      const planRes = await window.api('/api/plan').catch(()=>null);
+      const plan = planRes && planRes.ok ? await planRes.json() : null;
+      const hasPlan = !!(plan && (plan.id || plan.start_date || plan.capsule_mg));
+      if (!hasPlan) { go('plan-dark.html'); return; }
 
-    location.replace('./main-dark.html' + qs);
+      // всё ок → main
+      go('main-dark.html');
+    } catch(_) {
+      // сеть/сервер недоступны → безопасно ведём на профиль
+      go('profile-dark.html');
+    }
   })();
 })();
 </script>
+
   <style>
     :root{
       --bg:#ffffff; --card:#ffffff; --text:#111; --muted:#6b7280; --border:#e5e7eb;
