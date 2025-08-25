@@ -67,10 +67,10 @@
       <div class="glow"></div>
       <div class="row">
         <div class="ava" id="ava">ДД</div>
-        <div style="flex:1">
-          <div id="fullName" style="font-weight:700">—</div>
-          <div class="muted">День курса: <span id="courseDay">—</span> · Выпито: <span id="consumedTop">0</span> мг</div>
-        </div>
+<div style="flex:1">
+  <div id="fullName" data-tg-name style="font-weight:700">—</div>
+  <div class="muted">День курса: <span id="courseDay">—</span> · Выпито: <span id="consumedTop">0</span> мг</div>
+</div>
       </div>
     </section>
 
@@ -301,7 +301,58 @@
         updateSummary(); renderLast(); renderCalPreview();
       }catch(e){ st.textContent='Ошибка сети'; }
     });
+// === TG avatar + name hydrate (Telegram + dev via ?tg_name & ?tg_photo) ===
+(function hydrateTgUser(){
+  const tg = window.Telegram?.WebApp;
+  tg?.ready?.();
+  tg?.expand?.();
 
+  const nameEl = document.querySelector('#tgName, #topName, [data-tg-name]');
+  const avaEl  = document.querySelector('#ava, #topAva, [data-tg-ava]');
+
+  function setInitials(name){
+    if (!avaEl) return;
+    const initials = (name||'').trim().split(/\s+/).map(s=>s[0]||'').slice(0,2).join('').toUpperCase() || 'U';
+    avaEl.innerHTML = initials;
+  }
+
+  // 1) Внутри Telegram: берём из initDataUnsafe.user
+  let u = null; try { u = tg?.initDataUnsafe?.user || null; } catch(_){}
+  if (u && (u.first_name || u.last_name)) {
+    const name = [u.first_name, u.last_name].filter(Boolean).join(' ');
+    if (nameEl) nameEl.textContent = name;
+
+    if (avaEl) {
+      if (u.photo_url) {
+        const img = new Image();
+        img.alt = '';
+        img.src = u.photo_url;
+        img.onload  = () => { avaEl.innerHTML = ''; avaEl.appendChild(img); };
+        img.onerror = ()  => setInitials(name);
+      } else {
+        setInitials(name);
+      }
+    }
+    return;
+  }
+
+  // 2) Dev-режим: можно указать ?tg_name=...&tg_photo=...
+  const qs = new URLSearchParams(location.search);
+  const devName  = qs.get('tg_name')  || '';
+  const devPhoto = qs.get('tg_photo') || '';
+  if (devName && nameEl) nameEl.textContent = devName;
+  if (avaEl) {
+    if (devPhoto) {
+      const img = new Image();
+      img.alt = '';
+      img.src = devPhoto;
+      img.onload = () => { avaEl.innerHTML = ''; avaEl.appendChild(img); };
+      img.onerror = () => setInitials(devName);
+    } else {
+      setInitials(devName);
+    }
+  }
+})();
     loadAll();
   </script>
 </body>
