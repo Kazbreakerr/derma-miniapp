@@ -36,53 +36,57 @@
     <div class="progress" aria-hidden="true"><div id="bar" class="bar"></div></div>
   </div>
 
-  <script>
-    const tg = (window.Telegram && window.Telegram.WebApp) ? window.Telegram.WebApp : null;
-    if (tg && tg.ready) tg.ready();
-    if (tg && tg.expand) tg.expand();
-    const devTg = new URLSearchParams(location.search).get('tg') || '';
-    const tgQuery = devTg ? ('?tg='+encodeURIComponent(devTg)) : '';
+<script>
+(function(){
+  const tg = window.Telegram?.WebApp || null;
+  tg?.ready?.(); tg?.expand?.();
 
-    function nsKey(uid, k){ return `dermaApp:${uid||'anon'}:${k}`; }
-    function getTgId(){
-      try{
-        if (devTg) return String(devTg);
-        const u = tg?.initDataUnsafe?.user;
-        return u && u.id ? String(u.id) : null;
-      }catch(_){ return null; }
-    }
-    function proceed(){
-      try{
-        const uid = getTgId();
-        if (uid) localStorage.setItem(nsKey(uid,'splash_seen'),'1');
-        else localStorage.setItem('derma_splash_seen','1');
-      }catch(_){}
-      location.replace('./welcome-rt.html'+tgQuery);
-    }
+  const sp   = new URLSearchParams(location.search);
+  const next = sp.get('next') || './index.html';
+  sp.delete('next');
+  const tail = sp.toString() ? ('?' + sp.toString()) : '';
 
-    const v = document.getElementById('v');
-    const skip = document.getElementById('skip');
-    const bar = document.getElementById('bar');
-    skip.addEventListener('click', proceed);
-    v.addEventListener('ended', proceed);
+  const v    = document.getElementById('v');     // <video id="v">
+  const skip = document.getElementById('skip');  // кнопка «Пропустить»
 
-    // If autoplay fails, click to start or fallback after 2.5s
-    let started = false;
-    v.addEventListener('playing', ()=>{ started = true; });
-    setTimeout(()=>{ if(!started) { try{ v.play().catch(()=>{}); }catch(_){} } }, 250);
+  // 1. Скорость всегда 1.5×
+  try { v.playbackRate = 1.5; } catch(_){}
 
-    // progress bar
-    function raf(){
-      if (v && v.duration && !isNaN(v.duration)){
-        const p = Math.min(1, v.currentTime / v.duration);
-        bar.style.width = (p*100).toFixed(1)+'%';
+  // 2. Старт с оффсета 0.3s
+  const OFFSET = 0.3;
+  function startAtOffset(){
+    try {
+      if (isFinite(v.duration) && v.duration > OFFSET) {
+        // чтобы точно применилось — делаем seek, потом play
+        const onceSeeked = () => { v.removeEventListener('seeked', onceSeeked); v.play().catch(()=>{}); };
+        v.addEventListener('seeked', onceSeeked, {once:true});
+        v.currentTime = OFFSET;
+      } else {
+        v.play().catch(()=>{});
       }
-      requestAnimationFrame(raf);
-    }
-    requestAnimationFrame(raf);
+    } catch(_) { v.play().catch(()=>{}); }
+  }
+  if (v.readyState >= 1) startAtOffset();
+  else v.addEventListener('loadedmetadata', startAtOffset, {once:true});
 
-    // Safety timeout (e.g., unsupported codec)
-    setTimeout(()=>{ if (!v.duration || v.duration===Infinity) proceed(); }, 8000);
-  </script>
+  // 3. Переход дальше
+  function proceed(){
+    try {
+      const devTg = new URLSearchParams(location.search).get('tg') || '';
+      const uid   = devTg || tg?.initDataUnsafe?.user?.id;
+      if (uid) localStorage.setItem(`dermaApp:${uid}:splash_seen`, '1');
+      else localStorage.setItem('derma_splash_seen','1');
+    } catch(_) {}
+    location.replace(next + tail);
+  }
+  v.addEventListener('ended', proceed);
+  skip?.addEventListener('click', proceed);
+
+  // 4. Подстраховка автоплея (некоторые устройства ленятся)
+  let started = false;
+  v.addEventListener('playing', ()=>{ started = true; });
+  setTimeout(()=>{ if(!started){ v.play().catch(()=>{}); } }, 250);
+})();
+</script>
 </body>
 </html>

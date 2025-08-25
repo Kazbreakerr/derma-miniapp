@@ -60,6 +60,62 @@
     return fetch(url, { ...opts, headers, credentials:'include' });
   };
 </script>
+<!-- ROUTER v2: всегда на splash с next=... -->
+<script>
+(function(){
+  const qs = location.search || '';
+  const sp = new URLSearchParams(qs);
+  const tgId = sp.get('tg') || (window.Telegram?.WebApp?.initDataUnsafe?.user?.id || '');
+
+  // reset для тестов: /index.html?tg=1002&reset=1
+  if (sp.has('reset')) {
+    try {
+      const pref = tgId ? `dermaApp:${tgId}:` : '';
+      Object.keys(localStorage).forEach(k=>{
+        if (!pref || k.startsWith(pref) || k.startsWith('derma_')) localStorage.removeItem(k);
+      });
+    } catch(_) {}
+    sp.delete('reset');
+    location.replace('./index.html?' + sp.toString());
+    return;
+  }
+
+  // 1) нет согласия → после сплэша идём на welcome
+  try{
+    const ok = (localStorage.getItem('derma_consent') === '1') ||
+               (tgId && localStorage.getItem(`dermaApp:${tgId}:consentAccepted`) === '1');
+    if (!ok) {
+      sp.set('next', './welcome-rt.html');
+      location.replace('./splash-video.html?' + sp.toString());
+      return;
+    }
+  }catch(_){}
+
+  // 2) иначе решаем по данным API: profile → plan → main
+  (async () => {
+    let next = './profile-dark.html';
+    try {
+      // fetch перехватится patchFetch → initData добавится автоматически
+      const meR = await fetch('/api/me' + qs).catch(()=>null);
+      const me  = meR && meR.ok ? await meR.json() : null;
+      const hasWeight = !!(me && (Number(me.weight_kg)>0 || Number(me.weight)>0));
+      if (hasWeight) {
+        const planR = await fetch('/api/plan' + qs).catch(()=>null);
+        const plan  = planR && planR.ok ? await planR.json() : null;
+        next = (plan && (plan.id || plan.start_date || plan.capsule_mg))
+          ? './main-dark.html'
+          : './plan-dark.html';
+      } else {
+        next = './profile-dark.html';
+      }
+    } catch(_) {
+      next = './profile-dark.html';
+    }
+    sp.set('next', next);
+    location.replace('./splash-video.html?' + sp.toString());
+  })();
+})();
+</script>
 <script>
 (function(){
   const qp = new URLSearchParams(location.search);
