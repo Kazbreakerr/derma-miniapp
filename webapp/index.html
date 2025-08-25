@@ -3,7 +3,28 @@
 <head>
   <!-- 1) Сначала кодировка -->
   <meta charset="utf-8" />
+<script>
+(function(){
+  const params = new URLSearchParams(location.search);
+  const DEBUG  = params.get('debug') === '1';        // включаем только с ?debug=1
+  if (!DEBUG) return;
 
+  const tg   = window.Telegram?.WebApp || null;
+  const user = tg?.initDataUnsafe?.user || null;
+  const init = tg?.initData || '';
+
+  // Покажем в Telegram всплывающее окно
+  if (tg && tg.showAlert) {
+    tg.showAlert(JSON.stringify(user || { no: 'user' }, null, 2));
+  } else {
+    alert('Похоже, это не Telegram WebApp (нет Telegram.WebApp)');
+  }
+
+  // Параллельно — в консоль (видно в обычном браузере)
+  console.log('initData length:', init?.length || 0);
+  console.log('user:', user);
+})();
+</script>
   
 <script>
 (function(){
