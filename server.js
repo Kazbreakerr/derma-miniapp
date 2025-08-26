@@ -70,35 +70,56 @@ function parseAndVerifyInitData(initData) {
   return { user };
 }
 
-// DEV-дружественная аутентификация: либо initData, либо ?tg=...
-function tgAuth(req, res, next) {
-  const initData = req.get('X-Telegram-InitData')
-               || req.query.tgWebAppData
-               || req.query.initData
-               || '';
-  if (!initData) {
-    const tg = req.query.tg;
-    if (tg) { req.tg = Number(tg); return next(); }
-    return res.status(401).json({ error: 'no initData' });
-  }
+// DEV-дружественная аутентификация: initData (Telegram) или ?tg=<num> (dev).
+async function tgAuth(req, res, next) {
   try {
-    const { user } = parseAndVerifyInitData(initData);
-    req.tg = user?.id;
-    req.tgUser = user;
-    next();
-  } catch (e) {
-    // временный DEV-фолбек (включается, если ALLOW_UNVERIFIED_INIT=1 в окружении)
-    if (process.env.ALLOW_UNVERIFIED_INIT === '1') {
+    const initData = req.get('X-Telegram-InitData')
+                     || req.query.tgWebAppData
+                     || req.query.initData
+                     || '';
+
+    let tgUser = null;
+
+    if (initData) {
       try {
-        const sp = new URLSearchParams(initData);
-        const user = sp.get('user') ? JSON.parse(sp.get('user')) : null;
-        req.tg = user?.id; req.tgUser = user;
-        console.warn('WARN: using unverified initData');
-        return next();
-      } catch {}
+        const { user } = parseAndVerifyInitData(initData);
+        if (user?.id) tgUser = user;
+      } catch (e) {
+        if (process.env.ALLOW_UNVERIFIED_INIT === '1') {
+          try {
+            const sp = new URLSearchParams(initData);
+            const u = sp.get('user') ? JSON.parse(sp.get('user')) : null;
+            if (u?.id) {
+              tgUser = u;
+              console.warn('WARN: using unverified initData');
+            }
+          } catch {}
+        }
+        if (!tgUser) throw e;
+      }
     }
-    console.error('AUTH ERROR:', e.message);
-    res.status(401).json({ error: 'bad initData' });
+
+    // dev ?tg=... допускаем, если нет валидного initData
+    if (!tgUser) {
+      const devTg = req.query.tg;
+      if (devTg && /^\d+$/.test(String(devTg))) {
+        tgUser = { id: Number(devTg), first_name: 'Dev', last_name: 'User', username: 'dev' };
+      }
+    }
+
+    if (!tgUser?.id) return res.status(401).json({ error: 'BOT_INVALID' });
+
+    // сохраним «кто пришёл»
+    req.tg = Number(tgUser.id);
+    req.tgUser = tgUser;
+
+    // ⬅️ КЛЮЧЕВОЕ: гарантированно апсертим пользователя
+    await ensureUser(req);
+
+    return next();
+  } catch (e) {
+    console.error('AUTH ERROR:', e?.message || e);
+    return res.status(401).json({ error: 'bad initData' });
   }
 }
 
@@ -110,43 +131,54 @@ async function userIdByTg(tg) {
 }
 async function ensureUser(req) {
   try {
-    // 1) Достаём tg_id из заголовка initData (Telegram) или ?tg (DEV)
-    let tgId = null, fullName = null, username = null;
+    // Сначала пробуем из tgAuth
+    let tgId = Number(req.tg) || null;
+    let fullName = null;
+    let username = null;
 
-    const initDataRaw = req.get('X-Telegram-InitData')
-                   || req.query.tgWebAppData
-                   || req.query.initData
-                   || '';
-    if (initDataRaw) {
-      const p = new URLSearchParams(initDataRaw);
-      const userStr = p.get('user');
-      if (userStr) {
-        const u = JSON.parse(userStr);
-        tgId = Number(u.id);
-        username = u.username || null;
-        fullName = [u.first_name, u.last_name].filter(Boolean).join(' ') || null;
+    if (req.tgUser) {
+      const u = req.tgUser;
+      tgId = Number(u.id) || tgId;
+      username = u.username || null;
+      fullName = [u.first_name, u.last_name].filter(Boolean).join(' ') || null;
+    }
+
+    // Fallback: если tgAuth не использовался (напр. /api/me), попробуем вытащить из initData/query
+    if (!tgId) {
+      const raw = req.get('X-Telegram-InitData')
+                || req.query.tgWebAppData
+                || req.query.initData
+                || '';
+      if (raw) {
+        const sp = new URLSearchParams(raw);
+        const userStr = sp.get('user');
+        if (userStr) {
+          const u = JSON.parse(userStr);
+          tgId = Number(u.id);
+          username = username || u.username || null;
+          fullName = fullName || [u.first_name, u.last_name].filter(Boolean).join(' ') || null;
+        }
+      }
+      if (!tgId) {
+        const dev = req.query?.tg ?? req.body?.tg;
+        if (dev) tgId = Number(dev);
       }
     }
 
-    if (!tgId) {
-      const q = req.query?.tg ?? req.body?.tg;
-      if (q) tgId = Number(q);
-    }
+    if (!tgId || Number.isNaN(tgId)) return null;
 
-    if (!tgId || Number.isNaN(tgId)) {
-      // нет initData и нет ?tg — неавторизован
-      return null;
-    }
+    // Желательно на сессию ставить нужный search_path
+    await pool.query('SET search_path = derma, public');
 
-    // 2) Заводим/обновляем пользователя
     const { rows } = await pool.query(
-      `insert into derma.users (tg_id, full_name)
- values ($1::bigint, $2)
- on conflict (tg_id) do update
-   set full_name = coalesce(EXCLUDED.full_name, derma.users.full_name),
-       updated_at = now()
- returning *`,
-[tgId, fullName]
+      `INSERT INTO derma.users (tg_id, full_name, tg_username, updated_at, created_at)
+       VALUES ($1::bigint, $2, $3, NOW(), NOW())
+       ON CONFLICT (tg_id) DO UPDATE
+         SET full_name = COALESCE(EXCLUDED.full_name, derma.users.full_name),
+             tg_username = COALESCE(EXCLUDED.tg_username, derma.users.tg_username),
+             updated_at = NOW()
+       RETURNING id, tg_id`,
+      [tgId, fullName, username]
     );
     return rows[0] || null;
   } catch (e) {
@@ -302,7 +334,7 @@ app.post('/api/dose', tgAuth, async (req, res) => {
 });
 
 // GET /api/me
-app.get('/api/me', async (req, res) => {
+app.get('/api/me', tgAuth, async (req, res) => {
   try {
     const u = await ensureUser(req);
     if (!u) return res.status(401).json({ error: 'unauthorized' });
@@ -322,7 +354,7 @@ app.get('/api/me', async (req, res) => {
 });
 
 // POST /api/me
-app.post('/api/me', async (req, res) => {
+app.post('/api/me', tgAuth, async (req, res) => {
   try {
     const u = await ensureUser(req);
     if (!u) return res.status(401).json({ error: 'unauthorized' });
