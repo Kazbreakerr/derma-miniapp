@@ -91,19 +91,6 @@
 
     /* FAQ decoration */
     .faq-deco{position:absolute; right:-10px; top:-10px; opacity:.18; width:140px; height:140px; pointer-events:none}
-    @media (max-width: 380px){
-      .seg button{ padding:6px 8px; font-size:14px }
-    }
-    @media (max-width: 340px){
-      .seg button{ padding:6px 6px; font-size:13px }
-    }
-    /* Calendar slide animation */
-    .cal-grid{ transition: transform 260ms ease, opacity 260ms ease }
-    .cal-grid.leave-left{ transform: translateX(-12%); opacity: 0 }
-    .cal-grid.leave-right{ transform: translateX(12%); opacity: 0 }
-    .cal-grid.pre-enter-left{ transform: translateX(-12%); opacity: 0 }
-    .cal-grid.pre-enter-right{ transform: translateX(12%); opacity: 0 }
-
   </style>
 </head>
 <body>
@@ -126,9 +113,9 @@
       <div class="row" style="justify-content:space-between; align-items:center">
         <h2 id="progress-title" style="margin:0">Прогресс</h2>
         <div class="seg" id="doseSeg">
-          <button data-mode="min" data-short="Мин.">Минимальная</button>
-          <button data-mode="opt" class="active" data-short="Опт.">Оптимальная</button>
-          <button data-mode="max" data-short="Макс.">Максимальная</button>
+          <button data-mode="min">Минимальная</button>
+          <button data-mode="opt" class="active">Оптимальная</button>
+          <button data-mode="max">Максимальная</button>
         </div>
       </div>
 
@@ -198,7 +185,7 @@
 
     <section class="card section clickable" id="cardCalendar" aria-label="Календарь">
       <div class="glow"></div>
-      <div class="row" style="justify-content:space-between"><h2 style="margin:0">Календарь</h2><a>Открыть</a></div>
+      <div class="row" style="justify-content:space-between"><h2 style="margin:0">Календарь (превью)</h2><a>Открыть</a></div>
 
       <div class="preview-wrap" id="calWrap">
         <button class="cal-nav left" id="calPrev" aria-label="Назад на неделю" title="Назад">
@@ -292,36 +279,6 @@
     function ddmmyyyy(iso){ if (!iso) return '—'; const s=String(iso).slice(0,10); const [y,m,d]=s.split('-'); return d.padStart(2,'0')+'.'+m.padStart(2,'0')+'.'+y; }
     function normalizeDate(value){ if (!value) return ''; const s=String(value); if (/^\d{4}-\d{2}-\d{2}$/.test(s)) return s; const d=new Date(s); if (!isNaN(d)){ const y=d.getFullYear(); const m=String(d.getMonth()+1).padStart(2,'0'); const day=String(d.getDate()).padStart(2,'0'); return `${y}-${m}-${day}`;} return s.slice(0,10); }
     function daysDiffUTC(aISO,bISO){ try{ const a=new Date(aISO), b=new Date(bISO); const ad=Date.UTC(a.getFullYear(),a.getMonth(),a.getDate()); const bd=Date.UTC(b.getFullYear(),b.getMonth(),b.getDate()); return Math.floor((ad-bd)/86400000);}catch{ return 0; } }
-
-
-    // Compact labels for segmented control if it overflows
-    function updateSegLabels(){
-      const seg = document.getElementById('doseSeg');
-      if(!seg) return;
-      const btns = Array.from(seg.querySelectorAll('button'));
-      btns.forEach(b=>{ if(!b.dataset.full){ b.dataset.full = b.textContent.trim(); } });
-      const overflow = seg.scrollWidth > seg.clientWidth + 2;
-      btns.forEach(b=>{ b.textContent = overflow ? (b.dataset.short || b.dataset.full) : b.dataset.full; });
-    }
-    new ResizeObserver(()=>updateSegLabels()).observe(document.getElementById('doseSeg'));
-    window.addEventListener('orientationchange', updateSegLabels);
-    window.addEventListener('load', updateSegLabels);
-
-    // Animated slide for calendar
-    function slideCalendar(direction, cb){
-      const grid = document.getElementById('calPreview');
-      if(!grid){ cb(); return; }
-      grid.classList.remove('leave-left','leave-right','pre-enter-left','pre-enter-right');
-      grid.classList.add(direction==='next' ? 'leave-left' : 'leave-right');
-      setTimeout(()=>{
-        cb();
-        grid.classList.remove('leave-left','leave-right');
-        grid.classList.add(direction==='next' ? 'pre-enter-right' : 'pre-enter-left');
-        void grid.offsetWidth; // reflow
-        grid.classList.remove('pre-enter-right','pre-enter-left');
-      }, 260);
-    }
-
 
     // Bottom nav
     function go(path){ try{ history.pushState(null,'',path); location.assign(path);}catch{ location.href = path; } }
@@ -446,14 +403,14 @@
       const wrap = document.getElementById('calWrap');
       const prev = document.getElementById('calPrev');
       const next = document.getElementById('calNext');
-      prev.addEventListener('click', ()=>{ calOffset -= 7; slideCalendar('prev', renderCalPreview); });
-      next.addEventListener('click', ()=>{ calOffset += 7; slideCalendar('next', renderCalPreview); });
+      prev.addEventListener('click', ()=>{ calOffset -= 7; renderCalPreview(); });
+      next.addEventListener('click', ()=>{ calOffset += 7; renderCalPreview(); });
       let x0=null;
       wrap.addEventListener('touchstart', (e)=>{ x0 = e.touches[0].clientX; }, {passive:true});
       wrap.addEventListener('touchend',   (e)=>{
         if(x0==null) return;
         const x1=(e.changedTouches[0]||{}).clientX || x0; const dx=x1-x0; x0=null;
-        if (Math.abs(dx)>30){ calOffset += (dx<0 ? +7 : -7); slideCalendar(dx<0 ? 'next' : 'prev', renderCalPreview); }
+        if (Math.abs(dx)>30){ calOffset += (dx<0 ? +7 : -7); renderCalPreview(); }
       }, {passive:true});
     })();
 

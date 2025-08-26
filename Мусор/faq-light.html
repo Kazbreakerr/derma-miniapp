@@ -1,0 +1,287 @@
+<!doctype html>
+<html lang="ru">
+<head>
+  <meta charset="utf-8" />
+  <script>try{ if(localStorage.getItem('derma_consent')!=='1'){ location.replace('./warnings.html'); } }catch(_){}</script>
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Derma Mini‑App — FAQ (Light)</title>
+  <script src="https://telegram.org/js/telegram-web-app.js"></script>
+  <script>window.API_BASE = window.API_BASE || '';</script>
+  <style>
+    :root{
+      /* Light palette */
+      --bg:#F8FAFB;
+      --surface:#FFFFFF;
+      --card:#FFFFFF;
+      --border:#E6EAF0;
+
+      --primary:#14B8A6;      /* teal-500 */
+      --primary-700:#0EA5A6;  /* teal-600 */
+      --primary-300:#5EEAD4;  /* teal-300 */
+
+      --info:#3B82F6;    /* blue-500 */
+      --success:#22C55E; /* green-500 */
+      --warning:#F59E0B; /* amber-500 */
+      --danger:#EF4444;  /* red-500 */
+
+      --text-high:#0F172A; /* slate-900 */
+      --text-mid:#334155;  /* slate-700 */
+      --text-low:#64748B;  /* slate-500 */
+      --focus-ring:#93C5FD;/* blue-300 */
+
+      --shadow: 0 12px 30px rgba(2,6,23,.06), 0 3px 10px rgba(2,6,23,.04);
+    }
+    *{box-sizing:border-box}
+    html,body{height:100%}
+    body{
+      margin:0;color:var(--text-high);
+      font-family:ui-sans-serif,system-ui,-apple-system,Segoe UI,Roboto,Inter,Manrope,Helvetica,Arial;
+      font-size:16px;line-height:1.5;
+      /* green–pink soft gradient background */
+      background:
+        radial-gradient(60% 50% at 0% 0%, rgba(34,197,94,.18), transparent 60%),
+        radial-gradient(70% 60% at 100% 100%, rgba(236,72,153,.18), transparent 60%),
+        linear-gradient(135deg, #E8F9E9 0%, #FFF6F9 100%);
+      background-attachment: fixed;
+    }
+    .wrap{max-width:980px;margin:0 auto;padding:24px 24px 40px}
+    h1{font-size:28px;line-height:34px;margin:0 0 16px;font-weight:800; letter-spacing:.2px}
+    h2{font-size:22px;line-height:28px;margin:0 0 12px;font-weight:700}
+    .card{
+      position:relative;background:var(--card);
+      border:1px solid var(--border);border-radius:16px;
+      padding:16px;box-shadow:var(--shadow);overflow:hidden
+    }
+    .glow{position:absolute;inset:-2px;pointer-events:none;
+      background:
+        radial-gradient(120% 120% at 10% 0%, rgba(34,197,94,.12) 0%, rgba(255,255,255,0) 55%),
+        radial-gradient(120% 120% at 110% 110%, rgba(236,72,153,.12) 0%, rgba(255,255,255,0) 55%);
+    }
+    .muted{color:var(--text-low)}
+    input[type="search"]{
+      width:100%;background:var(--surface);border:1px solid var(--border);color:var(--text-high);
+      border-radius:12px;padding:10px 12px;font-size:16px;outline:none;
+      box-shadow: inset 0 1px 0 rgba(15,23,42,.03);
+    }
+    input[type="search"]:focus{border-color:var(--primary-700);box-shadow:0 0 0 3px rgba(147,197,253,.6)}
+    .chip{
+      display:inline-flex;align-items:center;gap:6px;padding:8px 12px;border-radius:999px;
+      background:#FFFFFFA6;border:1px solid var(--border);color:var(--text-mid);
+      font-weight:700;margin-right:8px;margin-bottom:8px;text-decoration:none;
+      backdrop-filter: saturate(1.05);
+      transition: border-color .15s ease, box-shadow .15s ease;
+    }
+    .chip:hover{border-color:#14B8A6;box-shadow:0 2px 8px rgba(20,184,166,.12)}
+    details{
+      border:1px solid var(--border);border-radius:12px;background:#FFFFFF;
+      margin:10px 0;overflow:hidden; transition: box-shadow .2s ease, border-color .2s ease;
+    }
+    details[open]{border-color:#0EA5A6; box-shadow:0 0 0 3px rgba(20,184,166,.18) inset}
+    summary{
+      display:flex;gap:10px;align-items:center;list-style:none;padding:12px 14px;cursor:pointer;font-weight:700;color:var(--text-high);
+      background: linear-gradient(180deg, rgba(255,255,255,1), rgba(248,250,251,1));
+    }
+    summary::-webkit-details-marker{display:none}
+    .qa-body{padding:0 14px 12px;color:var(--text-mid)}
+    .qa-body p{margin:8px 0}
+    .pill{
+      display:inline-flex;align-items:center;border:1px solid var(--border);border-radius:999px;
+      padding:3px 8px;font-size:12px;margin-left:8px;color:var(--text-low);background:#F8FAFB;
+    }
+    a{color:#0EA5A6;text-decoration:underline;text-underline-offset:3px}
+    a:hover{filter:saturate(1.1)}
+    footer{margin:24px 0 8px;color:var(--text-low);text-align:center;font-size:13px}
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <h1>Derma Mini‑App</h1>
+
+    <section class="card" aria-labelledby="faq-title">
+      <div class="glow"></div>
+      <h2 id="faq-title">FAQ — часто задаваемые вопросы</h2>
+      <div class="muted" style="margin-bottom:8px">Эта информация носит справочный характер и не заменяет консультацию врача.</div>
+
+      <input id="search" type="search" placeholder="Поиск по FAQ (нажмите / для фокуса)">
+      <div style="margin-top:10px">
+        <a class="chip" href="#start">Начало</a>
+        <a class="chip" href="#dose">Дозировка</a>
+        <a class="chip" href="#side">Побочные эффекты</a>
+        <a class="chip" href="#labs">Анализы</a>
+        <a class="chip" href="#pregnancy">Беременность</a>
+        <a class="chip" href="#alcohol">Алкоголь</a>
+        <a class="chip" href="#sun">Солнце</a>
+        <a class="chip" href="#interactions">Лекарства</a>
+        <a class="chip" href="#missed">Пропуск дозы</a>
+        <a class="chip" href="#app">Приложение</a>
+      </div>
+    </section>
+
+    <section class="card" aria-label="Популярные вопросы">
+      <div class="glow"></div>
+      <h2 style="margin-bottom:6px">Популярные вопросы и нюансы</h2>
+
+      <div id="qa-list">
+
+        <details class="qa" id="start">
+          <summary>Как начать курс и работать с приложением? <span class="pill">start</span></summary>
+          <div class="qa-body">
+            <p>1) Прочитайте «Безопасность и согласие» и подтвердите, 2) заполните <a href="/profile">Профиль</a> (вес обязателен), 3) задайте <a href="/plan">План курса</a>, 4) отмечайте приём на Главной. Если что‑то изменилось — отредактируйте соответствующую страницу.</p>
+          </div>
+        </details>
+
+        <details class="qa" id="dose">
+          <summary>Какая целевая кумулятивная доза? Как её считать? <span class="pill">dose</span></summary>
+          <div class="qa-body">
+            <p>Обычно ориентируются на диапазон <b>120–150 мг/кг</b>, оптимум — <b>≈135 мг/кг</b>. Приложение считает процент, исходя из вашего веса и суммарно выпитых мг (включая уже выпитое, если вы его указали).</p>
+          </div>
+        </details>
+
+        <details class="qa" id="food">
+          <summary>Нужно ли принимать капсулы с едой? <span class="pill">биодоступность</span></summary>
+          <div class="qa-body">
+            <p>Да, <b>с едой, содержащей жир</b> — так изотретиноин лучше всасывается. Если врач сказал иначе — следуйте его плану.</p>
+          </div>
+        </details>
+
+        <details class="qa" id="labs">
+          <summary>Как часто сдавать анализы? <span class="pill">анализы</span></summary>
+          <div class="qa-body">
+            <p>Часто назначают контроль <b>каждые ~4 недели</b> (АЛТ/АСТ, билирубин, липиды и др.). Точный перечень и частоту определяет лечащий врач.</p>
+          </div>
+        </details>
+
+        <details class="qa" id="missed">
+          <summary>Пропустил(а) дозу — что делать? <span class="pill">пропуск</span></summary>
+          <div class="qa-body">
+            <p>Если вспомнили в тот же день — примите, если близко ко времени следующей — <b>пропустите</b> и продолжайте как обычно. <b>Не удваивайте</b> дозу.</p>
+          </div>
+        </details>
+
+        <details class="qa" id="side">
+          <summary>Сухость губ и кожи — чем помочь? <span class="pill">побочки</span></summary>
+          <div class="qa-body">
+            <p>Бальзам с вазелином/ланолином для губ, нежные увлажняющие кремы без кислот и ретиноидов, физиологические промывки носа/увлажнение воздуха. Избегайте агрессивных пилингов и скрабов.</p>
+          </div>
+        </details>
+
+        <details class="qa" id="sport">
+          <summary>Боль в мышцах/суставах на курсе <span class="pill">спорт</span></summary>
+          <div class="qa-body">
+            <p>Снизьте интенсивность нагрузок, уделяйте внимание восстановлению. Если боль выраженная или нарастает — обсудите с врачом коррекцию дозы/паузы.</p>
+          </div>
+        </details>
+
+        <details class="qa" id="redflags">
+          <summary>Изменения настроения, головные боли, ухудшение зрения <span class="pill">важно</span></summary>
+          <div class="qa-body">
+            <p>Это <b>важные сигналы</b>. Срочно свяжитесь с врачом. При резком ухудшении самочувствия — обратитесь за неотложной помощью.</p>
+          </div>
+        </details>
+
+        <details class="qa" id="pregnancy">
+          <summary>Беременность и контрацепция на изотретиноине <span class="pill">тератогенность</span></summary>
+          <div class="qa-body">
+            <p>Изотретиноин <b>тератогенен</b>. Нельзя беременеть во время курса и в течение <b>минимум 1 месяца</b> после. Требуется надёжная контрацепция и отрицательные тесты — следуйте схеме врача. <b>Донорство крови запрещено</b> на курсе и месяц после.</p>
+          </div>
+        </details>
+
+        <details class="qa" id="alcohol">
+          <summary>Можно ли алкоголь? <span class="pill">алкоголь</span></summary>
+          <div class="qa-body">
+            <p>Желательно <b>избегать</b>: алкоголь повышает нагрузку на печень и может усиливать рост триглицеридов. Если планируете — обсудите с врачом индивидуальные риски.</p>
+          </div>
+        </details>
+
+        <details class="qa" id="sun">
+          <summary>Солнце и SPF <span class="pill">фотосенсибилизация</span></summary>
+          <div class="qa-body">
+            <p>Кожа становится чувствительнее к ультрафиолету. Ежедневно используйте <b>SPF 30+</b>, шляпу/очки, избегайте соляриев.</p>
+          </div>
+        </details>
+
+        <details class="qa" id="interactions">
+          <summary>Какие лекарства и добавки несовместимы? <span class="pill">взаимодействия</span></summary>
+          <div class="qa-body">
+            <p>Не сочетайте с добавками <b>витамина A</b> и другими <b>ретиноидами</b> (наружными/системными). Совместное применение с <b>тетрациклинами</b> может повышать риск внутричерепной гипертензии — обычно избегают.</p>
+          </div>
+        </details>
+
+        <details class="qa" id="procedures">
+          <summary>Процедуры: лазер, пилинг, восковая эпиляция <span class="pill">процедуры</span></summary>
+          <div class="qa-body">
+            <p>Во время курса и некоторое время после (часто рекомендуют до <b>6 месяцев</b>) избегают травмирующих процедур из‑за риска рубцевания/гиперпигментации. Сроки — только с врачом.</p>
+          </div>
+        </details>
+
+        <details class="qa" id="lenses">
+          <summary>Контактные линзы и сухость глаз <span class="pill">линзы</span></summary>
+          <div class="qa-body">
+            <p>Возможна сухость глаз. Используйте «искусственные слёзы», делайте перерывы, при выраженном дискомфорте временно переходят на очки.</p>
+          </div>
+        </details>
+
+        <details class="qa" id="finish">
+          <summary>Когда заканчивают курс? <span class="pill">окончание</span></summary>
+          <div class="qa-body">
+            <p>Обычно — когда достигнута кумулятивная цель и стойкая ремиссия. Решение принимает врач с учётом клиники и переносимости.</p>
+          </div>
+        </details>
+
+        <details class="qa" id="brands">
+          <summary>Роаккутан, Акнеккутан — в чём разница? <span class="pill">бренды</span></summary>
+          <div class="qa-body">
+            <p>Это торговые названия <b>изотретиноина</b> от разных производителей. В приложении выбор влияет на быстрые чипы доз (кратные 10 мг или 8 мг).</p>
+          </div>
+        </details>
+
+        <details class="qa" id="app">
+          <summary>Как отмечать приём и где смотреть статистику в приложении? <span class="pill">app</span></summary>
+          <div class="qa-body">
+            <p>На <a href="/index.html">Главной</a> введите мг и дату, нажмите «Сохранить» или выберите чип дозы. Сводные метрики, процент к 135 мг/кг и ETA — в блоке «Прогресс». Последние отметки и календарь‑превью — ниже.</p>
+          </div>
+        </details>
+
+      </div>
+    </section>
+
+    <section class="card" aria-label="Навигация">
+      <div class="glow"></div>
+      <div class="row" style="display:flex; justify-content:space-between">
+        <a href="/index.html">← На главную</a>
+        <a href="/profile">Профиль</a>
+      </div>
+    </section>
+
+    <footer>Информация носит общий характер и не заменяет консультацию врача. При любых ухудшениях — обратитесь к специалисту.</footer>
+  </div>
+
+  <script>
+    const tgApp=(window.Telegram&&window.Telegram.WebApp)?window.Telegram.WebApp:null;
+    if(tgApp&&tgApp.ready) tgApp.ready();
+    if(tgApp&&tgApp.expand) tgApp.expand();
+
+    const inp=document.getElementById('search');
+    const items=[...document.querySelectorAll('#qa-list .qa')];
+    function applyFilter(){
+      const q=(inp.value||'').toLowerCase().trim();
+      items.forEach(el=>{
+        if(!q){ el.style.display=''; return; }
+        const text=el.textContent.toLowerCase();
+        el.style.display = text.includes(q) ? '' : 'none';
+      });
+    }
+    inp.addEventListener('input', applyFilter);
+    window.addEventListener('keydown', (e)=>{ if(e.key==='/'){ e.preventDefault(); inp.focus(); } });
+
+    function openByHash(){
+      const id=location.hash.replace('#','');
+      if(!id) return;
+      const el=document.getElementById(id);
+      if(el && el.tagName.toLowerCase()==='details'){ el.open=true; el.scrollIntoView({behavior:'smooth', block:'start'}); }
+    }
+    window.addEventListener('hashchange', openByHash);
+    openByHash();
+  </script>
+</body>
+</html>

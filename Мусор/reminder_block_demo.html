@@ -1,0 +1,111 @@
+<!doctype html>
+<html lang="ru">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+  <title>Демо блока «Напоминания»</title>
+  <style>
+    :root{ --bg1:#0f172a; --bg2:#1e293b; --accent1:#5EEAD4; --accent2:#14B8A6; --txt:#fff; }
+    *{ box-sizing: border-box }
+    html,body{ height:100%; margin:0; font-family: Inter, system-ui, -apple-system, Segoe UI, Roboto, Arial, sans-serif; background: radial-gradient(120% 120% at 20% 0%, #4338ca 0%, #0ea5e9 30%, #0f172a 70%); color:var(--txt); }
+    .wrap{ min-height:100%; display:flex; align-items:center; justify-content:center; padding:32px 16px; }
+    .phone{ width:min(420px, 92vw); background: linear-gradient(180deg, rgba(255,255,255,.08), rgba(255,255,255,.04)); border:1px solid rgba(255,255,255,.18); border-radius:24px; padding:16px; box-shadow: 0 30px 60px rgba(0,0,0,.35); }
+    .h{ font-weight:900; font-size:20px; letter-spacing:.2px; margin:0 0 12px; }
+
+    /* ===== Reminder Frog Block ===== */
+    .reminder-frog{ --frogW: clamp(160px, 42vw, 220px); --radius: 16px; position: relative; margin: 8px 0 0; }
+    .reminder-frog .frog{ width: var(--frogW); position:absolute; left:50%; transform: translate(-50%, -62%); z-index:2; pointer-events:none; filter: drop-shadow(0 10px 22px rgba(0,0,0,.35)); }
+    .rem-card{ position: relative; padding: calc(14px + var(--frogW)*0.36) 16px 16px; border-radius: var(--radius); border: 1px solid rgba(255,255,255,.14); background: linear-gradient(180deg, rgba(255,255,255,.10), rgba(255,255,255,.06)); -webkit-backdrop-filter: blur(6px); backdrop-filter: blur(6px); }
+    .rem-head{ display:flex; align-items:baseline; justify-content:space-between; gap:12px; margin-bottom:8px; }
+    .rem-title{ font-weight:800; font-size:18px; }
+    .rem-next{ font-size:13px; opacity:.9; }
+
+    .rem-row{ display:flex; align-items:center; justify-content:space-between; gap:12px; flex-wrap:wrap; margin: 8px 0 12px; }
+    .rem-toggle{ display:flex; align-items:center; gap:10px; font-weight:600; cursor:pointer; user-select:none; }
+    .rem-toggle input{ width:18px; height:18px; }
+
+    .rem-time{ display:flex; align-items:center; gap:8px; }
+    .rem-time-label{ opacity:.9; font-size:14px; }
+    .rem-time input[type="time"]{ font:inherit; padding:8px 10px; border-radius:10px; border:1px solid rgba(255,255,255,.2); background: rgba(0,0,0,.15); color: var(--txt); }
+    .rem-time input[type="time"]::-webkit-calendar-picker-indicator{ filter: invert(1); }
+
+    .rem-btn{ width:100%; padding:12px 14px; border-radius:12px; border:none; cursor:pointer; font-weight:800; background: linear-gradient(90deg,var(--accent1),var(--accent2)); color:#0b0b0b; }
+    .rem-btn:active{ transform: translateY(1px); }
+
+    .info{ margin-top:12px; padding:12px 14px; border-radius:12px; border:1px dashed rgba(255,255,255,.25); font-size:14px; opacity:.9; }
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <div class="phone">
+      <h1 class="h">Main → Напоминания</h1>
+
+      <div class="reminder-frog" id="demo-block">
+        <img class="frog" src="frog-small.png" alt="Лягушка" />
+        <div class="rem-card">
+          <div class="rem-head">
+            <div class="rem-title">Напоминания</div>
+            <div id="rem-next" class="rem-next">—</div>
+          </div>
+
+          <div class="rem-row">
+            <label class="rem-toggle">
+              <input id="remEnable" type="checkbox" />
+              <span>Напоминать ежедневно</span>
+            </label>
+
+            <label class="rem-time">
+              <span class="rem-time-label">Время</span>
+              <input id="remTime" type="time" step="60" value="20:00" />
+            </label>
+          </div>
+
+          <button id="remTest" class="rem-btn">Отправить тестовое напоминание</button>
+        </div>
+      </div>
+
+      <div class="info">Это автономная демо-страница. Настройки сохраняются в <code>localStorage</code>. В боевом приложении кнопку можно связать с вашим ботом/бэкендом.</div>
+    </div>
+  </div>
+
+  <script>
+    (function(){
+      const elEnable = document.getElementById('remEnable');
+      const elTime   = document.getElementById('remTime');
+      const elNext   = document.getElementById('rem-next');
+      const K_ENABLED = 'demo:reminder:enabled';
+      const K_TIME    = 'demo:reminder:time';
+
+      // init
+      elEnable.checked = (localStorage.getItem(K_ENABLED) === '1');
+      elTime.value     = localStorage.getItem(K_TIME) || elTime.value || '20:00';
+
+      function fmtNext(t){
+        const [hh, mm] = t.split(':').map(n => parseInt(n,10));
+        const now = new Date();
+        const when = new Date();
+        when.setHours(hh, mm, 0, 0);
+        if (when <= now) when.setDate(when.getDate()+1);
+        const d = when.toLocaleDateString('ru-RU', { day:'2-digit', month:'2-digit' });
+        const tm = when.toLocaleTimeString('ru-RU', { hour:'2-digit', minute:'2-digit' });
+        return `Следующее напоминание: ${d} в ${tm}`;
+      }
+
+      function apply(){
+        const enabled = elEnable.checked;
+        const t = elTime.value || '20:00';
+        localStorage.setItem(K_ENABLED, enabled ? '1' : '0');
+        localStorage.setItem(K_TIME, t);
+        elNext.textContent = enabled ? fmtNext(t) : 'Напоминания выключены';
+      }
+      elEnable.addEventListener('change', apply);
+      elTime.addEventListener('change', apply);
+      apply();
+
+      document.getElementById('remTest').addEventListener('click', () => {
+        alert('Тестовое напоминание: проверьте уведомления/бота в реальном приложении.');
+      });
+    })();
+  </script>
+</body>
+</html>

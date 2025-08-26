@@ -1,0 +1,88 @@
+<!doctype html>
+<html lang="ru">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Roaccutane Tracker — Приветствие</title>
+  <script src="https://telegram.org/js/telegram-web-app.js"></script>
+  <style>
+    :root{
+      --bg:#0B1220; --surface:#0E1726; --border:#1F2A3C;
+      --text-high:#F3F7FF; --text-mid:#C7D2FE; --primary:#14B8A6;
+    }
+    *{box-sizing:border-box}
+    html,body{height:100%}
+    body{margin:0;background:var(--bg);color:var(--text-high);font-family:ui-sans-serif,system-ui,-apple-system,Segoe UI,Inter,Roboto,Manrope,Helvetica,Arial}
+    .stage{position:fixed;inset:0;overflow:hidden}
+    video{position:absolute;inset:0;width:100%;height:100%;object-fit:cover}
+    .overlay{position:absolute;inset:0;background:radial-gradient(120% 80% at 10% 0%, rgba(20,184,166,.18), transparent 50%),radial-gradient(120% 80% at 90% 20%, rgba(96,165,250,.18), transparent 60%);pointer-events:none}
+    .brand{position:absolute;left:24px;right:24px;top:24px;display:flex;align-items:center;gap:10px;font-weight:800;font-size:18px;letter-spacing:.2px;text-shadow:0 2px 12px rgba(0,0,0,.45)}
+    .btn-skip{position:absolute;right:16px;bottom:16px;appearance:none;border:1px solid var(--border);background:rgba(14,23,38,.55);backdrop-filter:blur(6px);
+              color:var(--text-high);padding:10px 14px;border-radius:12px;cursor:pointer}
+    .btn-skip:active{transform:translateY(1px)}
+    .progress{position:absolute;left:0;right:0;bottom:0;height:3px;background:rgba(255,255,255,.15)}
+    .bar{height:100%;width:0;background:linear-gradient(90deg,#5EEAD4,#14B8A6)}
+    .sr{position:absolute;left:-9999px}
+  </style>
+</head>
+<body>
+  <div class="stage">
+    <video id="v" autoplay muted playsinline preload="auto" webkit-playsinline>
+      <source src="./media/roacctracker.mp4" type="video/mp4" />
+    </video>
+    <div class="overlay"></div>
+    <div class="brand">Roaccutane Tracker</div>
+    <button id="skip" class="btn-skip">Пропустить</button>
+    <div class="progress" aria-hidden="true"><div id="bar" class="bar"></div></div>
+  </div>
+
+  <script>
+    const tg = (window.Telegram && window.Telegram.WebApp) ? window.Telegram.WebApp : null;
+    if (tg && tg.ready) tg.ready();
+    if (tg && tg.expand) tg.expand();
+    const devTg = new URLSearchParams(location.search).get('tg') || '';
+    const tgQuery = devTg ? ('?tg='+encodeURIComponent(devTg)) : '';
+
+    function nsKey(uid, k){ return `dermaApp:${uid||'anon'}:${k}`; }
+    function getTgId(){
+      try{
+        if (devTg) return String(devTg);
+        const u = tg?.initDataUnsafe?.user;
+        return u && u.id ? String(u.id) : null;
+      }catch(_){ return null; }
+    }
+    function proceed(){
+      try{
+        const uid = getTgId();
+        if (uid) localStorage.setItem(nsKey(uid,'splash_seen'),'1');
+        else localStorage.setItem('derma_splash_seen','1');
+      }catch(_){}
+      location.replace('./index.html'+tgQuery);
+    }
+
+    const v = document.getElementById('v');
+    const skip = document.getElementById('skip');
+    const bar = document.getElementById('bar');
+    skip.addEventListener('click', proceed);
+    v.addEventListener('ended', proceed);
+
+    // If autoplay fails, click to start or fallback after 2.5s
+    let started = false;
+    v.addEventListener('playing', ()=>{ started = true; });
+    setTimeout(()=>{ if(!started) { try{ v.play().catch(()=>{}); }catch(_){} } }, 250);
+
+    // progress bar
+    function raf(){
+      if (v && v.duration && !isNaN(v.duration)){
+        const p = Math.min(1, v.currentTime / v.duration);
+        bar.style.width = (p*100).toFixed(1)+'%';
+      }
+      requestAnimationFrame(raf);
+    }
+    requestAnimationFrame(raf);
+
+    // Safety timeout (e.g., unsupported codec)
+    setTimeout(()=>{ if (!v.duration || v.duration===Infinity) proceed(); }, 8000);
+  </script>
+</body>
+</html>

@@ -1,0 +1,129 @@
+<!doctype html>
+<html lang="ru">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Derma Mini‑App · Router</title>
+
+  <!-- Telegram SDK -->
+  <script src="https://telegram.org/js/telegram-web-app.js"></script>
+
+  <!-- 1) Перехват /api/* — прокинуть initData в заголовок и в URL (fallback) -->
+  <script>
+  (function patchFetchForTelegram(){
+    const origFetch = window.fetch;
+    window.fetch = function(input, init) {
+      let url = (typeof input === 'string') ? input : (input && input.url) || String(input || '');
+      init = init || {};
+
+      if (url.startsWith('/api/')) {
+        const initData = window.Telegram?.WebApp?.initData || '';
+        const headers = new Headers(init.headers || {});
+        if (initData) headers.set('X-Telegram-InitData', initData);
+
+        const u = new URL(url, location.origin);
+        if (initData) u.searchParams.set('tgWebAppData', initData);
+        u.searchParams.set('v', Date.now());
+
+        return origFetch(u.toString(), { ...init, headers, credentials:'include' });
+      }
+      return origFetch(input, init);
+    };
+  })();
+  </script>
+
+  <!-- 2) Глобальный helper window.api -->
+  <script>
+  window.api = function api(path, opts){
+    opts = opts || {};
+    const base     = String(window.API_BASE || '').replace(/\/$/,'');
+    const initData = window.Telegram?.WebApp?.initData || '';
+    const devTg    = new URLSearchParams(location.search).get('tg'); // только вне Telegram
+
+    const headers = Object.assign({'Content-Type':'application/json'}, opts.headers || {});
+    if (initData) headers['X-Telegram-InitData'] = initData;
+
+    let url = base + path;
+    if (!initData && devTg) url += (url.includes('?')?'&':'?') + 'tg=' + encodeURIComponent(devTg);
+    url += (url.includes('?')?'&':'?') + 'v=' + Date.now();
+    if (initData) url += '&tgWebAppData=' + encodeURIComponent(initData);
+
+    return fetch(url, { ...opts, headers, credentials:'include' });
+  };
+  </script>
+
+  <!-- 3) ЕДИНЫЙ РОУТЕР v3: splash один раз, учитываем derma_next -->
+  <script>
+  (function(){
+    const qs = location.search || '';
+    const sp = new URLSearchParams(qs);
+    const tgId = sp.get('tg') || (window.Telegram?.WebApp?.initDataUnsafe?.user?.id || '');
+
+    // reset=/index.html?tg=1002&reset=1 — очистка LS
+    if (sp.get('reset') === '1') {
+      try {
+        localStorage.removeItem('derma_consent');
+        localStorage.removeItem('derma_next');
+        localStorage.removeItem('derma_splash_seen');
+        if (tgId) {
+          localStorage.removeItem(`dermaApp:${tgId}:consentAccepted`);
+          localStorage.removeItem(`dermaApp:${tgId}:splash_seen`);
+        }
+      } catch(_) {}
+      sp.delete('reset');
+    }
+
+    // Если явно задан следующий шаг — идём туда (минуем splash, чтобы не было циклов)
+    const nextStage = (localStorage.getItem('derma_next') || '').trim();
+    if (nextStage) {
+      try { localStorage.removeItem('derma_next'); } catch(_) {}
+      const tail = sp.toString() ? ('?' + sp.toString()) : '';
+      // поддерживаем profile/plan/main
+      const m = { profile:'profile-dark.html', plan:'plan-dark.html', main:'main-dark.html' };
+      if (m[nextStage]) { location.replace('./' + m[nextStage] + tail); return; }
+      // если там welcome — пойдём на welcome (редкий кейс)
+      if (nextStage === 'welcome') { location.replace('./welcome-rt.html' + tail); return; }
+      // иначе проигнорируем и продолжим ниже
+    }
+
+    function goToSplash(nextPage){
+      sp.set('next', nextPage);
+      location.replace('./splash-video.html?' + sp.toString());
+    }
+
+    // 1) без согласия – после splasha идём на welcome
+    const hasConsent =
+      (localStorage.getItem('derma_consent') === '1') ||
+      (tgId && localStorage.getItem(`dermaApp:${tgId}:consentAccepted`) === '1');
+
+    if (!hasConsent) {
+      return goToSplash('./welcome-rt.html');
+    }
+
+    // 2) иначе решаем по API: profile → plan → main
+    (async () => {
+      try {
+        const meR = await window.api('/api/me');
+        const me  = meR.ok ? await meR.json() : null;
+        const hasWeight = !!(me && Number(me.weight_kg ?? me.weight) > 0);
+        if (!hasWeight) return goToSplash('./profile-dark.html');
+
+        const planR = await window.api('/api/plan');
+        const plan  = planR.ok ? await planR.json() : null;
+        const hasPlan = !!(plan && (plan.id || plan.start_date || plan.capsule_mg));
+        return goToSplash(hasPlan ? './main-dark.html' : './plan-dark.html');
+      } catch (_){
+        // оффлайн/ошибка – безопасно просить профиль
+        return goToSplash('./profile-dark.html');
+      }
+    })();
+  })();
+  </script>
+
+  <style>body{font-family:system-ui,-apple-system,Segoe UI,Roboto,Ubuntu,Arial;margin:0;padding:24px}</style>
+</head>
+<body>
+  <h1>Derma Mini‑App</h1>
+  <p>Перенаправляю…</p>
+</body>
+</html>
