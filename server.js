@@ -156,6 +156,16 @@ async function ensureUser(req) {
     return null;
   }
 }
+async function userIdByTg(tgId) {
+  if (!tgId) return null;
+  // на всякий случай фиксируем search_path для текущего коннекта
+  await pool.query('SET search_path = derma, public');
+  const { rows } = await pool.query(
+    'SELECT id FROM derma.users WHERE tg_id = $1::bigint',
+    [Number(tgId)]
+  );
+  return rows[0]?.id || null;
+}
 
 
 // ====== open routes ======
