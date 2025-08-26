@@ -1,5 +1,5 @@
 <!doctype html>
-<html lang="ру">
+<html lang="ru">
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
@@ -7,46 +7,34 @@
   <script src="https://telegram.org/js/telegram-web-app.js"></script>
   <style>
     :root{
-      --bg:#F8FAFB; --surface:#FFFFFF; --card:#FFFFFF; --border:#E6EAF0;
+      --bg:#F8FAFB; --card:#FFFFFF; --border:#E6EAF0;
       --text-high:#0F172A; --text-mid:#334155; --text-low:#64748B;
-      --accent-green:#22C55E; --accent-green-200:#BBF7D0;
-      --accent-pink:#EC4899; --accent-pink-200:#FBCFE8;
+      --accent-green:#22C55E; --accent-pink:#EC4899;
       --shadow: 0 10px 30px rgba(2, 6, 23, .05), 0 2px 8px rgba(2, 6, 23, .04);
       --safe-left: env(safe-area-inset-left, 0px);
       --safe-right: env(safe-area-inset-right, 0px);
     }
-
     *{box-sizing:border-box}
     html,body{height:100%;max-width:100%;overflow-x:hidden}
     body{
-      margin:0;
-      min-height:100dvh;
-      color:var(--text-high);
+      margin:0; color:var(--text-high);
       font-family: ui-sans-serif,system-ui,-apple-system,Segoe UI,Roboto,Inter,Manrope,Helvetica,Arial;
-      display:grid; place-items:center;
       background:
         radial-gradient(60% 50% at 0% 0%, rgba(34,197,94,.22), transparent 60%),
         radial-gradient(70% 60% at 100% 100%, rgba(236,72,153,.22), transparent 60%),
         linear-gradient(135deg, #E8F9E9 0%, #FFF6F9 100%);
-      /* 'fixed' background can cause layout issues in some webviews, avoid it */
     }
-
+    img,svg,video,canvas{max-width:100%;height:auto}
     .wrap{
-      inline-size:100%;
-      max-inline-size:980px;
-      padding-inline: clamp(12px, 4vw, 24px);
-      padding-left: max(clamp(12px, 4vw, 24px), var(--safe-left));
-      padding-right: max(clamp(12px, 4vw, 24px), var(--safe-right));
-      padding-block: 24px;
-      margin-inline:auto;
+      width:100%; max-width:980px;
+      margin-left:auto; margin-right:auto;
+      padding-left: max(16px, var(--safe-left));
+      padding-right: max(16px, var(--safe-right));
+      padding-top:16px; padding-bottom:24px;
     }
     .card{
-      inline-size:100%;
-      background:var(--card);
-      border:1px solid var(--border);
-      border-radius:20px;
-      padding:24px;
-      box-shadow: var(--shadow);
+      width:100%; background:var(--card); border:1px solid var(--border);
+      border-radius:20px; padding:16px; box-shadow: var(--shadow);
       position:relative; overflow:hidden;
     }
     .glow{position:absolute; inset:-2px; pointer-events:none;
@@ -54,56 +42,36 @@
         radial-gradient(120% 80% at 10% -10%, rgba(34,197,94,.12), transparent 50%),
         radial-gradient(120% 80% at 110% 110%, rgba(236,72,153,.12), transparent 50%);
     }
-
-    h1{margin:0 0 8px; font-weight:800; font-size:clamp(20px,5vw,28px); letter-spacing:.2px}
-    p{margin:6px 0; color:var(--text-mid); font-size:clamp(14px,3.8vw,16px)}
-    .row{display:flex; gap:clamp(12px,3.5vw,20px); align-items:center; flex-wrap:wrap}
-
-    .cta{display:flex; gap:12px; align-items:center; margin-top:16px; flex-wrap:wrap}
-    .btn{
-      appearance:none; border:none;
+    h1{margin:0 0 8px; font-weight:800; font-size:22px; letter-spacing:.2px}
+    @media (min-width:420px){ h1{font-size:26px} }
+    p{margin:6px 0; color:var(--text-mid); font-size:15px}
+    .row{display:flex; flex-wrap:wrap; align-items:center}
+    .stage{flex:0 0 auto; margin-right:12px; margin-bottom:12px;
+      position:relative; width:120px; height:120px; border-radius:16px;
+      background: linear-gradient(160deg,#FFFFFF,#F4F7FB);
+      border:1px solid var(--border);
+      display:grid; place-items:center; box-shadow: var(--shadow);
+    }
+    @media (min-width:480px){ .stage{width:140px; height:140px} }
+    .pill{width:80px; height:34px}
+    .pill .left{fill:#ffffff} .pill .right{fill:#f472b6}
+    .pill{animation:bob 2.4s ease-in-out infinite}
+    @keyframes bob{ 0%,100%{ transform:translateY(0)} 50%{ transform:translateY(-6px)} }
+    .ring{position:absolute; width:92px; height:92px; border-radius:999px; pointer-events:none;
+      border:3px solid rgba(34,197,94,.28); animation:ripple 2.8s ease-out infinite}
+    @media (min-width:480px){ .ring{width:110px; height:110px} }
+    @keyframes ripple{ 0%{ transform:scale(.85); opacity:.8 } 80%{ transform:scale(1.15); opacity:.08 } 100%{ opacity:0 } }
+    .text-col{flex:1 1 220px; min-width:0}
+    .cta{display:flex; flex-wrap:wrap; align-items:center}
+    .btn{appearance:none; border:none;
       background-image: linear-gradient(90deg, var(--accent-green) 0%, var(--accent-pink) 100%);
       color:white; font-weight:800; letter-spacing:.2px;
       padding:12px 16px; border-radius:12px; cursor:pointer;
       box-shadow: 0 10px 20px rgba(34,197,94,.18), 0 10px 22px rgba(236,72,153,.12);
-      transition: transform .08s ease-out, filter .2s ease-out;
+      margin-right:12px; margin-top:8px;
     }
-    .btn:active{ transform: translateY(1px) }
-    .btn:focus-visible{ outline: 3px solid var(--accent-green-200); outline-offset:2px }
-
-    .tag{
-      display:inline-flex; gap:6px; align-items:center; padding:6px 10px; border-radius:999px;
-      border:1px solid var(--border); color:var(--text-low); font-size:13px; background:#fff6;
-      backdrop-filter:saturate(1.1);
-    }
-
-    .stage{
-      position:relative; width:clamp(104px,26vw,140px); height:clamp(104px,26vw,140px); border-radius:16px;
-      background: linear-gradient(160deg,#FFFFFF,#F4F7FB);
-      border:1px solid var(--border);
-      display:grid; place-items:center;
-      box-shadow: var(--shadow);
-    }
-    .pill{width:clamp(64px,18vw,84px); height:clamp(28px,9vw,36px)}
-    .pill .left{fill:#ffffff}
-    .pill .right{fill:#f472b6}
-    .pill{animation:bob 2.4s ease-in-out infinite}
-    @keyframes bob{ 0%,100%{ transform:translateY(0)} 50%{ transform:translateY(-6px)} }
-
-    .ring{
-      position:absolute; width:calc(clamp(104px,26vw,140px) - 30px); height:calc(clamp(104px,26vw,140px) - 30px);
-      border-radius:999px; pointer-events:none;
-      border:3px solid rgba(34,197,94,.28);
-      animation:ripple 2.8s ease-out infinite;
-    }
-    @keyframes ripple{
-      0%{ transform:scale(.85); opacity:.8 }
-      80%{ transform:scale(1.15); opacity:.08 }
-      100%{ opacity:0 }
-    }
-
-    .text-col{flex:1; min-width:220px}
-    @media (max-width:380px){ .text-col{min-width:0} }
+    .tag{display:inline-flex; align-items:center; padding:6px 10px; border-radius:999px;
+      border:1px solid var(--border); color:var(--text-low); font-size:13px; background:#fff6; margin-top:8px}
   </style>
 </head>
 <body>
@@ -129,7 +97,7 @@
 
         <div class="text-col">
           <h1>Добро пожаловать в Roaccutane Tracker</h1>
-          <p>Лёгкая версия: светлая тема с зелёно‑розовым градиентом. Фиксируйте дозы, следите за прогрессом и не пропускайте приём.</p>
+          <p>Лёгкая версия: светлая тема с зелёно-розовым градиентом. Фиксируйте дозы, следите за прогрессом и не пропускайте приём.</p>
           <div class="cta">
             <button id="startBtn" class="btn">Начать</button>
             <span class="tag">TG WebApp готов</span>
@@ -143,7 +111,6 @@
   const tgApp = window.Telegram?.WebApp || null;
   tgApp?.ready?.();
   tgApp?.expand?.();
-
   document.getElementById('startBtn').addEventListener('click', () => {
     const qs = location.search || '';
     location.replace('./warnings.html' + qs);

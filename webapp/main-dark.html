@@ -75,7 +75,7 @@
 
     /* === CALENDAR PREVIEW (неделя, свайп/стрелки) === */
     .preview-wrap{position:relative;margin-top:10px}
-    .cal-grid{display:grid;grid-template-columns:repeat(7,1fr);gap:8px;align-items:stretch}
+    .cal-grid{display:grid;grid-template-columns:repeat(var(--days,7),1fr);gap:8px;align-items:stretch}
     .day-card{background:#0F1828;border:1px solid var(--border);border-radius:12px;padding:10px 10px 12px;min-height:62px}
     .day-card b{display:block;margin-bottom:4px}
     .day-card .muted{font-size:13px}
@@ -104,7 +104,14 @@
     .cal-grid.pre-enter-left{ transform: translateX(-12%); opacity: 0 }
     .cal-grid.pre-enter-right{ transform: translateX(12%); opacity: 0 }
 
-  </style>
+  
+    /* Show calendar arrows on desktop (pointer: fine), even if viewport is narrow */
+    .no-touch .cal-nav{display:grid; position:absolute; top:50%; transform:translateY(-50%); background:#0e1726; border:1px solid var(--border); width:34px; height:34px; border-radius:50%; place-items:center; color:var(--text-mid); cursor:pointer; opacity:.85}
+    .no-touch .cal-nav:hover{opacity:1}
+    .no-touch .cal-nav.left{left:-6px}
+    .no-touch .cal-nav.right{right:-6px}
+    .no-touch .cal-nav svg{width:18px;height:18px}
+</style>
 </head>
 <body>
   <div class="wrap">
@@ -308,6 +315,21 @@
     window.addEventListener('load', updateSegLabels);
 
     // Animated slide for calendar
+    // Detect touch vs desktop for calendar arrows
+    const isTouch = ('ontouchstart' in window) || (navigator.maxTouchPoints>0);
+    if(!isTouch){ document.documentElement.classList.add('no-touch'); }
+
+    // Days per view depends on container width (3 on phones, 5 on medium, 7 on wide)
+    let daysPerView = 7;
+    function recalcDaysPerView(){
+      const grid = document.getElementById('calPreview');
+      const wrap = document.getElementById('calWrap');
+      const w = (grid?.offsetWidth || wrap?.offsetWidth || 700);
+      daysPerView = w < 460 ? 3 : (w < 720 ? 5 : 7);
+      if(grid){ grid.style.setProperty('--days', String(daysPerView)); grid.setAttribute('aria-label','Календарь на '+daysPerView+' дней'); }
+    }
+    window.addEventListener('resize', recalcDaysPerView);
+
     function slideCalendar(direction, cb){
       const grid = document.getElementById('calPreview');
       if(!grid){ cb(); return; }
@@ -453,7 +475,10 @@
       wrap.addEventListener('touchend',   (e)=>{
         if(x0==null) return;
         const x1=(e.changedTouches[0]||{}).clientX || x0; const dx=x1-x0; x0=null;
-        if (Math.abs(dx)>30){ calOffset += (dx<0 ? +7 : -7); slideCalendar(dx<0 ? 'next' : 'prev', renderCalPreview); }
+        if (Math.abs(dx)>30){ const adx=Math.abs(dx);
+        const step = adx<90 ? 1 : (adx<180 ? daysPerView : 7);
+        calOffset += (dx<0 ? +step : -step);
+        slideCalendar(dx<0 ? 'next' : 'prev', renderCalPreview); }
       }, {passive:true});
     })();
 
@@ -543,7 +568,7 @@
 
         renderChips((PLAN?.drug||'roaccutane').toLowerCase());
         document.getElementById('date').value = todayISO();
-        updateSummary(); renderLast(); renderCalPreview();
+        updateSummary(); renderLast(); recalcDaysPerView(); renderCalPreview();
       }catch(e){
         renderChips('roaccutane');
       }
