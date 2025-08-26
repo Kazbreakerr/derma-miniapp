@@ -264,13 +264,22 @@ app.get('/api/progress', tgAuth, async (req, res) => {
        WHERE patient_id = $1`, [uid]);
 
     if (!rows.length) return res.status(404).json({ error: 'no active plan' });
-    res.json(rows[0]);
+
+    const row   = rows[0];
+    const modeQ = String(req.query.mode || 'opt');
+    const perKg = ({ min: 120, opt: 135, max: 150 })[modeQ] ?? 135;
+
+    const w = Number(row.weight_kg) || 0;
+    const taken_mg = Number(row.cum_mg) || 0;
+    const target_mg = w > 0 ? Math.round(perKg * w) : 0;
+    const percent   = target_mg > 0 ? (100 * taken_mg / target_mg) : 0;
+
+    res.json({ ...row, mode: modeQ, target_mg, taken_mg, percent });
   } catch (e) {
     console.error('PROGRESS ERROR:', e);
     res.status(500).json({ error: e.message || 'server error' });
   }
 });
-
 // последние отметки (GET)
 app.get('/api/dose', tgAuth, async (req, res) => {
   try {
@@ -316,6 +325,91 @@ app.post('/api/dose', tgAuth, async (req, res) => {
   }
 });
 
+
+// === New endpoints for updated front ===
+
+// Aliases for intakes
+app.get('/api/intakes', tgAuth, async (req, res) => {
+  try {
+    const uid = await userIdByTg(req.tg);
+    if (!uid) return res.status(400).json({ error: 'missing tg' });
+
+    const limit = Math.min(Number(req.query.limit || 14), 90);
+    const { rows } = await pool.query(
+      `SELECT date, mg_taken AS mg
+         FROM derma.dose_logs
+        WHERE patient_id=$1
+        ORDER BY date DESC
+        LIMIT $2`,
+      [uid, limit]
+    );
+    res.json(rows);
+  } catch (e) {
+    console.error('INTAKES LIST ERROR:', e);
+    res.status(500).json({ error: e.message });
+  }
+});
+
+app.post('/api/intakes', tgAuth, async (req, res) => {
+  try {
+    const uid = await userIdByTg(req.tg);
+    if (!uid) return res.status(400).json({ error: 'missing tg' });
+
+    const mg = Number(req.body?.mg);
+    if (!Number.isFinite(mg) || mg < 0) return res.status(400).json({ error: 'bad mg' });
+
+    const d = req.body?.date || new Date().toISOString().slice(0,10);
+    await pool.query(
+      `INSERT INTO derma.dose_logs(patient_id,date,mg_taken)
+       VALUES ($1,$2,$3)
+       ON CONFLICT (patient_id,date) DO UPDATE SET mg_taken=EXCLUDED.mg_taken`,
+      [uid, d, mg]
+    );
+    res.status(201).json({ ok: true, date: d, mg });
+  } catch (e) {
+    console.error('INTAKES POST ERROR:', e);
+    res.status(500).json({ error: e.message });
+  }
+});
+
+// Persist user's selected dose mode (optional)
+app.post('/api/dose-mode', tgAuth, async (req, res) => {
+  try {
+    const uid  = await userIdByTg(req.tg);
+    const mode = (req.body?.mode || 'opt');
+    if (!['min','opt','max'].includes(mode)) return res.status(400).json({ error:'bad mode' });
+
+    let persisted = false;
+    try {
+      await pool.query('UPDATE derma.users SET dose_mode = $2 WHERE id = $1', [uid, mode]);
+      persisted = true;
+    } catch (_) { /* column may not exist - fine */ }
+
+    res.json({ ok: true, persisted });
+  } catch (e) {
+    console.error('DOSE-MODE ERROR:', e);
+    res.status(500).json({ error: e.message });
+  }
+});
+
+// Reset only intakes and progress-related settings (keep profile)
+app.post('/api/reset', tgAuth, async (req, res) => {
+  try {
+    const uid = await userIdByTg(req.tg);
+    if (!uid) return res.status(400).json({ error: 'missing tg' });
+
+    const del = await pool.query('DELETE FROM derma.dose_logs WHERE patient_id=$1', [uid]);
+    // Optional: also wipe reminders if table exists
+    // await pool.query('DELETE FROM derma.reminders WHERE patient_id=$1', [uid]).catch(()=>{});
+
+    res.json({ ok: true, removed: del.rowCount });
+  } catch (e) {
+    console.error('RESET ERROR:', e);
+    res.status(500).json({ error: e.message });
+  }
+});
+
+// === /New endpoints ===
 // GET /api/me
 app.get('/api/me', tgAuth, async (req, res) => {
   try {

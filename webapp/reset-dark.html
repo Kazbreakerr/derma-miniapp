@@ -1,0 +1,112 @@
+<!doctype html>
+<html lang="ru">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Derma Mini-App — Обнуление данных</title>
+  <script src="https://telegram.org/js/telegram-web-app.js"></script>
+  <script>window.API_BASE = window.API_BASE || '';</script>
+  <style>
+    :root{
+      --bg:#0B1220; --surface:#0E1726; --card:#121C2E; --border:#1F2A3C;
+      --primary:#14B8A6; --danger:#EF4444; --text-high:#F3F7FF; --text-low:#93A3BF; --focus-ring:#93C5FD;
+    }
+    *{box-sizing:border-box}
+    body{margin:0;background:var(--bg);color:var(--text-high);
+         font-family:ui-sans-serif,system-ui,-apple-system,Segoe UI,Roboto,Inter,Manrope,Helvetica,Arial;
+         font-size:16px;line-height:1.5}
+    .wrap{max-width:760px;margin:0 auto;padding:24px 24px 40px}
+    h1{font-size:26px;margin:0 0 12px}
+    .card{background:var(--card);border:1px solid var(--border);border-radius:16px;padding:18px;box-shadow:0 8px 24px rgba(0,0,0,.35)}
+    .muted{color:var(--text-low)}
+    .row{display:flex;gap:12px;align-items:center;flex-wrap:wrap}
+    .cta{height:48px;padding:0 20px;border-radius:12px;border:none;font-weight:700;cursor:pointer;
+         background-image:linear-gradient(135deg,#22D3EE 0%, #14B8A6 100%); color:#07121F;box-shadow:0 6px 16px rgba(0,0,0,.25)}
+    .danger{background:#5b111a;color:#ffe3e6;border:1px solid #a11a28}
+    input[type="text"]{background:var(--surface);border:1px solid var(--border);color:var(--text-high);border-radius:12px;padding:10px 12px;font-size:16px;outline:none}
+    input:focus{border-color:#0EA5A6;box-shadow:0 0 0 2px var(--focus-ring)}
+    a{color:#bcd0ff}
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <h1>Обнуление данных</h1>
+    <div class="card">
+      <p>Это действие удалит ваши локальные отметки и серверные данные, связанные с прогрессом:</p>
+      <ul>
+        <li>Журнал приёмов (<code>intakes</code>)</li>
+        <li>Настройки напоминаний</li>
+        <li>Локальные кэши прогресса</li>
+      </ul>
+      <p class="muted">Профиль и план курса останутся.</p>
+
+      <label style="display:flex;gap:8px;align-items:center;margin:10px 0">
+        <input id="agree" type="checkbox"> <span>Я понимаю последствия и хочу удалить данные.</span>
+      </label>
+
+      <div class="row">
+        <div class="muted">Введите слово <b>ОБНУЛИТЬ</b> для подтверждения:</div>
+        <input id="confirm" type="text" placeholder="ОБНУЛИТЬ" style="min-width:180px">
+      </div>
+
+      <div class="row" style="margin-top:14px">
+        <button id="btnReset" class="cta danger" disabled>Обнулить</button>
+        <a href="./main-dark.html">Отмена</a>
+        <span id="msg" class="muted"></span>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    const tgApp = (window.Telegram && window.Telegram.WebApp) ? window.Telegram.WebApp : null;
+    tgApp?.ready?.(); tgApp?.expand?.();
+    const initData = tgApp?.initData || '';
+    const API_BASE = String(window.API_BASE||'').replace(/\\/$/, '');
+    const devTg = new URLSearchParams(location.search).get('tg') || '1002';
+    function api(path, opts={}){
+      let url = /^https?:\\/\\//i.test(path) ? path : (API_BASE + path);
+      const params = []; if (!initData && devTg) params.push('tg='+encodeURIComponent(devTg)); params.push('v=reset-2025-08-26');
+      url += (url.includes('?') ? '&' : '?') + params.join('&');
+      const headers = {'Content-Type':'application/json', ...(opts.headers||{})};
+      if (initData) headers['X-Telegram-InitData'] = initData;
+      return fetch(url, {...opts, headers});
+    }
+
+    const agree = document.getElementById('agree');
+    const confirmI = document.getElementById('confirm');
+    const btn = document.getElementById('btnReset');
+    const msg = document.getElementById('msg');
+
+    function sync(){
+      btn.disabled = !(agree.checked && confirmI.value.trim().toUpperCase() === 'ОБНУЛИТЬ');
+    }
+    agree.addEventListener('change', sync);
+    confirmI.addEventListener('input', sync);
+    sync();
+
+    btn.addEventListener('click', async ()=>{
+      btn.disabled = true; msg.textContent = 'Удаляю...';
+      try{
+        const r = await api('/api/reset', { method:'POST', body:'{}' });
+        if(!r.ok){ msg.textContent = 'Ошибка ' + r.status; btn.disabled=false; return; }
+        // wipe local caches
+        try{
+          const qs = new URLSearchParams(location.search);
+          const uid = qs.get('tg') || (window.Telegram?.WebApp?.initDataUnsafe?.user?.id || '');
+          localStorage.removeItem('derma_seed_cum_mg');
+          localStorage.removeItem('derma_remind_optin');
+          localStorage.removeItem('derma_dose_mode');
+          if (uid) {
+            localStorage.removeItem(`dermaApp:${uid}:splash_seen`);
+            localStorage.removeItem(`dermaApp:${uid}:consentAccepted`);
+          }
+        }catch(_){}
+        msg.textContent = 'Готово';
+        setTimeout(()=>{ location.replace('./index.html' + (location.search||'')); }, 400);
+      }catch(e){
+        msg.textContent = 'Ошибка сети'; btn.disabled=false;
+      }
+    });
+  </script>
+</body>
+</html>
