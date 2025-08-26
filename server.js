@@ -387,45 +387,50 @@ app.get('/api/plan', tgAuth, async (req, res) => {
   } catch (e) { console.error('PLAN GET ERROR:', e); res.status(500).json({ error: e.message }); }
 });
 
+// === PLAN: SAVE ===
 app.post('/api/plan', tgAuth, async (req, res) => {
   try {
     await pool.query('SET search_path = derma, public');
 
     const { drug, capsule_mg, start_date } = req.body || {};
-    if (!['roaccutane','aknekutan','other'].includes(drug || ''))
+    // drug обязателен; допускаем roaccutane/aknekutan/other
+    if (!['roaccutane','aknekutan','other'].includes(drug || '')) {
       return res.status(400).json({ error:'bad drug' });
+    }
 
     // capsule_mg теперь опционален
     let cap = null;
     if (capsule_mg !== undefined && capsule_mg !== null && String(capsule_mg) !== '') {
       cap = Number(capsule_mg);
-      const allowed =
-        drug === 'roaccutane' ? [10,20] :
-        drug === 'aknekutan'  ? [8,16]  : [];
-      if (allowed.length && !allowed.includes(cap))
+      const allowed = drug === 'roaccutane' ? [10,20]
+                    : drug === 'aknekutan'  ? [8,16]
+                    : [];
+      if (allowed.length && !allowed.includes(cap)) {
         return res.status(400).json({ error:'bad capsule_mg' });
+      }
     }
 
-    const userId = await userIdByTg(req.tg || req.tgUser?.id);
-    if (!userId) return res.status(400).json({ error:'no user' });
+    const patientId = await userIdByTg(req.tg || req.tgUser?.id);
+    if (!patientId) return res.status(400).json({ error:'no user' });
 
+    // ⬇️ ВАЖНО: используем patient_id (НЕ user_id) и не требуем created_at/updated_at
     const sql = `
-      INSERT INTO derma.plans (user_id, drug, capsule_mg, start_date, created_at, updated_at)
-      VALUES ($1,$2,$3,$4, NOW(), NOW())
-      ON CONFLICT (user_id) DO UPDATE
-        SET drug = EXCLUDED.drug,
-            capsule_mg = EXCLUDED.capsule_mg,
-            start_date = EXCLUDED.start_date,
-            updated_at = NOW()
-      RETURNING id, user_id, drug, capsule_mg, start_date
+      INSERT INTO derma.plans (patient_id, drug, capsule_mg, start_date)
+      VALUES ($1,$2,$3,$4)
+      ON CONFLICT (patient_id) DO UPDATE
+        SET drug        = EXCLUDED.drug,
+            capsule_mg  = EXCLUDED.capsule_mg,
+            start_date  = EXCLUDED.start_date
+      RETURNING patient_id, drug, capsule_mg, start_date
     `;
-    const { rows } = await pool.query(sql, [userId, drug, cap, start_date || null]);
+    const { rows } = await pool.query(sql, [patientId, drug, cap, start_date || null]);
     return res.json(rows[0]);
   } catch (e) {
     console.error('PLAN POST ERROR:', e);
     return res.status(500).json({ error:'server' });
   }
 });
+
 
 
 // анализы
