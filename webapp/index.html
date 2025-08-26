@@ -105,6 +105,19 @@
       try {
         const meR = await window.api('/api/me');
         const me  = meR.ok ? await meR.json() : null;
+        if (me && (me.fresh_user || me.is_fresh_user)) {
+  // Игнорируем старые локальные флаги — это новый пользователь
+  try {
+    localStorage.removeItem('derma_consent');
+    localStorage.removeItem('derma_next');
+    if (tgId) {
+      localStorage.removeItem(`dermaApp:${tgId}:consentAccepted`);
+      localStorage.removeItem(`dermaApp:${tgId}:splash_seen`);
+    }
+  } catch(_){}
+  // Полный онбординг: splash → welcome
+  return goToSplash('./welcome-rt.html');
+}
         const hasWeight = !!(me && Number(me.weight_kg ?? me.weight) > 0);
         if (!hasWeight) return goToSplash('./profile-dark.html');
 

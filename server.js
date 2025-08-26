@@ -126,18 +126,14 @@ async function tgAuth(req, res, next) {
 // ====== helpers ======
 async function ensureUser(req) {
   try {
-    // 1) получить tgId из tgAuth (или из initData/query как fallback)
     let tgId = Number(req.tg) || null;
     if (!tgId && req.tgUser?.id) tgId = Number(req.tgUser.id);
     if (!tgId && (req.query?.tg || req.body?.tg)) tgId = Number(req.query.tg || req.body.tg);
-
     if (!tgId || Number.isNaN(tgId)) return null;
 
-    // 2) для сессии выставляем схему
     await pool.query('SET search_path = derma, public');
 
-    // 3) минимальный UPSERT только по tg_id
-    const { rows } = await pool.query(
+    const ins = await pool.query(
       `INSERT INTO derma.users (tg_id)
        VALUES ($1::bigint)
        ON CONFLICT (tg_id) DO NOTHING
@@ -145,17 +141,23 @@ async function ensureUser(req) {
       [tgId]
     );
 
-    // если строка уже была — вернём существующую
-    if (!rows.length) {
+    let userRow;
+    if (ins.rows.length) {
+      req.isFreshUser = true;          // ⬅️ ВАЖНО: пользователь создан «с нуля»
+      userRow = ins.rows[0];
+    } else {
       const r2 = await pool.query('SELECT id, tg_id FROM derma.users WHERE tg_id = $1::bigint', [tgId]);
-      return r2.rows[0] || null;
+      userRow = r2.rows[0] || null;
+      req.isFreshUser = false;
     }
-    return rows[0];
+    return userRow;
   } catch (e) {
     console.error('ensureUser error:', e);
+    req.isFreshUser = false;
     return null;
   }
 }
+
 async function userIdByTg(tgId) {
   if (!tgId) return null;
   // на всякий случай фиксируем search_path для текущего коннекта
@@ -327,7 +329,11 @@ app.get('/api/me', tgAuth, async (req, res) => {
     where id = $1`,
   [u.id]
 );
-    res.json(rows[0] || {});
+
+// добавляем флаг «свежий пользователь» в отдаваемый JSON
+const me = rows[0] || {};
+me.fresh_user = !!req.isFreshUser;
+return res.json(me);
   } catch (e) {
     console.error('ME GET ERROR:', e);
     res.status(500).json({ error: e.message });
@@ -368,7 +374,10 @@ await pool.query(
     where id = $1`,
   [u.id]
 );
-    res.json(rows[0]);
+
+const me = rows[0] || {};
+me.fresh_user = !!req.isFreshUser;
+return res.json(me);
   } catch (e) {
     console.error('ME POST ERROR:', e);
     res.status(500).json({ error: e.message });
