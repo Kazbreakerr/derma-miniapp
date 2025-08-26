@@ -2,7 +2,7 @@
 <html lang="ru">
 <head>
   <meta charset="utf-8" />
-  <script>try{ if(localStorage.getItem('derma_consent')!=='1'){ location.replace('./warnings.html'); } }catch(_){}</script>
+<script>try{ if(localStorage.getItem('derma_consent')!=='1'){ location.replace('./warnings.html' + (location.search||'')); } }catch(_){}</script>
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>Derma Mini‑App — Главная</title>
   <script src="https://telegram.org/js/telegram-web-app.js"></script>
@@ -164,7 +164,28 @@
     const fmtInt = n => Number(n||0).toLocaleString('ru-RU');
     const fmt2   = n => Number(n||0).toLocaleString('ru-RU',{minimumFractionDigits:2,maximumFractionDigits:2});
     const todayISO = () => { const d=new Date(); d.setMinutes(d.getMinutes()-d.getTimezoneOffset()); return d.toISOString().slice(0,10); };
-    function ddmmyyyy(iso){ if(!iso) return '—'; const d=new Date(iso); return String(d.getDate()).padStart(2,'0')+'.'+String(d.getMonth()+1).padStart(2,'0')+'.'+d.getFullYear(); }
+    function ddmmyyyy(iso){
+  if (!iso) return '—';
+  const s = String(iso).slice(0, 10);     // YYYY-MM-DD
+  const [y, m, d] = s.split('-');
+  return d.padStart(2,'0') + '.' + m.padStart(2,'0') + '.' + y;
+}
+function normalizeDate(value){
+  if (!value) return '';
+  const s = String(value);
+  // если уже YYYY-MM-DD — оставляем
+  if (/^\d{4}-\d{2}-\d{2}$/.test(s)) return s;
+  // иначе парсим и берём ЛОКАЛЬНУЮ календарную дату
+  const d = new Date(s);
+  if (!isNaN(d)) {
+    const y = d.getFullYear();
+    const m = String(d.getMonth()+1).padStart(2,'0');
+    const day = String(d.getDate()).padStart(2,'0');
+    return `${y}-${m}-${day}`;
+  }
+  // fallback
+  return s.slice(0,10);
+}
     function daysDiffUTC(aISO,bISO){ try{ const a=new Date(aISO), b=new Date(bISO); const ad=Date.UTC(a.getFullYear(),a.getMonth(),a.getDate()); const bd=Date.UTC(b.getFullYear(),b.getMonth(),b.getDate()); return Math.floor((ad-bd)/86400000);}catch{ return 0; } }
 
     function go(path){ try{ history.pushState(null,'',path); location.assign(path);}catch{ location.href = path; } }
@@ -259,7 +280,18 @@
     byDate[k]=(byDate[k]||0)+Number(x.mg_taken||x.mg||0);
   });
   const today = todayISO();
-  const sumDays = (n)=>{ let s=0; for(let i=0;i<n;i++){ const d=new Date(today); d.setDate(d.getDate()-i); const iso=d.toISOString().slice(0,10); s += (byDate[iso]||0);} return s; };
+  const sumDays = (n) => {
+  let s = 0;
+  const [Y,M,D] = today.split('-').map(Number);       // today — это YYYY-MM-DD
+  const base = new Date(Date.UTC(Y, M - 1, D));
+  for (let i = 0; i < n; i++) {
+    const d = new Date(base);
+    d.setUTCDate(d.getUTCDate() - i);
+    const iso = d.toISOString().slice(0, 10);
+    s += (byDate[iso] || 0);
+  }
+  return s;
+};
   const a7  = sumDays(7)/7;
   const a14 = sumDays(14)/14;
   document.getElementById('avg7').textContent  = fmtInt(Math.round(a7));
@@ -300,7 +332,8 @@
     ]);
     ME        = meR.ok   ? await meR.json()   : null;
     PLAN      = planR.ok ? await planR.json() : null;
-    DOSES     = doseR.ok ? await doseR.json() : [];
+    DOSES     = doseR.ok ? (await doseR.json()) : [];
+DOSES = DOSES.map(d => ({ ...d, date: normalizeDate(d.date) }));
     PROGRESS  = prR.ok   ? await prR.json()   : null;
 
     renderChips((PLAN?.drug||'roaccutane').toLowerCase());

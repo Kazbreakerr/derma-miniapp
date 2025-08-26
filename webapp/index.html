@@ -3,8 +3,7 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>Derma Mini‑App · Router</title>
-
+  <title>Roaccutane Tracker — загрузка</title>
   <!-- Telegram SDK -->
   <script src="https://telegram.org/js/telegram-web-app.js"></script>
 
@@ -78,12 +77,9 @@
     if (nextStage) {
       try { localStorage.removeItem('derma_next'); } catch(_) {}
       const tail = sp.toString() ? ('?' + sp.toString()) : '';
-      // поддерживаем profile/plan/main
       const m = { profile:'profile-dark.html', plan:'plan-dark.html', main:'main-dark.html' };
       if (m[nextStage]) { location.replace('./' + m[nextStage] + tail); return; }
-      // если там welcome — пойдём на welcome (редкий кейс)
       if (nextStage === 'welcome') { location.replace('./welcome-rt.html' + tail); return; }
-      // иначе проигнорируем и продолжим ниже
     }
 
     function goToSplash(nextPage){
@@ -106,18 +102,16 @@
         const meR = await window.api('/api/me');
         const me  = meR.ok ? await meR.json() : null;
         if (me && (me.fresh_user || me.is_fresh_user)) {
-  // Игнорируем старые локальные флаги — это новый пользователь
-  try {
-    localStorage.removeItem('derma_consent');
-    localStorage.removeItem('derma_next');
-    if (tgId) {
-      localStorage.removeItem(`dermaApp:${tgId}:consentAccepted`);
-      localStorage.removeItem(`dermaApp:${tgId}:splash_seen`);
-    }
-  } catch(_){}
-  // Полный онбординг: splash → welcome
-  return goToSplash('./welcome-rt.html');
-}
+          try {
+            localStorage.removeItem('derma_consent');
+            localStorage.removeItem('derma_next');
+            if (tgId) {
+              localStorage.removeItem(`dermaApp:${tgId}:consentAccepted`);
+              localStorage.removeItem(`dermaApp:${tgId}:splash_seen`);
+            }
+          } catch(_){}
+          return goToSplash('./welcome-rt.html');
+        }
         const hasWeight = !!(me && Number(me.weight_kg ?? me.weight) > 0);
         if (!hasWeight) return goToSplash('./profile-dark.html');
 
@@ -126,17 +120,82 @@
         const hasPlan = !!(plan && (plan.id || plan.start_date || plan.capsule_mg));
         return goToSplash(hasPlan ? './main-dark.html' : './plan-dark.html');
       } catch (_){
-        // оффлайн/ошибка – безопасно просить профиль
         return goToSplash('./profile-dark.html');
       }
     })();
   })();
   </script>
 
-  <style>body{font-family:system-ui,-apple-system,Segoe UI,Roboto,Ubuntu,Arial;margin:0;padding:24px}</style>
+  <!-- ЛЁГКИЙ ЭКРАН ЗАГРУЗКИ -->
+  <style>
+    :root{
+      --bg:#0B1220; --card:#101a2a; --border:#1F2A3C;
+      --text:#E8F0FF; --muted:#9fb3d6; --teal:#14B8A6; --blue:#60A5FA;
+    }
+    html,body{height:100%}
+    body{
+      margin:0; min-height:100dvh; display:grid; place-items:center;
+      background:
+        radial-gradient(100% 60% at 20% 0%, rgba(20,184,166,.10), transparent 60%),
+        radial-gradient(100% 60% at 80% 10%, rgba(96,165,250,.10), transparent 60%),
+        var(--bg);
+      color:var(--text);
+      font-family:ui-sans-serif,system-ui,-apple-system,Segoe UI,Inter,Roboto,Manrope,Helvetica,Arial;
+    }
+    .box{
+      width:min(680px,92vw);
+      background:linear-gradient(180deg,#0e1726,#0c1422);
+      border:1px solid var(--border);
+      border-radius:20px; padding:24px 22px; box-shadow:0 18px 48px rgba(0,0,0,.4);
+      position:relative; overflow:hidden;
+    }
+    .glow{position:absolute; inset:0; pointer-events:none;
+      background:
+        radial-gradient(120% 80% at 10% 0%, rgba(20,184,166,.18), transparent 55%),
+        radial-gradient(120% 80% at 90% 20%, rgba(96,165,250,.18), transparent 65%)}
+    .row{display:flex; align-items:center; gap:16px}
+    h1{margin:0 0 8px; font-size:28px; line-height:32px; font-weight:800; letter-spacing:.2px}
+    p{margin:0; color:var(--muted)}
+
+    /* мини-капсула-лоадер */
+    .stage{width:54px; height:54px; border-radius:14px; display:grid; place-items:center;
+      background:linear-gradient(160deg,#0E1726,#101b2b); border:1px solid var(--border); position:relative}
+    .pill{width:44px; height:20px}
+    .pill .l{fill:#fff} .pill .r{fill:#14b8a6}
+    .pill{animation:bob 1.2s ease-in-out infinite}
+    @keyframes bob{0%,100%{transform:translateY(0)}50%{transform:translateY(-5px)}}
+    .ring{position:absolute; width:64px; height:64px; border-radius:999px; pointer-events:none;
+      border:3px solid rgba(94,234,212,.35); animation:ripple 1.6s ease-out infinite}
+    @keyframes ripple{0%{transform:scale(.8);opacity:.8}80%{transform:scale(1.12);opacity:.08}100%{opacity:0}}
+    .bar-wrap{height:3px; background:rgba(255,255,255,.12); border-radius:999px; margin-top:14px; overflow:hidden}
+    .bar{height:100%; width:30%; background:linear-gradient(90deg,var(--blue),var(--teal)); animation:flow 1.6s ease-in-out infinite}
+    @keyframes flow{0%{transform:translateX(-100%)}100%{transform:translateX(300%)}}
+    @media (prefers-reduced-motion: reduce){ .pill,.ring,.bar{animation:none} }
+  </style>
 </head>
 <body>
-  <h1>Derma Mini‑App</h1>
-  <p>Перенаправляю…</p>
+  <div class="box" role="status" aria-live="polite">
+    <div class="glow"></div>
+    <div class="row">
+      <div class="stage" aria-hidden="true">
+        <div class="ring"></div>
+        <svg class="pill" viewBox="0 0 200 86" xmlns="http://www.w3.org/2000/svg">
+          <defs><clipPath id="c"><rect x="0" y="0" rx="43" ry="43" width="200" height="86"/></clipPath></defs>
+          <g clip-path="url(#c)">
+            <rect class="l" x="0" y="0" width="100" height="86"/>
+            <rect class="r" x="100" y="0" width="100" height="86"/>
+            <rect x="94" y="0" width="12" height="86" fill="#0E1726" opacity=".45"/>
+          </g>
+          <rect x="0" y="0" rx="43" ry="43" width="200" height="86" fill="none"
+                stroke="rgba(255,255,255,.65)" stroke-width="2"/>
+        </svg>
+      </div>
+      <div style="flex:1; min-width:220px">
+        <h1>Roaccutane Tracker</h1>
+        <p>Загружаю и перенаправляю…</p>
+        <div class="bar-wrap"><div class="bar"></div></div>
+      </div>
+    </div>
+  </div>
 </body>
 </html>

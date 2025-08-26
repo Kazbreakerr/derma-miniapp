@@ -319,21 +319,21 @@ app.post('/api/dose', tgAuth, async (req, res) => {
 // GET /api/me
 app.get('/api/me', tgAuth, async (req, res) => {
   try {
-    const u = await ensureUser(req);
-    if (!u) return res.status(401).json({ error: 'unauthorized' });
+    // УЖЕ аутентифицированы и ensureUser ВЫЗВАН в tgAuth → тут только читаем
+    const uid = await userIdByTg(req.tg || req.tgUser?.id);
+    if (!uid) return res.status(401).json({ error: 'unauthorized' });
 
     const { rows } = await pool.query(
-  `select id, tg_id, full_name, sex, birth_date, weight_kg, height_cm, tz,
-          accepted_terms_at, allergies, terms_version
-     from derma.users
-    where id = $1`,
-  [u.id]
-);
+      `select id, tg_id, full_name, sex, birth_date, weight_kg, height_cm, tz,
+              accepted_terms_at, allergies, terms_version
+         from derma.users
+        where id = $1`,
+      [uid]
+    );
 
-// добавляем флаг «свежий пользователь» в отдаваемый JSON
-const me = rows[0] || {};
-me.fresh_user = !!req.isFreshUser;
-return res.json(me);
+    const me = rows[0] || {};
+    me.fresh_user = !!req.isFreshUser;   // ← значение, выставленное в tgAuth при первой вставке
+    return res.json(me);
   } catch (e) {
     console.error('ME GET ERROR:', e);
     res.status(500).json({ error: e.message });
@@ -343,46 +343,47 @@ return res.json(me);
 // POST /api/me
 app.post('/api/me', tgAuth, async (req, res) => {
   try {
-    const u = await ensureUser(req);
-    if (!u) return res.status(401).json({ error: 'unauthorized' });
+    // Никаких повторных ensureUser — берём текущего пользователя из tg
+    const uid = await userIdByTg(req.tg || req.tgUser?.id);
+    if (!uid) return res.status(401).json({ error: 'unauthorized' });
 
     const { weight_kg, height_cm, sex, birth_date, full_name, tz, accepted, allergies, terms_version } = req.body || {};
 
-
-await pool.query(
-  `update derma.users set
-     weight_kg = coalesce($1, weight_kg),
-     height_cm = coalesce($2, height_cm),
-     sex       = coalesce($3, sex),
-     birth_date= coalesce($4, birth_date),
-     full_name = coalesce($5, full_name),
-     tz        = coalesce($6, tz),
-     accepted_terms_at = case when $7::boolean is true
-                              then coalesce(accepted_terms_at, now())
-                              else accepted_terms_at end,
-     allergies = coalesce($8::text[], allergies),
-     terms_version = greatest(coalesce($9::int, terms_version), terms_version),
-     updated_at= now()
-   where id = $10`,
-  [weight_kg, height_cm, sex, birth_date, full_name, tz, accepted, allergies, terms_version, u.id]
-);
+    await pool.query(
+      `update derma.users set
+         weight_kg = coalesce($1, weight_kg),
+         height_cm = coalesce($2, height_cm),
+         sex       = coalesce($3, sex),
+         birth_date= coalesce($4, birth_date),
+         full_name = coalesce($5, full_name),
+         tz        = coalesce($6, tz),
+         accepted_terms_at = case when $7::boolean is true
+                                  then coalesce(accepted_terms_at, now())
+                                  else accepted_terms_at end,
+         allergies = coalesce($8::text[], allergies),
+         terms_version = greatest(coalesce($9::int, terms_version), terms_version),
+         updated_at= now()
+       where id = $10`,
+      [weight_kg, height_cm, sex, birth_date, full_name, tz, accepted, allergies, terms_version, uid]
+    );
 
     const { rows } = await pool.query(
-  `select id, tg_id, full_name, sex, birth_date, weight_kg, height_cm, tz,
-          accepted_terms_at, allergies, terms_version
-     from derma.users
-    where id = $1`,
-  [u.id]
-);
+      `select id, tg_id, full_name, sex, birth_date, weight_kg, height_cm, tz,
+              accepted_terms_at, allergies, terms_version
+         from derma.users
+        where id = $1`,
+      [uid]
+    );
 
-const me = rows[0] || {};
-me.fresh_user = !!req.isFreshUser;
-return res.json(me);
+    const me = rows[0] || {};
+    me.fresh_user = !!req.isFreshUser;
+    return res.json(me);
   } catch (e) {
     console.error('ME POST ERROR:', e);
     res.status(500).json({ error: e.message });
   }
 });
+
 
 // план курса
 app.get('/api/plan', tgAuth, async (req, res) => {

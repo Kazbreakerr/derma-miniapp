@@ -100,13 +100,10 @@
     } catch (_) { return ''; }
   }
 
-  const tgId    = getTgId();
-  const tgQuery = tgId ? ('?tg=' + encodeURIComponent(tgId)) : '';
-
   document.getElementById('startBtn').addEventListener('click', () => {
-    // идём на предупреждения, обязательно с ?tg
-    location.replace('./warnings.html' + tgQuery);
-  }, { once: true });
+  const qs = location.search || '';
+  location.replace('./warnings.html' + qs);
+}, { once: true });
 </script>
 
 </body>
