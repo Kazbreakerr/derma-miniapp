@@ -124,68 +124,39 @@ async function tgAuth(req, res, next) {
 }
 
 // ====== helpers ======
-async function userIdByTg(tg) {
-  if (!tg) return null;
-  const r = await pool.query('SELECT id FROM derma.users WHERE tg_id=$1', [tg]);
-  return r.rows[0]?.id || null;
-}
 async function ensureUser(req) {
   try {
-    // Сначала пробуем из tgAuth
+    // 1) получить tgId из tgAuth (или из initData/query как fallback)
     let tgId = Number(req.tg) || null;
-    let fullName = null;
-    let username = null;
-
-    if (req.tgUser) {
-      const u = req.tgUser;
-      tgId = Number(u.id) || tgId;
-      username = u.username || null;
-      fullName = [u.first_name, u.last_name].filter(Boolean).join(' ') || null;
-    }
-
-    // Fallback: если tgAuth не использовался (напр. /api/me), попробуем вытащить из initData/query
-    if (!tgId) {
-      const raw = req.get('X-Telegram-InitData')
-                || req.query.tgWebAppData
-                || req.query.initData
-                || '';
-      if (raw) {
-        const sp = new URLSearchParams(raw);
-        const userStr = sp.get('user');
-        if (userStr) {
-          const u = JSON.parse(userStr);
-          tgId = Number(u.id);
-          username = username || u.username || null;
-          fullName = fullName || [u.first_name, u.last_name].filter(Boolean).join(' ') || null;
-        }
-      }
-      if (!tgId) {
-        const dev = req.query?.tg ?? req.body?.tg;
-        if (dev) tgId = Number(dev);
-      }
-    }
+    if (!tgId && req.tgUser?.id) tgId = Number(req.tgUser.id);
+    if (!tgId && (req.query?.tg || req.body?.tg)) tgId = Number(req.query.tg || req.body.tg);
 
     if (!tgId || Number.isNaN(tgId)) return null;
 
-    // Желательно на сессию ставить нужный search_path
+    // 2) для сессии выставляем схему
     await pool.query('SET search_path = derma, public');
 
+    // 3) минимальный UPSERT только по tg_id
     const { rows } = await pool.query(
-      `INSERT INTO derma.users (tg_id, full_name, tg_username, updated_at, created_at)
-       VALUES ($1::bigint, $2, $3, NOW(), NOW())
-       ON CONFLICT (tg_id) DO UPDATE
-         SET full_name = COALESCE(EXCLUDED.full_name, derma.users.full_name),
-             tg_username = COALESCE(EXCLUDED.tg_username, derma.users.tg_username),
-             updated_at = NOW()
+      `INSERT INTO derma.users (tg_id)
+       VALUES ($1::bigint)
+       ON CONFLICT (tg_id) DO NOTHING
        RETURNING id, tg_id`,
-      [tgId, fullName, username]
+      [tgId]
     );
-    return rows[0] || null;
+
+    // если строка уже была — вернём существующую
+    if (!rows.length) {
+      const r2 = await pool.query('SELECT id, tg_id FROM derma.users WHERE tg_id = $1::bigint', [tgId]);
+      return r2.rows[0] || null;
+    }
+    return rows[0];
   } catch (e) {
     console.error('ensureUser error:', e);
     return null;
   }
 }
+
 
 // ====== open routes ======
 app.get('/api/health', (_, res) => res.json({ ok: true }));

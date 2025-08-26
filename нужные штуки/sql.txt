@@ -1,0 +1,7 @@
+SELECT id AS user_id,
+    tg_id,
+    COALESCE(row_to_json(u.*) ->> 'first_name'::text, (row_to_json(u.*) -> 'tg_profile'::text) ->> 'first_name'::text) AS first_name,
+    COALESCE(row_to_json(u.*) ->> 'last_name'::text, (row_to_json(u.*) -> 'tg_profile'::text) ->> 'last_name'::text) AS last_name,
+    COALESCE(row_to_json(u.*) ->> 'username'::text, (row_to_json(u.*) -> 'tg_profile'::text) ->> 'username'::text) AS username
+   FROM users u;
+
