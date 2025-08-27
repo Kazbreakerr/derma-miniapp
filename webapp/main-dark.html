@@ -148,9 +148,9 @@
     #chips .chip.selected{ border-color:#14B8A6; box-shadow: 0 0 0 2px rgba(94,234,212,.30) inset }
 
   
-    /* Mobile: horizontal flat scroll with snapping for calendar */
+    /* === Mobile horizontal flat scroll (3 cards + snapping) === */
     @media (max-width: 720px){
-      .preview-wrap{ overflow-x: hidden }
+      .preview-wrap{ overflow-x:hidden }
       .cal-grid{
         display:flex;
         overflow-x:auto;
@@ -158,14 +158,17 @@
         padding-bottom:6px;
         scroll-snap-type:x mandatory;
         -webkit-overflow-scrolling: touch;
-        scroll-padding-left: 4px;
+        scroll-padding-left:4px;
+        user-select:none;
       }
       .cal-grid::-webkit-scrollbar{ height:0 }
       .day-card{
         flex:0 0 auto;
-        scroll-snap-align: start;
-        min-width: 168px;
+        scroll-snap-align:start;
+        min-width: clamp(110px, 32vw, 140px); /* ~3 карточки на экран */
       }
+      /* автоподсветка центральной карточки после остановки скролла */
+      .day-card.snap{ box-shadow: 0 0 0 2px rgba(94,234,212,.28) inset, 0 6px 16px rgba(20,184,166,.10) }
     }
 
   </style>
@@ -429,6 +432,41 @@
     })();
 
 
+
+    // Auto-highlight center card on mobile flat scroll (does not change selected date)
+    (function setupCenterSnap(){
+      const AUTO_SELECT_ON_SNAP = true;
+      const grid = document.getElementById('calPreview');
+      if(!grid) return;
+      let timer;
+      function highlightCenter(){
+        // если уже есть выбранная дата — не вмешиваемся
+        if (grid.querySelector('.day-card.selected')) return;
+        const center = grid.scrollLeft + grid.clientWidth/2;
+        let best = null, bestDist = Infinity;
+        const items = grid.querySelectorAll('.day-card');
+        items.forEach((card)=>{
+          const c = card.offsetLeft + card.offsetWidth/2;
+          const d = Math.abs(c - center);
+          if (d < bestDist){ bestDist = d; best = card; }
+        });
+        items.forEach(el=>el.classList.remove('snap'));
+        if(best){ best.classList.add('snap');
+          if (AUTO_SELECT_ON_SNAP && !grid.querySelector('.day-card.selected')){
+            const iso = best.getAttribute('data-iso');
+            const inp = document.getElementById('date');
+            if (iso && inp) { inp.value = iso; renderCalPreview(); }
+          }
+        }
+      }
+      grid.addEventListener('scroll', ()=>{ clearTimeout(timer); timer = setTimeout(highlightCenter, 90); }, {passive:true});
+      // обновлять при изменении контента календаря
+      new MutationObserver(()=>highlightCenter()).observe(grid, {childList:true});
+      window.addEventListener('load', highlightCenter);
+      window.addEventListener('resize', highlightCenter);
+    })();
+
+
     // Bottom nav
     function go(path){ try{ history.pushState(null,'',path); location.assign(path);}catch{ location.href = path; } }
     document.querySelectorAll('.bottom-nav a').forEach(a=>{
@@ -550,7 +588,7 @@
       for(let i=0;i<7;i++){
         const d = new Date(base); d.setDate(base.getDate()+i);
         const iso = d.toISOString().slice(0,10);
-        const card = document.createElement('div'); card.className='day-card'; card.tabIndex=0;
+        const card = document.createElement('div'); card.className='day-card'; card.tabIndex=0; card.setAttribute('data-iso', iso);
         if (i===0 && calOffset===0) card.classList.add('today');
         const mg = map.get(iso);
         const currentIso = (document.getElementById('date')?.value||'').slice(0,10);
