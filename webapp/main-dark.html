@@ -172,32 +172,107 @@
     }
 
   
-/* === OVERRIDE: Calendar shows 7 days in 3-2-2 on mobile; container not scrollable === */
-@media (max-width: 720px){
-  #cardCalendar #calPreview.cal-grid{
-    display:flex !important;
-    flex-wrap:wrap !important;
-    gap:8px !important;
-    overflow:visible !important;
-    scroll-snap-type:none !important;
-    -webkit-overflow-scrolling:auto !important;
-    scroll-padding-left:0 !important;
-  }
-  #cardCalendar #calPreview.cal-grid .day-card{
-    min-width:0 !important;
-    flex:0 0 calc((100% - 16px)/3) !important; /* 3 в первой строке */
-    scroll-snap-align:unset !important;
-  }
-  #cardCalendar #calPreview.cal-grid .day-card:nth-child(n+4){
-    flex-basis: calc((100% - 8px)/2) !important; /* 2 во второй и третьей строке */
-  }
-}
-/* Calendar: убрать подсветку снапа */
-#cardCalendar .day-card.snap{ box-shadow:none !important; }
+/* --- Reminder Block --- */
+.rem-ctrl{ display:flex; align-items:center; gap:12px; }
+.rem-ctrl .switch{ display:flex; align-items:center; gap:8px; color:var(--text); }
+.rem-ctrl .switch input[type="checkbox"]{ width:42px; height:24px; accent-color:#22D3EE; }
+.rem-ctrl .time input[type="time"]{ background:#0E1726; border:1px solid var(--border); color:var(--text); padding:6px 10px; border-radius:10px; }
 
-/* Прогресс: уменьшить кнопки для длинных слов */
-#doseSeg button{ font-size:12px !important; padding:4px 6px !important; }
-</style>
+.flip-wrap{ margin-top:12px; display:flex; justify-content:center; }
+.flip-card{
+  width: min(520px, 100%);
+  height: 160px;
+  perspective: 1000px;
+  border-radius:16px;
+  position:relative;
+}
+.flip-card .face{
+  position:absolute; inset:0;
+  border-radius:16px;
+  display:flex; flex-direction:column; justify-content:center; align-items:center;
+  backface-visibility: hidden;
+  box-shadow: 0 12px 28px rgba(0,0,0,.30), inset 0 0 0 1px rgba(255,255,255,.05);
+  transition: transform .8s cubic-bezier(.2,.7,.2,1), opacity .8s ease, filter .6s ease;
+  overflow:hidden;
+}
+.face-front{
+  background: radial-gradient(120% 140% at 12% 8%, rgba(255,255,255,.18), rgba(255,255,255,0) 45%),
+             linear-gradient(165deg, #ff84c1 0%, #ff5aa0 35%, #ff4f8b 55%, #ff3b6b 72%, #e7363a 100%);
+  animation: rem-pulse 2.2s ease-in-out infinite;
+}
+.face-back{
+  background: radial-gradient(120% 140% at 12% 8%, rgba(255,255,255,.18), rgba(255,255,255,0) 45%),
+              linear-gradient(140deg, #34e59b 0%, #22d3ee 52%, #33b5e5 76%, #2ea4e0 100%);
+  transform: rotateY(180deg);
+}
+.flip-card.flipped .face-front{ transform: rotateY(180deg); opacity:.0; filter: blur(0.3px); animation:none; }
+.flip-card.flipped .face-back{ transform: rotateY(360deg); opacity:1; }
+
+.flip-card .icon{ font-size:28px; margin-bottom:8px; }
+.flip-card .msg{ font-size:18px; text-align:center; padding:0 16px; }
+.flip-card .sub{ font-size:12px; opacity:.7; margin-top:6px; }
+
+@keyframes rem-pulse{
+  0%,100%{ box-shadow: 0 0 0 0 rgba(239,68,68,.30), 0 12px 28px rgba(0,0,0,.30); }
+  50%   { box-shadow: 0 0 0 10px rgba(239,68,68,.08), 0 12px 28px rgba(0,0,0,.30); }
+}
+/* Серое состояние при отключенных напоминаниях */
+.rem-off .face-front{ background: linear-gradient(135deg, #64748b 0%, #475569 100%); animation:none; }
+.rem-off .face-back{ background: linear-gradient(135deg, #64748b 0%, #475569 100%); }
+
+  
+/* Toggle switch (for reminder enable) */
+.rem-ctrl{ display:flex; align-items:center; gap:12px; }
+.rem-ctrl .rem-label{ color:var(--text-mid); }
+.toggle{ position:relative; width:44px; height:24px; display:inline-block; }
+.toggle input{ opacity:0; width:0; height:0; position:absolute; }
+.toggle .slider{
+  position:absolute; inset:0; border-radius:999px;
+  background:#0E1726; border:1px solid var(--border);
+  box-shadow: inset 0 1px 2px rgba(0,0,0,.35);
+  transition: background .18s ease, border-color .18s ease;
+}
+.toggle .slider::after{
+  content:""; position:absolute; width:20px; height:20px; left:2px; top:1.5px;
+  background:#fff; border-radius:50%; box-shadow:0 1px 2px rgba(0,0,0,.25);
+  transition: transform .18s ease;
+}
+.toggle input:checked + .slider{
+  background: linear-gradient(135deg, #22D3EE 0%, #14B8A6 100%);
+  border-color: transparent;
+}
+.toggle input:checked + .slider::after{ transform: translateX(20px); }
+
+/* Brighter gradients for reminder card */
+.face-front{
+  background:
+    radial-gradient(120% 140% at 80% 20%, rgba(255,255,255,.12), rgba(255,255,255,0)),
+    linear-gradient(135deg, #ff3b5c 0%, #ff6b86 45%, #ff93a5 100%);
+  animation: rem-pulse 2.2s ease-in-out infinite;
+}
+.face-back{
+  background:
+    radial-gradient(120% 140% at 80% 20%, rgba(255,255,255,.12), rgba(255,255,255,0)),
+    linear-gradient(135deg, #10b981 0%, #06b6d4 100%);
+}
+/* Glassmorphism для карточки напоминания */
+.flip-card { position: relative; }           /* контейнер якорим, если не задано */
+.flip-card .face{
+  position: absolute; inset: 0;              /* ВАЖНО: вернуть абсолютное позиционирование */
+  border:1px solid rgba(255,255,255,.22);
+  box-shadow:0 14px 34px rgba(0,0,0,.35), inset 0 0 0 1px rgba(255,255,255,.06);
+  backdrop-filter: blur(14px) saturate(1.35);
+  -webkit-backdrop-filter: blur(14px) saturate(1.35);
+}
+.flip-card .face::before{
+  content:"";
+  position:absolute; inset:0; pointer-events:none;
+  background:linear-gradient(180deg, rgba(255,255,255,.18), rgba(255,255,255,0) 30%, rgba(0,0,0,.08) 100%);
+  mix-blend-mode:soft-light;
+  border-radius:inherit;
+}
+
+  </style>
 </head>
 <body>
   <div class="wrap">
@@ -283,11 +358,6 @@
       <div id="saveStatus" class="muted" style="margin-top:8px"></div>
     </section>
 
-    <section class="card section" aria-labelledby="last-title">
-      <div class="glow"></div>
-      <h2 id="last-title" style="margin-bottom:8px">Последние отметки</h2>
-      <div id="lastDoses" class="muted">Нет отметок</div>
-    </section>
 
     <section class="card section clickable" id="cardCalendar" aria-label="Календарь">
       <div class="glow"></div>
@@ -301,6 +371,31 @@
         <button class="cal-nav right" id="calNext" aria-label="Вперёд на неделю" title="Вперёд">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 6l6 6-6 6"/></svg>
         </button>
+      </div>
+    </section>
+
+    
+    <section class="card section" aria-labelledby="reminder-title">
+      <div class="glow"></div>
+      <div class="row" style="justify-content:space-between; align-items:flex-start; gap:16px">
+        <h2 id="reminder-title" style="margin:0">Напоминание</h2>
+        <!-- левая панель управления -->
+        <div id="remCtrl" class="rem-ctrl">  <label class="toggle"><input id="remToggle" type="checkbox"><span class="slider" aria-hidden="true"></span></label>  <span class="rem-label">Напоминать ежедневно</span>  <label class="time"><input id="remTime" type="time" value="09:00"></label></div></div>
+
+      <!-- правая двусторонняя карточка -->
+      <div class="flip-wrap">
+        <div id="remCard" class="flip-card" aria-live="polite">
+          <div class="face face-front" id="remFront">
+            <div class="icon">⚠️</div>
+           <div class="msg"><b>Сегодня вы ещё не приняли препарат</b></div>
+            <div class="sub">Карточка обновится после того, как вы отметите приём препарата</div>
+          </div>
+          <div class="face face-back" id="remBack">
+            <div class="icon">✅</div>
+            <div class="msg">Молодец! Сегодня вы приняли препарат
+            <div class="sub">Карточка обновится после того, как вы отметите приём препарата</div>
+          </div>
+        </div>
       </div>
     </section>
 
@@ -382,7 +477,6 @@
     const fmtInt = n => Number(n||0).toLocaleString('ru-RU');
     const fmt2   = n => Number(n||0).toLocaleString('ru-RU',{minimumFractionDigits:2,maximumFractionDigits:2});
     const todayISO = () => { const d=new Date(); d.setMinutes(d.getMinutes()-d.getTimezoneOffset()); return d.toISOString().slice(0,10); };
-    function localISO(d){ const y=d.getFullYear(); const m=String(d.getMonth()+1).padStart(2,'0'); const day=String(d.getDate()).padStart(2,'0'); return `${y}-${m}-${day}`; }
     function ddmmyyyy(iso){ if (!iso) return '—'; const s=String(iso).slice(0,10); const [y,m,d]=s.split('-'); return d.padStart(2,'0')+'.'+m.padStart(2,'0')+'.'+y; }
     function normalizeDate(value){ if (!value) return ''; const s=String(value); if (/^\d{4}-\d{2}-\d{2}$/.test(s)) return s; const d=new Date(s); if (!isNaN(d)){ const y=d.getFullYear(); const m=String(d.getMonth()+1).padStart(2,'0'); const day=String(d.getDate()).padStart(2,'0'); return `${y}-${m}-${day}`;} return s.slice(0,10); }
     function daysDiffUTC(aISO,bISO){ try{ const a=new Date(aISO), b=new Date(bISO); const ad=Date.UTC(a.getFullYear(),a.getMonth(),a.getDate()); const bd=Date.UTC(b.getFullYear(),b.getMonth(),b.getDate()); return Math.floor((ad-bd)/86400000);}catch{ return 0; } }
@@ -610,49 +704,21 @@
 
       const dows=['Вс','Пн','Вт','Ср','Чт','Пт','Сб'];
 
-     const base = new Date(); base.setHours(0,0,0,0);
-  const mondayShift = (base.getDay() + 6) % 7; // 0=Mon .. 6=Sun
-  base.setDate(base.getDate() - mondayShift + calOffset);
-
-  const todayIso = todayISO();
-  for (let i = 0; i < 7; i++) {
-    const d = new Date(base); d.setDate(base.getDate() + i);
-    const iso = localISO(d);
-
-  const card = document.createElement('div');
-  card.className = 'day-card';
-  card.tabIndex = 0;
-  card.setAttribute('data-iso', iso);
-
-  const isToday = (iso === todayIso);
-  if (isToday) card.classList.add('today');
-
-  const mg = map.get(iso);
-  const currentIso = (document.getElementById('date')?.value || '').slice(0,10);
-  if (iso === currentIso) card.classList.add('selected');
-
-  card.innerHTML =
-    '<div class="dow">' + dows[d.getDay()] + '</div>' +
-    '<b>' + ddmmyyyy(iso) + '</b>' +
-    '<div class="muted">' + (mg ? (fmtInt(mg) + ' мг 💊') : (isToday ? 'сегодня' : '—')) + '</div>';
-
-  card.addEventListener('click', () => {
-    const inp = document.getElementById('date');
-    if (inp) inp.value = iso;
-    renderCalPreview();
-  });
-
-  card.addEventListener('keydown', (e) => {
-    if (e.key === 'Enter' || e.key === ' ') {
-      e.preventDefault();
-      const inp = document.getElementById('date');
-      if (inp) inp.value = iso;
-      renderCalPreview();
-    }
-  });
-
-  box.appendChild(card);
-}
+      const base = new Date(); base.setHours(0,0,0,0);
+      base.setDate(base.getDate()+calOffset);
+      for(let i=0;i<7;i++){
+        const d = new Date(base); d.setDate(base.getDate()+i);
+        const iso = d.toISOString().slice(0,10);
+        const card = document.createElement('div'); card.className='day-card'; card.tabIndex=0; card.setAttribute('data-iso', iso);
+        if (i===0 && calOffset===0) card.classList.add('today');
+        const mg = map.get(iso);
+        const currentIso = (document.getElementById('date')?.value||'').slice(0,10);
+        if (iso===currentIso) card.classList.add('selected');
+        card.innerHTML = '<div class="dow">'+dows[d.getDay()]+'</div><b>'+ddmmyyyy(iso)+'</b><div class="muted">'+(mg? (fmtInt(mg)+' мг 💊') : '—')+'</div>';
+        card.addEventListener('click', ()=>{ const inp=document.getElementById('date'); if(inp){ inp.value = iso; } renderCalPreview(); });
+        card.addEventListener('keydown', (e)=>{ if(e.key==='Enter'||e.key===' '){ e.preventDefault(); const inp=document.getElementById('date'); if(inp){ inp.value = iso; } renderCalPreview(); }});
+        box.appendChild(card);
+      }
     }
     (function wireCalNav(){
       const wrap = document.getElementById('calWrap');
@@ -775,8 +841,7 @@
         if (!r.ok) { st.textContent = 'Ошибка ' + r.status; return; }
         st.textContent = 'Сохранено';
         DOSES.unshift({ mg: mg, date: date });
-        await document.getElementById('cardCalendar')?.classList.remove('clickable');
-    loadAll();
+        await loadAll();
       } catch (e) {
         st.textContent = 'Ошибка сети';
       }
@@ -814,10 +879,113 @@
     document.getElementById('resetBtn').addEventListener('click', ()=>{
       location.href = './reset-dark.html' + (location.search||'');
     });
-    document.getElementById('cardCalendar')?.classList.remove('clickable');
     loadAll();
     document.querySelectorAll('#doseSeg button').forEach(b=> b.addEventListener('click', ()=> setDoseMode(b.dataset.mode) ));
     document.querySelector('#doseSeg button[data-mode="'+(DOSE_MODE||'opt')+'"]')?.click();
-  </script>
+  
+// === Reminder block logic ===
+(function(){
+  function localISO(d){ const y=d.getFullYear(), m=String(d.getMonth()+1).padStart(2,'0'), day=String(d.getDate()).padStart(2,'0'); return `${y}-${m}-${day}`; }
+  function todayISO(){ const d=new Date(); d.setHours(0,0,0,0); return localISO(d); }
+
+  
+  function drugRu(){
+  const raw = ((PLAN?.drug || '') + '').trim().toLowerCase();
+  if (!raw) return 'препарат';
+  if (raw.includes('akne') || raw.includes('aknek') || raw.includes('акнек') || raw === 'aknekutan' || raw === 'акнеккутан') return 'акнеккутан';
+  if (raw.includes('roacc') || raw.includes('роакк') || raw === 'roaccutane' || raw === 'роаккутан') return 'роаккутан';
+  return 'препарат';
+}
+  function setReminderTexts(){
+    const front = document.getElementById('remFront')?.querySelector('.msg');
+    const back  = document.getElementById('remBack')?.querySelector('.msg');
+    const drug = drugRu();
+    if (front) front.innerHTML = '<b>Сегодня вы ещё не приняли ' + drug + '</b>';
+    if (back)  back.textContent = 'Молодец! Сегодня вы приняли ' + drug;
+  }
+
+  const state = {
+    enabled: (localStorage.getItem('rem_enabled') ?? '1') === '1',
+    time: localStorage.getItem('rem_time') || '09:00',
+  };
+
+  function getTodayDoseMg(){
+    const iso = todayISO();
+    let sum = 0;
+    (Array.isArray(DOSES)? DOSES : []).forEach(x=>{
+      const k=(x.date||'').slice(0,10);
+      if (k===iso) sum += Number(x.mg||x.mg_taken||0) || 0;
+    });
+    return sum;
+  }
+
+  function applyCtrl(){
+    const toggle = document.getElementById('remToggle');
+    const time   = document.getElementById('remTime');
+    const card   = document.getElementById('remCard');
+
+    if (!toggle || !time || !card) return;
+
+    toggle.checked = state.enabled;
+    time.value = state.time;
+    card.classList.toggle('rem-off', !state.enabled);
+
+    toggle.addEventListener('change', ()=>{
+      state.enabled = toggle.checked;
+      localStorage.setItem('rem_enabled', state.enabled? '1':'0');
+      card.classList.toggle('rem-off', !state.enabled);
+    });
+    time.addEventListener('change', ()=>{
+      state.time = time.value || '09:00';
+      localStorage.setItem('rem_time', state.time);
+    });
+  }
+
+  function renderReminder(){
+    const card = document.getElementById('remCard');
+    if (!card) return;
+
+    // Flip depending on today's dose
+    const took = getTodayDoseMg() > 0;
+    card.classList.toggle('flipped', took);
+  }
+
+  function midnightSchedule(){
+    let last = todayISO();
+    setInterval(()=>{
+      const cur = todayISO();
+      if (cur !== last){
+        last = cur;
+        renderReminder(); // сбросить на новый день
+      }
+    }, 60*1000);
+  }
+
+  // tap-to-flip demo (без изменения логики)
+  document.addEventListener('click', (e)=>{
+    const card = document.getElementById('remCard');
+    if (card && (e.target===card || card.contains(e.target))){
+      card.classList.toggle('flipped');
+      setTimeout(renderReminder, 700); // вернуть фактическое состояние через мгновение
+    }
+  }, {passive:true});
+
+  // Hook into loadAll so card обновляется при каждом пересчёте данных
+  const _loadAll = window.loadAll;
+  if (typeof _loadAll === 'function'){
+    window.loadAll = async function(...args){
+      const r = await _loadAll.apply(this,args);
+      applyCtrl();
+      setReminderTexts();
+      renderReminder();
+      return r;
+    }
+  } else {
+    // на всякий – применить при загрузке
+    document.addEventListener('DOMContentLoaded', ()=>{ applyCtrl(); setReminderTexts(); renderReminder(); });
+  }
+  midnightSchedule();
+})();
+</script>
 </body>
 </html>
