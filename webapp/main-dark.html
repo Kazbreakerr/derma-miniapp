@@ -147,6 +147,27 @@
     .day-card.selected{ box-shadow: 0 0 0 2px rgba(94,234,212,.38) inset, 0 8px 24px rgba(20,184,166,.18) }
     #chips .chip.selected{ border-color:#14B8A6; box-shadow: 0 0 0 2px rgba(94,234,212,.30) inset }
 
+  
+    /* Mobile: horizontal flat scroll with snapping for calendar */
+    @media (max-width: 720px){
+      .preview-wrap{ overflow-x: hidden }
+      .cal-grid{
+        display:flex;
+        overflow-x:auto;
+        gap:8px;
+        padding-bottom:6px;
+        scroll-snap-type:x mandatory;
+        -webkit-overflow-scrolling: touch;
+        scroll-padding-left: 4px;
+      }
+      .cal-grid::-webkit-scrollbar{ height:0 }
+      .day-card{
+        flex:0 0 auto;
+        scroll-snap-align: start;
+        min-width: 168px;
+      }
+    }
+
   </style>
 </head>
 <body>
