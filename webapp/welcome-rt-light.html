@@ -16,14 +16,30 @@
     }
     *{box-sizing:border-box}
     html,body{height:100%;max-width:100%;overflow-x:hidden}
-    body{
-      margin:0; color:var(--text-high);
-      font-family: ui-sans-serif,system-ui,-apple-system,Segoe UI,Roboto,Inter,Manrope,Helvetica,Arial;
-      background:
-        radial-gradient(60% 50% at 0% 0%, rgba(34,197,94,.22), transparent 60%),
-        radial-gradient(70% 60% at 100% 100%, rgba(236,72,153,.22), transparent 60%),
-        linear-gradient(135deg, #E8F9E9 0%, #FFF6F9 100%);
-    }
+    /* Центрируем карточку по вертикали и горизонтали, учитываем safe-area */
+body{
+  margin:0;
+  color:var(--text-high);
+  font-family: ui-sans-serif,system-ui,-apple-system,Segoe UI,Roboto,Inter,Manrope,Helvetica,Arial;
+
+  /* фон оставь как у тебя */
+  background:
+    radial-gradient(60% 50% at 0% 0%, rgba(34,197,94,.22), transparent 60%),
+    radial-gradient(70% 60% at 100% 100%, rgba(236,72,153,.22), transparent 60%),
+    linear-gradient(135deg, #E8F9E9 0%, #FFF6F9 100%);
+
+  /* вот эти четыре строчки делают центрирование */
+  min-height: 100dvh;
+  display: flex;
+  align-items: center;        /* по вертикали */
+  justify-content: center;    /* по горизонтали */
+
+  /* чтобы не упиралось в вырезы и жестовые панели */
+  padding-top:    max(16px, env(safe-area-inset-top));
+  padding-right:  max(16px, env(safe-area-inset-right));
+  padding-bottom: max(24px, env(safe-area-inset-bottom));
+  padding-left:   max(16px, env(safe-area-inset-left));
+}
     img,svg,video,canvas{max-width:100%;height:auto}
     .wrap{
       width:100%; max-width:980px;
@@ -72,11 +88,44 @@
     }
     .tag{display:inline-flex; align-items:center; padding:6px 10px; border-radius:999px;
       border:1px solid var(--border); color:var(--text-low); font-size:13px; background:#fff6; margin-top:8px}
+      .theme-switch{
+  position:absolute;
+  right: max(12px, env(safe-area-inset-right));
+  bottom: max(12px, env(safe-area-inset-bottom));
+  top:auto;
+  z-index:20;
+}
+
+.theme-toggle{
+  display:inline-flex; align-items:center; gap:10px;
+  height:44px; padding:0 16px;
+  border-radius:14px; font-size:15px; font-weight:800; letter-spacing:.2px;
+  border:1px solid var(--border); cursor:pointer;
+  box-shadow:0 12px 28px rgba(2,6,23,.08), 0 2px 10px rgba(2,6,23,.06);
+  background:#fff; color:var(--text-high);
+  -webkit-tap-highlight-color: transparent;
+}
+.theme-toggle .ico{ font-size:18px; line-height:1 }
+.theme-toggle .txt{ line-height:1 }
+.theme-toggle.is-light{
+  /* заметная кнопка на светлом: контраст + лёгкий градиент */
+  background-image: linear-gradient(135deg, #0ea5a6 0%, #0f172a 100%);
+  color:#fff; border-color: transparent;
+}
+.theme-toggle:focus-visible{ outline:3px solid #93c5fd; outline-offset:2px }
+.theme-toggle:active{ transform: translateY(1px) }
+
   </style>
 </head>
 <body>
   <div class="wrap">
     <div class="card">
+      <div class="theme-switch" role="group" aria-label="Смена темы">
+  <button id="themeToggle" class="theme-toggle is-light" type="button" title="Сменить тему на тёмную">
+    <span class="ico">🌙</span>
+    <span class="txt"><b>Тёмная тема</b></span>
+  </button>
+</div>
       <div class="glow"></div>
       <div class="row">
         <div class="stage" aria-hidden="true">
@@ -115,6 +164,16 @@
     const qs = location.search || '';
     location.replace('./warnings.html' + qs);
   }, { once: true });
+// Переключатель темы -> обратно на тёмную страницу
+(function(){
+  const btn = document.getElementById('themeToggle');
+  if(!btn) return;
+  const qs = location.search || '';
+  btn.addEventListener('click', ()=>{
+    try{ localStorage.setItem('rt_theme','dark'); }catch(_){}
+    location.replace('./welcome-rt.html' + qs);
+  });
+})();
   </script>
 </body>
 </html>
