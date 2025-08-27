@@ -399,10 +399,19 @@ app.post('/api/reset', tgAuth, async (req, res) => {
     if (!uid) return res.status(400).json({ error: 'missing tg' });
 
     const del = await pool.query('DELETE FROM derma.dose_logs WHERE patient_id=$1', [uid]);
-    // Optional: also wipe reminders if table exists
-    // await pool.query('DELETE FROM derma.reminders WHERE patient_id=$1', [uid]).catch(()=>{});
 
-    res.json({ ok: true, removed: del.rowCount });
+    // Also try to wipe reminder-related rows if such table(s) exist.
+    let removedRem = 0;
+    try {
+      const r1 = await pool.query('DELETE FROM derma.reminders WHERE patient_id=$1', [uid]);
+      removedRem += r1.rowCount || 0;
+    } catch(_){ /* table may not exist - ignore */ }
+    try {
+      const r2 = await pool.query('DELETE FROM derma.reminders_local WHERE patient_id=$1', [uid]);
+      removedRem += r2.rowCount || 0;
+    } catch(_){ /* table may not exist - ignore */ }
+
+    res.json({ ok: true, removed: del.rowCount, removed_reminders: removedRem });
   } catch (e) {
     console.error('RESET ERROR:', e);
     res.status(500).json({ error: e.message });

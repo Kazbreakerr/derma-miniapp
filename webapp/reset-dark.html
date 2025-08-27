@@ -65,7 +65,7 @@
     const devTg = new URLSearchParams(location.search).get('tg') || '1002';
     function api(path, opts={}){
       let url = /^https?:\\/\\//i.test(path) ? path : (API_BASE + path);
-      const params = []; if (!initData && devTg) params.push('tg='+encodeURIComponent(devTg)); params.push('v=reset-2025-08-26');
+      const params = []; if (!initData && devTg) params.push('tg='+encodeURIComponent(devTg)); params.push('v=reset-2025-08-27');
       url += (url.includes('?') ? '&' : '?') + params.join('&');
       const headers = {'Content-Type':'application/json', ...(opts.headers||{})};
       if (initData) headers['X-Telegram-InitData'] = initData;
@@ -77,8 +77,25 @@
     const btn = document.getElementById('btnReset');
     const msg = document.getElementById('msg');
 
-    function sync(){
-      btn.disabled = !(agree.checked && confirmI.value.trim().toUpperCase() === 'ОБНУЛИТЬ');
+    
+    
+    function normalizeInput(s){
+      try{
+        s = (s||'').normalize('NFC');
+      }catch(_){}
+      s = (s||'').trim().toLowerCase().replace(/\s+/g,'');
+      return s;
+    }
+    function okWord(s){
+      const raw = normalizeInput(s);
+      // Map common latin lookalikes to Cyrillic after lowercasing
+      const map = {'a':'а','b':'в','c':'с','e':'е','h':'н','i':'и','k':'к','l':'л','m':'м','o':'о','p':'р','t':'т','x':'х','y':'у'};
+      const mapped = raw.replace(/[abcehiklmoptyx]/g, ch => map[ch] || ch);
+      // allow with or without soft sign for convenience
+      return mapped === 'обнулить' || mapped === 'обнулит';
+    }
+function sync(){
+      btn.disabled = !(agree.checked && okWord(confirmI.value));
     }
     agree.addEventListener('change', sync);
     confirmI.addEventListener('input', sync);
@@ -102,7 +119,7 @@
           }
         }catch(_){}
         msg.textContent = 'Готово';
-        setTimeout(()=>{ location.replace('./index.html' + (location.search||'')); }, 400);
+        setTimeout(()=>{ location.replace('./welcome-rt.html' + (location.search||'')); }, 400);
       }catch(e){
         msg.textContent = 'Ошибка сети'; btn.disabled=false;
       }
