@@ -504,6 +504,23 @@
   0%{ transform:translate(-50%,-50%) scale(.8); opacity:.95 }
   100%{ transform:translate(calc(-50% + var(--dx)), calc(-50% + var(--dy))) scale(.9); opacity:0 }
 }
+/* --- Date group keeps label and input on one line --- */
+.date-wrap{ display:flex; align-items:center; gap:8px; white-space:nowrap }
+.date-wrap input#date{ width:180px }
+@media (max-width:420px){
+  .date-wrap input#date{ width:150px }
+}
+/* --- Calendar: fixed 7-day 3-2-2 grid layout --- */
+.cal-grid{ display:grid !important; grid-template-columns:repeat(6, 1fr); gap:8px; 
+  overflow:visible !important; scroll-snap-type:none !important; }
+.cal-grid .day-card{ min-width:unset !important; grid-column: span 2; }     /* 1–3 */
+.cal-grid .day-card:nth-child(4),
+.cal-grid .day-card:nth-child(5){ grid-column: span 3; }                    /* 4–5 */
+.cal-grid .day-card:nth-child(6),
+.cal-grid .day-card:nth-child(7){ grid-column: span 3; }                    /* 6–7 */
+@media (max-width:520px){
+  .cal-grid{ grid-template-columns:repeat(6, 1fr); }
+}
 
 </style>
 </head>
@@ -589,8 +606,9 @@
             <button type="button" id="mgPlus"  class="step" aria-label="Увеличить на 10 мг">+</button>
           </div>
         </div>
-        <div>Дата:</div>
-        <input id="date" type="date" style="width:180px">
+        <div class="date-wrap">
+  <div>Дата:</div>
+        <input id="date" type="date" style="width:180px"></div>
         <button id="save" class="cta">Добавить</button>
       </div>
       <div id="doseHint" class="muted" style="margin-top:8px"></div>
