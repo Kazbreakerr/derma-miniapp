@@ -192,6 +192,11 @@
     flex-basis: calc((100% - 8px)/2) !important; /* 2 во второй и третьей строке */
   }
 }
+/* Calendar: убрать подсветку снапа */
+#cardCalendar .day-card.snap{ box-shadow:none !important; }
+
+/* Прогресс: уменьшить кнопки для длинных слов */
+#doseSeg button{ font-size:12px !important; padding:4px 6px !important; }
 </style>
 </head>
 <body>
@@ -377,6 +382,7 @@
     const fmtInt = n => Number(n||0).toLocaleString('ru-RU');
     const fmt2   = n => Number(n||0).toLocaleString('ru-RU',{minimumFractionDigits:2,maximumFractionDigits:2});
     const todayISO = () => { const d=new Date(); d.setMinutes(d.getMinutes()-d.getTimezoneOffset()); return d.toISOString().slice(0,10); };
+    function localISO(d){ const y=d.getFullYear(); const m=String(d.getMonth()+1).padStart(2,'0'); const day=String(d.getDate()).padStart(2,'0'); return `${y}-${m}-${day}`; }
     function ddmmyyyy(iso){ if (!iso) return '—'; const s=String(iso).slice(0,10); const [y,m,d]=s.split('-'); return d.padStart(2,'0')+'.'+m.padStart(2,'0')+'.'+y; }
     function normalizeDate(value){ if (!value) return ''; const s=String(value); if (/^\d{4}-\d{2}-\d{2}$/.test(s)) return s; const d=new Date(s); if (!isNaN(d)){ const y=d.getFullYear(); const m=String(d.getMonth()+1).padStart(2,'0'); const day=String(d.getDate()).padStart(2,'0'); return `${y}-${m}-${day}`;} return s.slice(0,10); }
     function daysDiffUTC(aISO,bISO){ try{ const a=new Date(aISO), b=new Date(bISO); const ad=Date.UTC(a.getFullYear(),a.getMonth(),a.getDate()); const bd=Date.UTC(b.getFullYear(),b.getMonth(),b.getDate()); return Math.floor((ad-bd)/86400000);}catch{ return 0; } }
@@ -604,21 +610,49 @@
 
       const dows=['Вс','Пн','Вт','Ср','Чт','Пт','Сб'];
 
-      const base = new Date(); base.setHours(0,0,0,0);
-      base.setDate(base.getDate()+calOffset);
-      for(let i=0;i<7;i++){
-        const d = new Date(base); d.setDate(base.getDate()+i);
-        const iso = d.toISOString().slice(0,10);
-        const card = document.createElement('div'); card.className='day-card'; card.tabIndex=0; card.setAttribute('data-iso', iso);
-        if (i===0 && calOffset===0) card.classList.add('today');
-        const mg = map.get(iso);
-        const currentIso = (document.getElementById('date')?.value||'').slice(0,10);
-        if (iso===currentIso) card.classList.add('selected');
-        card.innerHTML = '<div class="dow">'+dows[d.getDay()]+'</div><b>'+ddmmyyyy(iso)+'</b><div class="muted">'+(mg? (fmtInt(mg)+' мг 💊') : '—')+'</div>';
-        card.addEventListener('click', ()=>{ const inp=document.getElementById('date'); if(inp){ inp.value = iso; } renderCalPreview(); });
-        card.addEventListener('keydown', (e)=>{ if(e.key==='Enter'||e.key===' '){ e.preventDefault(); const inp=document.getElementById('date'); if(inp){ inp.value = iso; } renderCalPreview(); }});
-        box.appendChild(card);
-      }
+     const base = new Date(); base.setHours(0,0,0,0);
+  const mondayShift = (base.getDay() + 6) % 7; // 0=Mon .. 6=Sun
+  base.setDate(base.getDate() - mondayShift + calOffset);
+
+  const todayIso = todayISO();
+  for (let i = 0; i < 7; i++) {
+    const d = new Date(base); d.setDate(base.getDate() + i);
+    const iso = localISO(d);
+
+  const card = document.createElement('div');
+  card.className = 'day-card';
+  card.tabIndex = 0;
+  card.setAttribute('data-iso', iso);
+
+  const isToday = (iso === todayIso);
+  if (isToday) card.classList.add('today');
+
+  const mg = map.get(iso);
+  const currentIso = (document.getElementById('date')?.value || '').slice(0,10);
+  if (iso === currentIso) card.classList.add('selected');
+
+  card.innerHTML =
+    '<div class="dow">' + dows[d.getDay()] + '</div>' +
+    '<b>' + ddmmyyyy(iso) + '</b>' +
+    '<div class="muted">' + (mg ? (fmtInt(mg) + ' мг 💊') : (isToday ? 'сегодня' : '—')) + '</div>';
+
+  card.addEventListener('click', () => {
+    const inp = document.getElementById('date');
+    if (inp) inp.value = iso;
+    renderCalPreview();
+  });
+
+  card.addEventListener('keydown', (e) => {
+    if (e.key === 'Enter' || e.key === ' ') {
+      e.preventDefault();
+      const inp = document.getElementById('date');
+      if (inp) inp.value = iso;
+      renderCalPreview();
+    }
+  });
+
+  box.appendChild(card);
+}
     }
     (function wireCalNav(){
       const wrap = document.getElementById('calWrap');
