@@ -170,6 +170,20 @@
       /* автоподсветка центральной карточки после остановки скролла */
       .day-card.snap{ box-shadow: 0 0 0 2px rgba(94,234,212,.28) inset, 0 6px 16px rgba(20,184,166,.10) }
     }
+/* === Calendar: 7 days visible · 3-2-2 === */
+.preview-wrap{ overflow: visible }
+#calPreview.cal-grid{
+  display:flex; flex-wrap:wrap; gap:8px;
+  overflow:visible; scroll-snap-type:none;
+}
+#calPreview.cal-grid .day-card{
+  min-width:0;
+  flex:0 0 calc((100% - 16px)/3); /* 3 карточки в верхнем ряду */
+}
+/* Элементы 4..7 — по два в строке */
+#calPreview.cal-grid .day-card:nth-child(n+4){
+  flex-basis: calc((100% - 8px)/2);
+}
 
   </style>
 </head>
@@ -576,7 +590,7 @@
 
     // === Календарь: 7 дней, свайп + стрелки ===
     let calOffset = 0; // смещение от сегодня (в днях) кратно 7
-    const CAL_STEP = 2; // шаг перелистывания (дней)
+    const CAL_STEP = 7; // шаг перелистывания (дней)
     function renderCalPreview(){
       const box=document.getElementById('calPreview'); box.innerHTML='';
       const map = new Map();
@@ -759,6 +773,7 @@
     document.getElementById('resetBtn').addEventListener('click', ()=>{
       location.href = './reset-dark.html' + (location.search||'');
     });
+    document.getElementById('cardCalendar')?.classList.remove('clickable');
     loadAll();
     document.querySelectorAll('#doseSeg button').forEach(b=> b.addEventListener('click', ()=> setDoseMode(b.dataset.mode) ));
     document.querySelector('#doseSeg button[data-mode="'+(DOSE_MODE||'opt')+'"]')?.click();
