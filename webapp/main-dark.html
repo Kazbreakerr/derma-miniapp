@@ -2,11 +2,176 @@
 <html lang="ru">
 <head>
   <meta charset="utf-8" />
-  <script>try{ if(localStorage.getItem('derma_consent')!=='1'){ location.replace('./warnings.html' + (location.search||'')); } }catch(_){}</script>
+  <script>try{ if(localStorage.getItem('derma_consent')!=='1'){ location.replace('./warnings.html' + (location.search||'')); } }catch(_){}
+(function hookOpenCalendar(){
+  const btn = document.getElementById('openCalendarBtn');
+  if(!btn) return;
+  btn.addEventListener('click', (e)=>{
+    e.preventDefault();
+    try{ if(typeof go==='function'){ go('/calendar'); return; } }catch(_){}
+    location.assign('/calendar');
+  });
+})();
+
+
+// --- Pill burst animation on Add button ---
+(function setupPillBurst(){
+  const btn = document.getElementById('save');
+  if(!btn) return;
+  function burst(x,y){
+    const rect = btn.getBoundingClientRect();
+    const cx = x ? (x - rect.left) : rect.width/2;
+    const cy = y ? (y - rect.top)  : rect.height/2;
+    // Pill emoji
+    const pill = document.createElement('span');
+    pill.className = 'fx-pill';
+    pill.textContent = '💊';
+    pill.style.left = cx + 'px';
+    pill.style.top  = cy + 'px';
+    btn.appendChild(pill);
+    setTimeout(()=>pill.remove(), 900);
+
+    // Particles
+    const colors = ['#22D3EE','#14B8A6','#5EEAD4','#FDE047','#A7F3D0','#93C5FD'];
+    const N = 10;
+    for(let i=0;i<N;i++){
+      const dot = document.createElement('span');
+      dot.className = 'fx-dot';
+      dot.style.left = cx + 'px';
+      dot.style.top  = cy + 'px';
+      const angle = (Math.PI*2) * (i/N) + (Math.random()*0.6 - 0.3);
+      const r = 22 + Math.random()*16;
+      dot.style.setProperty('--dx',  Math.cos(angle)*r + 'px');
+      dot.style.setProperty('--dy',  Math.sin(angle)*r + 'px');
+      dot.style.width = dot.style.height = (4 + Math.random()*4) + 'px';
+      dot.style.background = colors[i % colors.length];
+      btn.appendChild(dot);
+      setTimeout(()=>dot.remove(), 800);
+    }
+  }
+  btn.addEventListener('click', (e)=>{
+    try{ burst(e.clientX, e.clientY); }catch(_){ burst(); }
+  });
+  btn.addEventListener('touchstart', (e)=>{
+    try{ const t = e.touches[0]; if(t) burst(t.clientX, t.clientY); }catch(_){ burst(); }
+  }, {passive:true});
+})();
+
+</script>
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>Roaccutane Tracker — Главная</title>
-  <script src="https://telegram.org/js/telegram-web-app.js"></script>
-  <script>window.API_BASE = window.API_BASE || '';</script>
+  <script src="https://telegram.org/js/telegram-web-app.js">
+(function hookOpenCalendar(){
+  const btn = document.getElementById('openCalendarBtn');
+  if(!btn) return;
+  btn.addEventListener('click', (e)=>{
+    e.preventDefault();
+    try{ if(typeof go==='function'){ go('/calendar'); return; } }catch(_){}
+    location.assign('/calendar');
+  });
+})();
+
+
+// --- Pill burst animation on Add button ---
+(function setupPillBurst(){
+  const btn = document.getElementById('save');
+  if(!btn) return;
+  function burst(x,y){
+    const rect = btn.getBoundingClientRect();
+    const cx = x ? (x - rect.left) : rect.width/2;
+    const cy = y ? (y - rect.top)  : rect.height/2;
+    // Pill emoji
+    const pill = document.createElement('span');
+    pill.className = 'fx-pill';
+    pill.textContent = '💊';
+    pill.style.left = cx + 'px';
+    pill.style.top  = cy + 'px';
+    btn.appendChild(pill);
+    setTimeout(()=>pill.remove(), 900);
+
+    // Particles
+    const colors = ['#22D3EE','#14B8A6','#5EEAD4','#FDE047','#A7F3D0','#93C5FD'];
+    const N = 10;
+    for(let i=0;i<N;i++){
+      const dot = document.createElement('span');
+      dot.className = 'fx-dot';
+      dot.style.left = cx + 'px';
+      dot.style.top  = cy + 'px';
+      const angle = (Math.PI*2) * (i/N) + (Math.random()*0.6 - 0.3);
+      const r = 22 + Math.random()*16;
+      dot.style.setProperty('--dx',  Math.cos(angle)*r + 'px');
+      dot.style.setProperty('--dy',  Math.sin(angle)*r + 'px');
+      dot.style.width = dot.style.height = (4 + Math.random()*4) + 'px';
+      dot.style.background = colors[i % colors.length];
+      btn.appendChild(dot);
+      setTimeout(()=>dot.remove(), 800);
+    }
+  }
+  btn.addEventListener('click', (e)=>{
+    try{ burst(e.clientX, e.clientY); }catch(_){ burst(); }
+  });
+  btn.addEventListener('touchstart', (e)=>{
+    try{ const t = e.touches[0]; if(t) burst(t.clientX, t.clientY); }catch(_){ burst(); }
+  }, {passive:true});
+})();
+
+</script>
+  <script>window.API_BASE = window.API_BASE || '';
+(function hookOpenCalendar(){
+  const btn = document.getElementById('openCalendarBtn');
+  if(!btn) return;
+  btn.addEventListener('click', (e)=>{
+    e.preventDefault();
+    try{ if(typeof go==='function'){ go('/calendar'); return; } }catch(_){}
+    location.assign('/calendar');
+  });
+})();
+
+
+// --- Pill burst animation on Add button ---
+(function setupPillBurst(){
+  const btn = document.getElementById('save');
+  if(!btn) return;
+  function burst(x,y){
+    const rect = btn.getBoundingClientRect();
+    const cx = x ? (x - rect.left) : rect.width/2;
+    const cy = y ? (y - rect.top)  : rect.height/2;
+    // Pill emoji
+    const pill = document.createElement('span');
+    pill.className = 'fx-pill';
+    pill.textContent = '💊';
+    pill.style.left = cx + 'px';
+    pill.style.top  = cy + 'px';
+    btn.appendChild(pill);
+    setTimeout(()=>pill.remove(), 900);
+
+    // Particles
+    const colors = ['#22D3EE','#14B8A6','#5EEAD4','#FDE047','#A7F3D0','#93C5FD'];
+    const N = 10;
+    for(let i=0;i<N;i++){
+      const dot = document.createElement('span');
+      dot.className = 'fx-dot';
+      dot.style.left = cx + 'px';
+      dot.style.top  = cy + 'px';
+      const angle = (Math.PI*2) * (i/N) + (Math.random()*0.6 - 0.3);
+      const r = 22 + Math.random()*16;
+      dot.style.setProperty('--dx',  Math.cos(angle)*r + 'px');
+      dot.style.setProperty('--dy',  Math.sin(angle)*r + 'px');
+      dot.style.width = dot.style.height = (4 + Math.random()*4) + 'px';
+      dot.style.background = colors[i % colors.length];
+      btn.appendChild(dot);
+      setTimeout(()=>dot.remove(), 800);
+    }
+  }
+  btn.addEventListener('click', (e)=>{
+    try{ burst(e.clientX, e.clientY); }catch(_){ burst(); }
+  });
+  btn.addEventListener('touchstart', (e)=>{
+    try{ const t = e.touches[0]; if(t) burst(t.clientX, t.clientY); }catch(_){ burst(); }
+  }, {passive:true});
+})();
+
+</script>
   <style>
     :root{
       --bg:#0B1220; --surface:#0E1726; --card:#121C2E; --border:#1F2A3C;
@@ -272,7 +437,75 @@
   border-radius:inherit;
 }
 
-  </style>
+  
+/* Stepper for dose input */
+.mg-wrap{ display:flex; align-items:center; gap:8px }
+.mg-wrap #mg{ width:120px; height:44px; padding:10px 12px; border-radius:12px }
+.stepper{ display:inline-flex; gap:8px }
+.stepper .step{
+  width:44px; height:44px; border-radius:12px; border:1px solid var(--border);
+  background:var(--surface); color:var(--text-high); font-weight:800; font-size:20px; line-height:1;
+  display:grid; place-items:center; cursor:pointer;
+  box-shadow:0 2px 6px rgba(0,0,0,.25);
+}
+.stepper .step:active{ transform:scale(.98) }
+@media (max-width:420px){
+  .mg-wrap #mg{ width:100px }
+}
+
+/* Center "sub" text and set card paddings */
+.flip-card .face{ padding:16px; } /* 16–20px */
+.flip-card .sub{ text-align:center; line-height:1.4; }
+/* Календарь всегда виден */
+#calWrap, #cardCalendar .preview-wrap{
+  display:block !important;
+  max-height:none !important;
+  opacity:1 !important;
+  transform:none !important;
+}
+
+  
+/* "Открыть" — маленькая голубая кнопка с анимацией сжатия */
+.open-btn{
+  display:inline-flex; align-items:center; justify-content:center;
+  height:36px; padding:0 12px; border-radius:12px; text-decoration:none;
+  background-image:linear-gradient(135deg,#22D3EE 0%, #14B8A6 100%);
+  color:#07121F; font-weight:800; border:1px solid rgba(255,255,255,.06);
+  box-shadow:0 6px 14px rgba(0,0,0,.25);
+  transition: filter .15s ease, transform .12s ease;
+}
+.open-btn:hover{ filter:brightness(1.06) saturate(1.02); }
+.open-btn:active{ transform:scale(.97); }
+
+/* Календарь всегда виден по умолчанию */
+#calWrap, #cardCalendar .preview-wrap{ display:block; }
+
+/* === Pill burst FX for "Добавить" button === */
+#save{ position:relative; overflow:hidden; isolation:isolate }
+#save .fx-pill{
+  position:absolute; left:0; top:0; transform:translate(-50%,-50%) scale(.4);
+  font-size:18px; line-height:1; filter: drop-shadow(0 3px 6px rgba(0,0,0,.35));
+  animation: pill-up .8s cubic-bezier(.2,.9,.2,1) forwards;
+  pointer-events:none;
+}
+@keyframes pill-up{
+  0%{ transform:translate(-50%,-50%) scale(.4); opacity:0 }
+  45%{ transform:translate(-50%,-90%) scale(1.15); opacity:1 }
+  70%{ transform:translate(-50%,-72%) scale(.95) }
+  100%{ transform:translate(-50%,-130%) scale(1); opacity:0 }
+}
+#save .fx-dot{
+  position:absolute; width:6px; height:6px; border-radius:50%;
+  left:0; top:0; transform:translate(-50%,-50%); opacity:.95;
+  animation: dot-burst .7s ease-out forwards;
+  pointer-events:none;
+}
+@keyframes dot-burst{
+  0%{ transform:translate(-50%,-50%) scale(.8); opacity:.95 }
+  100%{ transform:translate(calc(-50% + var(--dx)), calc(-50% + var(--dy))) scale(.9); opacity:0 }
+}
+
+</style>
 </head>
 <body>
   <div class="wrap">
@@ -349,19 +582,25 @@
       <h2 id="dose-title" style="margin-bottom:8px">Отметить приём</h2>
       <div class="row">
         <div>Мг:</div>
-        <input id="mg" type="number" step="1" value="20" style="width:140px">
+        <div class="mg-wrap">
+          <input id="mg" type="number" step="10" value="20" inputmode="numeric" pattern="\d*" aria-label="Доза в миллиграммах">
+          <div class="stepper">
+            <button type="button" id="mgMinus" class="step" aria-label="Уменьшить на 10 мг">−</button>
+            <button type="button" id="mgPlus"  class="step" aria-label="Увеличить на 10 мг">+</button>
+          </div>
+        </div>
         <div>Дата:</div>
         <input id="date" type="date" style="width:180px">
-        <button id="save" class="cta">Сохранить</button>
+        <button id="save" class="cta">Добавить</button>
       </div>
-      <div class="row" id="chips" style="margin-top:10px"></div>
+      <div id="doseHint" class="muted" style="margin-top:8px"></div>
       <div id="saveStatus" class="muted" style="margin-top:8px"></div>
     </section>
 
 
-    <section class="card section clickable" id="cardCalendar" aria-label="Календарь">
+    <section class="card section" id="cardCalendar" aria-label="Календарь">
       <div class="glow"></div>
-      <div class="row" style="justify-content:space-between"><h2 style="margin:0">Календарь</h2><a>Открыть</a></div>
+      <div class="row" style="justify-content:space-between"><h2 style="margin:0">Календарь</h2><a href="/calendar" class="open-btn" id="openCalendarBtn">Открыть</a></div>
 
       <div class="preview-wrap" id="calWrap">
         <button class="cal-nav left" id="calPrev" aria-label="Назад на неделю" title="Назад">
@@ -678,23 +917,10 @@
     })();
 
     // Кнопки доз
-    function syncChipsSelection(){
-      const mgVal = Number(document.getElementById('mg').value||0);
-      document.querySelectorAll('#chips .chip').forEach(b=>{
-        b.classList.toggle('selected', Number(b.dataset.mg||0)===mgVal);
-      });
-    }
-    function renderChips(drug){
-      const box = document.getElementById('chips'); box.innerHTML='';
-      const arr = (drug==='aknekutan') ? [8,16,24,32,40,48,56,64] : [10,20,30,40,50,60];
-      arr.forEach(v=>{
-        const b=document.createElement('button'); b.className='chip'; b.textContent=String(v); b.dataset.mg=String(v);
-        b.addEventListener('click',()=>{ document.getElementById('mg').value = v; syncChipsSelection(); });
-        box.appendChild(b);
-      });
-      syncChipsSelection();
-    }
-
+    
+    function syncChipsSelection(){ /* chips removed */ }
+    function renderChips(drug){ /* chips removed */ updateDoseHint(); }
+    
     // === Календарь: 7 дней, свайп + стрелки ===
     let calOffset = 0; // смещение от сегодня (в днях) кратно 7
     function renderCalPreview(){
@@ -704,17 +930,22 @@
 
       const dows=['Вс','Пн','Вт','Ср','Чт','Пт','Сб'];
 
-      const base = new Date(); base.setHours(0,0,0,0);
-      base.setDate(base.getDate()+calOffset);
+      // стало: привязываем базовую дату к ПОНЕДЕЛЬНИКУ текущей недели
+const base = new Date(); base.setHours(0,0,0,0);
+// calOffset у тебя кратен 7 (стрелки и свайпы ±7), оставляем, но потом доводим до понедельника
+base.setDate(base.getDate() + calOffset);
+const wd = base.getDay();            // 0-вс,1-пн,...,6-сб
+const toMonday = (wd === 0 ? -6 : (1 - wd));
+base.setDate(base.getDate() + toMonday);
       for(let i=0;i<7;i++){
         const d = new Date(base); d.setDate(base.getDate()+i);
         const iso = d.toISOString().slice(0,10);
         const card = document.createElement('div'); card.className='day-card'; card.tabIndex=0; card.setAttribute('data-iso', iso);
-        if (i===0 && calOffset===0) card.classList.add('today');
+        if (iso === todayISO()) card.classList.add('today');
         const mg = map.get(iso);
         const currentIso = (document.getElementById('date')?.value||'').slice(0,10);
         if (iso===currentIso) card.classList.add('selected');
-        card.innerHTML = '<div class="dow">'+dows[d.getDay()]+'</div><b>'+ddmmyyyy(iso)+'</b><div class="muted">'+(mg? (fmtInt(mg)+' мг 💊') : '—')+'</div>';
+        card.innerHTML = '<div class="dow">'+dows[d.getDay()]+'</div><b>'+ddmmyyyy(iso)+'</b><div class="muted">'+(iso===todayISO() ? 'сегодня' : (mg ? (fmtInt(mg)+' мг 💊') : '—'))+'</div>';
         card.addEventListener('click', ()=>{ const inp=document.getElementById('date'); if(inp){ inp.value = iso; } renderCalPreview(); });
         card.addEventListener('keydown', (e)=>{ if(e.key==='Enter'||e.key===' '){ e.preventDefault(); const inp=document.getElementById('date'); if(inp){ inp.value = iso; } renderCalPreview(); }});
         box.appendChild(card);
@@ -822,10 +1053,12 @@
         renderChips((PLAN?.drug||'roaccutane').toLowerCase());
         document.getElementById('date').value = todayISO();
         document.getElementById('date').addEventListener('change', ()=>{ renderCalPreview(); });
-        updateSummary(); renderLast(); recalcDaysPerView(); renderCalPreview();
-      }catch(e){
-        renderChips('roaccutane');
-      }
+        updateSummary(); renderLast(); recalcDaysPerView(); renderCalPreview(); updateDoseHint();
+      } catch(e) {
+  renderChips('roaccutane');
+  try { document.getElementById('date').value = todayISO(); } catch(_){}
+  try { recalcDaysPerView(); renderCalPreview(); updateDoseHint(); } catch(_){}
+}
     }
 
     document.getElementById('mg').addEventListener('input', syncChipsSelection);
@@ -841,7 +1074,7 @@
         if (!r.ok) { st.textContent = 'Ошибка ' + r.status; return; }
         st.textContent = 'Сохранено';
         DOSES.unshift({ mg: mg, date: date });
-        await loadAll();
+        await loadAll(); updateDoseHint();
       } catch (e) {
         st.textContent = 'Ошибка сети';
       }
@@ -986,6 +1219,93 @@
   }
   midnightSchedule();
 })();
+
+
+// Dose hint: "Последний приём: {N} мг • Сегодня: {X} мг"
+function updateDoseHint(){
+  try{
+    const hint = document.getElementById('doseHint'); if (!hint) return;
+    let last = 0, today = 0;
+    const todayIso = (function(){ const d=new Date(); d.setMinutes(d.getMinutes()-d.getTimezoneOffset()); return d.toISOString().slice(0,10); })();
+    if (Array.isArray(DOSES) && DOSES.length){
+      last = Number(DOSES[0]?.mg || DOSES[0]?.mg_taken || 0) || 0;
+      for(const x of DOSES){
+        const iso = String(x.date||'').slice(0,10);
+        if (iso === todayIso) today += Number(x.mg||x.mg_taken||0) || 0;
+      }
+    }
+    hint.textContent = `Последний приём: ${fmtInt(last)} мг • Сегодня: ${fmtInt(today)} мг`;
+  }catch(_){}
+}
+
+// Stepper (+/- 10 мг)
+(function wireStepper(){
+  const minus = document.getElementById('mgMinus');
+  const plus  = document.getElementById('mgPlus');
+  const input = document.getElementById('mg');
+  if (!input) return;
+  const STEP = 10;
+  function clamp(v){ v = Math.round(v/STEP)*STEP; if (v<0) v=0; if (v>1000) v=1000; return v; }
+  minus?.addEventListener('click', ()=>{ input.value = clamp((Number(input.value)||0) - STEP); updateDoseHint(); });
+  plus?.addEventListener('click',  ()=>{ input.value = clamp((Number(input.value)||0) + STEP); updateDoseHint(); });
+  input?.addEventListener('input', ()=>{ updateDoseHint(); });
+})();
+
+
+(function hookOpenCalendar(){
+  const btn = document.getElementById('openCalendarBtn');
+  if(!btn) return;
+  btn.addEventListener('click', (e)=>{
+    e.preventDefault();
+    try{ if(typeof go==='function'){ go('/calendar'); return; } }catch(_){}
+    location.assign('/calendar');
+  });
+})();
+
+
+// --- Pill burst animation on Add button ---
+(function setupPillBurst(){
+  const btn = document.getElementById('save');
+  if(!btn) return;
+  function burst(x,y){
+    const rect = btn.getBoundingClientRect();
+    const cx = x ? (x - rect.left) : rect.width/2;
+    const cy = y ? (y - rect.top)  : rect.height/2;
+    // Pill emoji
+    const pill = document.createElement('span');
+    pill.className = 'fx-pill';
+    pill.textContent = '💊';
+    pill.style.left = cx + 'px';
+    pill.style.top  = cy + 'px';
+    btn.appendChild(pill);
+    setTimeout(()=>pill.remove(), 900);
+
+    // Particles
+    const colors = ['#22D3EE','#14B8A6','#5EEAD4','#FDE047','#A7F3D0','#93C5FD'];
+    const N = 10;
+    for(let i=0;i<N;i++){
+      const dot = document.createElement('span');
+      dot.className = 'fx-dot';
+      dot.style.left = cx + 'px';
+      dot.style.top  = cy + 'px';
+      const angle = (Math.PI*2) * (i/N) + (Math.random()*0.6 - 0.3);
+      const r = 22 + Math.random()*16;
+      dot.style.setProperty('--dx',  Math.cos(angle)*r + 'px');
+      dot.style.setProperty('--dy',  Math.sin(angle)*r + 'px');
+      dot.style.width = dot.style.height = (4 + Math.random()*4) + 'px';
+      dot.style.background = colors[i % colors.length];
+      btn.appendChild(dot);
+      setTimeout(()=>dot.remove(), 800);
+    }
+  }
+  btn.addEventListener('click', (e)=>{
+    try{ burst(e.clientX, e.clientY); }catch(_){ burst(); }
+  });
+  btn.addEventListener('touchstart', (e)=>{
+    try{ const t = e.touches[0]; if(t) burst(t.clientX, t.clientY); }catch(_){ burst(); }
+  }, {passive:true});
+})();
+
 </script>
 </body>
 </html>
