@@ -170,22 +170,29 @@
       /* автоподсветка центральной карточки после остановки скролла */
       .day-card.snap{ box-shadow: 0 0 0 2px rgba(94,234,212,.28) inset, 0 6px 16px rgba(20,184,166,.10) }
     }
-/* === Calendar: 7 days visible · 3-2-2 === */
-.preview-wrap{ overflow: visible }
-#calPreview.cal-grid{
-  display:flex; flex-wrap:wrap; gap:8px;
-  overflow:visible; scroll-snap-type:none;
-}
-#calPreview.cal-grid .day-card{
-  min-width:0;
-  flex:0 0 calc((100% - 16px)/3); /* 3 карточки в верхнем ряду */
-}
-/* Элементы 4..7 — по два в строке */
-#calPreview.cal-grid .day-card:nth-child(n+4){
-  flex-basis: calc((100% - 8px)/2);
-}
 
-  </style>
+  
+/* === OVERRIDE: Calendar shows 7 days in 3-2-2 on mobile; container not scrollable === */
+@media (max-width: 720px){
+  #cardCalendar #calPreview.cal-grid{
+    display:flex !important;
+    flex-wrap:wrap !important;
+    gap:8px !important;
+    overflow:visible !important;
+    scroll-snap-type:none !important;
+    -webkit-overflow-scrolling:auto !important;
+    scroll-padding-left:0 !important;
+  }
+  #cardCalendar #calPreview.cal-grid .day-card{
+    min-width:0 !important;
+    flex:0 0 calc((100% - 16px)/3) !important; /* 3 в первой строке */
+    scroll-snap-align:unset !important;
+  }
+  #cardCalendar #calPreview.cal-grid .day-card:nth-child(n+4){
+    flex-basis: calc((100% - 8px)/2) !important; /* 2 во второй и третьей строке */
+  }
+}
+</style>
 </head>
 <body>
   <div class="wrap">
@@ -449,7 +456,7 @@
 
     // Auto-highlight center card on mobile flat scroll (does not change selected date)
     (function setupCenterSnap(){
-      const AUTO_SELECT_ON_SNAP = false;
+      const AUTO_SELECT_ON_SNAP = true;
       const grid = document.getElementById('calPreview');
       if(!grid) return;
       let timer;
@@ -590,7 +597,6 @@
 
     // === Календарь: 7 дней, свайп + стрелки ===
     let calOffset = 0; // смещение от сегодня (в днях) кратно 7
-    const CAL_STEP = 7; // шаг перелистывания (дней)
     function renderCalPreview(){
       const box=document.getElementById('calPreview'); box.innerHTML='';
       const map = new Map();
@@ -618,14 +624,14 @@
       const wrap = document.getElementById('calWrap');
       const prev = document.getElementById('calPrev');
       const next = document.getElementById('calNext');
-       prev.addEventListener('click', ()=>{ calOffset -= CAL_STEP; slideCalendar('prev', renderCalPreview); });
-       next.addEventListener('click', ()=>{ calOffset += CAL_STEP; slideCalendar('next', renderCalPreview); });
+      prev.addEventListener('click', ()=>{ calOffset -= 7; slideCalendar('prev', renderCalPreview); });
+      next.addEventListener('click', ()=>{ calOffset += 7; slideCalendar('next', renderCalPreview); });
       let x0=null;
       wrap.addEventListener('touchstart', (e)=>{ x0 = e.touches[0].clientX; }, {passive:true});
       wrap.addEventListener('touchend',   (e)=>{
         if(x0==null) return;
         const x1=(e.changedTouches[0]||{}).clientX || x0; const dx=x1-x0; x0=null;
-        if (Math.abs(dx)>30){ calOffset += (dx<0 ? +CAL_STEP : -CAL_STEP); slideCalendar(dx<0 ? 'next' : 'prev', renderCalPreview); }
+        if (Math.abs(dx)>30){ calOffset += (dx<0 ? +7 : -7); slideCalendar(dx<0 ? 'next' : 'prev', renderCalPreview); }
       }, {passive:true});
     })();
 
@@ -735,7 +741,8 @@
         if (!r.ok) { st.textContent = 'Ошибка ' + r.status; return; }
         st.textContent = 'Сохранено';
         DOSES.unshift({ mg: mg, date: date });
-        await loadAll();
+        await document.getElementById('cardCalendar')?.classList.remove('clickable');
+    loadAll();
       } catch (e) {
         st.textContent = 'Ошибка сети';
       }
