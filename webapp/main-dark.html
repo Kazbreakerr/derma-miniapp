@@ -79,6 +79,7 @@
     .day-card{background:#0F1828;border:1px solid var(--border);border-radius:12px;padding:10px 10px 12px;min-height:62px}
     .day-card b{display:block;margin-bottom:4px}
     .day-card .muted{font-size:13px}
+    .day-card .dow{font-size:12px;color:var(--text-low);margin-bottom:2px;letter-spacing:.2px}
     .today{outline:2px solid rgba(94,234,212,.3); outline-offset:2px}
     .cal-nav{display:none}
     @media (min-width:900px){
@@ -111,7 +112,42 @@
     .no-touch .cal-nav.left{left:-6px}
     .no-touch .cal-nav.right{right:-6px}
     .no-touch .cal-nav svg{width:18px;height:18px}
-</style>
+
+    /* === Interactions (scoped as requested) === */
+
+    /* Save button: hover tint + press + ripple container */
+    #save{ position:relative; overflow:hidden; isolation:isolate; transition:filter .2s ease, transform .12s ease }
+    #save:hover{ filter: brightness(1.07) saturate(1.03) }
+    #save:active{ transform: scale(.98) }
+
+    /* Generic ripple element (used for #save) */
+    .ripple-ink{
+      position:absolute; border-radius:50%; pointer-events:none; transform:scale(0);
+      background: radial-gradient(circle, rgba(255,255,255,.45) 0%, rgba(255,255,255,.25) 40%, rgba(255,255,255,0) 60%);
+      mix-blend-mode: screen; opacity:.75; animation: ripple .6s ease-out forwards;
+    }
+    @keyframes ripple{ to{ transform:scale(12); opacity:0 } }
+
+    /* Dose chips: press compression */
+    #chips .chip{ transition: transform 120ms ease }
+    #chips .chip:active{ transform: scale(.96) }
+
+    /* Calendar: hover glow + press */
+    .day-card{ cursor:pointer; transition: transform 120ms ease, box-shadow 200ms ease }
+    .day-card:hover{ box-shadow: 0 0 0 2px rgba(94,234,212,.30) inset, 0 8px 22px rgba(20,184,166,.12) }
+    .day-card:active{ transform: scale(.98) }
+
+    /* Reset button: hover red tint + press */
+    #resetBtn{ transition: background-color .2s ease, border-color .2s ease, transform .12s ease }
+    #resetBtn:hover{ background:#1d0d14; border-color:#d33a49 }
+    #resetBtn:active{ transform: scale(.98) }
+
+  
+    /* Persistent selection glow */
+    .day-card.selected{ box-shadow: 0 0 0 2px rgba(94,234,212,.38) inset, 0 8px 24px rgba(20,184,166,.18) }
+    #chips .chip.selected{ border-color:#14B8A6; box-shadow: 0 0 0 2px rgba(94,234,212,.30) inset }
+
+  </style>
 </head>
 <body>
   <div class="wrap">
@@ -345,6 +381,33 @@
     }
 
 
+
+    // Ripple for the Save button (mouse & touch)
+    (function setupRipple(){
+      const btn = document.getElementById('save');
+      if(!btn) return;
+      function spawnRipple(x, y){
+        const rect = btn.getBoundingClientRect();
+        const d = Math.max(rect.width, rect.height);
+        const ink = document.createElement('span');
+        ink.className = 'ripple-ink';
+        ink.style.width = ink.style.height = (d*1.2)+'px';
+        ink.style.left = (x - rect.left - d*0.6)+'px';
+        ink.style.top  = (y - rect.top  - d*0.6)+'px';
+        btn.appendChild(ink);
+        setTimeout(()=>ink.remove(), 650);
+      }
+      btn.addEventListener('click', (e)=>{
+        if (e.clientX && e.clientY) spawnRipple(e.clientX, e.clientY);
+      });
+      btn.addEventListener('touchstart', (e)=>{
+        try{
+          const t = e.touches[0]; if(t) spawnRipple(t.clientX, t.clientY);
+        }catch(_){}
+      }, {passive:true});
+    })();
+
+
     // Bottom nav
     function go(path){ try{ history.pushState(null,'',path); location.assign(path);}catch{ location.href = path; } }
     document.querySelectorAll('.bottom-nav a').forEach(a=>{
@@ -435,14 +498,21 @@
     })();
 
     // Кнопки доз
+    function syncChipsSelection(){
+      const mgVal = Number(document.getElementById('mg').value||0);
+      document.querySelectorAll('#chips .chip').forEach(b=>{
+        b.classList.toggle('selected', Number(b.dataset.mg||0)===mgVal);
+      });
+    }
     function renderChips(drug){
       const box = document.getElementById('chips'); box.innerHTML='';
       const arr = (drug==='aknekutan') ? [8,16,24,32,40,48,56,64] : [10,20,30,40,50,60];
       arr.forEach(v=>{
         const b=document.createElement('button'); b.className='chip'; b.textContent=String(v); b.dataset.mg=String(v);
-        b.addEventListener('click',()=>{ document.getElementById('mg').value = v; });
+        b.addEventListener('click',()=>{ document.getElementById('mg').value = v; syncChipsSelection(); });
         box.appendChild(b);
       });
+      syncChipsSelection();
     }
 
     // === Календарь: 7 дней, свайп + стрелки ===
@@ -452,15 +522,21 @@
       const map = new Map();
       DOSES.forEach(x=>{ const k=(x.date||'').slice(0,10); map.set(k, (map.get(k)||0) + Number(x.mg||x.mg_taken||0)); });
 
+      const dows=['Вс','Пн','Вт','Ср','Чт','Пт','Сб'];
+
       const base = new Date(); base.setHours(0,0,0,0);
       base.setDate(base.getDate()+calOffset);
       for(let i=0;i<7;i++){
         const d = new Date(base); d.setDate(base.getDate()+i);
         const iso = d.toISOString().slice(0,10);
-        const card = document.createElement('div'); card.className='day-card';
+        const card = document.createElement('div'); card.className='day-card'; card.tabIndex=0;
         if (i===0 && calOffset===0) card.classList.add('today');
         const mg = map.get(iso);
-        card.innerHTML = '<b>'+ddmmyyyy(iso)+'</b><div class="muted">'+(mg? (fmtInt(mg)+' мг 💊') : '—')+'</div>';
+        const currentIso = (document.getElementById('date')?.value||'').slice(0,10);
+        if (iso===currentIso) card.classList.add('selected');
+        card.innerHTML = '<div class="dow">'+dows[d.getDay()]+'</div><b>'+ddmmyyyy(iso)+'</b><div class="muted">'+(mg? (fmtInt(mg)+' мг 💊') : '—')+'</div>';
+        card.addEventListener('click', ()=>{ const inp=document.getElementById('date'); if(inp){ inp.value = iso; } renderCalPreview(); });
+        card.addEventListener('keydown', (e)=>{ if(e.key==='Enter'||e.key===' '){ e.preventDefault(); const inp=document.getElementById('date'); if(inp){ inp.value = iso; } renderCalPreview(); }});
         box.appendChild(card);
       }
     }
@@ -475,10 +551,7 @@
       wrap.addEventListener('touchend',   (e)=>{
         if(x0==null) return;
         const x1=(e.changedTouches[0]||{}).clientX || x0; const dx=x1-x0; x0=null;
-        if (Math.abs(dx)>30){ const adx=Math.abs(dx);
-        const step = adx<90 ? 1 : (adx<180 ? daysPerView : 7);
-        calOffset += (dx<0 ? +step : -step);
-        slideCalendar(dx<0 ? 'next' : 'prev', renderCalPreview); }
+        if (Math.abs(dx)>30){ calOffset += (dx<0 ? +7 : -7); slideCalendar(dx<0 ? 'next' : 'prev', renderCalPreview); }
       }, {passive:true});
     })();
 
@@ -568,11 +641,14 @@
 
         renderChips((PLAN?.drug||'roaccutane').toLowerCase());
         document.getElementById('date').value = todayISO();
+        document.getElementById('date').addEventListener('change', ()=>{ renderCalPreview(); });
         updateSummary(); renderLast(); recalcDaysPerView(); renderCalPreview();
       }catch(e){
         renderChips('roaccutane');
       }
     }
+
+    document.getElementById('mg').addEventListener('input', syncChipsSelection);
 
     document.getElementById('save').addEventListener('click', async ()=>{
       const mg   = Number(document.getElementById('mg').value || 0);

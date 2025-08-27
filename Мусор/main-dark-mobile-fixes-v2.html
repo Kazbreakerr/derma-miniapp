@@ -1,0 +1,606 @@
+<!doctype html>
+<html lang="ru">
+<head>
+  <meta charset="utf-8" />
+  <script>try{ if(localStorage.getItem('derma_consent')!=='1'){ location.replace('./warnings.html' + (location.search||'')); } }catch(_){}</script>
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Roaccutane Tracker — Главная</title>
+  <script src="https://telegram.org/js/telegram-web-app.js"></script>
+  <script>window.API_BASE = window.API_BASE || '';</script>
+  <style>
+    :root{
+      --bg:#0B1220; --surface:#0E1726; --card:#121C2E; --border:#1F2A3C;
+      --primary:#14B8A6; --primary-700:#0EA5A6; --primary-300:#5EEAD4;
+      --text-high:#F3F7FF; --text-mid:#C7D2FE; --text-low:#93A3BF; --focus-ring:#93C5FD;
+      --ring-gray:#2a3342; --ring-ok:#22C55E;
+      --muted-ink: rgba(255,255,255,.65);
+    }
+    *{box-sizing:border-box}
+    html,body{height:100%}
+    body{margin:0;background:var(--bg);color:var(--text-high);
+         font-family:ui-sans-serif,system-ui,-apple-system,Segoe UI,Roboto,Inter,Manrope,Helvetica,Arial;
+         font-size:16px;line-height:1.5}
+    .wrap{max-width:980px;margin:0 auto;padding:24px 24px 112px} /* запас под нижнюю навигацию */
+    h1{font-size:28px;line-height:34px;margin:0 0 16px;font-weight:800; text-align:center; letter-spacing:.2px}
+    h2{font-size:22px;line-height:28px;margin:0 0 12px;font-weight:700}
+    .card{position:relative;background:var(--card);border:1px solid var(--border);border-radius:16px;
+          padding:16px;box-shadow:0 8px 24px rgba(0,0,0,.35);overflow:hidden}
+    .glow{position:absolute;inset:0;pointer-events:none;background:radial-gradient(120% 120% at 10% 0%, rgba(20,184,166,.18) 0%, rgba(18,28,46,0) 50%)}
+    .row{display:flex;gap:12px;align-items:center;flex-wrap:wrap}
+    .muted{color:var(--text-low)}
+    .ava{width:44px;height:44px;border-radius:50%;display:grid;place-items:center;font-weight:700;background:#0E1726;border:1px solid var(--border);color:var(--text-mid);overflow:hidden}
+    .ava img{width:100%;height:100%;object-fit:cover}
+    .clickable{cursor:pointer}
+    input,button{font:inherit}
+    input[type="number"], input[type="date"]{
+      background:var(--surface);border:1px solid var(--border);color:var(--text-high);
+      border-radius:12px;padding:10px 12px;font-size:16px;line-height:24px;outline:none
+    }
+    input:focus{border-color:var(--primary-700);box-shadow:0 0 0 2px var(--focus-ring)}
+    .cta{height:44px;padding:0 16px;border-radius:12px;border:none;font-weight:700;cursor:pointer;
+         background-image:linear-gradient(135deg,#22D3EE 0%, #14B8A6 100%); color:#07121F;
+         box-shadow:0 6px 16px rgba(0,0,0,.25)}
+    .chip{min-width:48px;height:44px;display:inline-flex;align-items:center;justify-content:center;border-radius:12px;padding:0 14px;margin-right:10px;background:#152235;color:#F3F7FF;border:1px solid transparent;font-weight:700}
+    .chip:hover{border-color:#14B8A6}
+    .section{margin-top:16px}
+
+    /* === PROGRESS RINGS LAYOUT (3 кольца) === */
+    .rings-rail{position:relative;height:220px;margin:6px 0 0}
+    .ring{position:absolute;left:50%;top:50%;transform-origin:center;transition:transform 250ms ease-out, opacity 200ms ease-out}
+    .ring svg{width:170px;height:170px;display:block}
+    .ring .pct{position:absolute;left:0;right:0;top:0;bottom:0;display:flex;align-items:center;justify-content:center;font-weight:800;font-size:22px;text-shadow:0 2px 8px rgba(0,0,0,.35)}
+    .ring.small svg{width:96px;height:96px}
+    .ring.small .pct{font-size:12px;color:var(--muted-ink)}
+    /* positions */
+    .pos-center{transform:translate(-50%,-50%) scale(1)}
+    .pos-left  {transform:translate(calc(-50% - 170px),-50%) scale(0.56)}
+    .pos-right {transform:translate(calc(-50% + 170px),-50%) scale(0.56)}
+    @media (max-width:520px){
+      .rings-rail{height:200px}
+      .pos-left{transform:translate(calc(-50% - 130px),-50%) scale(0.56)}
+      .pos-right{transform:translate(calc(-50% + 130px),-50%) scale(0.56)}
+    }
+    .ring button{all:unset;cursor:pointer;display:block}
+
+    /* === BOTTOM NAV WITH ICONS === */
+    .bottom-nav{position:fixed;left:0;right:0;bottom:0;background:var(--surface);border-top:1px solid var(--border);height:64px;padding:6px 6px calc(env(safe-area-inset-bottom) + 6px);display:flex;justify-content:space-around;align-items:center;z-index:50}
+    .bottom-nav a{display:flex;flex-direction:column;align-items:center;gap:4px;color:var(--text-mid);text-decoration:none;font-size:11px;opacity:.6;transition:opacity .15s ease,color .15s ease,background .15s ease;padding:4px 10px;border-radius:12px}
+    .bottom-nav a.active{opacity:1;color:#E8F0FF;background:#111b2b}
+    .bottom-nav svg{width:22px;height:22px;display:block}
+
+    /* segmented control */
+    .seg{display:inline-flex;background:#0E1726;border:1px solid var(--border);border-radius:12px;overflow:hidden}
+    .seg button{padding:8px 12px;border:0;background:transparent;color:var(--text-mid);cursor:pointer;font-weight:700}
+    .seg button.active{background:linear-gradient(135deg,#22D3EE 0%, #14B8A6 100%);color:#07121F}
+
+    /* === CALENDAR PREVIEW (неделя, свайп/стрелки) === */
+    .preview-wrap{position:relative;margin-top:10px}
+    .cal-grid{display:grid;grid-template-columns:repeat(7,1fr);gap:8px;align-items:stretch}
+    .day-card{background:#0F1828;border:1px solid var(--border);border-radius:12px;padding:10px 10px 12px;min-height:62px}
+    .day-card b{display:block;margin-bottom:4px}
+    .day-card .muted{font-size:13px}
+    .today{outline:2px solid rgba(94,234,212,.3); outline-offset:2px}
+    .cal-nav{display:none}
+    @media (min-width:900px){
+      .cal-nav{display:block; position:absolute; top:50%; transform:translateY(-50%); background:#0e1726; border:1px solid var(--border); width:34px; height:34px; border-radius:50%; display:grid; place-items:center; color:var(--text-mid); cursor:pointer; opacity:.8}
+      .cal-nav:hover{opacity:1}
+      .cal-nav.left{left:-6px}
+      .cal-nav.right{right:-6px}
+      .cal-nav svg{width:18px;height:18px}
+    }
+
+    /* FAQ decoration */
+    .faq-deco{position:absolute; right:-10px; top:-10px; opacity:.18; width:140px; height:140px; pointer-events:none}
+    @media (max-width: 380px){
+      .seg button{ padding:6px 8px; font-size:14px }
+    }
+    @media (max-width: 340px){
+      .seg button{ padding:6px 6px; font-size:13px }
+    }
+    /* Calendar slide animation */
+    .cal-grid{ transition: transform 260ms ease, opacity 260ms ease }
+    .cal-grid.leave-left{ transform: translateX(-12%); opacity: 0 }
+    .cal-grid.leave-right{ transform: translateX(12%); opacity: 0 }
+    .cal-grid.pre-enter-left{ transform: translateX(-12%); opacity: 0 }
+    .cal-grid.pre-enter-right{ transform: translateX(12%); opacity: 0 }
+
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <h1>Roaccutane Tracker</h1>
+
+    <section class="card clickable" id="cardProfile" aria-label="Профиль">
+      <div class="glow"></div>
+      <div class="row">
+        <div class="ava" id="ava">ДД</div>
+        <div style="flex:1">
+          <div id="fullName" data-tg-name style="font-weight:700">—</div>
+          <div class="muted">День курса: <span id="courseDay">—</span> · Выпито: <span id="consumedTop">0</span> мг</div>
+        </div>
+      </div>
+    </section>
+
+    <section class="card section" aria-labelledby="progress-title">
+      <div class="glow"></div>
+      <div class="row" style="justify-content:space-between; align-items:center">
+        <h2 id="progress-title" style="margin:0">Прогресс</h2>
+        <div class="seg" id="doseSeg">
+          <button data-mode="min" data-short="Мин.">Минимальная</button>
+          <button data-mode="opt" class="active" data-short="Опт.">Оптимальная</button>
+          <button data-mode="max" data-short="Макс.">Максимальная</button>
+        </div>
+      </div>
+
+      <div class="row" style="justify-content:space-between;align-items:center;margin-top:4px">
+        <div><b>Кумулятивно:</b> <span id="cumMg">0</span> мг</div>
+        <div class="muted"><b>Всего:</b> <span id="cumPerKg">0,00</span> мг/кг · к <span id="targetLabel">135</span> мг/кг</div>
+      </div>
+
+      <!-- Кольца: слева(min) · центр(active) · справа(max) -->
+      <div class="rings-rail" id="ringsRail" aria-label="Переключатель цели дозы">
+        <div class="ring pos-left small" data-mode="min">
+          <button type="button" aria-label="Минимальная доза">
+            <svg viewBox="0 0 110 110">
+              <circle cx="55" cy="55" r="50" stroke="var(--ring-gray)" stroke-width="10" fill="none"></circle>
+              <circle data-arc cx="55" cy="55" r="50" stroke="var(--ring-ok)" stroke-width="10" fill="none" stroke-linecap="round" stroke-dasharray="314.159" stroke-dashoffset="314.159"></circle>
+            </svg>
+            <div class="pct" data-pct></div>
+          </button>
+        </div>
+
+        <div class="ring pos-center" data-mode="opt">
+          <svg viewBox="0 0 110 110">
+            <circle cx="55" cy="55" r="50" stroke="var(--ring-gray)" stroke-width="10" fill="none"></circle>
+            <circle data-arc cx="55" cy="55" r="50" stroke="var(--ring-ok)" stroke-width="10" fill="none" stroke-linecap="round" stroke-dasharray="314.159" stroke-dashoffset="314.159"></circle>
+          </svg>
+          <div class="pct" data-pct></div>
+        </div>
+
+        <div class="ring pos-right small" data-mode="max">
+          <button type="button" aria-label="Максимальная доза">
+            <svg viewBox="0 0 110 110">
+              <circle cx="55" cy="55" r="50" stroke="var(--ring-gray)" stroke-width="10" fill="none"></circle>
+              <circle data-arc cx="55" cy="55" r="50" stroke="var(--ring-ok)" stroke-width="10" fill="none" stroke-linecap="round" stroke-dasharray="314.159" stroke-dashoffset="314.159"></circle>
+            </svg>
+            <div class="pct" data-pct></div>
+          </button>
+        </div>
+      </div>
+
+      <div class="section" id="infoLines" style="margin-top:0">
+        <div id="weightRow"><b>Вес:</b> <span id="weightLine">—</span> кг</div>
+        <div id="goalsLine"><b>Цели:</b> 120 / <b>135</b> / 150 мг/кг <span id="goalsByWeight" class="muted"></span></div>
+        <div><b>Ориентировочная дата достижения <span id="etaTargetLabel">135</span> мг/кг:</b> <span id="eta135">—</span></div>
+        <div id="noWeightHint" class="muted" style="display:none;margin-top:8px">Укажите вес в профиле, чтобы увидеть прогресс по целям.</div>
+      </div>
+    </section>
+
+    <section class="card section" aria-labelledby="dose-title">
+      <div class="glow"></div>
+      <h2 id="dose-title" style="margin-bottom:8px">Отметить приём</h2>
+      <div class="row">
+        <div>Мг:</div>
+        <input id="mg" type="number" step="1" value="20" style="width:140px">
+        <div>Дата:</div>
+        <input id="date" type="date" style="width:180px">
+        <button id="save" class="cta">Сохранить</button>
+      </div>
+      <div class="row" id="chips" style="margin-top:10px"></div>
+      <div id="saveStatus" class="muted" style="margin-top:8px"></div>
+    </section>
+
+    <section class="card section" aria-labelledby="last-title">
+      <div class="glow"></div>
+      <h2 id="last-title" style="margin-bottom:8px">Последние отметки</h2>
+      <div id="lastDoses" class="muted">Нет отметок</div>
+    </section>
+
+    <section class="card section clickable" id="cardCalendar" aria-label="Календарь">
+      <div class="glow"></div>
+      <div class="row" style="justify-content:space-between"><h2 style="margin:0">Календарь</h2><a>Открыть</a></div>
+
+      <div class="preview-wrap" id="calWrap">
+        <button class="cal-nav left" id="calPrev" aria-label="Назад на неделю" title="Назад">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M15 18l-6-6 6-6"/></svg>
+        </button>
+        <div id="calPreview" class="cal-grid" aria-label="Календарь на 7 дней"></div>
+        <button class="cal-nav right" id="calNext" aria-label="Вперёд на неделю" title="Вперёд">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 6l6 6-6 6"/></svg>
+        </button>
+      </div>
+    </section>
+
+    <section class="card section" aria-label="FAQ">
+      <div class="glow"></div>
+      <svg class="faq-deco" viewBox="0 0 120 120" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+        <defs>
+          <linearGradient id="g" x1="0" y1="0" x2="1" y2="1">
+            <stop offset="0" stop-color="#22D3EE"/>
+            <stop offset="1" stop-color="#14B8A6"/>
+          </linearGradient>
+        </defs>
+        <g opacity="0.9">
+          <circle cx="60" cy="60" r="58" fill="url(#g)"/>
+          <path d="M40 45a20 20 0 1 1 40 0c0 9-6 14-11 17-4 2-5 3-5 8v4" fill="none" stroke="#0a1220" stroke-width="5" stroke-linecap="round"/>
+          <circle cx="59" cy="88" r="4" fill="#0a1220"/>
+        </g>
+      </svg>
+      <h2 style="margin-bottom:8px">FAQ</h2>
+      <div class="muted" style="margin:-6px 0 10px">Короткие подсказки и советы по курсу.</div>
+      <a href="/faq#start" class="chip" style="margin-right:6px">Как начать</a>
+      <a href="/faq#dose" class="chip" style="margin-right:6px">Дозировка</a>
+      <a href="/faq#missed" class="chip" style="margin-right:6px">Пропуск дозы</a>
+    </section>
+
+    <section class="card section" aria-labelledby="reset-title" style="border-color:#3a1f2b;background:linear-gradient(180deg,#141824,#0f1624)">
+      <h2 id="reset-title" style="margin-bottom:6px;color:#ffd7db">Обнулить всё</h2>
+      <div class="muted" style="margin-bottom:10px">Будут удалены: журнал приёмов, настройки напоминаний, локальные кэши прогресса. Профиль останется.</div>
+      <button id="resetBtn" class="cta" style="background:#151018;border:1px solid #a11a28;color:#ffd7db">Перейти к обнулению</button>
+    </section>
+
+    <footer>Приложение не даёт медицинских рекомендаций. Решения — только с врачом.</footer>
+  </div>
+
+  <!-- Нижняя навигация: inline SVG (currentColor) -->
+  <nav class="bottom-nav" role="navigation" aria-label="Нижняя навигация">
+    <a href="/main" data-route="main" class="active" aria-current="page">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 10.5 12 3l9 7.5"/><path d="M5 9.5V21h14V9.5"/><path d="M9 21v-6h6v6"/></svg>
+      <span>Главная</span>
+    </a>
+    <a href="/calendar" data-route="calendar">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="18" rx="2"/><path d="M16 2v4M8 2v4M3 10h18"/><path d="M8 14h3M8 18h3M14 14h3M14 18h3"/></svg>
+      <span>Календарь</span>
+    </a>
+    <a href="/profile" data-route="profile">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="8" r="4"/><path d="M4 21a8 8 0 0 1 16 0"/></svg>
+      <span>Профиль</span>
+    </a>
+    <a href="/photos" data-route="photos">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="5" width="18" height="14" rx="2"/><path d="M9 5l2-2h2l2 2"/><circle cx="9" cy="12" r="2"/><path d="M14 12l3 3 3-3"/></svg>
+      <span>Фотодневник</span>
+    </a>
+    <a href="/labs" data-route="labs">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10 2v6l-6 10a4 4 0 0 0 3.5 6h9a4 4 0 0 0 3.5-6l-6-10V2"/><path d="M4 16h16"/></svg>
+      <span>Анализы</span>
+    </a>
+  </nav>
+
+  <script>
+    const tgApp = (window.Telegram && window.Telegram.WebApp) ? window.Telegram.WebApp : null;
+    tgApp?.ready?.(); tgApp?.expand?.();
+    const initUser = tgApp?.initDataUnsafe?.user || null;
+    const initData = tgApp?.initData || '';
+
+    // API helper
+    const API_BASE = String(window.API_BASE||'').replace(/\/$/, '');
+    const devTg = new URLSearchParams(location.search).get('tg') || '1002';
+    function api(path, opts={}) {
+      let url = /^https?:\/\//i.test(path) ? path : (API_BASE + path);
+      const params = []; if (!initData && devTg) params.push('tg='+encodeURIComponent(devTg)); params.push('v=main-2025-08-27b');
+      url += (url.includes('?') ? '&' : '?') + params.join('&');
+      const headers = {'Content-Type':'application/json', ...(opts.headers||{})};
+      if (initData) headers['X-Telegram-InitData'] = initData;
+      return fetch(url, {...opts, headers});
+    }
+
+    // Utils
+    function initials(name){ return (name||'').trim().split(/\s+/).slice(0,2).map(s=>s[0]||'').join('').toUpperCase() || 'U'; }
+    const fmtInt = n => Number(n||0).toLocaleString('ru-RU');
+    const fmt2   = n => Number(n||0).toLocaleString('ru-RU',{minimumFractionDigits:2,maximumFractionDigits:2});
+    const todayISO = () => { const d=new Date(); d.setMinutes(d.getMinutes()-d.getTimezoneOffset()); return d.toISOString().slice(0,10); };
+    function ddmmyyyy(iso){ if (!iso) return '—'; const s=String(iso).slice(0,10); const [y,m,d]=s.split('-'); return d.padStart(2,'0')+'.'+m.padStart(2,'0')+'.'+y; }
+    function normalizeDate(value){ if (!value) return ''; const s=String(value); if (/^\d{4}-\d{2}-\d{2}$/.test(s)) return s; const d=new Date(s); if (!isNaN(d)){ const y=d.getFullYear(); const m=String(d.getMonth()+1).padStart(2,'0'); const day=String(d.getDate()).padStart(2,'0'); return `${y}-${m}-${day}`;} return s.slice(0,10); }
+    function daysDiffUTC(aISO,bISO){ try{ const a=new Date(aISO), b=new Date(bISO); const ad=Date.UTC(a.getFullYear(),a.getMonth(),a.getDate()); const bd=Date.UTC(b.getFullYear(),b.getMonth(),b.getDate()); return Math.floor((ad-bd)/86400000);}catch{ return 0; } }
+
+
+    // Compact labels for segmented control if it overflows
+    function updateSegLabels(){
+      const seg = document.getElementById('doseSeg');
+      if(!seg) return;
+      const btns = Array.from(seg.querySelectorAll('button'));
+      btns.forEach(b=>{ if(!b.dataset.full){ b.dataset.full = b.textContent.trim(); } });
+      const overflow = seg.scrollWidth > seg.clientWidth + 2;
+      btns.forEach(b=>{ b.textContent = overflow ? (b.dataset.short || b.dataset.full) : b.dataset.full; });
+    }
+    new ResizeObserver(()=>updateSegLabels()).observe(document.getElementById('doseSeg'));
+    window.addEventListener('orientationchange', updateSegLabels);
+    window.addEventListener('load', updateSegLabels);
+
+    // Animated slide for calendar
+    function slideCalendar(direction, cb){
+      const grid = document.getElementById('calPreview');
+      if(!grid){ cb(); return; }
+      grid.classList.remove('leave-left','leave-right','pre-enter-left','pre-enter-right');
+      grid.classList.add(direction==='next' ? 'leave-left' : 'leave-right');
+      setTimeout(()=>{
+        cb();
+        grid.classList.remove('leave-left','leave-right');
+        grid.classList.add(direction==='next' ? 'pre-enter-right' : 'pre-enter-left');
+        void grid.offsetWidth; // reflow
+        grid.classList.remove('pre-enter-right','pre-enter-left');
+      }, 260);
+    }
+
+
+    // Bottom nav
+    function go(path){ try{ history.pushState(null,'',path); location.assign(path);}catch{ location.href = path; } }
+    document.querySelectorAll('.bottom-nav a').forEach(a=>{
+      a.addEventListener('click', (e)=>{ e.preventDefault(); go(a.getAttribute('href')); });
+    });
+
+    // Header user
+    (function fillHeader(){
+      const name = initUser ? [initUser.first_name, initUser.last_name].filter(Boolean).join(' ') : '—';
+      document.getElementById('fullName').textContent = name;
+      const ava = document.getElementById('ava');
+      if (initUser && initUser.photo_url){ ava.innerHTML = '<img alt="" src="'+initUser.photo_url+'">'; }
+      else{ ava.textContent = initials(name); }
+    })();
+
+    // State
+    let ME=null, PLAN=null, DOSES=[], PROGRESS=null;
+    const DOSE_PER_KG = { min:120, opt:135, max:150 };
+    function loadDoseMode(){ try{ return localStorage.getItem('derma_dose_mode') || 'opt'; }catch(_){ return 'opt'; } }
+    function saveDoseMode(m){ try{ localStorage.setItem('derma_dose_mode', m); }catch(_){} api('/api/dose-mode',{method:'POST',body:JSON.stringify({mode:m})}); }
+    let DOSE_MODE = loadDoseMode();
+
+    // RING helpers – обновляем все три кольца и подписи
+    const RING_C = 2*Math.PI*50;
+    function setRing(el, pct){
+      const arc = el.querySelector('circle[data-arc]');
+      const lbl = el.querySelector('[data-pct]');
+      const p = Math.max(0, Math.min(100, Number(pct)||0));
+      if (arc){
+        arc.style.strokeDasharray = String(RING_C);
+        arc.style.strokeDashoffset = String(RING_C*(1-p/100));
+      }
+      if (lbl){ lbl.textContent = fmt2(p) + '%'; }
+    }
+
+    function applyRingPositions(mode, pcts){
+      const rail = document.getElementById('ringsRail');
+      const rMin = rail.querySelector('.ring[data-mode="min"]');
+      const rOpt = rail.querySelector('.ring[data-mode="opt"]');
+      const rMax = rail.querySelector('.ring[data-mode="max"]');
+
+      [rMin, rOpt, rMax].forEach(r=>{ r.classList.remove('pos-left','pos-center','pos-right','small'); });
+
+      if (mode === 'min') {
+        rMin.classList.add('pos-center');
+        rOpt.classList.add('pos-right','small');
+        rMax.classList.add('pos-left','small');
+      } else if (mode === 'opt') {
+        rMin.classList.add('pos-left','small');
+        rOpt.classList.add('pos-center');
+        rMax.classList.add('pos-right','small');
+      } else { // max
+        rMin.classList.add('pos-right','small');
+        rOpt.classList.add('pos-left','small');
+        rMax.classList.add('pos-center');
+      }
+
+      setRing(rMin, pcts.min || 0);
+      setRing(rOpt, pcts.opt || 0);
+      setRing(rMax, pcts.max || 0);
+    }
+
+    function setDoseMode(mode){
+      DOSE_MODE = mode; saveDoseMode(mode);
+      document.querySelectorAll('#doseSeg button').forEach(b=> b.classList.toggle('active', b.dataset.mode===mode));
+      document.getElementById('targetLabel').textContent = DOSE_PER_KG[mode];
+      document.getElementById('etaTargetLabel').textContent = DOSE_PER_KG[mode];
+      updateSummary();
+    }
+
+    // Swipe по блоку прогресса + тап по мини-кольцам
+    (function wireProgressGestures(){
+      const rail = document.getElementById('ringsRail'); let x0=null;
+      rail.addEventListener('touchstart', (e)=>{ x0 = e.touches[0].clientX; }, {passive:true});
+      rail.addEventListener('touchend', (e)=>{
+        if (x0==null) return;
+        const x1 = (e.changedTouches[0]||{}).clientX || x0;
+        const dx = x1 - x0; x0=null;
+        if (Math.abs(dx) > 30){
+          const seq = ['min','opt','max'];
+          let i = seq.indexOf(DOSE_MODE);
+          if (dx < 0) i = (i+1)%3; else i = (i+2)%3;
+          setDoseMode(seq[i]);
+        }
+      }, {passive:true});
+      rail.querySelector('.ring[data-mode="min"] button')?.addEventListener('click', ()=> setDoseMode('min'));
+      rail.querySelector('.ring[data-mode="max"] button')?.addEventListener('click', ()=> setDoseMode('max'));
+    })();
+
+    // Кнопки доз
+    function renderChips(drug){
+      const box = document.getElementById('chips'); box.innerHTML='';
+      const arr = (drug==='aknekutan') ? [8,16,24,32,40,48,56,64] : [10,20,30,40,50,60];
+      arr.forEach(v=>{
+        const b=document.createElement('button'); b.className='chip'; b.textContent=String(v); b.dataset.mg=String(v);
+        b.addEventListener('click',()=>{ document.getElementById('mg').value = v; });
+        box.appendChild(b);
+      });
+    }
+
+    // === Календарь: 7 дней, свайп + стрелки ===
+    let calOffset = 0; // смещение от сегодня (в днях) кратно 7
+    function renderCalPreview(){
+      const box=document.getElementById('calPreview'); box.innerHTML='';
+      const map = new Map();
+      DOSES.forEach(x=>{ const k=(x.date||'').slice(0,10); map.set(k, (map.get(k)||0) + Number(x.mg||x.mg_taken||0)); });
+
+      const base = new Date(); base.setHours(0,0,0,0);
+      base.setDate(base.getDate()+calOffset);
+      for(let i=0;i<7;i++){
+        const d = new Date(base); d.setDate(base.getDate()+i);
+        const iso = d.toISOString().slice(0,10);
+        const card = document.createElement('div'); card.className='day-card';
+        if (i===0 && calOffset===0) card.classList.add('today');
+        const mg = map.get(iso);
+        card.innerHTML = '<b>'+ddmmyyyy(iso)+'</b><div class="muted">'+(mg? (fmtInt(mg)+' мг 💊') : '—')+'</div>';
+        box.appendChild(card);
+      }
+    }
+    (function wireCalNav(){
+      const wrap = document.getElementById('calWrap');
+      const prev = document.getElementById('calPrev');
+      const next = document.getElementById('calNext');
+      prev.addEventListener('click', ()=>{ calOffset -= 7; slideCalendar('prev', renderCalPreview); });
+      next.addEventListener('click', ()=>{ calOffset += 7; slideCalendar('next', renderCalPreview); });
+      let x0=null;
+      wrap.addEventListener('touchstart', (e)=>{ x0 = e.touches[0].clientX; }, {passive:true});
+      wrap.addEventListener('touchend',   (e)=>{
+        if(x0==null) return;
+        const x1=(e.changedTouches[0]||{}).clientX || x0; const dx=x1-x0; x0=null;
+        if (Math.abs(dx)>30){ calOffset += (dx<0 ? +7 : -7); slideCalendar(dx<0 ? 'next' : 'prev', renderCalPreview); }
+      }, {passive:true});
+    })();
+
+    function updateSummary(){
+      let cum = 0;
+      try{ cum = (PROGRESS && Number.isFinite(PROGRESS.taken_mg)) ? Number(PROGRESS.taken_mg) : 0; }catch(_){}
+      if (!cum){
+        const ms = DOSES.map(x=>Number(x.mg||x.mg_taken||0));
+        cum   = ms.reduce((a,b)=>a+b,0);
+        try{ const seed = Number(localStorage.getItem('derma_seed_cum_mg')||0); if (seed>0) cum += seed; }catch(_){}
+      }
+
+      const w = Number((ME?.weight_kg ?? ME?.weight ?? PROGRESS?.weight_kg ?? 0));
+      document.getElementById('cumMg').textContent       = fmtInt(cum);
+      document.getElementById('consumedTop').textContent = fmtInt(cum);
+      document.getElementById('weightLine').textContent  = w>0 ? fmtInt(w) : '—';
+      document.getElementById('noWeightHint').style.display = w>0 ? 'none':'block';
+
+      const perKg = (w>0) ? (cum / w) : 0;
+      document.getElementById('cumPerKg').textContent = w>0 ? fmt2(perKg) : '—';
+
+      const targets = { min:120, opt:135, max:150 };
+      const pcts = {};
+      ['min','opt','max'].forEach(m=>{ pcts[m] = (w>0) ? (100 * cum / (targets[m]*w)) : 0; });
+
+      applyRingPositions(DOSE_MODE, pcts);
+
+      const goalsSpan = document.getElementById('goalsByWeight');
+      if (w>0){
+        goalsSpan.textContent = ' · по вашему весу: '
+          + fmtInt(Math.round(120*w)) + ' / '
+          + fmtInt(Math.round(135*w)) + ' / '
+          + fmtInt(Math.round(150*w)) + ' мг';
+      } else { goalsSpan.textContent = ''; }
+
+      let eta = '—';
+      const byDate = {}; DOSES.forEach(x=>{ const k=(normalizeDate(x.date)||'').slice(0,10); byDate[k]=(byDate[k]||0)+Number(x.mg||x.mg_taken||0); });
+      const today = todayISO();
+      const sumDays = (n) => {
+        let s = 0;
+        const [Y,M,D] = today.split('-').map(Number);
+        const base = new Date(Date.UTC(Y, M - 1, D));
+        for (let i = 0; i < n; i++) { const d = new Date(base); d.setUTCDate(d.getUTCDate() - i); const iso = d.toISOString().slice(0, 10); s += (byDate[iso] || 0); }
+        return s;
+      };
+      const a7  = sumDays(7)/7;
+      const a14 = sumDays(14)/14;
+      const avgForEta = a14>0? a14 : (a7>0? a7 : 0);
+      const targetKg = targets[DOSE_MODE];
+      if (w>0 && avgForEta>0){
+        const left = Math.max(0, targetKg*w - cum);
+        const days = Math.ceil(left / avgForEta);
+        const dt = new Date(); dt.setDate(dt.getDate()+days);
+        eta = ddmmyyyy(dt.toISOString().slice(0,10));
+      }
+      document.getElementById('etaTargetLabel').textContent = targetKg;
+      document.getElementById('eta135').textContent = eta;
+
+      let day='—';
+      if (PLAN?.start_date){
+        const diff = daysDiffUTC(new Date().toISOString().slice(0,10), PLAN.start_date);
+        day = diff>=0 ? String(1+diff) : '—';
+      }
+      document.getElementById('courseDay').textContent = day;
+    }
+
+    function renderLast(){
+      const box = document.getElementById('lastDoses');
+      if (!DOSES.length){ box.textContent='Нет отметок'; return; }
+      const rows = DOSES.slice(0,4).map(x => ddmmyyyy((normalizeDate(x.date)||'').slice(0,10))+': '+fmtInt(Number(x.mg||x.mg_taken||0))+' мг 💊');
+      box.innerHTML = rows.join('<br>');
+    }
+
+    async function loadAll(){
+      try{
+        const [meR, planR, doseR, prR] = await Promise.all([
+          api('/api/me'),
+          api('/api/plan'),
+          api('/api/intakes?limit=60'),
+          api('/api/progress?mode='+encodeURIComponent(DOSE_MODE))
+        ]);
+        ME        = meR.ok   ? await meR.json()   : null;
+        PLAN      = planR.ok ? await planR.json() : null;
+        DOSES     = doseR.ok ? (await doseR.json()) : [];
+        DOSES     = DOSES.map(d => ({ ...d, date: normalizeDate(d.date) }));
+        PROGRESS  = prR.ok   ? await prR.json()   : null;
+
+        renderChips((PLAN?.drug||'roaccutane').toLowerCase());
+        document.getElementById('date').value = todayISO();
+        updateSummary(); renderLast(); renderCalPreview();
+      }catch(e){
+        renderChips('roaccutane');
+      }
+    }
+
+    document.getElementById('save').addEventListener('click', async ()=>{
+      const mg   = Number(document.getElementById('mg').value || 0);
+      const date = document.getElementById('date').value || todayISO();
+      const st   = document.getElementById('saveStatus');
+      if (!(mg > 0)) { st.textContent = 'Введите дозу > 0'; return; }
+      st.textContent = 'Сохраняю...';
+      try {
+        const r = await api('/api/intakes', { method: 'POST', body: JSON.stringify({ mg, date }) });
+        if (!r.ok) { st.textContent = 'Ошибка ' + r.status; return; }
+        st.textContent = 'Сохранено';
+        DOSES.unshift({ mg: mg, date: date });
+        await loadAll();
+      } catch (e) {
+        st.textContent = 'Ошибка сети';
+      }
+    });
+
+    (function hydrateTgUser(){
+      const tg = window.Telegram?.WebApp;
+      const nameEl = document.querySelector('#tgName, #topName, [data-tg-name]');
+      const avaEl  = document.querySelector('#ava, #topAva, [data-tg-ava]');
+      function setInitials(name){
+        if (!avaEl) return;
+        const initials = (name||'').trim().split(/\s+/).map(s=>s[0]||'').slice(0,2).join('').toUpperCase() || 'U';
+        avaEl.innerHTML = initials;
+      }
+      let u = null; try { u = tg?.initDataUnsafe?.user || null; } catch(_){}
+      if (u && (u.first_name || u.last_name)) {
+        const name = [u.first_name, u.last_name].filter(Boolean).join(' ');
+        if (nameEl) nameEl.textContent = name;
+        if (avaEl) {
+          if (u.photo_url) { const img = new Image(); img.alt=''; img.src=u.photo_url; img.onload=()=>{ avaEl.innerHTML=''; img.style.width='100%'; img.style.height='100%'; img.style.objectFit='cover'; avaEl.appendChild(img); }; img.onerror=()=>setInitials(name); }
+          else { setInitials(name); }
+        }
+      } else {
+        const qs = new URLSearchParams(location.search);
+        const devName  = qs.get('tg_name')  || '';
+        const devPhoto = qs.get('tg_photo') || '';
+        if (devName && nameEl) nameEl.textContent = devName;
+        if (avaEl) {
+          if (devPhoto) { const img = new Image(); img.alt=''; img.src=devPhoto; img.onload=()=>{ avaEl.innerHTML=''; img.style.width='100%'; img.style.height='100%'; img.style.objectFit='cover'; avaEl.appendChild(img); }; img.onerror=()=>setInitials(devName); }
+          else { setInitials(devName); }
+        }
+      }
+    })();
+
+    document.getElementById('resetBtn').addEventListener('click', ()=>{
+      location.href = './reset-dark.html' + (location.search||'');
+    });
+    loadAll();
+    document.querySelectorAll('#doseSeg button').forEach(b=> b.addEventListener('click', ()=> setDoseMode(b.dataset.mode) ));
+    document.querySelector('#doseSeg button[data-mode="'+(DOSE_MODE||'opt')+'"]')?.click();
+  </script>
+</body>
+</html>
