@@ -649,10 +649,10 @@
       <div class="row" style="justify-content:space-between; align-items:center">
         <h2 id="progress-title" style="margin:0">Прогресс</h2>
         <div class="seg" id="doseSeg">
-          <button data-mode="min" data-short="Мин.">Минимальная</button>
-          <button data-mode="opt" class="active" data-short="Опт.">Оптимальная</button>
-          <button data-mode="max" data-short="Макс.">Максимальная</button>
-        </div>
+  <button data-mode="min" data-short="Мин." data-full="Минимальная">Мин.</button>
+  <button data-mode="opt" class="active" data-short="Опт." data-full="Оптимальная">Опт.</button>
+  <button data-mode="max" data-short="Макс." data-full="Максимальная">Макс.</button>
+</div>
       </div>
 
       <div class="row" style="justify-content:space-between;align-items:center;margin-top:4px">
@@ -880,14 +880,22 @@
 
 
     // Compact labels for segmented control if it overflows
-    function updateSegLabels(){
-      const seg = document.getElementById('doseSeg');
-      if(!seg) return;
-      const btns = Array.from(seg.querySelectorAll('button'));
-      btns.forEach(b=>{ if(!b.dataset.full){ b.dataset.full = b.textContent.trim(); } });
-      const overflow = seg.scrollWidth > seg.clientWidth + 2;
-      btns.forEach(b=>{ b.textContent = overflow ? (b.dataset.short || b.dataset.full) : b.dataset.full; });
-    }
+   function updateSegLabels(){
+  const seg = document.getElementById('doseSeg');
+  if(!seg) return;
+  const btns = Array.from(seg.querySelectorAll('button'));
+
+  // если в разметке уже есть data-full — используем её; иначе запоминаем текущий текст
+  btns.forEach(b => { b.dataset.full = b.dataset.full || b.textContent.trim(); });
+
+  const overflow = seg.scrollWidth > seg.clientWidth + 2;
+  btns.forEach(b => {
+    b.textContent = overflow
+      ? (b.dataset.short || b.dataset.full)   // узко — короткие
+      : (b.dataset.full  || b.textContent);   // широко — полные
+  });
+}
+updateSegLabels();  // вызываем сразу, без ожидания load
     new ResizeObserver(()=>updateSegLabels()).observe(document.getElementById('doseSeg'));
     window.addEventListener('orientationchange', updateSegLabels);
     window.addEventListener('load', updateSegLabels);
