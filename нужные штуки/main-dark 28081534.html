@@ -226,17 +226,6 @@
       .pos-right{transform:translate(calc(-50% + 130px),-50%) scale(0.56)}
     }
     .ring button{all:unset;cursor:pointer;display:block}
-    /* --- Неоновые толстые кольца --- */
-.ring circle.track{ stroke: url(#ringTrackGrad); stroke-width:18; }
-.ring circle[data-arc]{
-  stroke: url(#ringArcGrad);
-  stroke-width:18;
-  stroke-linecap:round;
-  transition: stroke-dashoffset .8s cubic-bezier(.2,.8,.2,1);
-  filter: url(#ringGlow);
-}
-.ring svg{ filter: url(#ringInner); } /* объём трека */
-    
 
     /* === BOTTOM NAV WITH ICONS === */
     .bottom-nav{position:fixed;left:0;right:0;bottom:0;background:var(--surface);border-top:1px solid var(--border);height:64px;padding:6px 6px calc(env(safe-area-inset-bottom) + 6px);display:flex;justify-content:space-around;align-items:center;z-index:50}
@@ -572,64 +561,9 @@
   100%{ opacity:0; transform:translate(-50%,-16px) scale(.98) }
 }
 
-
-/* === Animal Progress Bar (snail/turtle/hare) === */
-.animal-wrap{ margin-top:10px }
-.animal-track{
-  --w: 0%;
-  position:relative; height:18px; border-radius:999px;
-  background:rgba(255,255,255,.06);
-  border:1px solid var(--border);
-  box-shadow:inset 0 0 0 1px rgba(255,255,255,.04), 0 6px 12px rgba(0,0,0,.28);
-  overflow:hidden;
-}
-.animal-fill{
-  position:absolute; inset:0 auto 0 0; width:var(--w);
-  background:linear-gradient(90deg,#22D3EE 0%, #14B8A6 100%);
-  transition: width .6s cubic-bezier(.2,.7,.2,1);
-}
-.animal-emoji{
-  position:absolute; left:var(--w); top:50%; transform:translate(-50%,-50%);
-  font-size:22px; line-height:1;
-  filter: drop-shadow(0 3px 6px rgba(0,0,0,.35));
-  transition:left .6s cubic-bezier(.2,.7,.2,1);
-  animation: animal-bob 2.2s ease-in-out infinite;
-}
-@keyframes animal-bob{
-  0%,100%{ transform: translate(-50%, -50%) scaleX(-1); }
-  50%    { transform: translate(-50%, -52%) scaleX(-1); }
-}
 </style>
 </head>
 <body>
-  <!-- defs для новых колец прогресса -->
-<svg width="0" height="0" style="position:absolute;left:-9999px;top:-9999px" aria-hidden="true" focusable="false">
-  <defs>
-    <!-- трек -->
-    <linearGradient id="ringTrackGrad" x1="0" y1="0" x2="1" y2="1">
-      <stop offset="0" stop-color="#1c2636"/>
-      <stop offset="1" stop-color="#0f1726"/>
-    </linearGradient>
-    <!-- активная дуга -->
-    <linearGradient id="ringArcGrad" x1="0" y1="0" x2="1" y2="1">
-      <stop offset="0" stop-color="#13ef8b"/>
-      <stop offset="1" stop-color="#11d1f0"/>
-    </linearGradient>
-    <!-- внешнее мягкое свечение -->
-    <filter id="ringGlow" x="-40%" y="-40%" width="180%" height="180%">
-      <feGaussianBlur in="SourceGraphic" stdDeviation="3" result="b"/>
-      <feMerge><feMergeNode in="b"/><feMergeNode in="SourceGraphic"/></feMerge>
-    </filter>
-    <!-- лёгкое внутреннее затемнение трека -->
-    <filter id="ringInner" x="-50%" y="-50%" width="200%" height="200%">
-      <feGaussianBlur stdDeviation="3" result="blur"/>
-      <feComposite in="SourceGraphic" in2="blur" operator="arithmetic" k2="-1" k3="1" result="inner"/>
-      <feColorMatrix in="inner" type="matrix"
-        values="0 0 0 0 0  0 0 0 0 0  0 0 0 0 0  0 0 0 .75 0" result="shadow"/>
-      <feMerge><feMergeNode in="shadow"/><feMergeNode in="SourceGraphic"/></feMerge>
-    </filter>
-  </defs>
-</svg>
   <div class="wrap">
     <h1>Roaccutane Tracker</h1>
 
@@ -665,17 +599,8 @@
         <div class="ring pos-left small" data-mode="min">
           <button type="button" aria-label="Минимальная доза">
             <svg viewBox="0 0 110 110">
-              <svg viewBox="0 0 110 110">
-  <!-- r=46, толстый штрих 18px -->
-  <circle class="track" cx="55" cy="55" r="46"
-          stroke="url(#ringTrackGrad)" stroke-width="18" fill="none"
-          filter="url(#ringInner)"/>
-  <circle data-arc cx="55" cy="55" r="46"
-          stroke="url(#ringArcGrad)" stroke-width="18" fill="none"
-          stroke-linecap="round" stroke-dasharray="289" stroke-dashoffset="289"
-          filter="url(#ringGlow)"/>
-</svg>
-
+              <circle cx="55" cy="55" r="50" stroke="var(--ring-gray)" stroke-width="10" fill="none"></circle>
+              <circle data-arc cx="55" cy="55" r="50" stroke="var(--ring-ok)" stroke-width="10" fill="none" stroke-linecap="round" stroke-dasharray="314.159" stroke-dashoffset="314.159"></circle>
             </svg>
             <div class="pct" data-pct></div>
           </button>
@@ -683,17 +608,8 @@
 
         <div class="ring pos-center" data-mode="opt">
           <svg viewBox="0 0 110 110">
-            <svg viewBox="0 0 110 110">
-  <!-- r=46, толстый штрих 18px -->
-  <circle class="track" cx="55" cy="55" r="46"
-          stroke="url(#ringTrackGrad)" stroke-width="18" fill="none"
-          filter="url(#ringInner)"/>
-  <circle data-arc cx="55" cy="55" r="46"
-          stroke="url(#ringArcGrad)" stroke-width="18" fill="none"
-          stroke-linecap="round" stroke-dasharray="289" stroke-dashoffset="289"
-          filter="url(#ringGlow)"/>
-</svg>
-
+            <circle cx="55" cy="55" r="50" stroke="var(--ring-gray)" stroke-width="10" fill="none"></circle>
+            <circle data-arc cx="55" cy="55" r="50" stroke="var(--ring-ok)" stroke-width="10" fill="none" stroke-linecap="round" stroke-dasharray="314.159" stroke-dashoffset="314.159"></circle>
           </svg>
           <div class="pct" data-pct></div>
         </div>
@@ -701,17 +617,8 @@
         <div class="ring pos-right small" data-mode="max">
           <button type="button" aria-label="Максимальная доза">
             <svg viewBox="0 0 110 110">
-              <svg viewBox="0 0 110 110">
-  <!-- r=46, толстый штрих 18px -->
-  <circle class="track" cx="55" cy="55" r="46"
-          stroke="url(#ringTrackGrad)" stroke-width="18" fill="none"
-          filter="url(#ringInner)"/>
-  <circle data-arc cx="55" cy="55" r="46"
-          stroke="url(#ringArcGrad)" stroke-width="18" fill="none"
-          stroke-linecap="round" stroke-dasharray="289" stroke-dashoffset="289"
-          filter="url(#ringGlow)"/>
-</svg>
-
+              <circle cx="55" cy="55" r="50" stroke="var(--ring-gray)" stroke-width="10" fill="none"></circle>
+              <circle data-arc cx="55" cy="55" r="50" stroke="var(--ring-ok)" stroke-width="10" fill="none" stroke-linecap="round" stroke-dasharray="314.159" stroke-dashoffset="314.159"></circle>
             </svg>
             <div class="pct" data-pct></div>
           </button>
@@ -721,15 +628,7 @@
       <div class="section" id="infoLines" style="margin-top:0">
         <div id="weightRow"><b>Вес:</b> <span id="weightLine">—</span> кг</div>
         <div id="goalsLine"><b>Цели:</b> 120 / <b>135</b> / 150 мг/кг <span id="goalsByWeight" class="muted"></span></div>
-        <div id="animalProgress" class="animal-wrap" aria-label="Прогресс курса">
-  <div class="animal-track">
-    <div class="animal-fill"></div>
-    <div class="animal-emoji" id="animalEmoji" aria-hidden="true">🐌</div>
-  </div>
-  <div class="muted" style="margin-top:6px">
-    <span id="animalPct">0%</span> · к цели <span id="animalTargetKg">135</span> мг/кг
-  </div>
-</div>
+        <div><b>Ориентировочная дата достижения <span id="etaTargetLabel">135</span> мг/кг:</b> <span id="eta135">—</span></div>
         <div id="noWeightHint" class="muted" style="display:none;margin-top:8px">Укажите вес в профиле, чтобы увидеть прогресс по целям.</div>
       </div>
     </section>
@@ -789,8 +688,8 @@
           </div>
           <div class="face face-back" id="remBack">
             <div class="icon">✅</div>
-            <div class="msg">Молодец! Сегодня вы приняли препарат</div>
-            <div class="sub">Карточка обновится завтра</div>
+            <div class="msg">Молодец! Сегодня вы приняли препарат
+            <div class="sub">Карточка обновится завтра </div>
           </div>
         </div>
       </div>
@@ -1008,8 +907,7 @@
     let DOSE_MODE = loadDoseMode();
 
     // RING helpers – обновляем все три кольца и подписи
-    const RING_R = 46;                 // новый радиус
-const RING_C = 2*Math.PI*RING_R;   // ~289.03
+    const RING_C = 2*Math.PI*50;
     function setRing(el, pct){
       const arc = el.querySelector('circle[data-arc]');
       const lbl = el.querySelector('[data-pct]');
@@ -1049,120 +947,33 @@ const RING_C = 2*Math.PI*RING_R;   // ~289.03
     }
 
     function setDoseMode(mode){
-  if (DOSE_MODE === mode) return;         // без лишних перерисовок
-  DOSE_MODE = mode;
-  saveDoseMode(mode);
-
-  // подсветка сегмента
-  document.querySelectorAll('#doseSeg button')
-    .forEach(b => b.classList.toggle('active', b.dataset.mode === mode));
-
-  // подписи целей
-  document.getElementById('targetLabel').textContent = DOSE_PER_KG[mode];
-  const etaLbl = document.getElementById('etaTargetLabel');
-  if (etaLbl) etaLbl.textContent = DOSE_PER_KG[mode];
-
-  // ВАЖНО: моментально пересчитываем кольца и улитку
-  updateSummary();
-}
-    // ——— Свайпы/клики по кольцам (левое/центр/правое) ———
-(function wireProgressGestures(){
-  const rail = document.getElementById('ringsRail');
-  if (!rail) return;
-
-  // последовательность режимов
-  const order = ['min','opt','max'];
-  const step = (dir)=>{                   // dir: +1 вправо, -1 влево
-    let i = order.indexOf(DOSE_MODE);
-    if (i < 0) i = 1;                     // дефолт 'opt'
-    i = (i + dir + 3) % 3;
-    setDoseMode(order[i]);                // МГНОВЕННОЕ обновление
-  };
-
-  // клики/клавиатура по каждому кольцу
-  rail.querySelectorAll('.ring').forEach(r=>{
-    r.style.cursor = 'pointer';
-    r.setAttribute('role','button');
-    r.setAttribute('tabindex','0');
-    r.addEventListener('click', ()=> setDoseMode(r.dataset.mode));
-    r.addEventListener('keydown', e=>{
-      if (e.key==='Enter' || e.key===' ') { e.preventDefault(); setDoseMode(r.dataset.mode); }
-    });
-  });
-
-  // свайп (touch + mouse/trackpad)
-  let x0 = null;
-  const down = x => x0 = x;
-  const up   = x => {
-    if (x0 == null) return;
-    const dx = x - x0; x0 = null;
-    if (Math.abs(dx) > 30) step(dx < 0 ? +1 : -1);  // влево → следующий, вправо → предыдущий
-  };
-
-  // touch
-  rail.addEventListener('touchstart', e=>down(e.touches[0].clientX), {passive:true});
-  rail.addEventListener('touchend',   e=>{ const t=e.changedTouches[0]; up(t ? t.clientX : 0); }, {passive:true});
-
-  // mouse
-  rail.addEventListener('mousedown',  e=>down(e.clientX));
-  window.addEventListener('mouseup',  e=>up(e.clientX));
-})();
+      DOSE_MODE = mode; saveDoseMode(mode);
+      document.querySelectorAll('#doseSeg button').forEach(b=> b.classList.toggle('active', b.dataset.mode===mode));
+      document.getElementById('targetLabel').textContent = DOSE_PER_KG[mode];
+      document.getElementById('etaTargetLabel').textContent = DOSE_PER_KG[mode];
+      updateSummary();
+    }
 
     // Swipe по блоку прогресса + тап по мини-кольцам
-    
-(function wireProgressGestures(){
-  const rail = document.getElementById('ringsRail');
-  if(!rail) return;
+    (function wireProgressGestures(){
+      const rail = document.getElementById('ringsRail'); let x0=null;
+      rail.addEventListener('touchstart', (e)=>{ x0 = e.touches[0].clientX; }, {passive:true});
+      rail.addEventListener('touchend', (e)=>{
+        if (x0==null) return;
+        const x1 = (e.changedTouches[0]||{}).clientX || x0;
+        const dx = x1 - x0; x0=null;
+        if (Math.abs(dx) > 30){
+          const seq = ['min','opt','max'];
+          let i = seq.indexOf(DOSE_MODE);
+          if (dx < 0) i = (i+1)%3; else i = (i+2)%3;
+          setDoseMode(seq[i]);
+        }
+      }, {passive:true});
+      rail.querySelector('.ring[data-mode="min"] button')?.addEventListener('click', ()=> setDoseMode('min'));
+      rail.querySelector('.ring[data-mode="max"] button')?.addEventListener('click', ()=> setDoseMode('max'));
+    })();
 
-  // helper: move selection left/right
-  const seq = ['min','opt','max'];
-  const nextMode = (dir)=>{
-    let i = seq.indexOf(DOSE_MODE);
-    if (i === -1) i = 1; // default 'opt'
-    if (dir > 0) i = (i + 1) % 3;      // to the right
-    else        i = (i + 2) % 3;       // to the left
-    setDoseMode(seq[i]);
-  };
-
-  // click/tap on ANY ring switches to that mode
-  rail.querySelectorAll('.ring').forEach(r=>{
-    r.setAttribute('role','button');
-    r.setAttribute('tabindex','0');
-    r.style.cursor = 'pointer';
-    r.addEventListener('click', ()=> setDoseMode(r.dataset.mode));
-    r.addEventListener('keydown', (e)=>{
-      if(e.key === 'Enter' || e.key === ' '){
-        e.preventDefault(); setDoseMode(r.dataset.mode);
-      }
-    });
-  });
-
-  // swipe (touch + mouse/trackpad)
-  let startX = null;
-  const onDown = (x)=>{ startX = x; };
-  const onUp   = (x)=>{
-    if(startX == null) return;
-    const dx = x - startX; startX = null;
-    if (Math.abs(dx) > 30){ nextMode(dx < 0 ? +1 : -1); }
-  };
-
-  // touch
-  rail.addEventListener('touchstart', (e)=>{ onDown(e.touches[0].clientX); }, {passive:true});
-  rail.addEventListener('touchend',   (e)=>{ const t=e.changedTouches[0]; onUp(t ? t.clientX : 0); }, {passive:true});
-
-  // mouse/trackpad
-  rail.addEventListener('mousedown', (e)=> onDown(e.clientX));
-  window.addEventListener('mouseup', (e)=> onUp(e.clientX));
-
-  // keyboard arrows on the whole rail
-  rail.setAttribute('tabindex','0');
-  rail.addEventListener('keydown', (e)=>{
-    if (e.key === 'ArrowLeft'){ e.preventDefault(); nextMode(-1); }
-    if (e.key === 'ArrowRight'){ e.preventDefault(); nextMode(+1); }
-  });
-})();
-
-// Кнопки доз
+    // Кнопки доз
     
     function syncChipsSelection(){ /* chips removed */ }
     function renderChips(drug){ /* chips removed */ updateDoseHint(); }
@@ -1264,23 +1075,8 @@ base.setDate(base.getDate() + toMonday);
         const dt = new Date(); dt.setDate(dt.getDate()+days);
         eta = ddmmyyyy(dt.toISOString().slice(0,10));
       }
-      var _etaT = document.getElementById('etaTargetLabel'); if(_etaT) _etaT.textContent = targetKg;
-      var _eta = document.getElementById('eta135'); if(_eta) _eta.textContent = eta;
-      (function(){
-        try{
-          var wrap = document.getElementById('animalProgress');
-          if(!wrap) return;
-          var p = Math.max(0, Math.min(100, (pcts[DOSE_MODE]||0)));
-          var track = wrap.querySelector('.animal-track');
-          var fill = wrap.querySelector('.animal-fill');
-          var emoji = wrap.querySelector('.animal-emoji');
-          if(track){ track.style.setProperty('--w', p + '%'); }
-          if(fill){ fill.style.width = p + '%'; }
-          if(emoji){ emoji.style.left = p + '%'; emoji.textContent = (p<34?'🐌':(p<67?'🐢':'🐇')); }
-          var pctEl = document.getElementById('animalPct'); if(pctEl) pctEl.textContent = fmt2(p) + '%';
-          var tEl = document.getElementById('animalTargetKg'); if(tEl) tEl.textContent = targetKg;
-        }catch(_){ }
-      })();
+      document.getElementById('etaTargetLabel').textContent = targetKg;
+      document.getElementById('eta135').textContent = eta;
 
       let day='—';
       if (PLAN?.start_date){
@@ -1416,55 +1212,6 @@ base.setDate(base.getDate() + toMonday);
     enabled: (localStorage.getItem('rem_enabled') ?? '1') === '1',
     time: localStorage.getItem('rem_time') || '09:00',
   };
-// --- Helpers for time-based reset (local device time) ---
-function parseHHMM(s){
-  const m = String(s||'09:00').match(/^(\d{1,2}):(\d{2})$/); 
-  const hh = m ? Math.min(23, Math.max(0, parseInt(m[1],10))) : 9;
-  const mm = m ? Math.min(59, Math.max(0, parseInt(m[2],10))) : 0;
-  return [hh,mm];
-}
-function todayISOlocal(){
-  const d = new Date();
-  d.setHours(0,0,0,0);
-  const y=d.getFullYear(), m=String(d.getMonth()+1).padStart(2,'0'), day=String(d.getDate()).padStart(2,'0');
-  return `${y}-${m}-${day}`;
-}
-function ydayISOlocal(){
-  const d = new Date();
-  d.setDate(d.getDate()-1);
-  d.setHours(0,0,0,0);
-  const y=d.getFullYear(), m=String(d.getMonth()+1).padStart(2,'0'), day=String(d.getDate()).padStart(2,'0');
-  return `${y}-${m}-${day}`;
-}
-// "Logical" day tied to user's reminder time (before reminder -> yesterday bucket)
-function logicalIsoByReminder(remTime){
-  try{
-    const [hh,mm]=parseHHMM(remTime);
-    const now=new Date();
-    const boundary=new Date(); boundary.setHours(hh,mm,0,0);
-    return (now < boundary) ? ydayISOlocal() : todayISOlocal();
-  }catch(_){ return todayIsoFn(); }
-}
-// Boundary id changes each time the reminder time "ticks" for a new day
-function boundaryId(remTime){
-  // use today's date if boundary passed, otherwise yesterday's date
-  return logicalIsoByReminder(remTime);
-}
-function scheduleByReminder(){
-  let last = null;
-  const tick = ()=>{
-    const id = boundaryId(state.time);
-    if (id !== last){
-      last = id;
-      try{ localStorage.setItem('rem_boundary_id', id); }catch(_){}
-      renderReminder();
-    }
-  };
-  try{ last = localStorage.getItem('rem_boundary_id') || boundaryId(state.time); }catch(_){ last = boundaryId(state.time); }
-  tick();
-  setInterval(tick, 30*1000);
-}
-
 
   
   
@@ -1476,7 +1223,7 @@ function scheduleByReminder(){
     return 0;
   }
 function getTodayDoseMg(){
-    const iso = logicalIsoByReminder(state.time);
+    const iso = todayIsoFn();
     let sum = 0;
     (Array.isArray(DOSES)? DOSES : []).forEach(x=>{
       const k=(x.date||'').slice(0,10);
@@ -1536,7 +1283,7 @@ window.renderReminder = renderReminder;
   // Render immediately so the card state persists across reloads (uses localStorage if API not ready yet)
   try{ applyCtrl(); setReminderTexts(); renderReminder(); }catch(_){}
   
-  function midnightSchedule(){ /* obsolete: keep for safety */
+  function midnightSchedule(){
     let last = todayIsoFn();
     setInterval(()=>{
       const cur = todayIsoFn();
@@ -1570,7 +1317,7 @@ window.renderReminder = renderReminder;
       }
     }, {passive:true});
   }
-  scheduleByReminder();
+  midnightSchedule();
 })();
 
 

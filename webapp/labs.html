@@ -1,0 +1,561 @@
+<!doctype html>
+<html lang="ru" data-theme="auto">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Roaccutane Tracker — Анализы</title>
+  <meta name="color-scheme" content="dark light">
+  <script src="https://telegram.org/js/telegram-web-app.js"></script>
+  <style>
+    :root{
+      --bg: #0f1115;
+      --card: #171a20;
+      --card-2: #1e222b;
+      --text: #eaeef6;
+      --muted: #9aa4b2;
+      --accent: #6ee7b7;
+      --warn: #fbbf24;
+      --danger: #ef4444;
+      --input: #0f172a;
+      --border: #2a2f3a;
+      --shadow: 0 6px 24px rgba(0,0,0,.35);
+      --radius: 16px;
+    }
+    @media (prefers-color-scheme: light) {
+      :root{
+        --bg:#fbfbfd;
+        --card:#ffffff;
+        --card-2:#ffffff;
+        --text:#0f1115;
+        --muted:#576077;
+        --accent:#10b981;
+        --warn:#f59e0b;
+        --danger:#ef4444;
+        --input:#f2f4f8;
+        --border:#e7e9ef;
+        --shadow: 0 8px 30px rgba(0,0,0,.08);
+      }
+    }
+    html,body{height:100%}
+    body{
+      margin:0; background:var(--bg); color:var(--text);
+      font: 16px/1.4 system-ui, -apple-system, Segoe UI, Roboto, Inter, Arial, sans-serif;
+      -webkit-font-smoothing: antialiased;
+      display:flex; flex-direction:column;
+    }
+    .wrap{max-width: 880px; width:100%; margin:0 auto; padding:20px; box-sizing:border-box; flex:1 0 auto;}
+    header{
+      position:sticky; top:0; z-index:20; backdrop-filter: blur(8px);
+      background: linear-gradient(to bottom, rgba(0,0,0,.25), transparent);
+      padding: 14px 20px 6px; display:flex; align-items:center; gap:12px;
+    }
+    .app-title{font-weight:700; letter-spacing:.3px}
+    .card{
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      box-shadow: var(--shadow);
+      padding: 16px;
+    }
+    .row{display:grid; gap:12px}
+    .row.cols-2{grid-template-columns:1fr 1fr}
+    .row.cols-3{grid-template-columns:repeat(3,1fr)}
+    @media (max-width: 720px){ .row.cols-2,.row.cols-3{ grid-template-columns:1fr } }
+    h1{font-size:22px; margin:0 0 8px}
+    h2{font-size:18px; margin:0 0 10px}
+    .muted{color:var(--muted); font-size:14px}
+    .field{
+      display:grid; gap:6px; align-items:center;
+      grid-template-columns: minmax(120px, 1fr) 140px minmax(120px,1fr);
+      padding:10px 12px; border: 1px solid var(--border); border-radius:12px; background:var(--card-2);
+    }
+    .field .name{font-weight:600}
+    .field input{
+      width:100%; padding:10px 12px; border-radius:10px; border:1px solid var(--border);
+      background: var(--input); color: var(--text); outline: none;
+    }
+    .unit{opacity:.8; font-size:12px}
+    .range{color:var(--muted); font-size:13px}
+    .chip{
+      display:inline-flex; align-items:center; gap:6px; font-size:12px; font-weight:700;
+      padding:6px 10px; border-radius:999px; border:1px solid var(--border);
+    }
+    .chip.ok{ color:#10b981; background:color-mix(in oklab, #10b981 10%, transparent) }
+    .chip.warn{ color:var(--warn); background:color-mix(in oklab, var(--warn) 10%, transparent) }
+    .chip.bad{ color:var(--danger); background:color-mix(in oklab, var(--danger) 10%, transparent) }
+    .toolbar{display:flex; align-items:center; gap:10px; flex-wrap:wrap}
+    .btn{
+      appearance:none; border:1px solid var(--border); background:var(--card-2); color:var(--text);
+      border-radius:12px; padding:10px 14px; cursor:pointer; font-weight:700;
+    }
+    .btn.primary{ background: linear-gradient(180deg, var(--accent), color-mix(in oklab, var(--accent) 70%, #000)); border:none; color:#001310 }
+    .btn:disabled{ opacity:.5; cursor:not-allowed }
+    .seg{
+      display:inline-grid; grid-auto-flow:column; gap:0; border:1px solid var(--border); border-radius:12px; overflow:hidden;
+    }
+    .seg button{ padding:8px 12px; border:none; background:var(--card-2); color:var(--text); cursor:pointer }
+    .seg button.active{ background:var(--accent); color:#001310; font-weight:800 }
+    .grid{display:grid; gap:12px}
+    .grid.cols-2{ grid-template-columns: 1fr 1fr }
+    .grid.cols-3{ grid-template-columns: repeat(3,1fr) }
+    @media (max-width: 720px){ .grid.cols-2,.grid.cols-3{ grid-template-columns:1fr } }
+
+    /* Gallery */
+    .uploader{
+      border: 1px dashed var(--border); border-radius:14px; padding:14px; text-align:center; background:var(--card-2);
+    }
+    .thumbs{ display:grid; grid-template-columns: repeat(auto-fill, minmax(140px, 1fr)); gap:10px }
+    .thumb{
+      position:relative; border-radius:12px; overflow:hidden; border:1px solid var(--border); background:#000;
+      aspect-ratio: 1 / 1;
+    }
+    .thumb img{ width:100%; height:100%; object-fit:cover; display:block }
+    .thumb .del{
+      position:absolute; top:6px; right:6px; background: rgba(0,0,0,.6); color:#fff; border:none; border-radius:10px;
+      padding:4px 8px; font-size:12px; cursor:pointer;
+    }
+    .thumb .open{
+      position:absolute; left:6px; bottom:6px; background: rgba(0,0,0,.6); color:#fff; border:none; border-radius:10px;
+      padding:4px 8px; font-size:12px; cursor:pointer;
+    }
+    /* Fullscreen viewer */
+    .viewer{
+      position:fixed; inset:0; background: rgba(0,0,0,.9); display:none; align-items:center; justify-content:center; z-index:9999;
+    }
+    .viewer.open{ display:flex }
+    .viewer img{ max-width:95vw; max-height:90vh; display:block; border-radius:10px }
+    .viewer .close{ position:absolute; top:14px; right:14px; background:#000; color:#fff; border:none; border-radius:10px; padding:8px 12px; cursor:pointer }
+
+    .note{ font-size:12px; color:var(--muted); }
+
+    /* Persistent onboarding bar (non-modal) */
+    .onb-fixed{
+      position:fixed; left:50%; transform:translateX(-50%);
+      bottom: 10px; width: min(920px, 96vw);
+      display:grid; grid-template-columns: repeat(5, 1fr); gap:8px; align-items:center;
+      color:#cbd5e1; z-index:50; user-select:none;
+    }
+    .onb-item{ display:grid; justify-items:center; gap:6px; padding:8px 6px; font-size:12px; opacity:.9; }
+    .onb-item .ico{ width:20px; height:20px; opacity:.9 }
+    .onb-pill{
+      border-radius:16px;
+      background: linear-gradient(180deg, rgba(255,255,255,.08), rgba(255,255,255,.02));
+      border: 1px solid rgba(255,255,255,.18);
+      box-shadow: 0 12px 40px rgba(0,0,0,.45), inset 0 1px rgba(255,255,255,.06);
+      backdrop-filter: blur(8px);
+      padding: 8px 6px;
+    }
+    .onb-click{ cursor:pointer; }
+    /* Reserve space so bar doesn't overlap content on mobile */
+    .bottom-spacer{ height: 80px; }
+
+    /* Page enter/exit animation */
+    .page{ opacity: 0; transform: translateY(8px); animation: fadeSlideIn .28s ease forwards; }
+    @keyframes fadeSlideIn { to { opacity:1; transform: translateY(0); } }
+    .page.exit{ opacity: 0; transform: translateY(8px); transition: opacity .28s ease, transform .28s ease; }
+
+  </style>
+</head>
+<body>
+  <header>
+    <div class="app-title">Roaccutane Tracker</div>
+  </header>
+
+  <div class="wrap page" id="pageRoot">
+    <div class="card" style="margin-bottom:14px;">
+      <h1>Анализы</h1>
+      <div class="muted">Классические показатели во время курса ретиноидов. Введите свои значения — справа увидите норму и статус. Диапазоны ориентировочные, ориентируйтесь на бланк вашей лаборатории.</div>
+    </div>
+
+    <div class="card" style="margin-bottom:14px;">
+      <div class="toolbar" style="justify-content:space-between; margin-bottom:8px;">
+        <div class="toolbar" style="gap:12px;">
+          <strong>Пол:</strong>
+          <div class="seg" id="sexSeg">
+            <button type="button" data-sex="female" class="active">Ж</button>
+            <button type="button" data-sex="male">М</button>
+          </div>
+        </div>
+        <div class="muted" id="updatedLbl">Не сохранено</div>
+      </div>
+
+      <div class="grid cols-2">
+        <div class="grid">
+          <h2>Печёночные и билирубин</h2>
+          <div class="row">
+            <div class="field" data-key="ALT">
+              <div class="name">АЛТ (ALT) <span class="unit">Ед/л</span></div>
+              <input type="number" step="0.1" inputmode="decimal" placeholder="например, 22" />
+              <div>
+                <div class="range"><span class="dyn-range" data-f="0–35" data-m="0–45">0–35</span></div>
+                <div class="chip ok">—</div>
+              </div>
+            </div>
+            <div class="field" data-key="AST">
+              <div class="name">АСТ (AST) <span class="unit">Ед/л</span></div>
+              <input type="number" step="0.1" inputmode="decimal" placeholder="например, 20" />
+              <div>
+                <div class="range"><span class="dyn-range" data-f="0–35" data-m="0–40">0–35</span></div>
+                <div class="chip ok">—</div>
+              </div>
+            </div>
+            <div class="field" data-key="BILIRUBIN">
+              <div class="name">Общий билирубин <span class="unit">мкмоль/л</span></div>
+              <input type="number" step="0.1" inputmode="decimal" placeholder="например, 12" />
+              <div>
+                <div class="range">3–21</div>
+                <div class="chip ok">—</div>
+              </div>
+            </div>
+            <div class="field" data-key="ALP">
+              <div class="name">ЩФ (ALP) <span class="unit">Ед/л</span></div>
+              <input type="number" step="1" inputmode="decimal" placeholder="например, 75" />
+              <div>
+                <div class="range">40–130</div>
+                <div class="chip ok">—</div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="grid">
+          <h2>Липидный профиль</h2>
+          <div class="row">
+            <div class="field" data-key="TG">
+              <div class="name">Триглицериды <span class="unit">ммоль/л</span></div>
+              <input type="number" step="0.01" inputmode="decimal" placeholder="например, 1.1" />
+              <div>
+                <div class="range">0.4–1.7</div>
+                <div class="chip ok">—</div>
+              </div>
+            </div>
+            <div class="field" data-key="TC">
+              <div class="name">Общий холестерин <span class="unit">ммоль/л</span></div>
+              <input type="number" step="0.01" inputmode="decimal" placeholder="например, 4.6" />
+              <div>
+                <div class="range">3.0–5.2</div>
+                <div class="chip ok">—</div>
+              </div>
+            </div>
+            <div class="field" data-key="LDL">
+              <div class="name">ЛПНП (LDL) <span class="unit">ммоль/л</span></div>
+              <input type="number" step="0.01" inputmode="decimal" placeholder="например, 2.7" />
+              <div>
+                <div class="range">&lt; 3.0</div>
+                <div class="chip ok">—</div>
+              </div>
+            </div>
+            <div class="field" data-key="HDL">
+              <div class="name">ЛПВП (HDL) <span class="unit">ммоль/л</span></div>
+              <input type="number" step="0.01" inputmode="decimal" placeholder="например, 1.4" />
+              <div>
+                <div class="range"><span class="dyn-range" data-f="&gt; 1.2" data-m="&gt; 1.0">&gt; 1.2</span></div>
+                <div class="chip ok">—</div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="grid cols-2" style="margin-top:12px;">
+        <div class="grid">
+          <h2>Глюкоза</h2>
+          <div class="row">
+            <div class="field" data-key="GLU">
+              <div class="name">Глюкоза натощак <span class="unit">ммоль/л</span></div>
+              <input type="number" step="0.01" inputmode="decimal" placeholder="например, 4.9" />
+              <div>
+                <div class="range">3.9–5.6</div>
+                <div class="chip ok">—</div>
+              </div>
+            </div>
+          </div>
+        </div>
+        <div class="grid">
+          <h2>Примечание</h2>
+          <div class="card" style="background:transparent; border-style:dashed">
+            <div class="note">Диапазоны могут отличаться по методике лаборатории. При значениях выше нормы (особенно триглицериды и АЛТ/АСТ) свяжитесь с лечащим врачом — на ретиноидах допустимы изменения, но резкие отклонения требуют коррекции дозы или паузы.</div>
+          </div>
+        </div>
+      </div>
+
+      <div class="toolbar" style="margin-top:12px; justify-content:flex-end;">
+        <button class="btn" id="clearBtn" title="Очистить значения">Сбросить</button>
+        <button class="btn primary" id="saveBtn">Сохранить значения</button>
+      </div>
+    </div>
+
+    <div class="card" style="margin-bottom:14px;">
+      <h2>Фото анализов</h2>
+      <div class="uploader">
+        <input type="file" id="fileInput" accept="image/*" multiple style="display:none" />
+        <div class="toolbar" style="justify-content:center;">
+          <button class="btn" id="addPhotosBtn">Загрузить фото</button>
+          <div class="muted">Поддерживаются JPG/PNG/HEIC (если браузер поддерживает). Фото сохраняются локально на устройстве.</div>
+        </div>
+      </div>
+      <div class="thumbs" id="thumbs" style="margin-top:12px"></div>
+    </div>
+
+    <div class="viewer" id="viewer">
+      <button class="close" id="viewerClose">Закрыть</button>
+      <img id="viewerImg" alt="Фото анализа" />
+    </div>
+
+    <div class="bottom-spacer"></div>
+  </div>
+
+  <!-- Persistent onboarding bar -->
+  <div class="onb-fixed" id="onb">
+    <div class="onb-item onb-click" id="onbHome" title="На главную">
+      <svg class="ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round">
+        <path d="M3 11.5L12 4l9 7.5"></path>
+        <path d="M5 10.5V20a1 1 0 0 0 1 1h4v-6h4v6h4a1 1 0 0 0 1-1v-9.5"></path>
+      </svg>
+      <div>Главная</div>
+    </div>
+
+    <div class="onb-item">
+      <svg class="ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round">
+        <rect x="3" y="4" width="18" height="18" rx="2"></rect>
+        <path d="M16 2v4M8 2v4M3 10h18"></path>
+      </svg>
+      <div>Календарь</div>
+    </div>
+
+    <div class="onb-item onb-click" id="onbProfile" title="Профиль">
+      <svg class="ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round">
+        <circle cx="12" cy="8" r="4"></circle>
+        <path d="M4 20a8 8 0 0 1 16 0"></path>
+      </svg>
+      <div>Профиль</div>
+    </div>
+
+    <div class="onb-item">
+      <svg class="ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round">
+        <rect x="3" y="5" width="18" height="14" rx="2"></rect>
+        <path d="M8 13l2.5-2.5L14 14l2-2 3 3"></path>
+      </svg>
+      <div>Фотодневник</div>
+    </div>
+
+    <div class="onb-pill">
+      <div class="onb-item">
+        <svg class="ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M6 2h12"></path>
+          <path d="M9 2v4l-5 8a6 6 0 0 0 6 8h4a6 6 0 0 0 6-8l-5-8V2"></path>
+        </svg>
+        <div><strong>Анализы</strong></div>
+      </div>
+    </div>
+  </div>
+
+<script>
+(function(){
+  const pageRoot = document.getElementById('pageRoot');
+
+  // Inputs and gallery logic (same as previous version)
+  const sexSeg = document.getElementById('sexSeg');
+  const updatedLbl = document.getElementById('updatedLbl');
+  const fileInput = document.getElementById('fileInput');
+  const addPhotosBtn = document.getElementById('addPhotosBtn');
+  const thumbs = document.getElementById('thumbs');
+  const viewer = document.getElementById('viewer');
+  const viewerImg = document.getElementById('viewerImg');
+  const viewerClose = document.getElementById('viewerClose');
+
+  let sex = (localStorage.getItem('labs.sex') || 'female');
+  let values = JSON.parse(localStorage.getItem('labs.values') || '{}');
+  let photos = JSON.parse(localStorage.getItem('labs.photos') || '[]');
+
+  sexSeg.querySelectorAll('button').forEach(btn=>{
+    if(btn.dataset.sex===sex) btn.classList.add('active');
+    btn.addEventListener('click', ()=>{
+      sex = btn.dataset.sex;
+      sexSeg.querySelectorAll('button').forEach(b=>b.classList.toggle('active', b===btn));
+      localStorage.setItem('labs.sex', sex);
+      applySexRanges();
+      recomputeAll();
+    });
+  });
+
+  function applySexRanges(){
+    document.querySelectorAll('.dyn-range').forEach(span=>{
+      span.textContent = (sex==='female')? (span.getAttribute('data-f')||span.textContent) : (span.getAttribute('data-m')||span.textContent);
+    });
+  }
+
+  function rangesFor(key){
+    if(key==='ALT') return (sex==='female')? {min:0, max:35} : {min:0, max:45};
+    if(key==='AST') return (sex==='female')? {min:0, max:35} : {min:0, max:40};
+    if(key==='BILIRUBIN') return {min:3, max:21};
+    if(key==='ALP') return {min:40, max:130};
+    if(key==='TG') return {min:0.4, max:1.7};
+    if(key==='TC') return {min:3.0, max:5.2};
+    if(key==='LDL') return {lt:3.0};
+    if(key==='HDL') return (sex==='female')? {gt:1.2} : {gt:1.0};
+    if(key==='GLU') return {min:3.9, max:5.6};
+    return null;
+  }
+
+  function evalStatus(key, val){
+    if(val==='' || isNaN(val)) return {cls:'ok', label:'—'};
+    const x = Number(val);
+    const r = rangesFor(key);
+    if(!r) return {cls:'ok', label:'—'};
+    if('lt' in r){
+      if(x < r.lt) return {cls:'ok', label:'OK'};
+      if(x < r.lt*1.2) return {cls:'warn', label:'Погранично'};
+      return {cls:'bad', label:'Высокий'};
+    }
+    if('gt' in r){
+      if(x > r.gt) return {cls:'ok', label:'OK'};
+      if(x > r.gt*0.9) return {cls:'warn', label:'Низковато'};
+      return {cls:'bad', label:'Низкий'};
+    }
+    if(x>=r.min && x<=r.max) return {cls:'ok', label:'OK'};
+    const pad = (r.max - r.min) * 0.1;
+    if(x>r.max && x <= r.max + pad) return {cls:'warn', label:'Выше нормы'};
+    if(x<r.min && x >= r.min - pad) return {cls:'warn', label:'Ниже нормы'};
+    return {cls:'bad', label: x>r.max ? 'Высокий' : 'Низкий'};
+  }
+
+  function recomputeAll(){
+    document.querySelectorAll('.field').forEach(box=>{
+      const key = box.getAttribute('data-key');
+      const input = box.querySelector('input');
+      const chip = box.querySelector('.chip');
+      const st = evalStatus(key, input.value);
+      chip.className = 'chip ' + st.cls;
+      chip.textContent = st.label;
+    });
+  }
+
+  document.querySelectorAll('.field').forEach(box=>{
+    const key = box.getAttribute('data-key');
+    const input = box.querySelector('input');
+    if(values[key]!==undefined) input.value = values[key];
+    input.addEventListener('input', ()=>{
+      recomputeAll();
+      updatedLbl.textContent = 'Есть несохранённые изменения';
+    });
+  });
+
+  document.getElementById('saveBtn').addEventListener('click', ()=>{
+    const out = {};
+    document.querySelectorAll('.field').forEach(box=>{
+      const key = box.getAttribute('data-key');
+      const input = box.querySelector('input');
+      const v = input.value;
+      if(v!=='' && !isNaN(Number(v))) out[key] = Number(v);
+    });
+    values = out;
+    localStorage.setItem('labs.values', JSON.stringify(values));
+    const ts = new Date();
+    updatedLbl.textContent = 'Сохранено: ' + ts.toLocaleString();
+  });
+
+  document.getElementById('clearBtn').addEventListener('click', ()=>{
+    document.querySelectorAll('.field input').forEach(i=> i.value='');
+    values = {};
+    localStorage.removeItem('labs.values');
+    updatedLbl.textContent = 'Очищено';
+    recomputeAll();
+  });
+
+  function renderThumbs(){
+    thumbs.innerHTML = '';
+    if(!photos.length){
+      const empty = document.createElement('div');
+      empty.className='muted';
+      empty.textContent='Галерея пуста. Загрузите фото бланка или результатов.';
+      thumbs.appendChild(empty);
+      return;
+    }
+    photos.forEach((p, idx)=>{
+      const t = document.createElement('div'); t.className='thumb';
+      const img = document.createElement('img'); img.src = p.data; img.alt = 'Фото анализа';
+      const del = document.createElement('button'); del.className='del'; del.textContent='Удалить';
+      const open = document.createElement('button'); open.className='open'; open.textContent='Открыть';
+      del.addEventListener('click', ()=>{
+        photos.splice(idx,1);
+        localStorage.setItem('labs.photos', JSON.stringify(photos));
+        renderThumbs();
+      });
+      open.addEventListener('click', ()=>{
+        viewerImg.src = p.data;
+        viewer.classList.add('open');
+      });
+      t.appendChild(img); t.appendChild(del); t.appendChild(open);
+      thumbs.appendChild(t);
+    });
+  }
+  renderThumbs();
+  viewerClose.addEventListener('click', ()=> viewer.classList.remove('open'));
+  viewer.addEventListener('click', (e)=>{ if(e.target===viewer) viewer.classList.remove('open') });
+
+  async function compressImage(file, maxDim=1600, quality=0.9){
+    return new Promise((resolve,reject)=>{
+      const reader = new FileReader();
+      reader.onload = ()=>{
+        const img = new Image();
+        img.onload = ()=>{
+          const scale = Math.min(1, maxDim/Math.max(img.width,img.height));
+          const canvas = document.createElement('canvas');
+          canvas.width = Math.round(img.width*scale);
+          canvas.height = Math.round(img.height*scale);
+          const ctx = canvas.getContext('2d');
+          ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+          canvas.toBlob((blob)=>{
+            const r2 = new FileReader();
+            r2.onload = ()=> resolve(r2.result);
+            r2.onerror = reject;
+            r2.readAsDataURL(blob);
+          }, 'image/jpeg', quality);
+        };
+        img.onerror = reject;
+        img.src = reader.result;
+      };
+      reader.onerror = reject;
+      reader.readAsDataURL(file);
+    });
+  }
+
+  addPhotosBtn.addEventListener('click', ()=> fileInput.click());
+  fileInput.addEventListener('change', async (e)=>{
+    const files = Array.from(e.target.files || []);
+    if(!files.length) return;
+    addPhotosBtn.disabled = true; addPhotosBtn.textContent = 'Обработка...';
+    for(const f of files){
+      try{
+        const dataUrl = await compressImage(f);
+        photos.unshift({data:dataUrl, ts: Date.now()});
+      }catch(_){}
+    }
+    localStorage.setItem('labs.photos', JSON.stringify(photos));
+    renderThumbs();
+    addPhotosBtn.disabled = false; addPhotosBtn.textContent = 'Загрузить фото';
+    fileInput.value = '';
+  });
+
+  // Fade+slide navigation
+  function navigateWithFx(url){
+    pageRoot.classList.add('exit');
+    const done = ()=> window.location.href = url;
+    let handled = false;
+    pageRoot.addEventListener('transitionend', ()=>{ if(!handled){ handled=true; done(); } }, {once:true});
+    setTimeout(()=>{ if(!handled) done(); }, 320);
+    // Trigger the CSS transition
+    getComputedStyle(pageRoot).opacity; // force reflow
+    pageRoot.style.opacity = '0';
+    pageRoot.style.transform = 'translateY(8px)';
+  }
+
+  document.getElementById('onbHome').addEventListener('click', ()=> navigateWithFx('main-dark.html'));
+  document.getElementById('onbProfile').addEventListener('click', ()=> navigateWithFx('myprofile.html'));
+
+  try{ Telegram.WebApp.ready(); Telegram.WebApp.expand(); }catch(_){}
+})();
+</script>
+</body>
+</html>

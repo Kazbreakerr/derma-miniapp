@@ -34,7 +34,6 @@
         radial-gradient(120% 80% at 10% -10%, rgba(34,197,94,.12), transparent 50%),
         radial-gradient(120% 80% at 110% 110%, rgba(236,72,153,.12), transparent 50%);
     }
-    /* Угловой чип — TG WebApp готов */
     .chip{
       position:absolute;
       top: max(12px, env(safe-area-inset-top));
@@ -62,10 +61,9 @@
     @keyframes ripple{ 0%{ transform:scale(.85); opacity:.8 } 80%{ transform:scale(1.15); opacity:.08 } 100%{ opacity:0 } }
     .text-col{flex:1 1 220px; min-width:0}
 
-    /* Подвал с действиями и переключателем темы */
     .actions{
       display:flex; align-items:center; gap:12px; margin-top:12px;
-      padding-right: max(0px, env(safe-area-inset-right));
+      padding-right: max(0px, env(safe-area-inset-right)); flex-wrap:wrap;
     }
     .cta{ display:flex; gap:12px; flex-wrap:wrap; }
     .btn{
@@ -75,6 +73,29 @@
       padding:12px 16px; border-radius:12px; cursor:pointer;
       box-shadow: 0 10px 20px rgba(34,197,94,.18), 0 10px 22px rgba(236,72,153,.12);
     }
+
+    .role-switch{ flex: 1 1 260px; min-width:240px; }
+    .role-toggle{
+      position:relative; height:44px; border-radius:14px; padding:3px;
+      background:#ffffff; border:1px solid var(--border); display:block; width:100%;
+      box-shadow: 0 8px 18px rgba(2,6,23,.06);
+    }
+    .role-toggle .track{
+      display:grid; grid-template-columns:1fr 1fr; align-items:center;
+      height:100%; position:relative; z-index:1; pointer-events:none;
+      color:var(--text-low); font-weight:800; font-size:14px;
+    }
+    .role-toggle .opt{ display:flex; align-items:center; justify-content:center; gap:8px; }
+    .role-toggle .thumb{
+      position:absolute; inset:3px auto 3px 3px; width:calc(50% - 3px);
+      background: linear-gradient(135deg, #22c55e 0%, #86efac 50%, #f472b6 100%);
+      border-radius:10px; transition:transform .25s ease;
+      box-shadow:0 8px 20px rgba(2,6,23,.12);
+    }
+    .role-toggle input{position:absolute; inset:0; opacity:0; cursor:pointer}
+    .role-toggle input:checked + .thumb{ transform: translateX(100%); }
+    .role-toggle input:checked ~ .track .opt-patient,
+    .role-toggle:not(:has(input:checked)) .opt-doctor{ color:#0f172a; }
 
     .theme-switch{ margin-left:auto; }
     .theme-toggle{
@@ -87,9 +108,8 @@
     }
     .theme-toggle:active{ transform: translateY(1px) }
 
-    @media (max-width:420px){
-      .actions{ flex-wrap:wrap; gap:10px; }
-      .actions .cta{ width:100%; }
+    @media (max-width:540px){
+      .role-switch{ min-width:100%; }
       .theme-switch{ width:100%; margin-left:0; }
       .theme-toggle{ width:100%; justify-content:center; }
     }
@@ -99,8 +119,6 @@
   <div class="wrap">
     <div class="card">
       <div class="glow"></div>
-
-      <!-- Перемещённый чип в правый верхний угол -->
       <span class="chip">TG WebApp готов</span>
 
       <div class="row">
@@ -126,6 +144,18 @@
             <div class="cta">
               <button id="startBtn" class="btn">Начать</button>
             </div>
+
+            <div class="role-switch">
+              <label class="role-toggle">
+                <input id="roleSwitch" type="checkbox" aria-label="Роль: пациент">
+                <div class="thumb" aria-hidden="true"></div>
+                <div class="track" aria-hidden="true">
+                  <span class="opt opt-doctor">🩺 Врач</span>
+                  <span class="opt opt-patient">🙂 Пациент</span>
+                </div>
+              </label>
+            </div>
+
             <div class="theme-switch" role="group" aria-label="Смена темы">
               <button id="themeToggle" class="theme-toggle" type="button" title="Сменить тему на тёмную">
                 <span class="ico">🌙</span><span class="txt"><b>Тёмная тема</b></span>
@@ -148,6 +178,7 @@
     location.replace('./warnings.html' + qs);
   }, { once: true });
 
+  // Переключение темы
   (function(){
     const btn = document.getElementById('themeToggle');
     if(!btn) return;
@@ -155,6 +186,22 @@
     btn.addEventListener('click', ()=>{
       try{ localStorage.setItem('rt_theme','dark'); }catch(_){}
       location.replace('./welcome-rt.html' + qs);
+    });
+  })();
+
+  // Тумблер роли
+  (function(){
+    const input = document.getElementById('roleSwitch');
+    if(!input) return;
+    const saved = (localStorage.getItem('rt_role') || 'patient');
+    const isPatient = saved === 'patient';
+    input.checked = isPatient;
+    document.documentElement.setAttribute('data-role', saved);
+    input.addEventListener('change', () => {
+      const role = input.checked ? 'patient' : 'doctor';
+      try{ localStorage.setItem('rt_role', role); }catch(_){}
+      document.documentElement.setAttribute('data-role', role);
+      tgApp?.HapticFeedback?.impactOccurred?.('light');
     });
   })();
   </script>

@@ -1049,120 +1049,33 @@ const RING_C = 2*Math.PI*RING_R;   // ~289.03
     }
 
     function setDoseMode(mode){
-  if (DOSE_MODE === mode) return;         // без лишних перерисовок
-  DOSE_MODE = mode;
-  saveDoseMode(mode);
-
-  // подсветка сегмента
-  document.querySelectorAll('#doseSeg button')
-    .forEach(b => b.classList.toggle('active', b.dataset.mode === mode));
-
-  // подписи целей
-  document.getElementById('targetLabel').textContent = DOSE_PER_KG[mode];
-  const etaLbl = document.getElementById('etaTargetLabel');
-  if (etaLbl) etaLbl.textContent = DOSE_PER_KG[mode];
-
-  // ВАЖНО: моментально пересчитываем кольца и улитку
-  updateSummary();
-}
-    // ——— Свайпы/клики по кольцам (левое/центр/правое) ———
-(function wireProgressGestures(){
-  const rail = document.getElementById('ringsRail');
-  if (!rail) return;
-
-  // последовательность режимов
-  const order = ['min','opt','max'];
-  const step = (dir)=>{                   // dir: +1 вправо, -1 влево
-    let i = order.indexOf(DOSE_MODE);
-    if (i < 0) i = 1;                     // дефолт 'opt'
-    i = (i + dir + 3) % 3;
-    setDoseMode(order[i]);                // МГНОВЕННОЕ обновление
-  };
-
-  // клики/клавиатура по каждому кольцу
-  rail.querySelectorAll('.ring').forEach(r=>{
-    r.style.cursor = 'pointer';
-    r.setAttribute('role','button');
-    r.setAttribute('tabindex','0');
-    r.addEventListener('click', ()=> setDoseMode(r.dataset.mode));
-    r.addEventListener('keydown', e=>{
-      if (e.key==='Enter' || e.key===' ') { e.preventDefault(); setDoseMode(r.dataset.mode); }
-    });
-  });
-
-  // свайп (touch + mouse/trackpad)
-  let x0 = null;
-  const down = x => x0 = x;
-  const up   = x => {
-    if (x0 == null) return;
-    const dx = x - x0; x0 = null;
-    if (Math.abs(dx) > 30) step(dx < 0 ? +1 : -1);  // влево → следующий, вправо → предыдущий
-  };
-
-  // touch
-  rail.addEventListener('touchstart', e=>down(e.touches[0].clientX), {passive:true});
-  rail.addEventListener('touchend',   e=>{ const t=e.changedTouches[0]; up(t ? t.clientX : 0); }, {passive:true});
-
-  // mouse
-  rail.addEventListener('mousedown',  e=>down(e.clientX));
-  window.addEventListener('mouseup',  e=>up(e.clientX));
-})();
+      DOSE_MODE = mode; saveDoseMode(mode);
+      document.querySelectorAll('#doseSeg button').forEach(b=> b.classList.toggle('active', b.dataset.mode===mode));
+      document.getElementById('targetLabel').textContent = DOSE_PER_KG[mode];
+      document.getElementById('etaTargetLabel').textContent = DOSE_PER_KG[mode];
+      updateSummary();
+    }
 
     // Swipe по блоку прогресса + тап по мини-кольцам
-    
-(function wireProgressGestures(){
-  const rail = document.getElementById('ringsRail');
-  if(!rail) return;
+    (function wireProgressGestures(){
+      const rail = document.getElementById('ringsRail'); let x0=null;
+      rail.addEventListener('touchstart', (e)=>{ x0 = e.touches[0].clientX; }, {passive:true});
+      rail.addEventListener('touchend', (e)=>{
+        if (x0==null) return;
+        const x1 = (e.changedTouches[0]||{}).clientX || x0;
+        const dx = x1 - x0; x0=null;
+        if (Math.abs(dx) > 30){
+          const seq = ['min','opt','max'];
+          let i = seq.indexOf(DOSE_MODE);
+          if (dx < 0) i = (i+1)%3; else i = (i+2)%3;
+          setDoseMode(seq[i]);
+        }
+      }, {passive:true});
+      rail.querySelector('.ring[data-mode="min"] button')?.addEventListener('click', ()=> setDoseMode('min'));
+      rail.querySelector('.ring[data-mode="max"] button')?.addEventListener('click', ()=> setDoseMode('max'));
+    })();
 
-  // helper: move selection left/right
-  const seq = ['min','opt','max'];
-  const nextMode = (dir)=>{
-    let i = seq.indexOf(DOSE_MODE);
-    if (i === -1) i = 1; // default 'opt'
-    if (dir > 0) i = (i + 1) % 3;      // to the right
-    else        i = (i + 2) % 3;       // to the left
-    setDoseMode(seq[i]);
-  };
-
-  // click/tap on ANY ring switches to that mode
-  rail.querySelectorAll('.ring').forEach(r=>{
-    r.setAttribute('role','button');
-    r.setAttribute('tabindex','0');
-    r.style.cursor = 'pointer';
-    r.addEventListener('click', ()=> setDoseMode(r.dataset.mode));
-    r.addEventListener('keydown', (e)=>{
-      if(e.key === 'Enter' || e.key === ' '){
-        e.preventDefault(); setDoseMode(r.dataset.mode);
-      }
-    });
-  });
-
-  // swipe (touch + mouse/trackpad)
-  let startX = null;
-  const onDown = (x)=>{ startX = x; };
-  const onUp   = (x)=>{
-    if(startX == null) return;
-    const dx = x - startX; startX = null;
-    if (Math.abs(dx) > 30){ nextMode(dx < 0 ? +1 : -1); }
-  };
-
-  // touch
-  rail.addEventListener('touchstart', (e)=>{ onDown(e.touches[0].clientX); }, {passive:true});
-  rail.addEventListener('touchend',   (e)=>{ const t=e.changedTouches[0]; onUp(t ? t.clientX : 0); }, {passive:true});
-
-  // mouse/trackpad
-  rail.addEventListener('mousedown', (e)=> onDown(e.clientX));
-  window.addEventListener('mouseup', (e)=> onUp(e.clientX));
-
-  // keyboard arrows on the whole rail
-  rail.setAttribute('tabindex','0');
-  rail.addEventListener('keydown', (e)=>{
-    if (e.key === 'ArrowLeft'){ e.preventDefault(); nextMode(-1); }
-    if (e.key === 'ArrowRight'){ e.preventDefault(); nextMode(+1); }
-  });
-})();
-
-// Кнопки доз
+    // Кнопки доз
     
     function syncChipsSelection(){ /* chips removed */ }
     function renderChips(drug){ /* chips removed */ updateDoseHint(); }

@@ -4,7 +4,7 @@
   <meta charset="utf-8" />
   <script>try{ if(localStorage.getItem('derma_consent')!=='1'){ location.replace('./warnings.html'); } }catch(_){}</script>
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>Derma Mini‑App — FAQ</title>
+  <title>Roaccutane Tracker — FAQ</title>
   <script src="https://telegram.org/js/telegram-web-app.js"></script>
   <script>window.API_BASE = window.API_BASE || '';</script>
   <style>
@@ -42,11 +42,28 @@
     .pill{display:inline-flex;align-items:center;border:1px solid #2a3a52;border-radius:999px;padding:2px 8px;font-size:12px;margin-left:8px;color:var(--text-mid);background:#0f1a2b}
     a{color:var(--text-mid);text-decoration:underline;text-underline-offset:3px}
     footer{margin:24px 0 8px;color:var(--text-low);text-align:center;font-size:13px}
+  
+    /* Верхняя кнопка возврата */
+    .topbar{display:flex;align-items:center;gap:12px;flex-wrap:wrap;margin-bottom:12px}
+    .back-btn{
+      display:inline-flex;align-items:center;gap:8px;padding:8px 12px;border-radius:12px;
+      background:#152235;border:1px solid var(--border);color:var(--text-mid);text-decoration:none;font-weight:600;
+      box-shadow:0 6px 16px rgba(0,0,0,.25);transition:all .15s ease-in-out
+    }
+    .back-btn:hover{border-color:var(--primary-700);color:var(--text-high);transform:translateY(-1px)}
+    .back-btn svg{width:18px;height:18px;opacity:.9}
+
   </style>
 </head>
 <body>
   <div class="wrap">
-    <h1>Derma Mini‑App</h1>
+    <div class="topbar">
+      <a class="back-btn" href="./main-dark.html" id="btn-back" aria-label="Назад на главную">
+        <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M15 19l-7-7 7-7" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+        <span>Назад</span>
+      </a>
+      <h1 style="margin:0">Roaccutane Tracker</h1>
+    </div>
 
     <section class="card" aria-labelledby="faq-title">
       <div class="glow"></div>
@@ -189,7 +206,7 @@
         <details class="qa" id="app">
           <summary>Как отмечать приём и где смотреть статистику в приложении? <span class="pill">app</span></summary>
           <div class="qa-body">
-            <p>На <a href="/index.html">Главной</a> введите мг и дату, нажмите «Сохранить» или выберите чип дозы. Сводные метрики, процент к 135 мг/кг и ETA — в блоке «Прогресс». Последние отметки и календарь‑превью — ниже.</p>
+            <p>На <a href="./main-dark.html">Главной</a> введите мг и дату, нажмите «Сохранить» или выберите чип дозы. Сводные метрики, процент к 135 мг/кг и ETA — в блоке «Прогресс». Последние отметки и календарь‑превью — ниже.</p>
           </div>
         </details>
 
@@ -199,7 +216,7 @@
     <section class="card" aria-label="Навигация">
       <div class="glow"></div>
       <div class="row" style="justify-content:space-between">
-        <a href="/index.html">← На главную</a>
+        <a href="./main-dark.html">← На главную</a>
         <a href="/profile">Профиль</a>
       </div>
     </section>
@@ -233,6 +250,19 @@
     }
     window.addEventListener('hashchange', openByHash);
     openByHash();
+
+
+    const back = document.getElementById('btn-back');
+    if (back){
+      back.addEventListener('click', function(ev){
+        ev.preventDefault();
+        try{
+          if (history.length > 1) { history.back(); return; }
+        }catch(_){}
+        location.href = './main-dark.html';
+      });
+    }
+
   </script>
 </body>
 </html>
