@@ -611,29 +611,6 @@ body.page-exit{
 }
 @keyframes pageIn{to{opacity:1; transform:none}}
 @keyframes pageOut{to{opacity:0; transform:translateY(-8px)}}
-
-/* --- Bottom tabbar (copied from myprofile.html) --- */
-.tabbar{ position:fixed; left:0; right:0; bottom:0; z-index:40; display:grid; grid-template-columns:repeat(5,1fr); gap:6px; padding:8px 12px calc(8px + env(safe-area-inset-bottom)); background:rgba(6,12,19,.78); backdrop-filter: blur(12px); border-top:1px solid rgba(255,255,255,.12) }
-.tab{ display:flex; flex-direction:column; align-items:center; justify-content:center; gap:6px; height:56px; border-radius:14px; color:#a9b0c8 }
-.tab.active{ color:#fff; background:linear-gradient(180deg, rgba(255,255,255,.08), rgba(255,255,255,.02)); border:1px solid rgba(255,255,255,.14) }
-.tab svg{ width:20px; height:20px }
-/* Light theme override for tabbar to match myprofile */
-body.light .tabbar{ background:rgba(255,255,255,.85); border-top:1px solid rgba(0,0,0,.08); }
-body.light .tab.active{ color:#0d1220; background: linear-gradient(180deg, rgba(255,255,255,.85), rgba(255,255,255,.65)); border:1px solid rgba(0,0,0,.12); }
-
-
-/* View Transitions Fade&Slide to match myprofile */
-@keyframes vt-fade-slide-in {
-  from { opacity: 0; transform: translateY(8px) scale(.995); }
-  to   { opacity: 1; transform: translateY(0) scale(1); }
-}
-@keyframes vt-fade-slide-out {
-  from { opacity: 1; transform: translateY(0) scale(1); }
-  to   { opacity: 0; transform: translateY(-8px) scale(.995); }
-}
-::view-transition-old(root){ animation: vt-fade-slide-out .35s ease both; }
-::view-transition-new(root){ animation: vt-fade-slide-in  .35s ease both; }
-
 </style>
 </head>
 <body>
@@ -863,31 +840,28 @@ body.light .tab.active{ color:#0d1220; background: linear-gradient(180deg, rgba(
   </div>
 
   <!-- Нижняя навигация: inline SVG (currentColor) -->
-  
-  <!-- Bottom tabbar identical to myprofile.html -->
-  <nav class="tabbar">
-    <a class="tab active" href="main-dark.html" data-vt-link>
-      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 11l9-7 9 7"/><path d="M5 12v7a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2v-7"/><path d="M9 21v-6h6v6"/></svg>
-      <small>Главная</small>
+  <nav class="bottom-nav" role="navigation" aria-label="Нижняя навигация">
+    <a href="/main" data-route="main" class="active" aria-current="page">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 10.5 12 3l9 7.5"/><path d="M5 9.5V21h14V9.5"/><path d="M9 21v-6h6v6"/></svg>
+      <span>Главная</span>
     </a>
-    <a class="tab" href="calendar.html" data-vt-link>
-      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="18" rx="3"/><path d="M16 2v4"/><path d="M8 2v4"/><path d="M3 10h18"/></svg>
-      <small>Календарь</small>
+    <a href="/calendar" data-route="calendar">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="18" rx="2"/><path d="M16 2v4M8 2v4M3 10h18"/><path d="M8 14h3M8 18h3M14 14h3M14 18h3"/></svg>
+      <span>Календарь</span>
     </a>
-    <a class="tab" href="myprofile.html" data-vt-link>
-      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
-      <small>Профиль</small>
+    <a href="./myprofile.html" data-route="profile" class="nav-item">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="8" r="4"/><path d="M4 21a8 8 0 0 1 16 0"/></svg>
+      <span>Профиль</span>
     </a>
-    <a class="tab" href="photolog.html" data-vt-link>
-      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="5" width="18" height="14" rx="2"/><circle cx="8.5" cy="12" r="2.5"/><path d="M21 13l-4-4-6 6"/></svg>
-      <small>Фотодневник</small>
+    <a href="/photos" data-route="photos">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="5" width="18" height="14" rx="2"/><path d="M9 5l2-2h2l2 2"/><circle cx="9" cy="12" r="2"/><path d="M14 12l3 3 3-3"/></svg>
+      <span>Фотодневник</span>
     </a>
-    <a class="tab" href="labs.html" data-vt-link>
-      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10 2v5l-5 9a4 4 0 0 0 3.5 6h7a4 4 0 0 0 3.5-6l-5-9V2"/><path d="M8 11h8"/></svg>
-      <small>Анализы</small>
+    <a href="./labs.html" data-route="labs" class="nav-item">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10 2v6l-6 10a4 4 0 0 0 3.5 6h9a4 4 0 0 0 3.5-6l-6-10V2"/><path d="M4 16h16"/></svg>
+      <span>Анализы</span>
     </a>
   </nav>
-
 
   <script>
     const tgApp = (window.Telegram && window.Telegram.WebApp) ? window.Telegram.WebApp : null;
@@ -1719,22 +1693,6 @@ document.addEventListener('DOMContentLoaded', ()=>{
   }, {once:true});
 });
 
-</script>
-
-<script>
-// Match myprofile cross-page animation for links with data-vt-link
-document.addEventListener('click', (e)=>{
-  const a = e.target.closest('a[data-vt-link]');
-  if(!a) return;
-  if(e.metaKey||e.ctrlKey||e.shiftKey||e.altKey||a.target==='_blank') return;
-  e.preventDefault();
-  const go = ()=>{ window.location.href = a.getAttribute('href'); };
-  if (document.startViewTransition) {
-    document.startViewTransition(go);
-  } else {
-    go();
-  }
-});
 </script>
 </body>
 </html>

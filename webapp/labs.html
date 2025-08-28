@@ -2,28 +2,28 @@
 <html lang="ru" data-theme="auto">
 <head>
   <meta charset="utf-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
   <title>Roaccutane Tracker — Анализы</title>
   <meta name="color-scheme" content="dark light">
   <script src="https://telegram.org/js/telegram-web-app.js"></script>
   <style>
     :root{
-      --bg: #0f1115;
-      --card: #171a20;
-      --card-2: #1e222b;
-      --text: #eaeef6;
+      --bg: #0d1016;
+      --card: #151922;
+      --card-2: #1b2030;
+      --text: #e8ecf5;
       --muted: #9aa4b2;
       --accent: #6ee7b7;
-      --warn: #fbbf24;
+      --warn: #f7b93e;
       --danger: #ef4444;
-      --input: #0f172a;
-      --border: #2a2f3a;
+      --input: #0f1420;
+      --border: #2a3040;
       --shadow: 0 6px 24px rgba(0,0,0,.35);
       --radius: 16px;
     }
     @media (prefers-color-scheme: light) {
       :root{
-        --bg:#fbfbfd;
+        --bg:#f7f7fb;
         --card:#ffffff;
         --card-2:#ffffff;
         --text:#0f1115;
@@ -33,56 +33,70 @@
         --danger:#ef4444;
         --input:#f2f4f8;
         --border:#e7e9ef;
-        --shadow: 0 8px 30px rgba(0,0,0,.08);
+        --shadow: 0 6px 18px rgba(0,0,0,.06);
       }
     }
     html,body{height:100%}
     body{
       margin:0; background:var(--bg); color:var(--text);
-      font: 16px/1.4 system-ui, -apple-system, Segoe UI, Roboto, Inter, Arial, sans-serif;
+      font: 15.5px/1.45 system-ui, -apple-system, Segoe UI, Roboto, Inter, Arial, sans-serif;
       -webkit-font-smoothing: antialiased;
       display:flex; flex-direction:column;
     }
-    .wrap{max-width: 880px; width:100%; margin:0 auto; padding:20px; box-sizing:border-box; flex:1 0 auto;}
+
     header{
-      position:sticky; top:0; z-index:20; backdrop-filter: blur(8px);
-      background: linear-gradient(to bottom, rgba(0,0,0,.25), transparent);
-      padding: 14px 20px 6px; display:flex; align-items:center; gap:12px;
+      position:sticky; top:0; z-index:20;
+      background: var(--bg);
+      border-bottom: 1px solid var(--border);
+      padding: 12px 16px; display:flex; align-items:center; gap:12px;
     }
-    .app-title{font-weight:700; letter-spacing:.3px}
+    .app-title{font-weight:700; letter-spacing:.2px}
+
+    .wrap{
+      max-width: 720px; width:100%;
+      margin:0 auto; padding:16px; box-sizing:border-box; flex:1 0 auto;
+    }
+
     .card{
       background: var(--card);
       border: 1px solid var(--border);
       border-radius: var(--radius);
       box-shadow: var(--shadow);
-      padding: 16px;
+      padding: 14px;
     }
-    .row{display:grid; gap:12px}
-    .row.cols-2{grid-template-columns:1fr 1fr}
-    .row.cols-3{grid-template-columns:repeat(3,1fr)}
-    @media (max-width: 720px){ .row.cols-2,.row.cols-3{ grid-template-columns:1fr } }
     h1{font-size:22px; margin:0 0 8px}
     h2{font-size:18px; margin:0 0 10px}
-    .muted{color:var(--muted); font-size:14px}
+    .muted{color:var(--muted); font-size:13.5px}
+
+    .grid{display:grid; gap:12px}
+    .grid.cols-2{ grid-template-columns: 1fr 1fr }
+    @media (max-width: 760px){ .grid.cols-2{ grid-template-columns:1fr } }
+
+    .row{display:grid; gap:10px}
     .field{
-      display:grid; gap:6px; align-items:center;
-      grid-template-columns: minmax(120px, 1fr) 140px minmax(120px,1fr);
+      display:grid; gap:8px; align-items:center;
+      grid-template-columns: 1fr 130px max-content;
       padding:10px 12px; border: 1px solid var(--border); border-radius:12px; background:var(--card-2);
+      overflow:hidden;
     }
-    .field .name{font-weight:600}
+    @media (max-width: 420px){
+      .field{ grid-template-columns: 1fr; align-items:start }
+    }
+    .name{font-weight:600; min-width:0}
+    .unit{opacity:.8; font-size:12px; margin-left:6px}
     .field input{
       width:100%; padding:10px 12px; border-radius:10px; border:1px solid var(--border);
       background: var(--input); color: var(--text); outline: none;
     }
-    .unit{opacity:.8; font-size:12px}
-    .range{color:var(--muted); font-size:13px}
+    .range{color:var(--muted); font-size:13px; white-space:nowrap}
     .chip{
       display:inline-flex; align-items:center; gap:6px; font-size:12px; font-weight:700;
       padding:6px 10px; border-radius:999px; border:1px solid var(--border);
     }
-    .chip.ok{ color:#10b981; background:color-mix(in oklab, #10b981 10%, transparent) }
-    .chip.warn{ color:var(--warn); background:color-mix(in oklab, var(--warn) 10%, transparent) }
-    .chip.bad{ color:var(--danger); background:color-mix(in oklab, var(--danger) 10%, transparent) }
+    .chip.ok{ color:#10b981; background:#0e1a16 }
+    .chip.warn{ color:var(--warn); background:#201a0b }
+    .chip.bad{ color:var(--danger); background:#241013 }
+
     .toolbar{display:flex; align-items:center; gap:10px; flex-wrap:wrap}
     .btn{
       appearance:none; border:1px solid var(--border); background:var(--card-2); color:var(--text);
@@ -90,70 +104,45 @@
     }
     .btn.primary{ background: linear-gradient(180deg, var(--accent), color-mix(in oklab, var(--accent) 70%, #000)); border:none; color:#001310 }
     .btn:disabled{ opacity:.5; cursor:not-allowed }
+
     .seg{
       display:inline-grid; grid-auto-flow:column; gap:0; border:1px solid var(--border); border-radius:12px; overflow:hidden;
     }
     .seg button{ padding:8px 12px; border:none; background:var(--card-2); color:var(--text); cursor:pointer }
     .seg button.active{ background:var(--accent); color:#001310; font-weight:800 }
-    .grid{display:grid; gap:12px}
-    .grid.cols-2{ grid-template-columns: 1fr 1fr }
-    .grid.cols-3{ grid-template-columns: repeat(3,1fr) }
-    @media (max-width: 720px){ .grid.cols-2,.grid.cols-3{ grid-template-columns:1fr } }
 
-    /* Gallery */
-    .uploader{
-      border: 1px dashed var(--border); border-radius:14px; padding:14px; text-align:center; background:var(--card-2);
-    }
+    .note-wrap{ background: var(--card-2); border:1px dashed var(--border); border-radius:12px; padding:12px }
+
+    .uploader{ border: 1px dashed var(--border); border-radius:14px; padding:14px; text-align:center; background:var(--card-2); }
     .thumbs{ display:grid; grid-template-columns: repeat(auto-fill, minmax(140px, 1fr)); gap:10px }
-    .thumb{
-      position:relative; border-radius:12px; overflow:hidden; border:1px solid var(--border); background:#000;
-      aspect-ratio: 1 / 1;
-    }
+    .thumb{ position:relative; border-radius:12px; overflow:hidden; border:1px solid var(--border); background:#000; aspect-ratio: 1 / 1; }
     .thumb img{ width:100%; height:100%; object-fit:cover; display:block }
-    .thumb .del{
-      position:absolute; top:6px; right:6px; background: rgba(0,0,0,.6); color:#fff; border:none; border-radius:10px;
-      padding:4px 8px; font-size:12px; cursor:pointer;
-    }
-    .thumb .open{
-      position:absolute; left:6px; bottom:6px; background: rgba(0,0,0,.6); color:#fff; border:none; border-radius:10px;
-      padding:4px 8px; font-size:12px; cursor:pointer;
-    }
+    .thumb .del{ position:absolute; top:6px; right:6px; background: rgba(0,0,0,.6); color:#fff; border:none; border-radius:10px; padding:4px 8px; font-size:12px; cursor:pointer }
+    .thumb .open{ position:absolute; left:6px; bottom:6px; background: rgba(0,0,0,.6); color:#fff; border:none; border-radius:10px; padding:4px 8px; font-size:12px; cursor:pointer }
+
     /* Fullscreen viewer */
-    .viewer{
-      position:fixed; inset:0; background: rgba(0,0,0,.9); display:none; align-items:center; justify-content:center; z-index:9999;
-    }
-    .viewer.open{ display:flex }
+    .viewer{ position:fixed; inset:0; background: rgba(0,0,0,.9); display:flex; align-items:center; justify-content:center; z-index:9999; }
     .viewer img{ max-width:95vw; max-height:90vh; display:block; border-radius:10px }
     .viewer .close{ position:absolute; top:14px; right:14px; background:#000; color:#fff; border:none; border-radius:10px; padding:8px 12px; cursor:pointer }
 
-    .note{ font-size:12px; color:var(--muted); }
-
-    /* Persistent onboarding bar (non-modal) */
-    .onb-fixed{
-      position:fixed; left:50%; transform:translateX(-50%);
-      bottom: 10px; width: min(920px, 96vw);
-      display:grid; grid-template-columns: repeat(5, 1fr); gap:8px; align-items:center;
-      color:#cbd5e1; z-index:50; user-select:none;
+    .bottom-nav{
+      position: fixed; left: 0; right: 0; bottom: 0;
+      background: var(--card);
+      border-top: 1px solid var(--border);
+      display:flex; justify-content: space-around; align-items: center;
+      padding: 8px max(env(safe-area-inset-left),12px) calc(8px + env(safe-area-inset-bottom)) max(env(safe-area-inset-right),12px);
+      z-index: 2000;
     }
-    .onb-item{ display:grid; justify-items:center; gap:6px; padding:8px 6px; font-size:12px; opacity:.9; }
-    .onb-item .ico{ width:20px; height:20px; opacity:.9 }
-    .onb-pill{
-      border-radius:16px;
-      background: linear-gradient(180deg, rgba(255,255,255,.08), rgba(255,255,255,.02));
-      border: 1px solid rgba(255,255,255,.18);
-      box-shadow: 0 12px 40px rgba(0,0,0,.45), inset 0 1px rgba(255,255,255,.06);
-      backdrop-filter: blur(8px);
-      padding: 8px 6px;
-    }
-    .onb-click{ cursor:pointer; }
-    /* Reserve space so bar doesn't overlap content on mobile */
-    .bottom-spacer{ height: 80px; }
+    .tab{ display:flex; flex-direction:column; align-items:center; gap:4px; min-width: 56px; padding: 6px 10px; border-radius: 12px; color: #cbd5e1; text-decoration:none; font-size:12px; }
+    .tab svg{ width:22px; height:22px; opacity:.9 }
+    .tab.active{ background: #232b3a; color: #e9eef7; }
+    .tab:active{ transform: translateY(1px) }
 
-    /* Page enter/exit animation */
+    .bottom-spacer{ height: calc(64px + env(safe-area-inset-bottom)); }
+    
     .page{ opacity: 0; transform: translateY(8px); animation: fadeSlideIn .28s ease forwards; }
     @keyframes fadeSlideIn { to { opacity:1; transform: translateY(0); } }
     .page.exit{ opacity: 0; transform: translateY(8px); transition: opacity .28s ease, transform .28s ease; }
-
   </style>
 </head>
 <body>
@@ -186,34 +175,26 @@
             <div class="field" data-key="ALT">
               <div class="name">АЛТ (ALT) <span class="unit">Ед/л</span></div>
               <input type="number" step="0.1" inputmode="decimal" placeholder="например, 22" />
-              <div>
-                <div class="range"><span class="dyn-range" data-f="0–35" data-m="0–45">0–35</span></div>
-                <div class="chip ok">—</div>
-              </div>
+              <div class="range">0–35 <span class="dyn-range" data-f="0–35" data-m="0–45" hidden></span></div>
+              <div class="chip ok">—</div>
             </div>
             <div class="field" data-key="AST">
               <div class="name">АСТ (AST) <span class="unit">Ед/л</span></div>
               <input type="number" step="0.1" inputmode="decimal" placeholder="например, 20" />
-              <div>
-                <div class="range"><span class="dyn-range" data-f="0–35" data-m="0–40">0–35</span></div>
-                <div class="chip ok">—</div>
-              </div>
+              <div class="range">0–35 <span class="dyn-range" data-f="0–35" data-m="0–40" hidden></span></div>
+              <div class="chip ok">—</div>
             </div>
             <div class="field" data-key="BILIRUBIN">
               <div class="name">Общий билирубин <span class="unit">мкмоль/л</span></div>
               <input type="number" step="0.1" inputmode="decimal" placeholder="например, 12" />
-              <div>
-                <div class="range">3–21</div>
-                <div class="chip ok">—</div>
-              </div>
+              <div class="range">3–21</div>
+              <div class="chip ok">—</div>
             </div>
             <div class="field" data-key="ALP">
               <div class="name">ЩФ (ALP) <span class="unit">Ед/л</span></div>
               <input type="number" step="1" inputmode="decimal" placeholder="например, 75" />
-              <div>
-                <div class="range">40–130</div>
-                <div class="chip ok">—</div>
-              </div>
+              <div class="range">40–130</div>
+              <div class="chip ok">—</div>
             </div>
           </div>
         </div>
@@ -224,34 +205,26 @@
             <div class="field" data-key="TG">
               <div class="name">Триглицериды <span class="unit">ммоль/л</span></div>
               <input type="number" step="0.01" inputmode="decimal" placeholder="например, 1.1" />
-              <div>
-                <div class="range">0.4–1.7</div>
-                <div class="chip ok">—</div>
-              </div>
+              <div class="range">0.4–1.7</div>
+              <div class="chip ok">—</div>
             </div>
             <div class="field" data-key="TC">
               <div class="name">Общий холестерин <span class="unit">ммоль/л</span></div>
               <input type="number" step="0.01" inputmode="decimal" placeholder="например, 4.6" />
-              <div>
-                <div class="range">3.0–5.2</div>
-                <div class="chip ok">—</div>
-              </div>
+              <div class="range">3.0–5.2</div>
+              <div class="chip ok">—</div>
             </div>
             <div class="field" data-key="LDL">
               <div class="name">ЛПНП (LDL) <span class="unit">ммоль/л</span></div>
               <input type="number" step="0.01" inputmode="decimal" placeholder="например, 2.7" />
-              <div>
-                <div class="range">&lt; 3.0</div>
-                <div class="chip ok">—</div>
-              </div>
+              <div class="range">&lt; 3.0</div>
+              <div class="chip ok">—</div>
             </div>
             <div class="field" data-key="HDL">
               <div class="name">ЛПВП (HDL) <span class="unit">ммоль/л</span></div>
               <input type="number" step="0.01" inputmode="decimal" placeholder="например, 1.4" />
-              <div>
-                <div class="range"><span class="dyn-range" data-f="&gt; 1.2" data-m="&gt; 1.0">&gt; 1.2</span></div>
-                <div class="chip ok">—</div>
-              </div>
+              <div class="range"><span class="dyn-hdl" data-f="&gt; 1.2" data-m="&gt; 1.0">&gt; 1.2</span></div>
+              <div class="chip ok">—</div>
             </div>
           </div>
         </div>
@@ -264,17 +237,15 @@
             <div class="field" data-key="GLU">
               <div class="name">Глюкоза натощак <span class="unit">ммоль/л</span></div>
               <input type="number" step="0.01" inputmode="decimal" placeholder="например, 4.9" />
-              <div>
-                <div class="range">3.9–5.6</div>
-                <div class="chip ok">—</div>
-              </div>
+              <div class="range">3.9–5.6</div>
+              <div class="chip ok">—</div>
             </div>
           </div>
         </div>
         <div class="grid">
           <h2>Примечание</h2>
-          <div class="card" style="background:transparent; border-style:dashed">
-            <div class="note">Диапазоны могут отличаться по методике лаборатории. При значениях выше нормы (особенно триглицериды и АЛТ/АСТ) свяжитесь с лечащим врачом — на ретиноидах допустимы изменения, но резкие отклонения требуют коррекции дозы или паузы.</div>
+          <div class="note-wrap">
+            <div class="muted">Диапазоны могут отличаться по методике лаборатории. При значениях выше нормы (особенно триглицериды и АЛТ/АСТ) свяжитесь с лечащим врачом — на ретиноидах допустимы изменения, но резкие отклонения требуют коррекции дозы или паузы.</div>
           </div>
         </div>
       </div>
@@ -297,64 +268,57 @@
       <div class="thumbs" id="thumbs" style="margin-top:12px"></div>
     </div>
 
-    <div class="viewer" id="viewer">
-      <button class="close" id="viewerClose">Закрыть</button>
-      <img id="viewerImg" alt="Фото анализа" />
+    <!-- Viewer hidden by default (inline) -->
+    <div class="viewer" id="viewer" style="display:none" aria-hidden="true">
+      <button class="close" id="viewerClose" style="display:none">Закрыть</button>
+      <img id="viewerImg" alt="Фото анализа" style="display:none" />
     </div>
 
     <div class="bottom-spacer"></div>
   </div>
 
-  <!-- Persistent onboarding bar -->
-  <div class="onb-fixed" id="onb">
-    <div class="onb-item onb-click" id="onbHome" title="На главную">
-      <svg class="ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round">
+  <nav class="bottom-nav">
+    <a class="tab" id="navHome">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round">
         <path d="M3 11.5L12 4l9 7.5"></path>
         <path d="M5 10.5V20a1 1 0 0 0 1 1h4v-6h4v6h4a1 1 0 0 0 1-1v-9.5"></path>
       </svg>
-      <div>Главная</div>
-    </div>
-
-    <div class="onb-item">
-      <svg class="ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round">
+      <span>Главная</span>
+    </a>
+    <a class="tab" id="navCalendar">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round">
         <rect x="3" y="4" width="18" height="18" rx="2"></rect>
         <path d="M16 2v4M8 2v4M3 10h18"></path>
       </svg>
-      <div>Календарь</div>
-    </div>
-
-    <div class="onb-item onb-click" id="onbProfile" title="Профиль">
-      <svg class="ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round">
+      <span>Календарь</span>
+    </a>
+    <a class="tab" id="navProfile">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round">
         <circle cx="12" cy="8" r="4"></circle>
         <path d="M4 20a8 8 0 0 1 16 0"></path>
       </svg>
-      <div>Профиль</div>
-    </div>
-
-    <div class="onb-item">
-      <svg class="ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round">
+      <span>Профиль</span>
+    </a>
+    <a class="tab" id="navDiary">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round">
         <rect x="3" y="5" width="18" height="14" rx="2"></rect>
         <path d="M8 13l2.5-2.5L14 14l2-2 3 3"></path>
       </svg>
-      <div>Фотодневник</div>
-    </div>
-
-    <div class="onb-pill">
-      <div class="onb-item">
-        <svg class="ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round">
-          <path d="M6 2h12"></path>
-          <path d="M9 2v4l-5 8a6 6 0 0 0 6 8h4a6 6 0 0 0 6-8l-5-8V2"></path>
-        </svg>
-        <div><strong>Анализы</strong></div>
-      </div>
-    </div>
-  </div>
+      <span>Фотодневник</span>
+    </a>
+    <a class="tab active" id="navLabs">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round">
+        <path d="M6 2h12"></path>
+        <path d="M9 2v4l-5 8a6 6 0 0 0 6 8h4a6 6 0 0 0 6-8l-5-8V2"></path>
+      </svg>
+      <span>Анализы</span>
+    </a>
+  </nav>
 
 <script>
 (function(){
   const pageRoot = document.getElementById('pageRoot');
 
-  // Inputs and gallery logic (same as previous version)
   const sexSeg = document.getElementById('sexSeg');
   const updatedLbl = document.getElementById('updatedLbl');
   const fileInput = document.getElementById('fileInput');
@@ -380,9 +344,9 @@
   });
 
   function applySexRanges(){
-    document.querySelectorAll('.dyn-range').forEach(span=>{
-      span.textContent = (sex==='female')? (span.getAttribute('data-f')||span.textContent) : (span.getAttribute('data-m')||span.textContent);
-    });
+    const hdl = document.querySelector('.dyn-hdl');
+    if(!hdl) return;
+    hdl.textContent = (sex==='female')? hdl.getAttribute('data-f') : hdl.getAttribute('data-m');
   }
 
   function rangesFor(key){
@@ -484,15 +448,31 @@
       });
       open.addEventListener('click', ()=>{
         viewerImg.src = p.data;
-        viewer.classList.add('open');
+        // show overlay
+        viewer.style.display = 'flex';
+        viewer.removeAttribute('aria-hidden');
+        viewerClose.style.display = 'inline-block';
+        viewerImg.style.display = 'block';
       });
       t.appendChild(img); t.appendChild(del); t.appendChild(open);
       thumbs.appendChild(t);
     });
   }
   renderThumbs();
-  viewerClose.addEventListener('click', ()=> viewer.classList.remove('open'));
-  viewer.addEventListener('click', (e)=>{ if(e.target===viewer) viewer.classList.remove('open') });
+  viewerClose.addEventListener('click', ()=>{
+    viewer.style.display = 'none';
+    viewer.setAttribute('aria-hidden','true');
+    viewerClose.style.display = 'none';
+    viewerImg.style.display = 'none';
+  });
+  viewer.addEventListener('click', (e)=>{
+    if(e.target===viewer){
+      viewer.style.display = 'none';
+      viewer.setAttribute('aria-hidden','true');
+      viewerClose.style.display = 'none';
+      viewerImg.style.display = 'none';
+    }
+  });
 
   async function compressImage(file, maxDim=1600, quality=0.9){
     return new Promise((resolve,reject)=>{
@@ -538,21 +518,19 @@
     fileInput.value = '';
   });
 
-  // Fade+slide navigation
   function navigateWithFx(url){
+    const pageRoot = document.getElementById('pageRoot');
     pageRoot.classList.add('exit');
     const done = ()=> window.location.href = url;
     let handled = false;
     pageRoot.addEventListener('transitionend', ()=>{ if(!handled){ handled=true; done(); } }, {once:true});
     setTimeout(()=>{ if(!handled) done(); }, 320);
-    // Trigger the CSS transition
-    getComputedStyle(pageRoot).opacity; // force reflow
+    getComputedStyle(pageRoot).opacity;
     pageRoot.style.opacity = '0';
     pageRoot.style.transform = 'translateY(8px)';
   }
-
-  document.getElementById('onbHome').addEventListener('click', ()=> navigateWithFx('main-dark.html'));
-  document.getElementById('onbProfile').addEventListener('click', ()=> navigateWithFx('myprofile.html'));
+  document.getElementById('navHome').addEventListener('click', (e)=>{ e.preventDefault(); navigateWithFx('main-dark.html'); });
+  document.getElementById('navProfile').addEventListener('click', (e)=>{ e.preventDefault(); navigateWithFx('myprofile.html'); });
 
   try{ Telegram.WebApp.ready(); Telegram.WebApp.expand(); }catch(_){}
 })();
