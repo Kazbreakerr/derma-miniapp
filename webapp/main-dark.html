@@ -963,7 +963,7 @@ base.setDate(base.getDate() + toMonday);
         const mg = map.get(iso);
         const currentIso = (document.getElementById('date')?.value||'').slice(0,10);
         if (iso===currentIso) card.classList.add('selected');
-        card.innerHTML = '<div class="dow">'+dows[d.getDay()]+'</div><b>'+ddmmyyyy(iso)+'</b><div class="muted">'+(iso===todayISO() ? 'сегодня' : (mg ? (fmtInt(mg)+' мг 💊') : '—'))+'</div>';
+        let _lbl;if(iso===todayISO()){_lbl = mg ? ('сегодня · '+fmtInt(mg)+' мг 💊') : 'сегодня';}else{_lbl = mg ? (fmtInt(mg)+' мг 💊') : '—';}card.innerHTML = '<div class="dow">'+dows[d.getDay()]+'</div><b>'+ddmmyyyy(iso)+'</b><div class="muted">'+_lbl+'</div>';
         card.addEventListener('click', ()=>{ const inp=document.getElementById('date'); if(inp){ inp.value = iso; } renderCalPreview(); });
         card.addEventListener('keydown', (e)=>{ if(e.key==='Enter'||e.key===' '){ e.preventDefault(); const inp=document.getElementById('date'); if(inp){ inp.value = iso; } renderCalPreview(); }});
         box.appendChild(card);
@@ -1067,6 +1067,7 @@ base.setDate(base.getDate() + toMonday);
         DOSES     = doseR.ok ? (await doseR.json()) : [];
         DOSES     = DOSES.map(d => ({ ...d, date: normalizeDate(d.date) }));
         PROGRESS  = prR.ok   ? await prR.json()   : null;
+        window.__intakesLoaded = true;
 
         renderChips((PLAN?.drug||'roaccutane').toLowerCase());
         document.getElementById('date').value = todayISO();
@@ -1092,7 +1093,18 @@ base.setDate(base.getDate() + toMonday);
         if (!r.ok) { st.textContent = 'Ошибка ' + r.status; return; }
         st.textContent = 'Сохранено';
         DOSES.unshift({ mg: mg, date: date });
-        await loadAll(); updateDoseHint();
+        try{
+          const iso = (date||'').slice(0,10);
+          if (iso === (window.todayISO? window.todayISO(): iso)){
+            const prev = Number(localStorage.getItem('derma_today_mg')||0);
+            localStorage.setItem('derma_today_iso', iso);
+            localStorage.setItem('derma_today_mg', String(prev + mg));
+          }
+        }catch(_){}
+        try{ document.getElementById('remCard')?.classList.add('flipped'); }catch(_){}
+        try{ window.renderReminder && window.renderReminder(); }catch(_){}
+
+        await loadAll().then(()=>{ try{ window.renderReminder && window.renderReminder(); }catch(_){ } }); updateDoseHint();
       } catch (e) {
         st.textContent = 'Ошибка сети';
       }
@@ -1130,14 +1142,16 @@ base.setDate(base.getDate() + toMonday);
     document.getElementById('resetBtn').addEventListener('click', ()=>{
       location.href = './reset-dark.html' + (location.search||'');
     });
-    loadAll();
+    loadAll().then(()=>{ try{ window.renderReminder && window.renderReminder(); }catch(_){ } });
     document.querySelectorAll('#doseSeg button').forEach(b=> b.addEventListener('click', ()=> setDoseMode(b.dataset.mode) ));
     document.querySelector('#doseSeg button[data-mode="'+(DOSE_MODE||'opt')+'"]')?.click();
   
 // === Reminder block logic ===
 (function(){
-  function localISO(d){ const y=d.getFullYear(), m=String(d.getMonth()+1).padStart(2,'0'), day=String(d.getDate()).padStart(2,'0'); return `${y}-${m}-${day}`; }
-  function todayISO(){ const d=new Date(); d.setHours(0,0,0,0); return localISO(d); }
+  
+  const todayIsoFn = (typeof window.todayISO === 'function')
+    ? window.todayISO
+    : () => { const d=new Date(); d.setMinutes(d.getMinutes()-d.getTimezoneOffset()); return d.toISOString().slice(0,10); };
 
   
   function drugRu(){
@@ -1160,8 +1174,17 @@ base.setDate(base.getDate() + toMonday);
     time: localStorage.getItem('rem_time') || '09:00',
   };
 
-  function getTodayDoseMg(){
-    const iso = todayISO();
+  
+  
+  function getTodayDoseMgLS(){
+    try{
+      const isoLS = localStorage.getItem('derma_today_iso')||'';
+      if (isoLS === todayIsoFn()) return Number(localStorage.getItem('derma_today_mg')||0) || 0;
+    }catch(_){}
+    return 0;
+  }
+function getTodayDoseMg(){
+    const iso = todayIsoFn();
     let sum = 0;
     (Array.isArray(DOSES)? DOSES : []).forEach(x=>{
       const k=(x.date||'').slice(0,10);
@@ -1192,19 +1215,39 @@ base.setDate(base.getDate() + toMonday);
     });
   }
 
+  
   function renderReminder(){
     const card = document.getElementById('remCard');
     if (!card) return;
-
-    // Flip depending on today's dose
-    const took = getTodayDoseMg() > 0;
+    const sum = getTodayDoseMg();
+    const ls  = getTodayDoseMgLS();
+    // keep LS in sync with factual sum
+    try{
+      const tISO = todayIsoFn();
+      if (sum > 0){
+        localStorage.setItem('derma_today_iso', tISO);
+        localStorage.setItem('derma_today_mg', String(sum));
+      } else {
+        // если с сервера пришёл ноль — обнуляем локальный кеш на сегодняшний день
+        if ((localStorage.getItem('derma_today_iso')||'') === tISO){
+          localStorage.setItem('derma_today_mg', '0');
+        }
+      }
+    }catch(_){}
+    // До загрузки приёмов используем запасной LS-фоллбек,
+    // после загрузки — только реальные данные
+    const took = (window.__intakesLoaded ? (sum > 0) : ((sum > 0) || (ls > 0)));
     card.classList.toggle('flipped', took);
-  }
+}
+window.renderReminder = renderReminder;
 
+  // Render immediately so the card state persists across reloads (uses localStorage if API not ready yet)
+  try{ applyCtrl(); setReminderTexts(); renderReminder(); }catch(_){}
+  
   function midnightSchedule(){
-    let last = todayISO();
+    let last = todayIsoFn();
     setInterval(()=>{
-      const cur = todayISO();
+      const cur = todayIsoFn();
       if (cur !== last){
         last = cur;
         renderReminder(); // сбросить на новый день

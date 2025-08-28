@@ -9,7 +9,9 @@
   <style>
     :root{
       --bg:#0B1220; --surface:#0E1726; --card:#121C2E; --border:#1F2A3C;
-      --primary:#14B8A6; --danger:#EF4444; --text-high:#F3F7FF; --text-low:#93A3BF; --focus-ring:#93C5FD;
+      --text-high:#F3F7FF; --text-low:#93A3BF; --focus-ring:#93C5FD;
+      --danger:#EF4444; --danger-700:#B91C1C; --danger-600:#DC2626; --danger-900:#7F1D1D;
+      --ok:#14B8A6;
     }
     *{box-sizing:border-box}
     body{margin:0;background:var(--bg);color:var(--text-high);
@@ -20,12 +22,36 @@
     .card{background:var(--card);border:1px solid var(--border);border-radius:16px;padding:18px;box-shadow:0 8px 24px rgba(0,0,0,.35)}
     .muted{color:var(--text-low)}
     .row{display:flex;gap:12px;align-items:center;flex-wrap:wrap}
-    .cta{height:48px;padding:0 20px;border-radius:12px;border:none;font-weight:700;cursor:pointer;
-         background-image:linear-gradient(135deg,#22D3EE 0%, #14B8A6 100%); color:#07121F;box-shadow:0 6px 16px rgba(0,0,0,.25)}
-    .danger{background:#5b111a;color:#ffe3e6;border:1px solid #a11a28}
-    input[type="text"]{background:var(--surface);border:1px solid var(--border);color:var(--text-high);border-radius:12px;padding:10px 12px;font-size:16px;outline:none}
-    input:focus{border-color:#0EA5A6;box-shadow:0 0 0 2px var(--focus-ring)}
     a{color:#bcd0ff}
+    /* Long-press destructive button */
+    .hold-btn{
+      --p: 0%; /* progress */
+      position: relative;
+      display: inline-flex; align-items:center; justify-content:center;
+      width: 100%; max-width: 520px;
+      height: 56px; padding:0 18px;
+      border-radius:14px; border:1px solid #a11a28;
+      color:#ffe3e6; background:linear-gradient(180deg, var(--danger-700), var(--danger-900));
+      font-weight:800; letter-spacing:.2px; cursor:pointer;
+      box-shadow:0 12px 24px rgba(220,38,38,.25), inset 0 -2px 0 rgba(255,255,255,.05);
+      overflow: hidden; user-select:none; -webkit-user-select:none;
+      transition: transform .04s ease;
+    }
+    .hold-btn:disabled{opacity:.6; cursor:not-allowed}
+    .hold-btn:active{ transform: scale(.995) }
+    .hold-btn .label{ position: relative; z-index:2; text-align:center; padding:0 8px }
+    .hold-btn .progress{
+      position:absolute; inset:0;
+      background:linear-gradient(90deg, rgba(255,255,255,.08), rgba(255,255,255,.22));
+      transform: translateX(calc(-100% + var(--p)));
+      z-index:1;
+    }
+    .btns{display:flex; gap:14px; align-items:center; margin-top:16px; flex-wrap:wrap}
+    .cancel{height:44px; padding:0 16px; border-radius:12px; border:1px solid var(--border); background:var(--surface); color:var(--text-high); text-decoration:none; display:inline-flex; align-items:center}
+    #msg{margin-left:auto}
+    .list{margin-top:8px}
+    .list li{margin:6px 0}
+    .hint{font-size:14px; color:#cfd7ee; opacity:.8; margin-top:8px}
   </style>
 </head>
 <body>
@@ -33,25 +59,21 @@
     <h1>Обнуление данных</h1>
     <div class="card">
       <p>Это действие удалит ваши локальные отметки и серверные данные, связанные с прогрессом:</p>
-      <ul>
+      <ul class="list">
         <li>Журнал приёмов (<code>intakes</code>)</li>
         <li>Настройки напоминаний</li>
         <li>Локальные кэши прогресса</li>
       </ul>
       <p class="muted">Профиль и план курса останутся.</p>
 
-      <label style="display:flex;gap:8px;align-items:center;margin:10px 0">
-        <input id="agree" type="checkbox"> <span>Я понимаю последствия и хочу удалить данные.</span>
-      </label>
+      <div style="margin:16px 0 6px" class="hint">Удерживайте кнопку ниже, чтобы подтвердить удаление.</div>
+      <button id="holdDelete" class="hold-btn" aria-label="Удерживайте, чтобы удалить данные">
+        <span class="progress" aria-hidden="true"></span>
+        <span class="label">Я понимаю последствия и хочу удалить данные</span>
+      </button>
 
-      <div class="row">
-        <div class="muted">Введите слово <b>ОБНУЛИТЬ</b> для подтверждения:</div>
-        <input id="confirm" type="text" placeholder="ОБНУЛИТЬ" style="min-width:180px">
-      </div>
-
-      <div class="row" style="margin-top:14px">
-        <button id="btnReset" class="cta danger" disabled>Обнулить</button>
-        <a href="./main-dark.html">Отмена</a>
+      <div class="btns">
+        <a class="cancel" id="btnCancel" href="./main-dark.html">Отмена — вернуться на главную</a>
         <span id="msg" class="muted"></span>
       </div>
     </div>
@@ -61,69 +83,99 @@
     const tgApp = (window.Telegram && window.Telegram.WebApp) ? window.Telegram.WebApp : null;
     tgApp?.ready?.(); tgApp?.expand?.();
     const initData = tgApp?.initData || '';
-    const API_BASE = String(window.API_BASE||'').replace(/\\/$/, '');
+    const API_BASE = String(window.API_BASE||'').replace(/\/$/, '');
     const devTg = new URLSearchParams(location.search).get('tg') || '1002';
+
     function api(path, opts={}){
-      let url = /^https?:\\/\\//i.test(path) ? path : (API_BASE + path);
-      const params = []; if (!initData && devTg) params.push('tg='+encodeURIComponent(devTg)); params.push('v=reset-2025-08-27');
+      let url = /^https?:\/\//i.test(path) ? path : (API_BASE + path);
+      const params = []; if (!initData && devTg) params.push('tg='+encodeURIComponent(devTg)); params.push('v=reset-2025-08-28');
       url += (url.includes('?') ? '&' : '?') + params.join('&');
       const headers = {'Content-Type':'application/json', ...(opts.headers||{})};
       if (initData) headers['X-Telegram-InitData'] = initData;
       return fetch(url, {...opts, headers});
     }
 
-    const agree = document.getElementById('agree');
-    const confirmI = document.getElementById('confirm');
-    const btn = document.getElementById('btnReset');
+    const btn = document.getElementById('holdDelete');
     const msg = document.getElementById('msg');
 
-    
-    
-    function normalizeInput(s){
-      try{
-        s = (s||'').normalize('NFC');
-      }catch(_){}
-      s = (s||'').trim().toLowerCase().replace(/\s+/g,'');
-      return s;
-    }
-    function okWord(s){
-      const raw = normalizeInput(s);
-      // Map common latin lookalikes to Cyrillic after lowercasing
-      const map = {'a':'а','b':'в','c':'с','e':'е','h':'н','i':'и','k':'к','l':'л','m':'м','o':'о','p':'р','t':'т','x':'х','y':'у'};
-      const mapped = raw.replace(/[abcehiklmoptyx]/g, ch => map[ch] || ch);
-      // allow with or without soft sign for convenience
-      return mapped === 'обнулить' || mapped === 'обнулит';
-    }
-function sync(){
-      btn.disabled = !(agree.checked && okWord(confirmI.value));
-    }
-    agree.addEventListener('change', sync);
-    confirmI.addEventListener('input', sync);
-    sync();
+    // Long-press logic (1.6s hold)
+    let raf = null, start = 0, holding = false, duration = 1600;
 
-    btn.addEventListener('click', async ()=>{
-      btn.disabled = true; msg.textContent = 'Удаляю...';
+    function setProgress(p){
+      // p in [0..1]
+      const val = Math.max(0, Math.min(1, p));
+      btn.style.setProperty('--p', (val*100)+'%');
+    }
+
+    function onDown(e){
+      if (btn.disabled) return;
+      holding = true;
+      start = performance.now();
+      setProgress(0);
+      tick();
+      // prevent text selection on long hold
+      e.preventDefault?.();
+    }
+    function onUpCancel(){
+      holding = false;
+      if (raf){ cancelAnimationFrame(raf); raf = null; }
+      setProgress(0);
+    }
+    function tick(){
+      if (!holding) return;
+      const t = performance.now();
+      const p = (t - start) / duration;
+      if (p >= 1){
+        holding = false; setProgress(1);
+        confirmDelete();
+        return;
+      }
+      setProgress(p);
+      raf = requestAnimationFrame(tick);
+    }
+
+    // Pointer & keyboard support
+    btn.addEventListener('pointerdown', onDown);
+    ['pointerup','pointercancel','pointerleave'].forEach(ev=>btn.addEventListener(ev, onUpCancel));
+    btn.addEventListener('keydown', (e)=>{
+      if (e.code === 'Space' || e.code === 'Enter'){ onDown(e); }
+    });
+    btn.addEventListener('keyup', (e)=>{
+      if (e.code === 'Space' || e.code === 'Enter'){ onUpCancel(); }
+    });
+
+    async function confirmDelete(){
       try{
+        btn.disabled = true; msg.textContent = 'Удаляю…';
         const r = await api('/api/reset', { method:'POST', body:'{}' });
-        if(!r.ok){ msg.textContent = 'Ошибка ' + r.status; btn.disabled=false; return; }
-        // wipe local caches
+        if(!r.ok){ msg.textContent = 'Ошибка ' + r.status; btn.disabled=false; setProgress(0); return; }
+        // wipe local caches + sw/caches
         try{
           const qs = new URLSearchParams(location.search);
           const uid = qs.get('tg') || (window.Telegram?.WebApp?.initDataUnsafe?.user?.id || '');
-          localStorage.removeItem('derma_seed_cum_mg');
-          localStorage.removeItem('derma_remind_optin');
-          localStorage.removeItem('derma_dose_mode');
+          const keys = [
+            'derma_seed_cum_mg','derma_remind_optin','derma_remind_time',
+            'derma_dose_mode','derma_last_notif','derma_reminded_today',
+            'derma_alarm_id','derma_consent','derma_next','derma_splash_seen'
+          ];
+          keys.forEach(k=>{ try{ localStorage.removeItem(k); }catch(_){}});
           if (uid) {
-            localStorage.removeItem(`dermaApp:${uid}:splash_seen`);
-            localStorage.removeItem(`dermaApp:${uid}:consentAccepted`);
+            try{ localStorage.removeItem(`dermaApp:${uid}:splash_seen`); }catch(_){}
+            try{ localStorage.removeItem(`dermaApp:${uid}:consentAccepted`); }catch(_){}
+          }
+          if ('serviceWorker' in navigator){
+            try{ const regs = await navigator.serviceWorker.getRegistrations(); for (const r of regs) await r.unregister(); }catch(_){}
+          }
+          if ('caches' in window){
+            try{ const names = await caches.keys(); for (const n of names) await caches.delete(n); }catch(_){}
           }
         }catch(_){}
         msg.textContent = 'Готово';
-        setTimeout(()=>{ location.replace('./welcome-rt.html' + (location.search||'')); }, 400);
+        setTimeout(()=>{ location.replace('./welcome-rt.html' + (location.search||'')); }, 450);
       }catch(e){
-        msg.textContent = 'Ошибка сети'; btn.disabled=false;
+        msg.textContent = 'Ошибка сети'; btn.disabled=false; setProgress(0);
       }
-    });
+    }
   </script>
 </body>
 </html>
