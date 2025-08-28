@@ -599,6 +599,18 @@
   0%,100%{ transform: translate(-50%, -50%) scaleX(-1); }
   50%    { transform: translate(-50%, -52%) scaleX(-1); }
 }
+
+/* === Page Fade&Slide transitions === */
+body.page-enter{
+  opacity:0; transform:translateY(8px);
+  animation:pageIn .22s ease forwards;
+}
+body.page-exit{
+  pointer-events:none;
+  animation:pageOut .22s ease forwards;
+}
+@keyframes pageIn{to{opacity:1; transform:none}}
+@keyframes pageOut{to{opacity:0; transform:translateY(-8px)}}
 </style>
 </head>
 <body>
@@ -837,7 +849,7 @@
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="18" rx="2"/><path d="M16 2v4M8 2v4M3 10h18"/><path d="M8 14h3M8 18h3M14 14h3M14 18h3"/></svg>
       <span>Календарь</span>
     </a>
-    <a href="/profile" data-route="profile">
+    <a href="./myprofile.html" data-route="profile" class="nav-item">
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="8" r="4"/><path d="M4 21a8 8 0 0 1 16 0"/></svg>
       <span>Профиль</span>
     </a>
@@ -845,7 +857,7 @@
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="5" width="18" height="14" rx="2"/><path d="M9 5l2-2h2l2 2"/><circle cx="9" cy="12" r="2"/><path d="M14 12l3 3 3-3"/></svg>
       <span>Фотодневник</span>
     </a>
-    <a href="/labs" data-route="labs">
+    <a href="./labs.html" data-route="labs" class="nav-item">
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10 2v6l-6 10a4 4 0 0 0 3.5 6h9a4 4 0 0 0 3.5-6l-6-10V2"/><path d="M4 16h16"/></svg>
       <span>Анализы</span>
     </a>
@@ -998,6 +1010,13 @@ updateSegLabels();  // вызываем сразу, без ожидания load
     document.querySelectorAll('.bottom-nav a').forEach(a=>{
       a.addEventListener('click', (e)=>{ e.preventDefault(); go(a.getAttribute('href')); });
     });
+
+    function navWithFx(url){
+  const DUR = 220;
+  document.body.classList.remove('page-enter');
+  document.body.classList.add('page-exit');
+  setTimeout(()=>{ location.assign(url); }, DUR);
+}
 
     // Header user
     (function fillHeader(){
@@ -1666,6 +1685,13 @@ function updateDoseHint(){
     try{ const t = e.touches[0]; if(t) burst(t.clientX, t.clientY); }catch(_){ burst(); }
   }, {passive:true});
 })();
+
+document.addEventListener('DOMContentLoaded', ()=>{
+  document.body.classList.add('page-enter');
+  document.body.addEventListener('animationend', e=>{
+    if(e.animationName==='pageIn') document.body.classList.remove('page-enter');
+  }, {once:true});
+});
 
 </script>
 </body>
