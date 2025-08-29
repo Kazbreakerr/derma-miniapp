@@ -1738,33 +1738,48 @@ document.addEventListener('click', (e)=>{
 })();
 </script>
 
-
-
 <script>
-(function sharedAvatarLauncher(){
-  const card = document.getElementById('profileHeader');
-  if(!card) return;
-  card.addEventListener('click', ()=>{
-    try{
-      const el = card.querySelector('[data-shared="avatar"]') || document.querySelector('[data-shared="avatar"]');
-      if(!el){ location.href = 'myprofile.html'; return; }
-      const rect = el.getBoundingClientRect();
-      const img  = el.querySelector('img');
-      const style = getComputedStyle(el);
-      const payload = {
-        x: rect.left, y: rect.top, w: rect.width, h: rect.height,
-        br: style.borderRadius || '50%',
-        src: img ? img.currentSrc || img.src : '',
-        text: (!img ? (el.textContent || '').trim() : ''),
-        bg: style.backgroundColor || '#0d1623',
+(function(){
+  const header = document.getElementById('profileHeader');
+  if(!header) return;
+
+  header.addEventListener('click', () => {
+    // 1) геометрия «героя»
+    const av = header.querySelector('[data-shared="avatar"]');
+    if (av) {
+      const r = av.getBoundingClientRect();
+      const img = av.querySelector('img');
+      const txt = (av.querySelector('span')?.textContent || '').trim().slice(0,1).toUpperCase();
+      sessionStorage.setItem('share:avatar', JSON.stringify({
+        x: r.left, y: r.top + window.scrollY, w: r.width, h: r.height,
+        br: getComputedStyle(av).borderRadius,
+        src: img?.currentSrc || img?.src || '',
+        text: txt, bg: getComputedStyle(av).backgroundColor,
         ts: Date.now()
-      };
-      sessionStorage.setItem('share:avatar', JSON.stringify(payload));
-    }catch(_){}
+      }));
+    }
+
+    // 2) СНАПШОТ ДАННЫХ ДЛЯ myprofile (фолбэк, когда нет API)
+    const snap = {
+      name: (document.getElementById('profileName')?.textContent || '').trim()  // ← ваш селектор имени на главной
+            || (window.USER_NAME || ''),
+      avatarSrc: header.querySelector('[data-shared="avatar"] img')?.currentSrc
+                 || header.querySelector('[data-shared="avatar"] img')?.src || '',
+      weightKg:  Number(window.PROFILE_WEIGHT_KG || localStorage.getItem('rt_weightKG') || 0),
+      goalMgPerKg: Number(window.PROFILE_TARGET_MGKG || localStorage.getItem('rt_goalMgKg') || 135),
+      takenMg:  Number(window.PROFILE_TAKEN_MG || localStorage.getItem('rt_takenMg') || 0),
+      todayMg:  Number(window.PROFILE_TODAY_MG || localStorage.getItem('rt_todayMg') || 0),
+      drug:     String(window.PROFILE_DRUG || localStorage.getItem('rt_drug') || 'Изотретиноин'),
+      startISO: String(window.PROFILE_START_ISO || localStorage.getItem('rt_startISO') || '')
+    };
+    sessionStorage.setItem('share:user', JSON.stringify(snap));
+
+    // 3) навигация
     location.href = 'myprofile.html#fx=avatar';
   });
 })();
 </script>
+
 
 </body>
 </html>

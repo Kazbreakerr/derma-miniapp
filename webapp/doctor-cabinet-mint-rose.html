@@ -3,174 +3,148 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>Кабинет врача — Roaccutane Tracker</title>
+  <title>Кабинет врача</title>
   <style>
     :root{
-      --dr-bg:#0E1116; --dr-card:#141A22; --dr-text:#EDEFF2; --dr-text-muted:#9AA3AE; --dr-stroke:#1F2833;
-      --dr-grad-1: linear-gradient(135deg, #6FEAD8 0%, #BDF7EE 40%, #FFD6E9 100%);
-      --dr-grad-2: linear-gradient(135deg, rgba(111,234,216,.18) 0%, rgba(255,214,233,.18) 100%);
-      --dr-r:18px; --dr-dur:.24s; --dr-ease:cubic-bezier(.2,.6,.2,1);
+      --bg:#0E1116; --card:#141A22; --text:#EDEFF2; --muted:#9AA3AE; --stroke:#1F2833;
+      --grad1: linear-gradient(135deg, #6FEAD8 0%, #BDF7EE 40%, #FFD6E9 100%);
+      --grad2: linear-gradient(135deg, rgba(111,234,216,.18) 0%, rgba(255,214,233,.18) 100%);
+      --r:18px; --dur:.24s; --ease:cubic-bezier(.2,.6,.2,1);
     }
-    [data-theme="light"]{
-      --dr-bg:#F7F8FA; --dr-card:#FFF; --dr-text:#0F1720; --dr-text-muted:#6B7280; --dr-stroke:#E7EAF0;
-      --dr-grad-1: linear-gradient(135deg, #CFF9F0 0%, #FFE6F2 100%);
-      --dr-grad-2: linear-gradient(135deg, #EFFFF9 0%, #FFF1F6 100%);
-    }
-    html,body{height:100%}
-    body{margin:0;background:var(--dr-bg);color:var(--dr-text);font:16px/1.4 system-ui,-apple-system,Segoe UI,Roboto,Inter,Arial,sans-serif}
-    .dr-wrap{max-width:980px;margin:0 auto;padding:16px clamp(12px,4vw,24px) 90px}
-
-    .dr-top{display:flex;justify-content:space-between;align-items:center;margin:8px 0 16px;gap:12px}
-    .dr-h1{font-weight:800;font-size:clamp(18px,2.8vw,24px)}
-    .dr-right{display:flex;align-items:center;gap:10px}
-    .dr-code-pill{display:inline-flex;align-items:center;gap:8px;padding:8px 10px;border-radius:999px;background:#0D1219;border:1px solid var(--dr-stroke);color:var(--dr-text-muted);font-size:12px;white-space:nowrap}
-    .dr-code-pill b{letter-spacing:1.2px;color:var(--dr-text)}
-
-    /* small avatar */
-    .ava{width:36px;height:36px;border-radius:999px;overflow:hidden;border:1px solid var(--dr-stroke);display:grid;place-items:center;background:var(--dr-grad-1);color:#0b1511;font-weight:800;cursor:pointer}
+    body{margin:0;background:var(--bg);color:var(--text);font:16px/1.4 system-ui,-apple-system,Segoe UI,Inter,Roboto,Arial,sans-serif}
+    .wrap{max-width:980px;margin:0 auto;padding:16px clamp(12px,4vw,24px) 90px}
+    .top{display:flex;justify-content:space-between;align-items:center;margin:8px 0 16px;gap:12px}
+    .h1{font-weight:800;font-size:clamp(18px,2.8vw,24px)}
+    .right{display:flex;align-items:center;gap:10px}
+    .code-pill{display:inline-flex;align-items:center;gap:8px;padding:8px 10px;border-radius:999px;background:#0D1219;border:1px solid var(--stroke);color:var(--muted);font-size:12px;white-space:nowrap}
+    .code-pill b{letter-spacing:1.2px;color:var(--text)}
+    .ava{width:36px;height:36px;border-radius:999px;overflow:hidden;border:1px solid var(--stroke);display:grid;place-items:center;background:var(--grad1);color:#0b1511;font-weight:800;cursor:pointer}
     .ava img{width:100%;height:100%;object-fit:cover;display:block}
-
-    .dr-tabs{display:flex;gap:8px;align-items:center;border-bottom:1px solid var(--dr-stroke);padding-bottom:8px;position:sticky;top:0;background:var(--dr-bg);z-index:10}
-    .dr-tab{padding:10px 14px;border-radius:999px;cursor:pointer;border:1px solid transparent;color:var(--dr-text)}
-    .dr-tab.active{background:var(--dr-grad-1);color:#0b1511;font-weight:700}
-    .dr-tab:hover{border-color:var(--dr-stroke)}
-
-    .dr-row{display:flex;gap:10px;align-items:center;flex-wrap:wrap;margin:14px 0}
-    .dr-search{flex:1 1 320px;min-width:220px;display:flex}
-    .dr-input{width:100%;padding:12px;border-radius:12px;background:#0D1219;border:1px solid var(--dr-stroke);color:var(--dr-text)}
-    [data-theme="light"] .dr-input{background:#FAFBFC}
-    .dr-chip{border:1px solid var(--dr-stroke);border-radius:999px;padding:8px 12px;cursor:pointer;color:var(--dr-text);background:transparent}
-    .dr-chip.active{background:var(--dr-grad-1);color:#0b1511;font-weight:700;border-color:transparent}
-    .dr-select{padding:8px 10px;border-radius:999px;border:1px solid var(--dr-stroke);background:#0D1219;color:var(--dr-text)}
-    [data-theme="light"] .dr-select{background:#FAFBFC}
-
-    .dr-card{background:var(--dr-card);border:1px solid var(--dr-stroke);border-radius:var(--dr-r);padding:14px;box-shadow:0 6px 22px rgba(0,0,0,.14)}
-    .dr-list{display:grid;gap:10px}
-    .dr-empty{text-align:center;padding:48px 16px;border:1px dashed var(--dr-stroke);border-radius:var(--dr-r);color:var(--dr-text-muted)}
-    .dr-empty .dr-btn{margin-top:12px}
-
+    /* Табы в шапке кабинета */
+.tabs{
+  display:flex;gap:8px;align-items:center;
+  border-bottom:1px solid var(--stroke);
+  padding-bottom:8px;position:sticky;top:0;background:var(--bg);z-index:10;
+}
+.tab{
+  padding:10px 14px;border-radius:999px;cursor:pointer;
+  /* было: без background → браузер ставил белый */
+  background:#0D1219;                 /* тёмная «пилюля» */
+  color:var(--text);
+  border:1px solid var(--stroke);
+  transition:background .2s ease,border-color .2s ease,opacity .2s ease;
+}
+.tab:hover{ border-color:rgba(255,255,255,.18); }
+.tab.active{
+  background:var(--grad1);             /* мятно-персиковый градиент */
+  color:#0b1511;
+  border-color:transparent;
+  font-weight:700;
+}
+    .row{display:flex;gap:10px;align-items:center;flex-wrap:wrap;margin:14px 0}
+    .search{flex:1 1 320px;min-width:220px;display:flex}
+    .input{width:100%;padding:12px;border-radius:12px;background:#0D1219;border:1px solid var(--stroke);color:var(--text)}
+    .chip{border:1px solid var(--stroke);border-radius:999px;padding:8px 12px;color:var(--text);background:transparent}
+    .select{padding:8px 10px;border-radius:999px;border:1px solid var(--stroke);background:#0D1219;color:var(--text)}
+    .card{background:var(--card);border:1px solid var(--stroke);border-radius:var(--r);padding:14px;box-shadow:0 6px 22px rgba(0,0,0,.14)}
+    .list{display:grid;gap:10px}
+    .glass{background:var(--grad2);border:1px solid rgba(255,255,255,.12);backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px)}
+    .empty-title{font-weight:800}.muted{color:var(--muted);font-size:13px}
     .p-card{position:relative}
     .p-top{display:flex;justify-content:space-between;gap:8px;align-items:center}
     .p-name{font-weight:800;font-size:16px}
-    .p-meta{color:var(--dr-text-muted);font-size:13px}
     .p-grid{display:grid;grid-template-columns:1fr auto;gap:8px;align-items:center;margin-top:8px}
-    .p-badges{display:flex;gap:8px;align-items:center;flex-wrap:wrap}
-    .badge{padding:6px 8px;border-radius:999px;font-size:12px;background:#0D1219;border:1px solid var(--dr-stroke)}
-    [data-theme="light"] .badge{background:#FAFBFC}
-    .prog{height:8px;background:#0D1219;border:1px solid var(--dr-stroke);border-radius:999px;overflow:hidden}
-    .prog>i{display:block;height:100%;width:0;background:var(--dr-grad-1)}
+    .badges{display:flex;gap:8px;align-items:center;flex-wrap:wrap}
+    .badge{padding:6px 8px;border-radius:999px;font-size:12px;background:#0D1219;border:1px solid var(--stroke)}
+    .prog{height:8px;background:#0D1219;border:1px solid var(--stroke);border-radius:999px;overflow:hidden}
+    .prog>i{display:block;height:100%;width:0;background:var(--grad1)}
     .labs{display:flex;gap:10px;align-items:center;flex-wrap:wrap;font-size:12px}
     .lab{display:inline-flex;align-items:center;gap:6px}
-    .dot{width:10px;height:10px;border-radius:999px}
-    .dot.g{background:#22C55E}.dot.y{background:#F59E0B}.dot.r{background:#EF4444}
-    .icons{display:flex;gap:10px;align-items:center;color:var(--dr-text-muted)}
-    .pill{display:inline-flex;align-items:center;gap:6px;padding:6px 10px;border:1px solid var(--dr-stroke);border-radius:999px;font-size:12px}
-
-    .dr-btn{padding:10px 12px;border-radius:12px;border:1px solid transparent;cursor:pointer;font-weight:700;color:#05140C;background:var(--dr-grad-1);transition:transform var(--dr-dur) var(--dr-ease)}
-    .dr-btn:active{transform:translateY(1px) scale(.99)}
-    .dr-btn-ghost{padding:10px 12px;border-radius:12px;background:transparent;color:var(--dr-text);border:1px solid var(--dr-stroke);cursor:pointer}
-
-    .tabpage{position:relative;min-height:60vh}
-    .tab-sec{position:absolute;inset:0;opacity:0;transform:translateX(8px);pointer-events:none;transition:opacity var(--dr-dur) var(--dr-ease),transform var(--dr-dur) var(--dr-ease)}
-    .tab-sec.active{opacity:1;transform:translateX(0);pointer-events:auto}
-
-    /* Profile */
-    .profile-head{display:flex;gap:16px;align-items:center;flex-wrap:wrap}
-    .ava-big{width:112px;height:112px;border-radius:999px;overflow:hidden;border:1px solid var(--dr-stroke);display:grid;place-items:center;background:var(--dr-grad-1);color:#0b1511;font-weight:800;font-size:28px;position:relative}
-    .ava-big img{width:100%;height:100%;object-fit:cover}
-    .ava-edit{position:absolute;right:6px;bottom:6px;background:#0D1219;border:1px solid var(--dr-stroke);color:var(--dr-text);border-radius:999px;padding:6px 8px;font-size:12px;cursor:pointer}
-
-    /* Switch (reuse) */
-    .dr-switch{display:inline-flex;align-items:center;gap:10px;cursor:pointer;user-select:none}
-    .dr-switch input{display:none}
-    .dr-toggle{width:44px;height:26px;border-radius:999px;background:#2A3442;position:relative;border:1px solid rgba(255,255,255,.06);transition:all var(--dr-dur) var(--dr-ease)}
-    .dr-knob{position:absolute;top:3px;left:3px;width:20px;height:20px;border-radius:999px;background:#fff;box-shadow:0 2px 6px rgba(0,0,0,.25);transition:all var(--dr-dur) var(--dr-ease)}
-    .dr-switch input:checked + .dr-toggle{background:var(--dr-grad-1);border-color:transparent;box-shadow:0 0 0 1px rgba(255,255,255,.06) inset}
-    .dr-switch input:checked + .dr-toggle .dr-knob{transform:translateX(18px);box-shadow:0 2px 6px rgba(0,0,0,.25),0 0 0 3px rgba(255,214,233,.28)}
-
-    .tip-card{border-radius:16px;padding:12px 14px;background:var(--dr-grad-2);border:1px dashed var(--dr-stroke)}
+    .dot{width:10px;height:10px;border-radius:999px}.g{background:#22C55E}.y{background:#F59E0B}.r{background:#EF4444}
+    .icons{display:flex;gap:10px;align-items:center;color:var(--muted)}
+    .pill{display:inline-flex;align-items:center;gap:6px;padding:6px 10px;border:1px solid var(--stroke);border-radius:999px;font-size:12px}
+    .btn{padding:10px 12px;border-radius:12px;border:1px solid transparent;cursor:pointer;font-weight:700;color:#05140C;background:var(--grad1);transition:transform var(--dur) var(--ease)}
+    .btn:active{transform:translateY(1px) scale(.99)}
+    .btn-ghost{padding:10px 12px;border-radius:12px;background:transparent;color:var(--text);border:1px solid var(--stroke);cursor:pointer}
+    .page{position:relative;min-height:60vh}
+    .sec{position:absolute;inset:0;opacity:0;transform:translateX(8px);pointer-events:none;transition:opacity var(--dur) var(--ease),transform var(--dur) var(--ease)}
+    .sec.active{opacity:1;transform:translateX(0);pointer-events:auto}
+    .tip{border-radius:16px;padding:12px 14px;background:var(--grad2);border:1px dashed var(--stroke)}
     .tip-row{display:flex;gap:10px;align-items:flex-start}
-    .illu{width:36px;height:36px;border-radius:12px;background:var(--dr-grad-1);display:grid;place-items:center;color:#0b1511;font-weight:800}
+    .illu{width:36px;height:36px;border-radius:12px;background:var(--grad1);display:grid;place-items:center;color:#0b1511;font-weight:800}
     .btn-row{display:flex;gap:8px;flex-wrap:wrap;margin-top:6px}
-    .step-list{display:grid;gap:6px;margin-top:6px}
-    .step{display:flex;gap:8px;align-items:flex-start}
-    .step b{width:22px;height:22px;border-radius:999px;background:#0D1219;color:var(--dr-text);display:grid;place-items:center;font-size:12px;border:1px solid var(--dr-stroke)}
-    [data-theme="light"] .step b{background:#FAFBFC}
-  
-    /* Tips + skeletons for zero state */
-    .tip-card{border-radius:16px;padding:12px 14px;background:var(--dr-grad-2);border:1px dashed var(--dr-stroke)}
-    .tip-row{display:flex;gap:10px;align-items:flex-start}
-    .illu{width:36px;height:36px;border-radius:12px;background:var(--dr-grad-1);display:grid;place-items:center;color:#0b1511;font-weight:800}
-    .btn-row{display:flex;gap:8px;flex-wrap:wrap;margin-top:6px}
-    .ghost{opacity:.9}
+    .ghost{opacity:.95}
     .skeleton{position:relative;overflow:hidden}
     .skeleton::after{content:'';position:absolute;inset:0;background:linear-gradient(90deg, transparent, rgba(255,255,255,.08), transparent);transform:translateX(-100%);animation:shimmer 1.3s infinite}
     @keyframes shimmer{100%{transform:translateX(100%)}}
+    .profile{display:flex;gap:16px;align-items:center;flex-wrap:wrap}
+    .ava-big{width:112px;height:112px;border-radius:999px;overflow:hidden;border:1px solid var(--stroke);display:grid;place-items:center;background:var(--grad1);color:#0b1511;font-weight:800;font-size:28px;position:relative}
+    .ava-big img{width:100%;height:100%;object-fit:cover}
+    .ava-edit{position:absolute;right:6px;bottom:6px;background:#0D1219;border:1px solid var(--stroke);border-radius:999px;padding:6px 8px;font-size:12px;cursor:pointer}
   </style>
 </head>
 <body>
-  <div class="dr-wrap">
-    <div class="dr-top">
-      <div class="dr-h1">Кабинет врача</div>
-      <div class="dr-right">
+  <div class="wrap">
+    <div class="top">
+      <div class="h1">Кабинет врача</div>
+      <div class="right">
         <div class="ava" id="smallAva" title="Заменить фото">JD</div>
-        <div class="dr-code-pill">Ваш код: <b id="topCode">— — — — —</b></div>
+        <div class="code-pill">Ваш код: <b id="topCode">— — — — —</b></div>
       </div>
     </div>
     <input id="avaInput" type="file" accept="image/*" style="display:none"/>
 
-    <nav class="dr-tabs">
-      <div class="dr-tab active" data-tab="patients">Пациенты</div>
-      <div class="dr-tab" data-tab="requests">Заявки</div>
-      <div class="dr-tab" data-tab="profile">Профиль</div>
+    <nav class="tabs" id="tabsNav" role="tablist">
+      <button class="tab active" data-tab="patients" role="tab" aria-selected="true">Пациенты</button>
+      <button class="tab" data-tab="requests" role="tab">Заявки</button>
+      <button class="tab" data-tab="profile" role="tab">Профиль</button>
     </nav>
 
-    <main class="tabpage">
-      <!-- patients -->
-      <section class="tab-sec active" id="tab-patients">
-        <div class="dr-row">
-          <div class="dr-search"><input id="search" class="dr-input" placeholder="Поиск: ФИО, @ник или код"></div>
-          <button class="dr-chip" data-filter="status" data-value="all">Все статусы</button>
-          <button class="dr-chip" data-filter="status" data-value="on">На курсе</button>
-          <button class="dr-chip" data-filter="status" data-value="off">Не на курсе</button>
-          <button class="dr-chip" data-filter="red" data-value="true">Есть красные анализы</button>
-          <select id="daysNoReport" class="dr-select"><option value="0">Без отчёта: —</option><option value="7">&gt; 7 дн</option><option value="14">&gt; 14 дн</option><option value="30">&gt; 30 дн</option></select>
-          <button id="resetFilters" class="dr-chip">Сброс</button>
+    <main class="page">
+      <!-- Пациенты -->
+      <section class="sec active" id="sec-patients">
+        <div class="row">
+          <div class="search"><input id="search" class="input" placeholder="Поиск: ФИО, @ник или код"></div>
+          <button class="chip" data-filter="status" data-value="all">Все статусы</button>
+          <button class="chip" data-filter="status" data-value="on">На курсе</button>
+          <button class="chip" data-filter="status" data-value="off">Не на курсе</button>
+          <button class="chip" data-filter="red" data-value="true">Есть красные анализы</button>
+          <select id="daysNoReport" class="select"><option value="0">Без отчёта: —</option><option value="7">&gt; 7 дн</option><option value="14">&gt; 14 дн</option><option value="30">&gt; 30 дн</option></select>
+          <button id="resetFilters" class="chip">Сброс</button>
         </div>
+        <div id="patientsList" class="list"></div>
 
-        <div id="patientsList" class="dr-list"></div>
-        <div id="patientsTips" class="tip-card" style="display:none">
+        <div id="patientsTips" class="tip">
           <div class="tip-row">
             <div class="illu">➕</div>
             <div>
               <b>Как добавить пациента</b>
-              <div class="p-meta">Поделитесь кодом или QR. Когда пациент прикрепится — его карточка появится ниже.</div>
+              <div class="muted">Поделитесь кодом или QR. Когда пациент прикрепится — его карточка появится ниже.</div>
               <div class="btn-row">
-                <button class="dr-btn-ghost" id="ptShowQR">Показать QR</button>
-                <button class="dr-btn-ghost" id="ptCopyCode">Скопировать код</button>
-                <button class="dr-btn-ghost" id="ptShareLink">Поделиться ссылкой</button>
+                <button class="btn-ghost" id="ptShowQR">Показать QR</button>
+                <button class="btn-ghost" id="ptCopyCode">Скопировать код</button>
+                <button class="btn-ghost" id="ptShareLink">Поделиться ссылкой</button>
               </div>
             </div>
           </div>
         </div>
 
-        <div id="patientsEmpty" class="dr-card glass" style="display:none">
-          <div class="empty-card">
-            <div class="empty-title">Здесь появятся ваши пациенты</div>
-            <div class="empty-text">Пока список пуст. Ниже — пример карточки будущего пациента. После прикрепления она заменится реальными данными.</div>
-          </div>
+        <div id="patientsEmpty" class="card glass" style="margin-top:10px">
+          <div class="empty-title">Здесь появятся ваши пациенты</div>
+          <div class="muted">Пока список пуст. Ниже — пример карточки будущего пациента. После прикрепления она заменится реальными данными.</div>
         </div>
 
-        <div id="patientsGhost" class="dr-card glass ghost" style="display:none">
+        <div id="patientsGhost" class="card glass ghost" style="margin-top:10px">
           <div class="p-top">
-            <div><div class="p-name skeleton" style="width:240px;height:18px;border-radius:6px"></div>
-              <div class="p-meta skeleton" style="width:120px;height:14px;border-radius:6px;margin-top:6px"></div>
+            <div>
+              <div class="p-name skeleton" style="width:240px;height:18px;border-radius:6px"></div>
+              <div class="muted skeleton" style="width:120px;height:14px;border-radius:6px;margin-top:6px"></div>
             </div>
             <div class="pill skeleton" style="width:96px;height:26px;border-radius:999px"></div>
           </div>
           <div class="p-grid">
             <div>
-              <div class="p-badges">
+              <div class="badges">
                 <span class="badge skeleton" style="width:180px;height:22px"></span>
                 <span class="badge skeleton" style="width:120px;height:22px"></span>
                 <span class="badge skeleton" style="width:110px;height:22px"></span>
@@ -184,46 +158,38 @@
             <div class="lab"><span class="dot g"></span>AST</div>
             <div class="lab"><span class="dot g"></span>TG</div>
             <div class="lab"><span class="dot g"></span>ХС</div>
-            <span class="p-meta" style="margin-left:auto">от —</span>
+            <span class="muted" style="margin-left:auto">от —</span>
           </div>
         </div>
-
       </section>
 
-      <!-- requests -->
-      <section class="tab-sec" id="tab-requests">
-        <div class="tip-card" id="autoAcceptHint" style="display:none;margin-top:4px">
+      <!-- Заявки -->
+      <section class="sec" id="sec-requests">
+        <div class="row">
+          <div class="muted">Автопринятие</div>
+          <div class="switch" id="autoSwitch"><div class="knob"></div></div>
+        </div>
+        <div class="tip" id="autoAcceptHint" style="display:none;margin-top:4px">
           <div class="tip-row"><div class="illu">⚡</div>
-            <div><b>Автопринятие включено.</b><div class="p-meta">Пациенты с вашим кодом сразу попадают в «Пациенты», заявки не появятся.</div></div>
+            <div><b>Автопринятие включено.</b><div class="muted">Пациенты с вашим кодом сразу попадают в «Пациенты», заявки не появятся.</div></div>
           </div>
         </div>
-        <div class="dr-row">
-          <label class="dr-switch"><input type="checkbox" id="autoAccept"><span class="dr-toggle"><span class="dr-knob"></span></span><span>Автопринятие</span></label>
-        </div>
-        <div id="requestsList" class="dr-list"></div>
-        <div id="requestsEmpty" class="dr-card glass" style="display:none">
-          <div class="empty-card">
-            <div class="empty-title">Пока нет заявок</div>
-            <div class="empty-text">Поделитесь кодом или QR — когда пациент отправит запрос, он появится здесь.</div>
-            <div class="step-list">
-              <div class="step"><b>1</b><div>Скопируйте свой код <b id="reqCodeInline">— — — — —</b> или покажите QR.</div></div>
-              <div class="step"><b>2</b><div>Пациент вводит код и отправляет заявку на прикрепление.</div></div>
-              <div class="step"><b>3</b><div>Вы <b>примете</b> или <b>отклоните</b> заявку в этом списке.</div></div>
-            </div>
-            <div class="btn-row">
-              <button class="dr-btn-ghost" id="reqShowQR">Показать QR</button>
-              <button class="dr-btn-ghost" id="reqCopyCode">Скопировать код</button>
-              <button class="dr-btn-ghost" id="reqShareLink">Поделиться ссылкой</button>
-            </div>
-            <details style="margin-top:6px"><summary class="p-meta">Как работает прикрепление?</summary><div class="p-meta">Пациенту нужен ваш код или ссылка. Если включить автопринятие — заявки пропускаются и пациент сразу появляется во вкладке «Пациенты».</div></details>
+        <div id="requestsList" class="list"></div>
+        <div id="requestsEmpty" class="card glass">
+          <div class="empty-title">Пока нет заявок</div>
+          <div class="muted">Поделитесь кодом или QR — когда пациент отправит запрос, он появится здесь.</div>
+          <div class="btn-row">
+            <button class="btn-ghost" id="reqShowQR">Показать QR</button>
+            <button class="btn-ghost" id="reqCopyCode">Скопировать код</button>
+            <button class="btn-ghost" id="reqShareLink">Поделиться ссылкой</button>
           </div>
         </div>
       </section>
 
-      <!-- profile -->
-      <section class="tab-sec" id="tab-profile">
-        <div class="dr-card" style="margin-top:10px">
-          <div class="profile-head">
+      <!-- Профиль -->
+      <section class="sec" id="sec-profile">
+        <div class="card" style="margin-top:10px">
+          <div class="profile">
             <div class="ava-big" id="bigAva">
               <span id="bigAvaTxt">JD</span>
               <img id="bigAvaImg" alt="" style="display:none">
@@ -231,320 +197,217 @@
             </div>
             <div>
               <div style="font-weight:800;font-size:18px" id="profName">ФИО врача</div>
-              <div class="p-meta" id="profMeta">Специализация • Клиника, Город</div>
-              <div class="dr-row" style="margin-top:8px">
-                <div class="dr-code-pill">Мой код: <b id="profCode">— — — — —</b></div>
-                <button class="dr-btn-ghost" id="copyCode">Скопировать</button>
-                <button class="dr-btn-ghost" id="qrCode">QR</button>
-                <button class="dr-btn-ghost" id="shareCode">Поделиться</button>
+              <div class="muted" id="profMeta">Специализация • Клиника, Город</div>
+              <div class="row" style="margin-top:8px">
+                <div class="code-pill">Мой код: <b id="profCode">— — — — —</b></div>
+                <button class="btn-ghost" id="copyCode">Скопировать</button>
+                <button class="btn-ghost" id="qrCode">QR</button>
+                <button class="btn-ghost" id="shareCode">Поделиться</button>
               </div>
-              <label class="dr-switch" style="margin-top:8px"><input type="checkbox" id="autoAcceptProfile"><span class="dr-toggle"><span class="dr-knob"></span></span><span>Автопринятие</span></label>
             </div>
           </div>
         </div>
 
-        <div class="dr-card" style="margin-top:12px">
+        <div class="card" style="margin-top:12px">
           <div style="font-weight:700;margin-bottom:8px">Статистика</div>
-          <div class="dr-list" style="grid-template-columns:repeat(4,1fr)">
-            <div class="dr-card" style="padding:12px"><div>Всего пациентов</div><div id="stTotal" style="font-size:22px;font-weight:800;margin-top:6px">0</div></div>
-            <div class="dr-card" style="padding:12px"><div>На курсе</div><div id="stOn" style="font-size:22px;font-weight:800;margin-top:6px">0</div></div>
-            <div class="dr-card" style="padding:12px"><div>Просрочены анализы</div><div id="stRed" style="font-size:22px;font-weight:800;margin-top:6px">0</div></div>
-            <div class="dr-card" style="padding:12px"><div>Нужен ответ</div><div id="stNeeds" style="font-size:22px;font-weight:800;margin-top:6px">0</div></div>
+          <div class="list" style="grid-template-columns:repeat(4,1fr)">
+            <div class="card" style="padding:12px"><div>Всего пациентов</div><div id="stTotal" style="font-size:22px;font-weight:800;margin-top:6px">0</div></div>
+            <div class="card" style="padding:12px"><div>На курсе</div><div id="stOn" style="font-size:22px;font-weight:800;margin-top:6px">0</div></div>
+            <div class="card" style="padding:12px"><div>Просрочены анализы</div><div id="stRed" style="font-size:22px;font-weight:800;margin-top:6px">0</div></div>
+            <div class="card" style="padding:12px"><div>Нужен ответ</div><div id="stNeeds" style="font-size:22px;font-weight:800;margin-top:6px">0</div></div>
           </div>
         </div>
       </section>
     </main>
   </div>
 
-  <!-- Patient modal -->
-  <div id="patientModal" style="position:fixed;inset:0;display:none;align-items:flex-end;justify-content:center;background:rgba(0,0,0,.45);z-index:50">
-    <div class="dr-card" style="width:min(980px,96vw);max-height:92vh;overflow:auto;border-radius:20px 20px 12px 12px">
-      <div style="display:flex;justify-content:space-between;align-items:center;gap:10px">
-        <h3 id="ptTitle">Пациент</h3><button class="dr-btn-ghost" id="ptClose">Закрыть</button>
-      </div>
-      <div id="ptMeta" class="p-meta"></div>
-      <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin:10px 0">
-        <div class="dr-card" style="padding:12px"><b>Курс</b><div id="ptCourse" class="p-meta"></div><div class="prog" style="margin-top:8px"><i id="ptProg"></i></div></div>
-        <div class="dr-card" style="padding:12px"><b>Риски</b><div id="ptRisks" class="p-meta"></div></div>
-      </div>
-      <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px">
-        <div class="dr-card" style="padding:12px"><b>Анализы</b><div id="ptLabs" class="p-meta"></div></div>
-        <div class="dr-card" style="padding:12px"><b>Отчёты и фото</b><div id="ptReports" class="p-meta"></div></div>
-      </div>
-      <div class="dr-row" style="justify-content:flex-end">
-        <button class="dr-btn" id="ptOrder">Назначить анализы</button>
-        <button class="dr-btn" id="ptReco">Оставить рекомендацию</button>
-        <button class="dr-btn-ghost" id="ptPhoto">Запросить фото</button>
-        <button class="dr-btn-ghost" id="ptFinish">Завершить курс</button>
-        <button class="dr-btn-ghost" id="ptDetach">Открепить пациента</button>
-      </div>
-    </div>
-  </div>
-
-  <!-- QR Modal -->
+  <!-- Модал QR -->
   <div id="qrModal" style="position:fixed;inset:0;display:none;align-items:center;justify-content:center;background:rgba(0,0,0,.45);z-index:60">
-    <div class="dr-card" style="width:min(420px,96vw)">
-      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px"><h3>QR для пациента</h3><button class="dr-btn-ghost" id="qrClose">Закрыть</button></div>
+    <div class="card" style="width:min(420px,96vw)">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px"><h3>QR для пациента</h3><button class="btn-ghost" id="qrClose">Закрыть</button></div>
       <div id="qrBox" style="display:grid;place-items:center"></div>
-      <div class="p-meta" style="margin-top:8px">Содержимое: ссылка с вашим кодом.</div>
+      <div class="muted" style="margin-top:8px">Содержимое: ссылка с вашим кодом.</div>
     </div>
   </div>
 
-  <script>
-    // Onboarding gate
-    (function(){const done=JSON.parse(localStorage.getItem('doctorOnboardingDone')||'null'); if(!done){ location.replace('doctor-onboarding-mint-rose.html'); }})();
+<script>
+  const $=s=>document.querySelector(s), $$=s=>Array.from(document.querySelectorAll(s));
+  const storage={set:(k,v)=>localStorage.setItem(k,JSON.stringify(v)),get:(k,d=null)=>JSON.parse(localStorage.getItem(k)||'null')??d};
+  const fmtDate=iso=>{ if(!iso) return '—'; const d=new Date(iso); return String(d.getDate()).padStart(2,'0')+'.'+String(d.getMonth()+1).padStart(2,'0')+'.'+d.getFullYear(); };
+  const shareURL=code=>`${location.origin}${location.pathname}?attach=doctor&code=${code}`;
+  const getQuery=(name)=>{ try{ return new URLSearchParams(location.search).get(name);}catch(e){ return null; } };
 
-    const $=s=>document.querySelector(s), $$=s=>Array.from(document.querySelectorAll(s));
-    // --- Avatar helpers ---
-    function parseHandle(tg){ if(!tg) return null; const m=String(tg).trim().match(/@?([a-zA-Z0-9_]+)/); return m?m[1]:null; }
-    function setAvatarUrl(url){ if(!url) return; localStorage.setItem('doctorAvatarUrl', url); applyAvatar(); }
-    function tryUnavatarFromHandle(handle){
-      if(!handle) return;
-      const url = `https://unavatar.io/telegram/${handle}`;
-      const img = new Image(); img.crossOrigin='anonymous';
-      img.onload = ()=> setAvatarUrl(url);
-      img.onerror = ()=>{};
-      img.src = url;
-    }
-    const storage={set:(k,v)=>localStorage.setItem(k,JSON.stringify(v)),get:(k,d=null)=>JSON.parse(localStorage.getItem(k)||'null')??d};
-    // One-time migration to clear demo data from earlier builds
-    const APP_VER='cabinet-empty-v1';
-    (function migrate(){
-      try{
-        const cur=localStorage.getItem('cabinetVersion');
-        if(cur!==APP_VER){
-          // wipe only the demo lists; keep profile/settings/code
-          localStorage.setItem('patientsList','[]');
-          localStorage.setItem('patientsRequests','[]');
-          localStorage.setItem('cabinetVersion', APP_VER);
-        }
-      }catch(e){}
-    })();
-    const fmtDate=iso=>{ if(!iso) return '—'; const d=new Date(iso); return String(d.getDate()).padStart(2,'0')+'.'+String(d.getMonth()+1).padStart(2,'0')+'.'+d.getFullYear(); };
+  // Аватар
+  const parseHandle=tg=>{ if(!tg) return null; const m=String(tg).trim().match(/@?([a-zA-Z0-9_]+)/); return m?m[1]:null; };
+  const initialsFrom=(name='')=>{ const p=(name||'').trim().split(/\s+/); return ((p[0]||'').charAt(0)+(p[1]||'').charAt(0)||'JD').toUpperCase(); };
+  function setSmallAvatar(url, init){ const box=$('#smallAva'); if(url){ box.innerHTML='<img alt="ava">'; box.querySelector('img').src=url; } else { box.textContent=init||'JD'; } }
+  function setBigAvatar(url, init){ const img=$('#bigAvaImg'), txt=$('#bigAvaTxt'); if(url){ img.src=url; img.style.display='block'; txt.style.display='none'; }else{ img.style.display='none'; txt.textContent=init||'JD'; txt.style.display='block'; } }
+  function setAvatarUrl(url){ if(!url) return; localStorage.setItem('doctorAvatarUrl', url); applyAvatar(); }
+  function tryTG(){ try{ const url=window.Telegram?.WebApp?.initDataUnsafe?.user?.photo_url; if(url){ setAvatarUrl(url); return; } }catch(e){} }
+  function applyAvatar(){ const prof=storage.get('doctorProfile',{name:'Врач'}); const init=initialsFrom(prof.name); const url=localStorage.getItem('doctorAvatarUrl'); setSmallAvatar(url,init); setBigAvatar(url,init); }
+
+  // состояние
+  let state={patients:storage.get('patientsList', []),requests:storage.get('patientsRequests', []),filters:{q:'',status:'all',red:false,days:0}};
+
+  // табы
+  function setTab(tab){
+    const tabs=['patients','requests','profile'];
+    if(!tabs.includes(tab)) tab='patients';
+    $$('#tabsNav .tab').forEach(t=>{ const a=t.dataset.tab===tab; t.classList.toggle('active',a); t.setAttribute('aria-selected',a?'true':'false'); });
+    tabs.forEach(id=>$('#sec-'+id).classList.toggle('active', id===tab));
+  }
+  $('#tabsNav').addEventListener('click', (e)=>{ const btn=e.target.closest('.tab'); if(!btn) return; e.preventDefault(); setTab(btn.dataset.tab); renderAll(); });
+  window.addEventListener('hashchange', ()=>{ const h=(location.hash||'').replace('#/doctor/',''); setTab(h); renderAll(); });
+
+  // header/profile init
+  function initHeader(){
+    // читаем код из query и сохраняем
+    const qCode=getQuery('code'); if(qCode && /^[A-Z0-9]{5}$/.test(qCode)) localStorage.setItem('doctorCode', JSON.stringify(qCode));
+    const code=storage.get('doctorCode')||'AB12C';
+    const elTop=$('#topCode'); if(elTop) elTop.textContent=code;
+    const elProf=$('#profCode'); if(elProf) elProf.textContent=code;
+
+    const prof=storage.get('doctorProfile',{name:'ФИО врача',specialty:'Специализация',clinic:'Клиника',city:'Город'});
+    $('#profName').textContent=prof.name||'ФИО врача';
+    $('#profMeta').textContent=`${prof.specialty||'Специализация'} • ${prof.clinic||'Клиника'}, ${prof.city||'Город'}`;
+  }
+
+  // фильтры пациентов
+  const matchesFilters=p=>{
+    const q=state.filters.q.toLowerCase().trim();
+    const inSearch=!q||[p.name,p.handle,p.id].some(x=>(x||'').toLowerCase().includes(q));
+    const stOk=state.filters.status==='all'?true:(state.filters.status==='on'?p.course?.onCourse:!p.course?.onCourse);
+    const anyRed=['ALT','AST','TG','CHOL'].some(k=>(p.labs?.[k]?.status)==='r');
+    const redOk=state.filters.red?(p.red||anyRed):true;
     const daysBetween=iso=>{ if(!iso) return Infinity; return Math.floor((new Date()-new Date(iso))/86400000); };
-    const shareURL=code=>`${location.origin}${location.pathname}?attach=doctor&code=${code}`;
-function getQuery(name){ const m=location.search.match(new RegExp('[?&]'+name+'=([^&]+)')); return m?decodeURIComponent(m[1]):null; }
+    const daysOk=state.filters.days>0?daysBetween(p.lastReport)>state.filters.days:true;
+    return inSearch&&stOk&&redOk&&daysOk;
+  };
 
-    // Avatars
-    function initialsFrom(name=''){ const parts=(name||'').trim().split(/\s+/); return ((parts[0]||'').charAt(0)+(parts[1]||'').charAt(0)||'JD').toUpperCase(); }
-    function setSmallAvatar(url, init){ const box=$('#smallAva'); if(url){ box.innerHTML='<img alt="ava">'; box.querySelector('img').src=url; }else{ box.textContent=init||'JD'; } }
-    function setBigAvatar(url, init){ const img=$('#bigAvaImg'), txt=$('#bigAvaTxt'); if(url){ img.src=url; img.style.display='block'; txt.style.display='none'; }else{ img.style.display='none'; txt.textContent=init||'JD'; txt.style.display='block'; } }
-    function saveAvatar(file){ const r=new FileReader(); r.onload=()=>{ localStorage.setItem('doctorAvatarUrl', r.result); applyAvatar(); }; r.readAsDataURL(file); }
-    function tryTG(){
-      try{
-        const url=window.Telegram?.WebApp?.initDataUnsafe?.user?.photo_url;
-        if(url){ setAvatarUrl(url); return; }
-      }catch(e){}
-      // fallback: profile handle -> unavatar
-      try{
-        const prof=storage.get('doctorProfile',{}); const h=parseHandle(prof.tg);
-        if(h && !localStorage.getItem('doctorAvatarUrl')) tryUnavatarFromHandle(h);
-      }catch(e){}
-    }
-    function applyAvatar(){ const prof=storage.get('doctorProfile',{name:'Иванова Анастасия Сергеевна'}); const init=initialsFrom(prof.name); const url=localStorage.getItem('doctorAvatarUrl'); setSmallAvatar(url,init); setBigAvatar(url,init); }
-
-    // Demo data
-    const samplePatients=[
-      {id:'p1',name:'Мария Петрова',age:24,city:'Москва',handle:'@m_pet',course:{start:'2025-06-09',dose_mg:20,progress:34,onCourse:true,target_mgkg:140},labs:{date:'2025-08-14',ALT:{val:22,status:'g'},AST:{val:19,status:'g'},TG:{val:1.9,status:'y'},CHOL:{val:5.4,status:'y'}},lastReport:'2025-08-20',newMsgs:2,red:false,risks:['печень: нет','липиды: пов.','психика: нет','алк.: редко','мед.: нет']},
-      {id:'p2',name:'Алексей Смирнов',age:28,city:'СПб',handle:'@sm_al',course:{start:'2025-05-18',dose_mg:30,progress:72,onCourse:true,target_mgkg:140},labs:{date:'2025-08-10',ALT:{val:48,status:'y'},AST:{val:44,status:'y'},TG:{val:3.2,status:'r'},CHOL:{val:6.1,status:'r'}},lastReport:'2025-08-02',newMsgs:0,red:true,risks:['печень: нет','липиды: да','психика: нет','алк.: иногда','мед.: витA?']},
-      {id:'p3',name:'Анна Ким',age:22,city:'Казань',handle:'@anna_k',course:{start:null,dose_mg:0,progress:0,onCourse:false,target_mgkg:0},labs:{date:null,ALT:{val:null,status:'g'},AST:{val:null,status:'g'},TG:{val:null,status:'g'},CHOL:{val:null,status:'g'}},lastReport:null,newMsgs:1,red:false,risks:['печень: нет','липиды: нет','психика: нет','алк.: редко','мед.: нет']}
-    ];
-    const sampleRequests=[
-      {id:'r1',name:'Ирина Л.',age:26,city:'Москва',course:'20 мг/сут, старт 05.08',date:'2025-08-21'},
-      {id:'r2',name:'Дмитрий Ф.',age:31,city:'Воронеж',course:null,date:'2025-08-22'}
-    ];
-
-    // State
-    let state={patients:storage.get('patientsList',samplePatients),requests:storage.get('patientsRequests',sampleRequests),filters:{q:'',status:'all',red:false,days:0}};
-
-    // Header/Profile init
-    function initHeader(){
-      const code=storage.get('doctorCode')||'AB12C'; $('#topCode').textContent=code; /*removed*/  $('#profCode').textContent=code;
-      const prof=storage.get('doctorProfile',{name:'Иванова Анастасия Сергеевна',specialty:'Дерматолог',clinic:'Медцентр «Скин+»',city:'Москва'});
-      $('#profName').textContent=prof.name||'ФИО врача'; $('#profMeta').textContent=`${prof.specialty||'Специализация'} • ${prof.clinic||'Клиника'}, ${prof.city||'Город'}`;
-    }
-
-    // Tabs
-    function setTab(tab){ $$('.dr-tab').forEach(t=>t.classList.toggle('active',t.dataset.tab===tab)); ['patients','requests','profile'].forEach(id=>$('#tab-'+id).classList.toggle('active',id===tab)); location.hash='#/doctor/'+tab; renderAll(); }
-    const tabsNav=document.querySelector('.dr-tabs');
-tabsNav.addEventListener('click', (e)=>{ const btn=e.target.closest('.dr-tab'); if(!btn) return; e.preventDefault(); setTab(btn.dataset.tab); });
-window.addEventListener('hashchange', ()=>{ const h=location.hash.replace('#/doctor/',''); if(['patients','requests','profile'].includes(h)) setTab(h); });
-
-    // Patients
-    const matchesFilters=p=>{
-      const q=state.filters.q.toLowerCase().trim();
-      const inSearch=!q||[p.name,p.handle,p.id].some(x=>(x||'').toLowerCase().includes(q));
-      const stOk=state.filters.status==='all'?true:(state.filters.status==='on'?p.course.onCourse:!p.course.onCourse);
-      const anyRed=['ALT','AST','TG','CHOL'].some(k=>(p.labs?.[k]?.status)==='r');
-      const redOk=state.filters.red?(p.red||anyRed):true;
-      const daysOk=state.filters.days>0?daysBetween(p.lastReport)>state.filters.days:true;
-      return inSearch&&stOk&&redOk&&daysOk;
-    };
-    function patientCard(p){
-      const el=document.createElement('div'); el.className='dr-card p-card';
-      const lastDate=p.labs?.date?fmtDate(p.labs.date):'—';
-      el.innerHTML=`
-        <div class="p-top">
-          <div><div class="p-name">${p.name} <span class="p-meta">• ${p.age} • ${p.city}</span></div><div class="p-meta">${p.handle||''}</div></div>
-          <div class="pill">${p.newMsgs?`Новых: ${p.newMsgs}`:'Нет новых'}</div>
-        </div>
-        <div class="p-grid">
-          <div>
-            <div class="p-badges">
-              <span class="badge">Курс: ${p.course.start?fmtDate(p.course.start):'—'} • ${p.course.dose_mg||0} мг/сут</span>
-              <span class="badge">Цель: ${p.course.target_mgkg||'-'} мг/кг</span>
-              <span class="badge">Прогресс: ${p.course.progress||0}%</span>
-            </div>
-            <div class="prog" style="margin-top:8px"><i style="width:${p.course.progress||0}%"></i></div>
+  function patientCard(p){
+    const el=document.createElement('div'); el.className='card p-card';
+    const lastDate=p.labs?.date?fmtDate(p.labs.date):'—';
+    el.innerHTML=`
+      <div class="p-top">
+        <div><div class="p-name">${p.name} <span class="muted">• ${p.age??'—'} • ${p.city??'—'}</span></div><div class="muted">${p.handle||''}</div></div>
+        <div class="pill">${p.newMsgs?`Новых: ${p.newMsgs}`:'Нет новых'}</div>
+      </div>
+      <div class="p-grid">
+        <div>
+          <div class="badges">
+            <span class="badge">Курс: ${p.course?.start?fmtDate(p.course.start):'—'} • ${p.course?.dose_mg||0} мг/сут</span>
+            <span class="badge">Цель: ${p.course?.target_mgkg||'-'} мг/кг</span>
+            <span class="badge">Прогресс: ${p.course?.progress||0}%</span>
           </div>
-          <div class="icons"><span title="Фото">📷</span><span title="Отчёты">📝</span><span title="Сообщения">💬</span></div>
+          <div class="prog" style="margin-top:8px"><i style="width:${p.course?.progress||0}%"></i></div>
         </div>
-        <div class="labs" style="margin-top:8px">
-          <div class="lab"><span class="dot ${p.labs.ALT.status}"></span>ALT</div>
-          <div class="lab"><span class="dot ${p.labs.AST.status}"></span>AST</div>
-          <div class="lab"><span class="dot ${p.labs.TG.status}"></span>TG</div>
-          <div class="lab"><span class="dot ${p.labs.CHOL.status}"></span>ХС</div>
-          <span class="p-meta" style="margin-left:auto">от ${lastDate}</span>
-        </div>
-        <div class="dr-row" style="justify-content:flex-end;margin-top:6px">
-          <button class="dr-btn-ghost" data-open="${p.id}">Открыть</button>
-          <button class="dr-btn" data-order="${p.id}">Назначить анализы</button>
-          <button class="dr-btn" data-reco="${p.id}">Оставить рекомендацию</button>
-        </div>`;
-      el.querySelector('[data-open]').addEventListener('click',()=>openPatient(p.id));
-      el.querySelector('[data-order]').addEventListener('click',()=>sendOrderTo([p.id],'custom'));
-      el.querySelector('[data-reco]').addEventListener('click',()=>sendRecoTo([p.id],'custom'));
-      return el;
-    }
-    function renderPatients(){
-      const list=$('#patientsList'); list.innerHTML='';
-      const arr=state.patients.filter(matchesFilters);
-      const showEmpty = arr.length===0;
-      const e1=$('#patientsEmpty'), e2=$('#patientsGhost'), e3=$('#patientsTips');
-      if(e1) e1.style.display = showEmpty ? 'block' : 'none';
-      if(e2) e2.style.display = showEmpty ? 'block' : 'none';
-      if(e3) e3.style.display = showEmpty ? 'block' : 'none';
-      if(showEmpty){ updatePatientsTips(); }
-      arr.forEach(p=>list.appendChild(patientCard(p)));
-    }
+        <div class="icons"><span title="Фото">📷</span><span title="Отчёты">📝</span><span title="Сообщения">💬</span></div>
+      </div>
+      <div class="labs" style="margin-top:8px">
+        <div class="lab"><span class="dot ${p.labs?.ALT?.status||'g'}"></span>ALT</div>
+        <div class="lab"><span class="dot ${p.labs?.AST?.status||'g'}"></span>AST</div>
+        <div class="lab"><span class="dot ${p.labs?.TG?.status||'g'}"></span>TG</div>
+        <div class="lab"><span class="dot ${p.labs?.CHOL?.status||'g'}"></span>ХС</div>
+        <span class="muted" style="margin-left:auto">от ${lastDate}</span>
+      </div>`;
+    return el;
+  }
 
-    // Requests
-    function renderRequests(){ const list=$('#requestsList'); list.innerHTML=''; $('#requestsEmpty').style.display=state.requests.length?'none':'block';
-      state.requests.forEach(r=>{ const row=document.createElement('div'); row.className='dr-card'; row.innerHTML=`
-        <div style="display:grid;grid-template-columns:1fr auto;gap:12px;align-items:center">
-          <div><div class="p-name">${r.name} <span class="p-meta">• ${r.age} • ${r.city}</span></div>
-          <div class="p-meta">${r.course||'Без курса'}</div><div class="p-meta">Запрос: ${fmtDate(r.date)}</div></div>
-          <div><button class="dr-btn" data-accept="${r.id}">Принять</button> <button class="dr-btn-ghost" data-decline="${r.id}">Отклонить</button></div>
-        </div>`;
-        row.querySelector('[data-accept]').addEventListener('click',()=>acceptReq(r.id));
-        row.querySelector('[data-decline]').addEventListener('click',()=>declineReq(r.id));
-        list.appendChild(row);
-      });
-    }
-    function acceptReq(id){ const i=state.requests.findIndex(x=>x.id===id); if(i>-1){ const r=state.requests.splice(i,1)[0]; const newP={id:'p'+Math.random().toString(36).slice(2,6).toUpperCase(),name:r.name,age:r.age,city:r.city,handle:'',newMsgs:0,red:false,course:{start:null,dose_mg:0,progress:0,onCourse:false,target_mgkg:0},labs:{date:null,ALT:{status:'g'},AST:{status:'g'},TG:{status:'g'},CHOL:{status:'g'}},lastReport:null,risks:['печень: —','липиды: —','психика: —']}; state.patients.unshift(newP); persist(); renderAll(); toast('Пациент принят'); } }
-    function declineReq(id){ const i=state.requests.findIndex(x=>x.id===id); if(i>-1){ state.requests.splice(i,1); persist(); renderAll(); toast('Заявка отклонена'); } }
+  function updatePatientsTips(){
+    const code=storage.get('doctorCode')||'AB12C';
+    const b1=$('#ptShowQR'); if(b1) b1.onclick=openQR;
+    const b2=$('#ptCopyCode'); if(b2) b2.onclick=async()=>{ try{ await navigator.clipboard.writeText(code); }catch(e){} };
+    const b3=$('#ptShareLink'); if(b3) b3.onclick=async()=>{
+      const url=shareURL(code);
+      if(navigator.share){ try{ await navigator.share({title:'Мой врачебный код',text:'Прикрепись ко мне по ссылке',url}); }catch(e){} }
+      else{ try{ await navigator.clipboard.writeText(url); }catch(e){} }
+    };
+  }
 
-    // Actions (in-card)
-    function sendOrderTo(ids){ const names=ids.map(id=>state.patients.find(p=>p.id===id)?.name||id).join(', '); toast('Анализы отправлены: '+names); }
-    function sendRecoTo(ids){ const text=prompt('Текст рекомендации:','Рекомендация'); if(!text) return; const names=ids.map(id=>state.patients.find(p=>p.id===id)?.name||id).join(', '); toast('Рекомендация отправлена: '+names); }
+  function renderPatients(){
+    const list=$('#patientsList'); list.innerHTML='';
+    const arr=(state.patients||[]).filter(matchesFilters);
+    const showEmpty = arr.length===0;
+    $('#patientsTips').style.display = showEmpty ? 'block' : 'none';
+    $('#patientsEmpty').style.display = showEmpty ? 'block' : 'none';
+    $('#patientsGhost').style.display = showEmpty ? 'block' : 'none';
+    if(showEmpty) updatePatientsTips();
+    arr.forEach(p=>list.appendChild(patientCard(p)));
+  }
 
-    // Patient modal
-    function openPatient(id){
-      const p=state.patients.find(x=>x.id===id); if(!p) return;
-      $('#ptTitle').textContent=p.name+' • '+p.age+' • '+p.city; $('#ptMeta').textContent=p.handle||'';
-      $('#ptCourse').textContent=`Старт: ${p.course.start?fmtDate(p.course.start):'—'} • Доза: ${p.course.dose_mg||0} мг/сут • Цель: ${p.course.target_mgkg||'-'} мг/кг • Выполнено: ${p.course.progress||0}%`;
-      $('#ptProg').style.width=(p.course.progress||0)+'%'; $('#ptRisks').textContent=p.risks.join(' • ');
-      const lastDate=p.labs?.date?fmtDate(p.labs.date):'—'; $('#ptLabs').textContent=`ALT ${p.labs.ALT.val??'—'} • AST ${p.labs.AST.val??'—'} • TG ${p.labs.TG.val??'—'} • ХС ${p.labs.CHOL.val??'—'} — от ${lastDate}`;
-      $('#ptReports').textContent=p.lastReport?('Последний отчёт: '+fmtDate(p.lastReport)):'Ещё нет отчётов.';
-      const m=$('#patientModal'); m.style.display='flex';
-      $('#ptOrder').onclick=()=>sendOrderTo([id]); $('#ptReco').onclick=()=>sendRecoTo([id]); $('#ptPhoto').onclick=()=>toast('Запрос фото отправлен'); $('#ptFinish').onclick=()=>toast('Курс помечен как завершён (UI-демо)'); $('#ptDetach').onclick=()=>{ if(confirm('Открепить пациента?')){ state.patients=state.patients.filter(x=>x.id!==id); persist(); renderAll(); $('#ptClose').click(); } };
-    }
-    $('#ptClose').addEventListener('click',()=>$('#patientModal').style.display='none');
+  // Заявки — подсказка при автопринятии
+  function updateRequestsTips(){
+    const settings=storage.get('doctorSettings',{autoAccept:false});
+    const hint=$('#autoAcceptHint'); if(hint) hint.style.display = settings.autoAccept ? 'block' : 'none';
+  }
+  $('#autoSwitch').addEventListener('click',()=>{
+    const st=storage.get('doctorSettings',{autoAccept:false});
+    $('#autoSwitch').classList.toggle('on');
+    st.autoAccept=$('#autoSwitch').classList.contains('on');
+    storage.set('doctorSettings',st);
+    updateRequestsTips();
+  });
 
-    // Profile / settings
-    function updateRequestsTips(){
-      const sett=storage.get('doctorSettings',{autoAccept:false});
-      const el=document.getElementById('autoAcceptHint');
-      if(el) el.style.display = sett.autoAccept ? 'block' : 'none';
-      const code=storage.get('doctorCode')||'AB12C';
-      const reqCode=document.getElementById('reqCodeInline'); if(reqCode) reqCode.textContent=code;
-      const btnQR=document.getElementById('reqShowQR'); if(btnQR) btnQR.onclick=openQR;
-      const btnCopy=document.getElementById('reqCopyCode'); if(btnCopy) btnCopy.onclick=async()=>{ try{ await navigator.clipboard.writeText(code); toast('Код скопирован'); }catch(e){} };
-      const btnShare=document.getElementById('reqShareLink'); if(btnShare) btnShare.onclick=async()=>{
-        const url=shareURL(code);
-        if(navigator.share){ try{ await navigator.share({title:'Мой врачебный код',text:'Прикрепись ко мне по ссылке',url}); }catch(e){} }
-        else{ try{ await navigator.clipboard.writeText(url); toast('Ссылка скопирована'); }catch(e){} }
-      };
-    }
-    function updatePatientsTips(){
-      const code=storage.get('doctorCode')||'AB12C';
-      const b1=document.getElementById('ptShowQR'); if(b1) b1.onclick=openQR;
-      const b2=document.getElementById('ptCopyCode'); if(b2) b2.onclick=async()=>{ try{ await navigator.clipboard.writeText(code); toast('Код скопирован'); }catch(e){} };
-      const b3=document.getElementById('ptShareLink'); if(b3) b3.onclick=async()=>{
-        const url=shareURL(code);
-        if(navigator.share){ try{ await navigator.share({title:'Мой врачебный код',text:'Прикрепись ко мне по ссылке',url}); }catch(e){} }
-        else{ try{ await navigator.clipboard.writeText(url); toast('Ссылка скопирована'); }catch(e){} }
-      };
-    }
-    function renderProfile(){
-      const settings=storage.get('doctorSettings',{autoAccept:false});
-      $('#autoAccept').checked=!!settings.autoAccept; $('#autoAcceptProfile').checked=!!settings.autoAccept;
-      $('#autoAccept').onchange=e=>{ settings.autoAccept=e.target.checked; storage.set('doctorSettings',settings); $('#autoAcceptProfile').checked=settings.autoAccept; updateRequestsTips(); };
-      $('#autoAcceptProfile').onchange=e=>{ settings.autoAccept=e.target.checked; storage.set('doctorSettings',settings); $('#autoAccept').checked=settings.autoAccept; updateRequestsTips(); };
-      const total=state.patients.length, on=state.patients.filter(p=>p.course.onCourse).length, red=state.patients.filter(p=>['ALT','AST','TG','CHOL'].some(k=>(p.labs?.[k]?.status)==='r')).length, needs=state.patients.filter(p=>(p.newMsgs||0)>0).length;
-      $('#stTotal').textContent=total; $('#stOn').textContent=on; $('#stRed').textContent=red; $('#stNeeds').textContent=needs;
-    }
+  // Профиль/общие кнопки
+  $('#copyCode').onclick=async()=>{ try{ await navigator.clipboard.writeText(storage.get('doctorCode')||''); }catch(e){} };
+  function openQR(){
+    const code=storage.get('doctorCode')||'AB12C';
+    const url=`${location.origin}${location.pathname}?attach=doctor&code=${code}`;
+    const api='https://api.qrserver.com/v1/create-qr-code/?size=256x256&data='+encodeURIComponent(url);
+    $('#qrBox').innerHTML=`<img alt="QR" src="${api}" loading="lazy">`;
+    $('#qrModal').style.display='flex';
+  }
+  $('#qrClose').onclick=()=>$('#qrModal').style.display='none';
+  $('#qrCode').onclick=openQR;
+  $('#shareCode').onclick=async()=>{
+    const code=storage.get('doctorCode')||'AB12C'; const url=shareURL(code);
+    if(navigator.share){ try{ await navigator.share({title:'Мой врачебный код',text:'Прикрепись ко мне по ссылке',url}); }catch(e){} }
+    else{ try{ await navigator.clipboard.writeText(url); }catch(e){} }
+  };
 
-    // Search/filters
-    $('#search').addEventListener('input',e=>{ state.filters.q=e.target.value; renderPatients(); });
-    $$('#tab-patients .dr-chip').forEach(chip=>chip.addEventListener('click',()=>{ const f=chip.dataset.filter, val=chip.dataset.value; if(f==='status'){state.filters.status=val; $$('#tab-patients .dr-chip[data-filter="status"]').forEach(c=>c.classList.toggle('active',c===chip));} if(f==='red'){state.filters.red=!state.filters.red; chip.classList.toggle('active',state.filters.red);} renderPatients(); }));
-    $('#daysNoReport').addEventListener('change',e=>{ state.filters.days=parseInt(e.target.value,10)||0; renderPatients(); });
-    $('#resetFilters').addEventListener('click',()=>{ state.filters={q:'',status:'all',red:false,days:0}; $('#search').value=''; $('#daysNoReport').value='0'; $$('#tab-patients .dr-chip').forEach(c=>c.classList.remove('active')); renderPatients(); });
+  function renderProfile(){
+    const settings=storage.get('doctorSettings',{autoAccept:false});
+    $('#autoSwitch').classList.toggle('on', !!settings.autoAccept);
+    const totals={
+      total:state.patients.length,
+      on:state.patients.filter(p=>p.course?.onCourse).length,
+      red:state.patients.filter(p=>['ALT','AST','TG','CHOL'].some(k=>(p.labs?.[k]?.status)==='r')).length,
+      needs:state.patients.filter(p=>(p.newMsgs||0)>0).length
+    };
+    $('#stTotal').textContent=totals.total; $('#stOn').textContent=totals.on; $('#stRed').textContent=totals.red; $('#stNeeds').textContent=totals.needs;
+  }
 
-    // QR buttons
-    $('#showQR').addEventListener('click',openQR); $('#qrCode').addEventListener('click',openQR);
-    function openQR(){ const code=storage.get('doctorCode')||'AB12C'; const url=shareURL(code); const api='https://api.qrserver.com/v1/create-qr-code/?size=256x256&data='+encodeURIComponent(url); $('#qrBox').innerHTML=`<img alt="QR" src="${api}" loading="lazy">`; $('#qrModal').style.display='flex'; }
-    $('#qrClose').addEventListener('click',()=>$('#qrModal').style.display='none');
+  // Поиск/фильтры
+  $('#search').addEventListener('input',e=>{ state.filters.q=e.target.value; renderPatients(); });
+  $$('#sec-patients .chip').forEach(chip=>chip.addEventListener('click',()=>{
+    const f=chip.dataset.filter, val=chip.dataset.value;
+    if(f==='status'){state.filters.status=val; $$('#sec-patients .chip[data-filter="status"]').forEach(c=>c.classList.toggle('active',c===chip));}
+    if(f==='red'){state.filters.red=!state.filters.red; chip.classList.toggle('active',state.filters.red);}
+    renderPatients();
+  }));
+  $('#daysNoReport').addEventListener('change',e=>{ state.filters.days=parseInt(e.target.value,10)||0; renderPatients(); });
+  $('#resetFilters').addEventListener('click',()=>{
+    state.filters={q:'',status:'all',red:false,days:0};
+    $('#search').value=''; $('#daysNoReport').value='0'; $$('#sec-patients .chip').forEach(c=>c.classList.remove('active'));
+    renderPatients();
+  });
 
-    // Copy/share
-    $('#copyCode').addEventListener('click',async()=>{ try{ await navigator.clipboard.writeText(storage.get('doctorCode')||'AB12C'); toast('Код скопирован'); }catch(e){} });
-    $('#shareCode').addEventListener('click',async()=>{ const code=storage.get('doctorCode')||'AB12C'; const url=shareURL(code); if(navigator.share){ try{ await navigator.share({title:'Код врача',text:`Мой код: ${code}`,url}); }catch(e){} } else { try{ await navigator.clipboard.writeText(url); toast('Ссылка скопирована'); }catch(e){} } });
+  // Загрузка аватара
+  $('#smallAva').addEventListener('click',()=>$('#avaInput').click());
+  $('#editAvaBtn').addEventListener('click',()=>$('#avaInput').click());
+  $('#avaInput').addEventListener('change',e=>{
+    const f=e.target.files?.[0];
+    if(f){ const r=new FileReader(); r.onload=()=>{ localStorage.setItem('doctorAvatarUrl', r.result); applyAvatar(); }; r.readAsDataURL(f); }
+  });
 
-    function persist(){ storage.set('patientsList',state.patients); storage.set('patientsRequests',state.requests); }
-    function renderAll(){ renderPatients(); renderRequests(); renderProfile(); updateRequestsTips(); updatePatientsTips(); }
-    // Manual reset control
-    function attachReset(){
-      const btn=document.getElementById('resetDataBtn');
-      if(!btn) return;
-      btn.addEventListener('click',()=>{
-        if(confirm('Очистить локальные списки пациентов и заявок?\nВаш профиль и код останутся.')){
-          localStorage.setItem('patientsList','[]');
-          localStorage.setItem('patientsRequests','[]');
-          state.patients=[]; state.requests=[]; renderAll(); toast('Данные очищены');
-        }
-      });
-    }
-
-    // Avatar events
-    $('#smallAva').addEventListener('click',()=>$('#avaInput').click());
-    $('#editAvaBtn').addEventListener('click',()=>$('#avaInput').click());
-    $('#avaInput').addEventListener('change',e=>{ const f=e.target.files?.[0]; if(f) saveAvatar(f); });
-
-    // Init
-    function init(){
-      const qCode=getQuery('code'); if(qCode && /^[A-Z0-9]{5}$/.test(qCode)) localStorage.setItem('doctorCode', JSON.stringify(qCode));
-      initHeader(); tryTG(); applyAvatar(); attachReset();
-      // In case user filled @handle later, attempt to fetch avatar now as well
-      const hHandle=parseHandle(storage.get('doctorProfile',{}).tg);
-      if(hHandle && !localStorage.getItem('doctorAvatarUrl')) tryUnavatarFromHandle(hHandle);
-      const tabs=['patients','requests','profile'];
-      const tabHash=location.hash.replace('#/doctor/','');
-      setTab(tabs.includes(tabHash)?tabHash:'patients');
-      renderAll();
-    }
-
-    function toast(txt){ const n=document.createElement('div'); n.textContent=txt; n.style.cssText='position:fixed;left:50%;bottom:28px;transform:translateX(-50%);padding:10px 14px;border-radius:12px;background:rgba(0,0,0,.7);color:#fff;font-weight:600;z-index:9999'; document.body.appendChild(n); setTimeout(()=>n.remove(),1400); }
-    init();
-  </script>
+  function renderAll(){ renderPatients(); renderProfile(); updateRequestsTips(); }
+  function init(){
+    const qCode=getQuery('code'); if(qCode && /^[A-Z0-9]{5}$/.test(qCode)) localStorage.setItem('doctorCode', JSON.stringify(qCode));
+    initHeader(); tryTG(); applyAvatar();
+    const h2=(location.hash||'').replace('#/doctor/',''); setTab(h2||'patients');
+    renderAll();
+  }
+  document.addEventListener('DOMContentLoaded', init);
+</script>
 </body>
 </html>

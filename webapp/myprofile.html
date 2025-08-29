@@ -486,7 +486,17 @@ body.light .tab.active{
 
   function populate(){
     $('#userName').textContent = STATE.name || 'Профиль';
-    const av = $('#avatarImg'); if(STATE.avatarUrl){ av.src = STATE.avatarUrl; } else { $('#avatarFallback').textContent = (STATE.name||'U').trim().charAt(0).toUpperCase(); }
+    const av = $('#avatarImg');
+const fb = $('#avatarFallback');
+if (STATE.avatarUrl) {
+  // не удаляем <img> при ошибке — просто оставляем инициалы
+  av.removeAttribute('onerror');    // если был в разметке
+  av.src = STATE.avatarUrl;
+  fb.textContent = (STATE.name||'U').trim().charAt(0).toUpperCase();
+} else {
+  fb.textContent = (STATE.name||'U').trim().charAt(0).toUpperCase();
+}
+
 
     const goalMg = Math.round(STATE.weightKg * STATE.goalMgPerKg);
     const pct = clamp(goalMg? (STATE.takenMg/goalMg*100):0, 0, 100);
@@ -531,6 +541,25 @@ body.light .tab.active{
 
   // гарантируем объект STATE
   window.STATE = window.STATE || {};
+    // --- Fallback из main: быстрое наполнение без API ---
+  try {
+    const raw = sessionStorage.getItem('share:user');
+    if (raw) {
+      const s = JSON.parse(raw);
+      // не даём пустыми значениями перезатереть реальные
+      STATE.name        ??= s.name;
+      STATE.avatarUrl   ??= s.avatarSrc;
+      STATE.weightKg    ??= Number(s.weightKg || 0);
+      STATE.goalMgPerKg ??= Number(s.goalMgPerKg || 135);
+      STATE.takenMg     ??= Number(s.takenMg || 0);
+      STATE.todayMg     ??= Number(s.todayMg || 0);
+      STATE.drug        ??= s.drug || 'Изотретиноин';
+      STATE.startISO    ??= (s.startISO || '').slice(0,10);
+
+      // моментально отрисуем, потом API, если будет, «освежит»
+      populate();
+    }
+  } catch(_) {}
 
   // 1) Имя/аватар: сначала из Telegram, потом фолбэком из /api/me
   let name  = u ? [u.first_name, u.last_name].filter(Boolean).join(' ') : '';
