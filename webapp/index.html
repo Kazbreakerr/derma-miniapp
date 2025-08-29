@@ -103,37 +103,43 @@ if (role === 'doctor') {
 
     // 2) иначе решаем по API: profile → plan → main
     (async () => {
-      try {
-        const meR = await window.api('/api/me');
-        const me  = meR.ok ? await meR.json() : null;
-        if (me && (me.fresh_user || me.is_fresh_user)) {
-          try {
-            localStorage.removeItem('derma_consent');
-            localStorage.removeItem('derma_next');
-            
-            if (tgId) {
-              localStorage.removeItem(`dermaApp:${tgId}:consentAccepted`);
-              localStorage.removeItem(`dermaApp:${tgId}:splash_seen`);
-              // уже есть: derma_consent, derma_next, ...:splash_seen — оставь
-localStorage.removeItem('rt_patient_done');
-localStorage.removeItem('rt_doctor_done');
-localStorage.removeItem('rt_role');
-localStorage.removeItem('rt_seen_warnings');
-            }
-          } catch(_){}
-          return goToSplash('./welcome-rt.html');
-        }
-        const hasWeight = !!(me && Number(me.weight_kg ?? me.weight) > 0);
-        if (!hasWeight) return goToSplash('./profile-dark.html');
+    try {
+      const meR = await window.api('/api/me');
+      const me  = meR.ok ? await meR.json() : null;
 
-        const planR = await window.api('/api/plan');
-        const plan  = planR.ok ? await planR.json() : null;
-        const hasPlan = !!(plan && (plan.id || plan.start_date || plan.capsule_mg));
-        return goToSplash(hasPlan ? './main-dark.html' : './plan-dark.html');
-      } catch (_){
-        return goToSplash('./profile-dark.html');
+      if (me && (me.fresh_user || me.is_fresh_user)) {
+        try {
+          localStorage.removeItem('derma_consent');
+          localStorage.removeItem('derma_next');
+          if (tgId) {
+            localStorage.removeItem(`dermaApp:${tgId}:consentAccepted`);
+            localStorage.removeItem(`dermaApp:${tgId}:splash_seen`);
+            localStorage.removeItem('rt_patient_done');
+            localStorage.removeItem('rt_doctor_done');
+            localStorage.removeItem('rt_role');
+            localStorage.removeItem('rt_seen_warnings');
+          }
+        } catch(_) {}
+        return goToSplash('./welcome-rt.html');
       }
-    })();
+
+      const hasWeight = !!(me && Number(me.weight_kg ?? me.weight) > 0);
+      if (!hasWeight) return goToSplash('./profile-dark.html');
+
+      const planR = await window.api('/api/plan');
+      const plan  = planR.ok ? await planR.json() : null;
+      const hasPlan = !!(plan && (plan.id || plan.start_date || plan.capsule_mg));
+
+      // БЫЛО: goToSplash(hasPlan ? './main-dark.html' : './plan-dark.html');
+      // СТАЛО: второй и более заход пациента → через welcome
+      if (hasPlan) {
+        return goToSplash('./welcome-rt.html');
+      }
+      return goToSplash('./plan-dark.html');
+    } catch (_){
+      return goToSplash('./profile-dark.html');
+    }
+  })();
   })();
   </script>
 

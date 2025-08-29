@@ -174,6 +174,15 @@
     })();
   </script>
 
+
+  <style>
+    /* Drag-friendly touch behavior */
+    #themeToggle.theme-toggle{ touch-action: pan-y; }
+    #themeToggle.theme-toggle.dragging{ cursor:grabbing; }
+    #themeToggle.theme-toggle.dragging .thumb,
+    #themeToggle.theme-toggle.dragging .scene{ transition:none !important; }
+  </style>
+
 </head>
 <body>
   <div class="wrap">
@@ -466,6 +475,111 @@ const back=document.getElementById('btn-back');if(back){back.addEventListener('c
       }
     }
   }catch(_){}
+})();
+</script>
+
+
+<script>
+(function(){
+  var btn = document.getElementById('themeToggle');
+  if(!btn) return;
+  var thumb = btn.querySelector('.thumb');
+  var scenes = btn.querySelectorAll('.scene');
+
+  // blocking click after drag to avoid double-toggle
+  btn.addEventListener('click', function(e){
+    if (btn.dataset.blockClick === '1') {
+      e.preventDefault(); e.stopPropagation();
+      btn.dataset.blockClick = '0';
+    }
+  }, true);
+
+  function cssNum(el, varName, fallback){
+    var v = getComputedStyle(el).getPropertyValue(varName);
+    var n = parseFloat(v);
+    return isFinite(n) ? n : fallback;
+  }
+
+  var dragging = false, startX = 0, startPos = 0, travel = 0;
+
+  function currentPos(){
+    // map current theme to position
+    var t = document.documentElement.dataset.theme || 'dark';
+    // left for dark, right for light (inverted visuals)
+    return (t === 'dark') ? 0 : travel;
+  }
+
+  function onDown(e){
+    // accept left mouse or any touch/pen
+    if (e.pointerType === 'mouse' && e.button !== 0) return;
+    btn.setPointerCapture && btn.setPointerCapture(e.pointerId);
+    dragging = true;
+    btn.classList.add('dragging');
+    startX = e.clientX;
+
+    var pad = cssNum(btn, '--pad', 8);
+    var bd  = cssNum(btn, '--bd', 2);
+    var w = btn.getBoundingClientRect().width;
+    var tw = thumb.getBoundingClientRect().width;
+    travel = Math.max(0, w - 2*(pad+bd) - tw);
+    startPos = currentPos();
+  }
+
+  function onMove(e){
+    if(!dragging) return;
+    var dx = e.clientX - startX;
+    var x = Math.min(travel, Math.max(0, startPos + dx));
+    thumb.style.transform = 'translateX(' + x + 'px)';
+    // Optional: light/dark scene preview (crossfade by progress)
+    var p = travel ? (x / travel) : 0;
+    if (scenes.length === 2){
+      // dark scene should be visible when p -> 1 (light side due to inversion)
+      scenes[0].style.opacity = (document.documentElement.dataset.theme==='dark') ? (1 - p) : (p); // light scene element
+      scenes[1].style.opacity = (document.documentElement.dataset.theme==='dark') ? (p) : (1 - p); // dark scene element
+    }
+    e.preventDefault();
+  }
+
+  function onUp(e){
+    if(!dragging) return;
+    dragging = false;
+    btn.classList.remove('dragging');
+
+    var matrix = getComputedStyle(thumb).transform;
+    var x = 0;
+    if (matrix && matrix !== 'none'){
+      var m = matrix.match(/matrix\(.*,\s*([-\d\.e]+)\)$/) || matrix.match(/matrix\([\d\.,\s-]+\)/);
+      // fallback: parse matrix string (works in most browsers)
+      try{
+        var parts = matrix.replace('matrix(', '').replace(')', '').split(',');
+        x = parseFloat(parts[4]) || 0;
+      }catch(_){ x = 0; }
+    }
+    // Decide next theme by threshold
+    var nextTheme = (x > travel/2) ? 'light' : 'dark';
+    var curTheme = document.documentElement.dataset.theme || 'dark';
+    // Revert inline transform to let CSS animate to the final state
+    thumb.style.transform = '';
+
+    if(nextTheme !== curTheme){
+      btn.dataset.blockClick = '1'; // block click bubble
+      // Use existing toggle flow by simulating a click on keyboard handler
+      try{
+        // we know pages mapping from previous script; fallback to simple navigation here
+        var target = (nextTheme === 'light') ? 'faq-rt-light.html' : 'faq.html';
+        document.documentElement.setAttribute('data-theme', nextTheme);
+        try{ localStorage.setItem('rt.theme', nextTheme); }catch(_){}
+        if(!location.pathname.endsWith('/'+target)){
+          location.href = target;
+        }
+      }catch(_){}
+    }
+  }
+
+  btn.addEventListener('pointerdown', onDown);
+  window.addEventListener('pointermove', onMove);
+  window.addEventListener('pointerup', onUp);
+  window.addEventListener('pointercancel', onUp);
 })();
 </script>
 

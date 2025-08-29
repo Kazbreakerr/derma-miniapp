@@ -134,25 +134,35 @@
       });
     })();
 
-    // Старт: роутинг в зависимости от роли
-   document.getElementById('startBtn').addEventListener('click', () => {
-  const role =
-    document.querySelector('input[name="role"]:checked')?.value
-    || localStorage.getItem('rt_role')
-    || 'patient';
+   // Старт: роутинг в зависимости от роли + уважение сохранённых флагов
+  document.getElementById('startBtn').addEventListener('click', () => {
+    const qs = location.search || '';
 
-  const qs = location.search || '';
-  if (role === 'patient') {
-    try{ localStorage.setItem('derma_next', 'profile'); }catch(_){}
-    location.replace('./warnings.html' + qs);         // → предупреждения
-  } else {
-    // как и было для врача
-    const next = (localStorage.getItem('rt_doctor_done') === '1')
-      ? './doctor-cabinet-mint-rose.html'
-      : './doctor-onboarding-mint-rose.html';
-    location.replace(next);
-  }
-}, { once:true });
+    const role =
+      document.querySelector('input[name="role"]:checked')?.value
+      || (document.getElementById('roleSwitch')?.checked ? 'patient' : 'doctor')
+      || localStorage.getItem('derma_role')
+      || localStorage.getItem('rt_role')
+      || 'patient';
+
+    if (role === 'doctor') {
+      // Повторный заход врача → сразу в кабинет
+      const next = (localStorage.getItem('rt_doctor_done') === '1')
+        ? './doctor-cabinet-mint-rose.html'
+        : './doctor-onboarding-mint-rose.html';
+      location.replace(next + qs);
+      return;
+    }
+
+    // Пациент: первый заход → сначала warnings (примем согласие), потом profile.
+    const patientDone = localStorage.getItem('rt_patient_done') === '1';
+    if (patientDone) {
+      location.replace('./main-dark.html' + qs);
+    } else {
+      try { localStorage.setItem('derma_next', 'profile'); } catch(_) {}
+      location.replace('./warnings.html' + qs);
+    }
+  }, { once: true });
 
     // Смена темы
     (function(){

@@ -207,10 +207,18 @@
     });
     $('#qrClose').addEventListener('click',()=>$('#qrModal').classList.remove('show'));
 
-    $('#finishBtn').addEventListener('click',()=>{
-      store.set('doctorOnboardingDone',{at:new Date().toISOString()});
-      const _code=store.get('doctorCode'); location.href='doctor-cabinet-mint-rose.html?code='+encodeURIComponent(_code)+'#/doctor/patients';
-    });
+    document.getElementById('finishBtn').addEventListener('click', () => {
+    try {
+      localStorage.setItem('rt_doctor_done', '1');
+      localStorage.setItem('rt_role', 'doctor');
+    } catch(_) {}
+
+    // оставляем вашу отметку о прохождении онборда
+    store.set('doctorOnboardingDone', { at: new Date().toISOString() });
+
+    const qs = location.search || '';
+    location.href = 'doctor-cabinet-mint-rose.html' + qs + '#/doctor/patients';
+  });
 
     function toast(txt){ const n=document.createElement('div'); n.textContent=txt; n.style.cssText='position:fixed;left:50%;bottom:28px;transform:translateX(-50%);padding:10px 14px;border-radius:12px;background:rgba(0,0,0,.7);color:#fff;font-weight:600;z-index:9999'; document.body.appendChild(n); setTimeout(()=>n.remove(),1400); }
     next1.disabled=!valid1();
