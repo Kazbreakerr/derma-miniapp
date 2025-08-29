@@ -587,7 +587,49 @@ body.light .tab.active{
       STATE.todayMg     ??= Number(s.todayMg || 0);
       STATE.drug        ??= s.drug || 'Изотретиноин';
       STATE.startISO    ??= (s.startISO || '').slice(0,10);
+      <!-- Overrides from Telegram + sessionStorage + localStorage -->
+      
+(function applyExternalUser(){
+  // Telegram WebApp user (имя + фото)
+  try{
+    const tg = window.Telegram?.WebApp;
+    const u = tg?.initDataUnsafe?.user;
+    if(u){
+      const full = [u.first_name, u.last_name].filter(Boolean).join(' ').trim();
+      if (full) STATE.name = full;
+      if (u.photo_url) STATE.avatarUrl = u.photo_url;
+    }
+  }catch(_){}
 
+  // Снэпшот с главной (верхний блок и нижняя кнопка кладут сюда)
+  try{
+    const raw = sessionStorage.getItem('share:user');
+    if(raw){
+      const s = JSON.parse(raw);
+      STATE.name        = s.name        || STATE.name;
+      STATE.avatarUrl   = s.avatarSrc   || STATE.avatarUrl;
+      STATE.weightKg    = Number(s.weightKg    ?? STATE.weightKg);
+      STATE.goalMgPerKg = Number(s.goalMgPerKg ?? STATE.goalMgPerKg);
+      STATE.takenMg     = Number(s.takenMg     ?? STATE.takenMg);
+      STATE.todayMg     = Number(s.todayMg     ?? STATE.todayMg);
+      STATE.drug        = s.drug || STATE.drug;
+      STATE.startISO    = (s.startISO || STATE.startISO || '').slice(0,10);
+    }
+  }catch(_){}
+
+  // Резервный фолбэк из localStorage (если нет TG и нет снэпшота)
+  try{
+    STATE.weightKg    ||= Number(localStorage.getItem('rt_weightKG') || 0);
+    STATE.goalMgPerKg ||= Number(localStorage.getItem('rt_goalMgKg') || 135);
+    STATE.takenMg     ||= Number(localStorage.getItem('rt_takenMg') || 0);
+    STATE.todayMg     ||= Number(localStorage.getItem('rt_todayMg') || 0);
+    STATE.drug        ||= localStorage.getItem('rt_drug') || 'Изотретиноин';
+    const si = localStorage.getItem('rt_startISO') || '';
+    if (si && !STATE.startISO) STATE.startISO = si.slice(0,10);
+  }catch(_){}
+})();
+
+    
       // моментально отрисуем, потом API, если будет, «освежит»
       populate();
     }

@@ -227,42 +227,22 @@
   const shareURL=code=>`${location.origin}${location.pathname}?attach=doctor&code=${code}`;
   const getQuery=(name)=>{ try{ return new URLSearchParams(location.search).get(name);}catch(e){ return null; } };
 
-  /* ===== Аватар из Telegram (обновлено) ===== */
+  /* ===== Аватар из Telegram ===== */
   const parseHandle=tg=>{ if(!tg) return null; const m=String(tg).trim().match(/@?([a-zA-Z0-9_]+)/); return m?m[1]:null; };
   const initialsFrom=(name='')=>{ const p=(name||'').trim().split(/\s+/); return ((p[0]||'').charAt(0)+(p[1]||'').charAt(0)||'JD').toUpperCase(); };
-
-  function setSmallAvatar(url, init){
-    const box=$('#smallAva'); if(!box) return;
-    if(url){
-      box.innerHTML='<img alt="ava" referrerpolicy="no-referrer">';
-      box.querySelector('img').src=url;
-    } else {
-      box.textContent=init||'JD';
-    }
-  }
-  function setBigAvatar(url, init){
-    const img=$('#bigAvaImg'), txt=$('#bigAvaTxt'); if(!img||!txt) return;
-    if(url){
-      img.referrerPolicy="no-referrer";
-      img.src=url; img.style.display='block'; txt.style.display='none';
-    }else{
-      img.style.display='none'; txt.textContent=init||'JD'; txt.style.display='block';
-    }
-  }
+  function setSmallAvatar(url, init){ const box=$('#smallAva'); if(url){ box.innerHTML='<img alt="ava">'; box.querySelector('img').src=url; } else { box.textContent=init||'JD'; } }
+  function setBigAvatar(url, init){ const img=$('#bigAvaImg'), txt=$('#bigAvaTxt'); if(url){ img.src=url; img.style.display='block'; txt.style.display='none'; }else{ img.style.display='none'; txt.textContent=init||'JD'; txt.style.display='block'; } }
   function setAvatarUrl(url){ if(!url) return; localStorage.setItem('doctorAvatarUrl', url); applyAvatar(); }
 
-  async function tryTGAvatar(){
+  // 1) WebApp: прямая ссылка из Telegram
+  function tryTG(){
     try{
-      if(!window.Telegram || !Telegram.WebApp) return false;
-      Telegram.WebApp.ready();
-      const user = Telegram.WebApp.initDataUnsafe?.user;
-      const photo = user?.photo_url;
-      if(photo){ setAvatarUrl(photo); return true; }
-      if(user?.username){ return tryUnavatarFromHandle(user.username); }
+      const url=window.Telegram?.WebApp?.initDataUnsafe?.user?.photo_url;
+      if(url){ setAvatarUrl(url); return true; }
     }catch(e){}
     return false;
   }
-
+  // 2) Веб-страница: по @handle через unavatar
   function tryUnavatarFromHandle(handle){
     if(!handle) return false;
     const url=`https://unavatar.io/telegram/${handle}`;
@@ -277,7 +257,8 @@
     const prof=storage.get('doctorProfile',{name:'Врач'});
     const init=initialsFrom(prof.name);
     const url=localStorage.getItem('doctorAvatarUrl');
-    setSmallAvatar(url,init); setBigAvatar(url,init);
+    setSmallAvatar(url,init);
+    setBigAvatar(url,init);
   }
 
   /* ===== Данные/состояние ===== */
@@ -297,6 +278,7 @@
 
   /* ===== Хедер/профиль ===== */
   function initHeader(){
+    // код из query → сохранить
     const qCode=getQuery('code'); if(qCode && /^[A-Z0-9]{5}$/.test(qCode)) localStorage.setItem('doctorCode', JSON.stringify(qCode));
     const code=storage.get('doctorCode')||'AB12C';
     const elTop=$('#topCode'); if(elTop) elTop.textContent=code;
@@ -395,7 +377,7 @@
   $('#qrClose').onclick=()=>$('#qrModal').style.display='none';
   $('#qrCode').onclick=openQR;
   $('#shareCode').onclick=async()=>{
-    const code=storage.get('doctorCode')||''; const url=shareURL(code);
+    const code=storage.get('doctorCode')||'AB12C'; const url=shareURL(code);
     if(navigator.share){ try{ await navigator.share({title:'Мой врачебный код',text:'Прикрепись ко мне по ссылке',url}); }catch(e){} }
     else{ try{ await navigator.clipboard.writeText(url); }catch(e){} }
   };
@@ -427,7 +409,7 @@
     renderPatients();
   });
 
-  /* ===== Загрузка аватара вручную ===== */
+  /* ===== Загрузка аватара вручную (опция) ===== */
   $('#smallAva').addEventListener('click',()=>$('#avaInput').click());
   $('#editAvaBtn').addEventListener('click',()=>$('#avaInput').click());
   $('#avaInput').addEventListener('change',e=>{
@@ -437,16 +419,17 @@
 
   /* ===== Инициализация ===== */
   function renderAll(){ renderPatients(); renderProfile(); updateRequestsTips(); }
-  async function init(){
+  function init(){
     const qCode=getQuery('code'); if(qCode && /^[A-Z0-9]{5}$/.test(qCode)) localStorage.setItem('doctorCode', JSON.stringify(qCode));
     initHeader();
 
+    // Аватар: сперва то, что уже сохранено. Если нет — Telegram WebApp → @handle через unavatar.
     const saved = localStorage.getItem('doctorAvatarUrl');
     if(!saved){
-      const got = await tryTGAvatar();
-      if(!got){
+      const gotTG = tryTG(); // внутри Telegram
+      if(!gotTG){
         const handle = parseHandle(storage.get('doctorProfile',{}).tg);
-        if(handle) tryUnavatarFromHandle(handle);
+        if(handle) tryUnavatarFromHandle(handle); // веб-страница
       }
     }
     applyAvatar();

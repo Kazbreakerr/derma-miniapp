@@ -833,8 +833,53 @@ body.light .tab.active{ color:#0d1220; background: linear-gradient(180deg, rgba(
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10 2v5l-5 9a4 4 0 0 0 3.5 6h7a4 4 0 0 0 3.5-6l-5-9V2"/><path d="M8 11h8"/></svg>
       <small>Анализы</small>
     </a>
-  </nav>
+  
+    <script>
+// Ensure bottom nav -> Profile passes snapshot like header block
+(function attachTabbarProfileRoute(){
+  const tabbar = document.querySelector('nav.tabbar');
+  if(!tabbar) return;
+  tabbar.addEventListener('click', (e)=>{
+    const a = e.target.closest('a.tab[href$="myprofile.html"]');
+    if(!a) return;
+    e.preventDefault();
+    try{
+      // 1) быстрый снэпшот (как на верхнем блоке)
+      const img = document.querySelector('[data-shared="avatar"] img');
+      const snap = {
+        name: (document.getElementById('profileName')?.textContent || '').trim() || (window.USER_NAME || ''),
+        avatarSrc: img?.currentSrc || img?.src || '',
+        weightKg:  Number(window.PROFILE_WEIGHT_KG || localStorage.getItem('rt_weightKG') || 0),
+        goalMgPerKg: Number(window.PROFILE_GOAL_MGKG || localStorage.getItem('rt_goalMgKg') || 135),
+        takenMg:  Number(window.PROFILE_TAKEN_MG || localStorage.getItem('rt_takenMg') || 0),
+        todayMg:  Number(window.PROFILE_TODAY_MG || localStorage.getItem('rt_todayMg') || 0),
+        drug:     String(window.PROFILE_DRUG || localStorage.getItem('rt_drug') || 'Изотретиноин'),
+        startISO: String(window.PROFILE_START_ISO || localStorage.getItem('rt_startISO') || '')
+      };
+      sessionStorage.setItem('share:user', JSON.stringify(snap));
 
+      // 2) payload для перелёта аватарки
+      const host = document.querySelector('[data-shared="avatar"]');
+      if (host) {
+        const r = host.getBoundingClientRect();
+        const payload = {
+          x:r.left, y:r.top, w:r.width, h:r.height,
+          br: getComputedStyle(host).borderRadius,
+          src: snap.avatarSrc, text: (snap.name||'?')[0]?.toUpperCase(),
+          ts: Date.now(), bg:'#0d1623'
+        };
+        sessionStorage.setItem('share:avatar', JSON.stringify(payload));
+      }
+
+      // 3) переход с Fade&Slide
+      const go = ()=>{ location.href = 'myprofile.html#fx=avatar'; };
+      if (document.startViewTransition) document.startViewTransition(go); else go();
+    }catch(_){
+      location.href = 'myprofile.html';
+    }
+  });
+})();
+</script>
 
   <script>
     const tgApp = (window.Telegram && window.Telegram.WebApp) ? window.Telegram.WebApp : null;
