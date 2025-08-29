@@ -95,6 +95,11 @@
     if (!hasConsent) {
       return goToSplash('./welcome-rt.html');
     }
+    // если роль = doctor — маршрут всегда через welcome ветку врача
+const role = localStorage.getItem('rt_role') || '';
+if (role === 'doctor') {
+  return goToSplash('./welcome-rt.html');
+}
 
     // 2) иначе решаем по API: profile → plan → main
     (async () => {

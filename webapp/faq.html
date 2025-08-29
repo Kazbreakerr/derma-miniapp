@@ -54,6 +54,100 @@
     .back-btn svg{width:18px;height:18px;opacity:.9}
 
   </style>
+
+  <style>
+  /* === Exact-look Theme Toggle === */
+  .topbar { display:flex; align-items:center; gap:12px; flex-wrap:wrap; }
+  #themeToggle{ margin-left:auto; }
+
+  #themeToggle.theme-toggle{
+    --h:88px; --w:260px; --pad:10px; --bd:2px;
+    --thumb:calc(var(--h) - 2*(var(--pad) + var(--bd)));
+    position:relative; width:var(--w); height:var(--h);
+    padding:0; border:var(--bd) solid #D7E0E2; border-radius:999px;
+    background:#F4F8F9; cursor:pointer; overflow:hidden;
+    -webkit-tap-highlight-color:transparent;
+    box-shadow: inset 0 0 0 1px rgba(255,255,255,.65);
+  }
+  html[data-theme="dark"] #themeToggle.theme-toggle{
+    background:#0F1726;
+    border-color: rgba(255,255,255,.06);
+    box-shadow: inset 0 0 0 1px rgba(255,255,255,.05);
+  }
+  #themeToggle .scene{
+    position:absolute; inset:var(--pad); border-radius:calc(var(--h)/2 - var(--pad));
+    overflow:hidden; pointer-events:none;
+    transition: opacity .28s ease, transform .38s cubic-bezier(.2,.7,.2,1);
+  }
+  #themeToggle .scene svg{ position:absolute; inset:0; width:100%; height:100%; display:block; }
+  #themeToggle .scene.light{ opacity:1; }
+  #themeToggle .scene.dark{ opacity:0; }
+
+  html[data-theme="dark"] #themeToggle .scene.light{ opacity:0; transform: translateX(-6px); }
+  html[data-theme="dark"] #themeToggle .scene.dark { opacity:1; transform: translateX(0); }
+
+  /* Thumb */
+  #themeToggle .thumb{
+    position:absolute; top:calc(var(--pad) + var(--bd)); left:calc(var(--pad) + var(--bd));
+    width:var(--thumb); height:var(--thumb); border-radius:50%;
+    background:#FFFFFF;
+    box-shadow: 0 10px 28px rgba(0,0,0,.25),
+                inset 0 0 0 1px rgba(0,0,0,.08),
+                inset 0 1px 0 rgba(0,0,0,.06);
+    transform: translateX(0);
+    transition: transform .38s cubic-bezier(.2,.7,.2,1);
+    z-index:3;
+  }
+  html[data-theme="dark"] #themeToggle .thumb{
+    transform: translateX(calc(var(--w) - 2*(var(--pad) + var(--bd)) - var(--thumb)));
+  }
+
+  /* Reduced motion */
+  @media (prefers-reduced-motion: reduce){
+    #themeToggle .thumb, #themeToggle .scene{ transition:none !important; }
+  }
+  </style>
+    
+
+  <style>
+    /* --- Invert toggle visuals: show DARK scene on LIGHT page, and LIGHT scene on DARK page --- */
+    html[data-theme="light"] #themeToggle.theme-toggle .scene.light{ opacity:0; transform: translateX(-6px); }
+    html[data-theme="light"] #themeToggle.theme-toggle .scene.dark { opacity:1; transform: translateX(0); }
+    html[data-theme="dark"]  #themeToggle.theme-toggle .scene.light{ opacity:1; transform: translateX(0); }
+    html[data-theme="dark"]  #themeToggle.theme-toggle .scene.dark { opacity:0; transform: translateX(6px); }
+    /* Invert thumb mapping too: on LIGHT page thumb on the RIGHT, on DARK page on the LEFT */
+    #themeToggle.theme-toggle .thumb{ transform: translateX(0); }
+    html[data-theme="light"] #themeToggle.theme-toggle .thumb{
+      transform: translateX(calc(var(--w) - 2*(var(--pad) + var(--bd)) - var(--thumb)));
+    }
+    html[data-theme="dark"] #themeToggle.theme-toggle .thumb{ transform: translateX(0); }
+  </style>
+    
+
+  <script>
+    (function(){
+      try{ if('scrollRestoration' in history) history.scrollRestoration = 'manual'; }catch(_){}
+      var toTop = function(){ try{
+        document.documentElement.scrollTop = 0;
+        document.body.scrollTop = 0;
+        window.scrollTo(0,0);
+      }catch(_){} };
+      if(document.readyState === 'complete' || document.readyState === 'interactive'){
+        toTop();
+      }else{
+        window.addEventListener('DOMContentLoaded', toTop, {once:true});
+      }
+      window.addEventListener('pageshow', function(){ toTop(); }, {once:true});
+    })();
+  </script>
+
+
+  <style>
+    /* Ensure the back button is not overlapped by the toggle */
+    .topbar .back-btn{ position:relative; z-index: 20; }
+    #themeToggle.theme-toggle{ position:relative; z-index: 10; }
+  </style>
+
 </head>
 <body>
   <div class="wrap">
@@ -63,6 +157,76 @@
         <span>Назад</span>
       </a>
       <h1 style="margin:0">Roaccutane Tracker</h1>
+
+      <!-- Theme toggle exact -->
+      <button id="themeToggle" class="theme-toggle" role="switch" aria-checked="false" aria-label="Переключить тему">
+        <span class="scene light">
+      <svg viewBox="0 0 260 88" xmlns="http://www.w3.org/2000/svg">
+        <!-- gradient sky -->
+        <defs>
+          <linearGradient id="lgLight" x1="0" y1="0" x2="1" y2="0">
+            <stop offset="0%" stop-color="#5ECFC8"/>
+            <stop offset="100%" stop-color="#FFD3A3"/>
+          </linearGradient>
+        </defs>
+        <rect x="0" y="0" width="260" height="88" rx="34" fill="url(#lgLight)"/>
+        <!-- clouds (creamy) -->
+        <g fill="#FFF1E2">
+          <g opacity=".85">
+            <circle cx="170" cy="46" r="18"/>
+            <circle cx="188" cy="46" r="22"/>
+            <circle cx="209" cy="50" r="18"/>
+          </g>
+          <g opacity=".35">
+            <circle cx="130" cy="54" r="10"/>
+            <circle cx="145" cy="56" r="12"/>
+          </g>
+        </g>
+      </svg>
+    </span>
+        <span class="scene dark">
+      <svg viewBox="0 0 260 88" xmlns="http://www.w3.org/2000/svg">
+        <!-- gradient night -->
+        <defs>
+          <linearGradient id="lgDark" x1="0" y1="0" x2="1" y2="0">
+            <stop offset="0%" stop-color="#1C2140"/>
+            <stop offset="100%" stop-color="#2A0F4A"/>
+          </linearGradient>
+        </defs>
+        <rect x="0" y="0" width="260" height="88" rx="34" fill="url(#lgDark)"/>
+        <!-- rings on right -->
+        <g opacity=".55" mix-blend-mode="multiply">
+          <ellipse cx="230" cy="44" rx="58" ry="44" fill="rgba(0,0,0,.22)"/>
+        </g>
+        <g opacity=".38" mix-blend-mode="multiply">
+          <ellipse cx="236" cy="44" rx="82" ry="60" fill="rgba(0,0,0,.15)"/>
+        </g>
+        <!-- clouds (violet) -->
+        <g fill="#3B2A6B">
+          <g opacity=".75">
+            <circle cx="86" cy="52" r="22"/>
+            <circle cx="110" cy="50" r="18"/>
+            <circle cx="132" cy="54" r="22"/>
+          </g>
+          <g opacity=".40">
+            <circle cx="46" cy="56" r="18"/>
+            <circle cx="64" cy="56" r="14"/>
+          </g>
+        </g>
+        <!-- stars -->
+        <g fill="#A98DF7" opacity=".8">
+          <circle cx="136" cy="18" r="1.8"/>
+          <circle cx="152" cy="24" r="1.4"/>
+          <circle cx="170" cy="20" r="1.3"/>
+          <circle cx="186" cy="28" r="1.6"/>
+          <circle cx="200" cy="22" r="1.2"/>
+        </g>
+      </svg>
+    </span>
+        <span class="thumb"></span>
+      </button>
+    
+
     </div>
 
     <section class="card" aria-labelledby="faq-title">
@@ -264,5 +428,67 @@
     }
 
   </script>
+
+  <script>
+  (function(){
+    const PAGES = { light: 'faq-rt-light.html', dark: 'faq.html' };
+    const btn = document.getElementById('themeToggle');
+    if(!btn) return;
+
+    const isLight = /faq-rt-light\.html$/i.test(location.pathname) || /\(Light\)/.test(document.title);
+    setTheme(isLight ? 'light' : 'dark', true);
+    btn.setAttribute('aria-checked', String(!isLight));
+
+    btn.addEventListener('click', toggle);
+    btn.addEventListener('keydown', (e)=>{
+      if(e.key === ' ' || e.key === 'Enter'){ e.preventDefault(); toggle(); }
+    });
+
+    function toggle(){
+      const next = (document.documentElement.dataset.theme === 'dark') ? 'light' : 'dark';
+      setTheme(next);
+      try{ localStorage.setItem('rt.theme', next); }catch(_){}
+      const target = PAGES[next];
+      const hash = location.hash || '';
+      if(target && !location.pathname.endsWith('/'+target)){
+        location.href = target;
+      }
+    }
+    function setTheme(t, silent){
+      document.documentElement.setAttribute('data-theme', t);
+      if(!silent){ document.dispatchEvent(new CustomEvent('themechange', {detail:t})); }
+    }
+
+    // honor saved theme if user lands directly
+    try{
+      const saved = localStorage.getItem('rt.theme');
+      if(saved && saved !== (isLight?'light':'dark')){
+        setTheme(saved, true);
+        const target = PAGES[saved];
+        if(target && !location.pathname.endsWith('/'+target)){
+          location.replace(target);
+        }
+      }
+    }catch(_){}
+  })();
+  </script>
+    
+
+<script>
+(function(){
+  var back = document.getElementById('btn-back');
+  if(!back) return;
+  back.addEventListener('click', function(e){
+    // Prevent any bubbling that could hit other handlers
+    e.stopPropagation();
+    // Let anchor navigate, but ensure it always points to correct main page for current theme
+    var t = document.documentElement.dataset.theme || 'dark';
+    var target = (t === 'dark') ? './main-dark.html' : './main-light.html';
+    if (back.getAttribute('href') !== target) back.setAttribute('href', target);
+    // no preventDefault -> allow native navigation
+  }, {capture:true});
+})();
+</script>
+
 </body>
 </html>

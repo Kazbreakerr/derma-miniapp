@@ -287,7 +287,7 @@ body.light .tab.active{
     <section class="card hero" id="hero">
       <div class="hero-head">
         <div class="avatar-wrap">
-          <div class="avatar" data-shared="avatar" aria-label="Аватар">
+          <div class="avatar" aria-label="Аватар">
             <img id="avatarImg" alt="Аватар" src="" onerror="this.remove()">
             <!-- fallback initials -->
             <span id="avatarFallback" style="font-weight:700; opacity:.9">U</span>
@@ -796,108 +796,5 @@ body.light .tab.active{
     </button>
     <img id="rxFull" alt="Рецепт">
   </div>
-
-<script>
-(function runSharedAvatar(){
-  const FLAG = /(^|#|&)\bfx=avatar\b/.test(location.hash);
-  if(!FLAG) return;
-  try{
-    const raw = sessionStorage.getItem('share:avatar');
-    if(!raw){ simpleFade(); return; }
-    const data = JSON.parse(raw || '{}');
-    if(!data || !data.w || (Date.now() - (data.ts||0) > 5000)){ simpleFade(); return; }
-    const target = document.querySelector('[data-shared="avatar"]');
-    if(!target){ simpleFade(); return; }
-    if (window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches){ simpleFade(true); return; }
-
-    const rect = target.getBoundingClientRect();
-    const ghost = document.createElement('div');
-    ghost.style.position = 'fixed';
-    ghost.style.left = data.x + 'px';
-    ghost.style.top  = data.y + 'px';
-    ghost.style.width  = data.w + 'px';
-    ghost.style.height = data.h + 'px';
-    ghost.style.borderRadius = data.br || '50%';
-    ghost.style.overflow = 'hidden';
-    ghost.style.zIndex = '35';
-    ghost.style.pointerEvents = 'none';
-    ghost.style.background = data.bg || '#0d1623';
-    ghost.style.willChange = 'transform, opacity';
-
-    if (data.src){
-      const img = new Image();
-      img.src = data.src;
-      img.alt = '';
-      img.style.width = '100%';
-      img.style.height = '100%';
-      img.style.objectFit = 'cover';
-      ghost.appendChild(img);
-    } else if (data.text){
-      const span = document.createElement('span');
-      span.textContent = data.text;
-      span.style.display = 'grid';
-      span.style.placeItems = 'center';
-      span.style.width = '100%';
-      span.style.height = '100%';
-      span.style.fontWeight = '700';
-      ghost.appendChild(span);
-    }
-
-    const prevVis = target.style.visibility;
-    target.style.visibility = 'hidden';
-    document.body.appendChild(ghost);
-
-    const dx = rect.left + rect.width/2  - (data.x + data.w/2);
-    const dy = rect.top  + rect.height/2 - (data.y + data.h/2);
-    const sx = rect.width  / data.w;
-    const sy = rect.height / data.h;
-
-    const page = document.querySelector('main, .container, body');
-    if(page){ page.style.opacity = '0'; page.style.transform = 'translateY(8px)'; }
-
-    const DUR = 460;
-    const easing = 'cubic-bezier(0.2, 0.7, 0.2, 1)';
-    const a1 = ghost.animate(
-      [
-        { transform: 'translate(0,0) scale(1)', opacity: 1 },
-        { transform: `translate(${dx}px, ${dy}px) scale(${sx}, ${sy})`, opacity: 1 }
-      ],
-      { duration: DUR, easing, fill: 'forwards' }
-    );
-    const a2 = page?.animate
-      ? page.animate(
-          [{ opacity: 0, transform:'translateY(8px)' },
-           { opacity: 1, transform:'translateY(0)' }],
-          { duration: 380, easing, fill:'forwards', delay: 60 }
-        )
-      : null;
-
-    Promise.all([a1.finished.catch(()=>{}), a2?.finished?.catch?.(()=>{})]).finally(()=>{
-      ghost.remove();
-      target.style.visibility = prevVis || '';
-      try{ sessionStorage.removeItem('share:avatar'); }catch(_){}
-      if(location.hash.includes('fx=avatar')){
-        history.replaceState(null, '', location.pathname + location.search);
-      }
-    });
-  }catch(_){ simpleFade(); }
-
-  function simpleFade(){
-    const page = document.querySelector('main, .container, body');
-    if(!page) return;
-    page.style.opacity = '0';
-    page.style.transform = 'translateY(8px)';
-    page.animate(
-      [{ opacity: 0, transform:'translateY(8px)'},{ opacity: 1, transform:'translateY(0)'}],
-      { duration: 220, easing:'ease', fill:'forwards' }
-    );
-    try{ sessionStorage.removeItem('share:avatar'); }catch(_){}
-    if(location.hash.includes('fx=avatar')){
-      history.replaceState(null, '', location.pathname + location.search);
-    }
-  }
-})();
-</script>
-
 </body>
 </html>

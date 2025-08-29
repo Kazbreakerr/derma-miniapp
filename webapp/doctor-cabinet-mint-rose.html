@@ -87,6 +87,25 @@
     .dr-knob{position:absolute;top:3px;left:3px;width:20px;height:20px;border-radius:999px;background:#fff;box-shadow:0 2px 6px rgba(0,0,0,.25);transition:all var(--dr-dur) var(--dr-ease)}
     .dr-switch input:checked + .dr-toggle{background:var(--dr-grad-1);border-color:transparent;box-shadow:0 0 0 1px rgba(255,255,255,.06) inset}
     .dr-switch input:checked + .dr-toggle .dr-knob{transform:translateX(18px);box-shadow:0 2px 6px rgba(0,0,0,.25),0 0 0 3px rgba(255,214,233,.28)}
+
+    .tip-card{border-radius:16px;padding:12px 14px;background:var(--dr-grad-2);border:1px dashed var(--dr-stroke)}
+    .tip-row{display:flex;gap:10px;align-items:flex-start}
+    .illu{width:36px;height:36px;border-radius:12px;background:var(--dr-grad-1);display:grid;place-items:center;color:#0b1511;font-weight:800}
+    .btn-row{display:flex;gap:8px;flex-wrap:wrap;margin-top:6px}
+    .step-list{display:grid;gap:6px;margin-top:6px}
+    .step{display:flex;gap:8px;align-items:flex-start}
+    .step b{width:22px;height:22px;border-radius:999px;background:#0D1219;color:var(--dr-text);display:grid;place-items:center;font-size:12px;border:1px solid var(--dr-stroke)}
+    [data-theme="light"] .step b{background:#FAFBFC}
+  
+    /* Tips + skeletons for zero state */
+    .tip-card{border-radius:16px;padding:12px 14px;background:var(--dr-grad-2);border:1px dashed var(--dr-stroke)}
+    .tip-row{display:flex;gap:10px;align-items:flex-start}
+    .illu{width:36px;height:36px;border-radius:12px;background:var(--dr-grad-1);display:grid;place-items:center;color:#0b1511;font-weight:800}
+    .btn-row{display:flex;gap:8px;flex-wrap:wrap;margin-top:6px}
+    .ghost{opacity:.9}
+    .skeleton{position:relative;overflow:hidden}
+    .skeleton::after{content:'';position:absolute;inset:0;background:linear-gradient(90deg, transparent, rgba(255,255,255,.08), transparent);transform:translateX(-100%);animation:shimmer 1.3s infinite}
+    @keyframes shimmer{100%{transform:translateX(100%)}}
   </style>
 </head>
 <body>
@@ -120,19 +139,85 @@
         </div>
 
         <div id="patientsList" class="dr-list"></div>
-        <div id="patientsEmpty" class="dr-empty" style="display:none">
-          Поделитесь кодом <b id="emptyCode">AB12C</b> — новые пациенты появятся здесь.
-          <div><button class="dr-btn-ghost" id="showQR">Показать QR</button></div>
+        <div id="patientsTips" class="tip-card" style="display:none">
+          <div class="tip-row">
+            <div class="illu">➕</div>
+            <div>
+              <b>Как добавить пациента</b>
+              <div class="p-meta">Поделитесь кодом или QR. Когда пациент прикрепится — его карточка появится ниже.</div>
+              <div class="btn-row">
+                <button class="dr-btn-ghost" id="ptShowQR">Показать QR</button>
+                <button class="dr-btn-ghost" id="ptCopyCode">Скопировать код</button>
+                <button class="dr-btn-ghost" id="ptShareLink">Поделиться ссылкой</button>
+              </div>
+            </div>
+          </div>
         </div>
+
+        <div id="patientsEmpty" class="dr-card glass" style="display:none">
+          <div class="empty-card">
+            <div class="empty-title">Здесь появятся ваши пациенты</div>
+            <div class="empty-text">Пока список пуст. Ниже — пример карточки будущего пациента. После прикрепления она заменится реальными данными.</div>
+          </div>
+        </div>
+
+        <div id="patientsGhost" class="dr-card glass ghost" style="display:none">
+          <div class="p-top">
+            <div><div class="p-name skeleton" style="width:240px;height:18px;border-radius:6px"></div>
+              <div class="p-meta skeleton" style="width:120px;height:14px;border-radius:6px;margin-top:6px"></div>
+            </div>
+            <div class="pill skeleton" style="width:96px;height:26px;border-radius:999px"></div>
+          </div>
+          <div class="p-grid">
+            <div>
+              <div class="p-badges">
+                <span class="badge skeleton" style="width:180px;height:22px"></span>
+                <span class="badge skeleton" style="width:120px;height:22px"></span>
+                <span class="badge skeleton" style="width:110px;height:22px"></span>
+              </div>
+              <div class="prog" style="margin-top:8px"><i style="width:30%"></i></div>
+            </div>
+            <div class="icons"><span>📷</span><span>📝</span><span>💬</span></div>
+          </div>
+          <div class="labs" style="margin-top:8px">
+            <div class="lab"><span class="dot g"></span>ALT</div>
+            <div class="lab"><span class="dot g"></span>AST</div>
+            <div class="lab"><span class="dot g"></span>TG</div>
+            <div class="lab"><span class="dot g"></span>ХС</div>
+            <span class="p-meta" style="margin-left:auto">от —</span>
+          </div>
+        </div>
+
       </section>
 
       <!-- requests -->
       <section class="tab-sec" id="tab-requests">
+        <div class="tip-card" id="autoAcceptHint" style="display:none;margin-top:4px">
+          <div class="tip-row"><div class="illu">⚡</div>
+            <div><b>Автопринятие включено.</b><div class="p-meta">Пациенты с вашим кодом сразу попадают в «Пациенты», заявки не появятся.</div></div>
+          </div>
+        </div>
         <div class="dr-row">
           <label class="dr-switch"><input type="checkbox" id="autoAccept"><span class="dr-toggle"><span class="dr-knob"></span></span><span>Автопринятие</span></label>
         </div>
         <div id="requestsList" class="dr-list"></div>
-        <div id="requestsEmpty" class="dr-empty" style="display:none">Пока нет заявок</div>
+        <div id="requestsEmpty" class="dr-card glass" style="display:none">
+          <div class="empty-card">
+            <div class="empty-title">Пока нет заявок</div>
+            <div class="empty-text">Поделитесь кодом или QR — когда пациент отправит запрос, он появится здесь.</div>
+            <div class="step-list">
+              <div class="step"><b>1</b><div>Скопируйте свой код <b id="reqCodeInline">— — — — —</b> или покажите QR.</div></div>
+              <div class="step"><b>2</b><div>Пациент вводит код и отправляет заявку на прикрепление.</div></div>
+              <div class="step"><b>3</b><div>Вы <b>примете</b> или <b>отклоните</b> заявку в этом списке.</div></div>
+            </div>
+            <div class="btn-row">
+              <button class="dr-btn-ghost" id="reqShowQR">Показать QR</button>
+              <button class="dr-btn-ghost" id="reqCopyCode">Скопировать код</button>
+              <button class="dr-btn-ghost" id="reqShareLink">Поделиться ссылкой</button>
+            </div>
+            <details style="margin-top:6px"><summary class="p-meta">Как работает прикрепление?</summary><div class="p-meta">Пациенту нужен ваш код или ссылка. Если включить автопринятие — заявки пропускаются и пациент сразу появляется во вкладке «Пациенты».</div></details>
+          </div>
+        </div>
       </section>
 
       <!-- profile -->
@@ -210,17 +295,52 @@
     (function(){const done=JSON.parse(localStorage.getItem('doctorOnboardingDone')||'null'); if(!done){ location.replace('doctor-onboarding-mint-rose.html'); }})();
 
     const $=s=>document.querySelector(s), $$=s=>Array.from(document.querySelectorAll(s));
+    // --- Avatar helpers ---
+    function parseHandle(tg){ if(!tg) return null; const m=String(tg).trim().match(/@?([a-zA-Z0-9_]+)/); return m?m[1]:null; }
+    function setAvatarUrl(url){ if(!url) return; localStorage.setItem('doctorAvatarUrl', url); applyAvatar(); }
+    function tryUnavatarFromHandle(handle){
+      if(!handle) return;
+      const url = `https://unavatar.io/telegram/${handle}`;
+      const img = new Image(); img.crossOrigin='anonymous';
+      img.onload = ()=> setAvatarUrl(url);
+      img.onerror = ()=>{};
+      img.src = url;
+    }
     const storage={set:(k,v)=>localStorage.setItem(k,JSON.stringify(v)),get:(k,d=null)=>JSON.parse(localStorage.getItem(k)||'null')??d};
+    // One-time migration to clear demo data from earlier builds
+    const APP_VER='cabinet-empty-v1';
+    (function migrate(){
+      try{
+        const cur=localStorage.getItem('cabinetVersion');
+        if(cur!==APP_VER){
+          // wipe only the demo lists; keep profile/settings/code
+          localStorage.setItem('patientsList','[]');
+          localStorage.setItem('patientsRequests','[]');
+          localStorage.setItem('cabinetVersion', APP_VER);
+        }
+      }catch(e){}
+    })();
     const fmtDate=iso=>{ if(!iso) return '—'; const d=new Date(iso); return String(d.getDate()).padStart(2,'0')+'.'+String(d.getMonth()+1).padStart(2,'0')+'.'+d.getFullYear(); };
     const daysBetween=iso=>{ if(!iso) return Infinity; return Math.floor((new Date()-new Date(iso))/86400000); };
     const shareURL=code=>`${location.origin}${location.pathname}?attach=doctor&code=${code}`;
+function getQuery(name){ const m=location.search.match(new RegExp('[?&]'+name+'=([^&]+)')); return m?decodeURIComponent(m[1]):null; }
 
     // Avatars
     function initialsFrom(name=''){ const parts=(name||'').trim().split(/\s+/); return ((parts[0]||'').charAt(0)+(parts[1]||'').charAt(0)||'JD').toUpperCase(); }
     function setSmallAvatar(url, init){ const box=$('#smallAva'); if(url){ box.innerHTML='<img alt="ava">'; box.querySelector('img').src=url; }else{ box.textContent=init||'JD'; } }
     function setBigAvatar(url, init){ const img=$('#bigAvaImg'), txt=$('#bigAvaTxt'); if(url){ img.src=url; img.style.display='block'; txt.style.display='none'; }else{ img.style.display='none'; txt.textContent=init||'JD'; txt.style.display='block'; } }
     function saveAvatar(file){ const r=new FileReader(); r.onload=()=>{ localStorage.setItem('doctorAvatarUrl', r.result); applyAvatar(); }; r.readAsDataURL(file); }
-    function tryTG(){ try{ const url=window.Telegram?.WebApp?.initDataUnsafe?.user?.photo_url; if(url && !localStorage.getItem('doctorAvatarUrl')) localStorage.setItem('doctorAvatarUrl', url);}catch(e){} }
+    function tryTG(){
+      try{
+        const url=window.Telegram?.WebApp?.initDataUnsafe?.user?.photo_url;
+        if(url){ setAvatarUrl(url); return; }
+      }catch(e){}
+      // fallback: profile handle -> unavatar
+      try{
+        const prof=storage.get('doctorProfile',{}); const h=parseHandle(prof.tg);
+        if(h && !localStorage.getItem('doctorAvatarUrl')) tryUnavatarFromHandle(h);
+      }catch(e){}
+    }
     function applyAvatar(){ const prof=storage.get('doctorProfile',{name:'Иванова Анастасия Сергеевна'}); const init=initialsFrom(prof.name); const url=localStorage.getItem('doctorAvatarUrl'); setSmallAvatar(url,init); setBigAvatar(url,init); }
 
     // Demo data
@@ -239,14 +359,16 @@
 
     // Header/Profile init
     function initHeader(){
-      const code=storage.get('doctorCode')||'AB12C'; $('#topCode').textContent=code; $('#emptyCode').textContent=code; $('#profCode').textContent=code;
+      const code=storage.get('doctorCode')||'AB12C'; $('#topCode').textContent=code; /*removed*/  $('#profCode').textContent=code;
       const prof=storage.get('doctorProfile',{name:'Иванова Анастасия Сергеевна',specialty:'Дерматолог',clinic:'Медцентр «Скин+»',city:'Москва'});
       $('#profName').textContent=prof.name||'ФИО врача'; $('#profMeta').textContent=`${prof.specialty||'Специализация'} • ${prof.clinic||'Клиника'}, ${prof.city||'Город'}`;
     }
 
     // Tabs
     function setTab(tab){ $$('.dr-tab').forEach(t=>t.classList.toggle('active',t.dataset.tab===tab)); ['patients','requests','profile'].forEach(id=>$('#tab-'+id).classList.toggle('active',id===tab)); location.hash='#/doctor/'+tab; renderAll(); }
-    $$('.dr-tab').forEach(t=>t.addEventListener('click',()=>setTab(t.dataset.tab)));
+    const tabsNav=document.querySelector('.dr-tabs');
+tabsNav.addEventListener('click', (e)=>{ const btn=e.target.closest('.dr-tab'); if(!btn) return; e.preventDefault(); setTab(btn.dataset.tab); });
+window.addEventListener('hashchange', ()=>{ const h=location.hash.replace('#/doctor/',''); if(['patients','requests','profile'].includes(h)) setTab(h); });
 
     // Patients
     const matchesFilters=p=>{
@@ -294,7 +416,17 @@
       el.querySelector('[data-reco]').addEventListener('click',()=>sendRecoTo([p.id],'custom'));
       return el;
     }
-    function renderPatients(){ const list=$('#patientsList'); list.innerHTML=''; const arr=state.patients.filter(matchesFilters); $('#patientsEmpty').style.display=arr.length?'none':'block'; arr.forEach(p=>list.appendChild(patientCard(p))); }
+    function renderPatients(){
+      const list=$('#patientsList'); list.innerHTML='';
+      const arr=state.patients.filter(matchesFilters);
+      const showEmpty = arr.length===0;
+      const e1=$('#patientsEmpty'), e2=$('#patientsGhost'), e3=$('#patientsTips');
+      if(e1) e1.style.display = showEmpty ? 'block' : 'none';
+      if(e2) e2.style.display = showEmpty ? 'block' : 'none';
+      if(e3) e3.style.display = showEmpty ? 'block' : 'none';
+      if(showEmpty){ updatePatientsTips(); }
+      arr.forEach(p=>list.appendChild(patientCard(p)));
+    }
 
     // Requests
     function renderRequests(){ const list=$('#requestsList'); list.innerHTML=''; $('#requestsEmpty').style.display=state.requests.length?'none':'block';
@@ -330,11 +462,35 @@
     $('#ptClose').addEventListener('click',()=>$('#patientModal').style.display='none');
 
     // Profile / settings
+    function updateRequestsTips(){
+      const sett=storage.get('doctorSettings',{autoAccept:false});
+      const el=document.getElementById('autoAcceptHint');
+      if(el) el.style.display = sett.autoAccept ? 'block' : 'none';
+      const code=storage.get('doctorCode')||'AB12C';
+      const reqCode=document.getElementById('reqCodeInline'); if(reqCode) reqCode.textContent=code;
+      const btnQR=document.getElementById('reqShowQR'); if(btnQR) btnQR.onclick=openQR;
+      const btnCopy=document.getElementById('reqCopyCode'); if(btnCopy) btnCopy.onclick=async()=>{ try{ await navigator.clipboard.writeText(code); toast('Код скопирован'); }catch(e){} };
+      const btnShare=document.getElementById('reqShareLink'); if(btnShare) btnShare.onclick=async()=>{
+        const url=shareURL(code);
+        if(navigator.share){ try{ await navigator.share({title:'Мой врачебный код',text:'Прикрепись ко мне по ссылке',url}); }catch(e){} }
+        else{ try{ await navigator.clipboard.writeText(url); toast('Ссылка скопирована'); }catch(e){} }
+      };
+    }
+    function updatePatientsTips(){
+      const code=storage.get('doctorCode')||'AB12C';
+      const b1=document.getElementById('ptShowQR'); if(b1) b1.onclick=openQR;
+      const b2=document.getElementById('ptCopyCode'); if(b2) b2.onclick=async()=>{ try{ await navigator.clipboard.writeText(code); toast('Код скопирован'); }catch(e){} };
+      const b3=document.getElementById('ptShareLink'); if(b3) b3.onclick=async()=>{
+        const url=shareURL(code);
+        if(navigator.share){ try{ await navigator.share({title:'Мой врачебный код',text:'Прикрепись ко мне по ссылке',url}); }catch(e){} }
+        else{ try{ await navigator.clipboard.writeText(url); toast('Ссылка скопирована'); }catch(e){} }
+      };
+    }
     function renderProfile(){
       const settings=storage.get('doctorSettings',{autoAccept:false});
       $('#autoAccept').checked=!!settings.autoAccept; $('#autoAcceptProfile').checked=!!settings.autoAccept;
-      $('#autoAccept').onchange=e=>{ settings.autoAccept=e.target.checked; storage.set('doctorSettings',settings); $('#autoAcceptProfile').checked=settings.autoAccept; };
-      $('#autoAcceptProfile').onchange=e=>{ settings.autoAccept=e.target.checked; storage.set('doctorSettings',settings); $('#autoAccept').checked=settings.autoAccept; };
+      $('#autoAccept').onchange=e=>{ settings.autoAccept=e.target.checked; storage.set('doctorSettings',settings); $('#autoAcceptProfile').checked=settings.autoAccept; updateRequestsTips(); };
+      $('#autoAcceptProfile').onchange=e=>{ settings.autoAccept=e.target.checked; storage.set('doctorSettings',settings); $('#autoAccept').checked=settings.autoAccept; updateRequestsTips(); };
       const total=state.patients.length, on=state.patients.filter(p=>p.course.onCourse).length, red=state.patients.filter(p=>['ALT','AST','TG','CHOL'].some(k=>(p.labs?.[k]?.status)==='r')).length, needs=state.patients.filter(p=>(p.newMsgs||0)>0).length;
       $('#stTotal').textContent=total; $('#stOn').textContent=on; $('#stRed').textContent=red; $('#stNeeds').textContent=needs;
     }
@@ -355,7 +511,19 @@
     $('#shareCode').addEventListener('click',async()=>{ const code=storage.get('doctorCode')||'AB12C'; const url=shareURL(code); if(navigator.share){ try{ await navigator.share({title:'Код врача',text:`Мой код: ${code}`,url}); }catch(e){} } else { try{ await navigator.clipboard.writeText(url); toast('Ссылка скопирована'); }catch(e){} } });
 
     function persist(){ storage.set('patientsList',state.patients); storage.set('patientsRequests',state.requests); }
-    function renderAll(){ renderPatients(); renderRequests(); renderProfile(); }
+    function renderAll(){ renderPatients(); renderRequests(); renderProfile(); updateRequestsTips(); updatePatientsTips(); }
+    // Manual reset control
+    function attachReset(){
+      const btn=document.getElementById('resetDataBtn');
+      if(!btn) return;
+      btn.addEventListener('click',()=>{
+        if(confirm('Очистить локальные списки пациентов и заявок?\nВаш профиль и код останутся.')){
+          localStorage.setItem('patientsList','[]');
+          localStorage.setItem('patientsRequests','[]');
+          state.patients=[]; state.requests=[]; renderAll(); toast('Данные очищены');
+        }
+      });
+    }
 
     // Avatar events
     $('#smallAva').addEventListener('click',()=>$('#avaInput').click());
@@ -364,8 +532,15 @@
 
     // Init
     function init(){
-      initHeader(); tryTG(); applyAvatar(); renderAll();
-      const tabs=['patients','requests','profile']; const h=location.hash.replace('#/doctor/',''); setTab(tabs.includes(h)?h:'patients');
+      const qCode=getQuery('code'); if(qCode && /^[A-Z0-9]{5}$/.test(qCode)) localStorage.setItem('doctorCode', JSON.stringify(qCode));
+      initHeader(); tryTG(); applyAvatar(); attachReset();
+      // In case user filled @handle later, attempt to fetch avatar now as well
+      const hHandle=parseHandle(storage.get('doctorProfile',{}).tg);
+      if(hHandle && !localStorage.getItem('doctorAvatarUrl')) tryUnavatarFromHandle(hHandle);
+      const tabs=['patients','requests','profile'];
+      const tabHash=location.hash.replace('#/doctor/','');
+      setTab(tabs.includes(tabHash)?tabHash:'patients');
+      renderAll();
     }
 
     function toast(txt){ const n=document.createElement('div'); n.textContent=txt; n.style.cssText='position:fixed;left:50%;bottom:28px;transform:translateX(-50%);padding:10px 14px;border-radius:12px;background:rgba(0,0,0,.7);color:#fff;font-weight:600;z-index:9999'; document.body.appendChild(n); setTimeout(()=>n.remove(),1400); }

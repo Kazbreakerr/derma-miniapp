@@ -120,10 +120,29 @@
     .thumb .del{ position:absolute; top:6px; right:6px; background: rgba(0,0,0,.6); color:#fff; border:none; border-radius:10px; padding:4px 8px; font-size:12px; cursor:pointer }
     .thumb .open{ position:absolute; left:6px; bottom:6px; background: rgba(0,0,0,.6); color:#fff; border:none; border-radius:10px; padding:4px 8px; font-size:12px; cursor:pointer }
 
-    /* Fullscreen viewer */
+    /* Fullscreen viewer (hidden by default via inline style in HTML) */
     .viewer{ position:fixed; inset:0; background: rgba(0,0,0,.9); display:flex; align-items:center; justify-content:center; z-index:9999; }
     .viewer img{ max-width:95vw; max-height:90vh; display:block; border-radius:10px }
     .viewer .close{ position:absolute; top:14px; right:14px; background:#000; color:#fff; border:none; border-radius:10px; padding:8px 12px; cursor:pointer }
+
+    /* Reports — accordion */
+    .rep-list{ display:grid; gap:10px }
+    .rep-item{ background: var(--card); border:1px solid var(--border); border-radius:12px; }
+    .rep-toggle{ width:100%; background:transparent; color:var(--text); border:0; text-align:left; padding:12px 14px; display:flex; align-items:center; justify-content:space-between; gap:8px; cursor:pointer }
+    .rep-title{ font-weight:700 }
+    .rep-meta{ display:flex; gap:6px; align-items:center; }
+    .badge{ font-size:11px; padding:4px 8px; border-radius:999px; border:1px solid var(--border); background:var(--card-2) }
+    .badge.bad{ color:var(--danger); border-color: color-mix(in oklab, var(--danger) 50%, var(--border)) }
+    .badge.warn{ color:var(--warn); border-color: color-mix(in oklab, var(--warn) 50%, var(--border)) }
+    .chev{ transition: transform .2s ease; opacity:.8 }
+    .rep-item.open .chev{ transform: rotate(90deg) }
+    .rep-panel{ overflow:hidden; max-height:0; transition:max-height .25s ease; padding:0 14px }
+    .rep-item.open .rep-panel{ padding: 0 14px 12px; }
+    .rep-body{ font-size:13px; color:var(--muted) }
+    .rep-table{ width:100%; border-collapse:collapse; margin-top:6px; font-size:13px }
+    .rep-table th, .rep-table td{ padding:4px 6px; border-bottom:1px dashed var(--border); text-align:left }
+    .rep-table th{ color:var(--muted); font-weight:600 }
+    .rep-actions{ display:flex; gap:8px; margin-top:10px }
 
     .bottom-nav{
       position: fixed; left: 0; right: 0; bottom: 0;
@@ -250,8 +269,9 @@
         </div>
       </div>
 
-      <div class="toolbar" style="margin-top:12px; justify-content:flex-end;">
+      <div class="toolbar" style="margin-top:12px; justify-content:flex-end; flex-wrap:wrap;">
         <button class="btn" id="clearBtn" title="Очистить значения">Сбросить</button>
+        <button class="btn" id="saveReportBtn" title="Сохранить текущие значения как отчёт">Сохранить как отчёт</button>
         <button class="btn primary" id="saveBtn">Сохранить значения</button>
       </div>
     </div>
@@ -268,10 +288,16 @@
       <div class="thumbs" id="thumbs" style="margin-top:12px"></div>
     </div>
 
-    <!-- Viewer hidden by default (inline) -->
+    <!-- Viewer hidden by default -->
     <div class="viewer" id="viewer" style="display:none" aria-hidden="true">
       <button class="close" id="viewerClose" style="display:none">Закрыть</button>
       <img id="viewerImg" alt="Фото анализа" style="display:none" />
+    </div>
+
+    <div class="card" style="margin-bottom:14px;">
+      <h2>Внутренние отчёты</h2>
+      <div class="muted" style="margin-bottom:8px;">Сохраняются только на этом устройстве. Для врача используйте официальный бланк лаборатории.</div>
+      <div id="reportsList" class="rep-list"></div>
     </div>
 
     <div class="bottom-spacer"></div>
@@ -319,6 +345,7 @@
 (function(){
   const pageRoot = document.getElementById('pageRoot');
 
+  // --- DOM refs
   const sexSeg = document.getElementById('sexSeg');
   const updatedLbl = document.getElementById('updatedLbl');
   const fileInput = document.getElementById('fileInput');
@@ -327,11 +354,16 @@
   const viewer = document.getElementById('viewer');
   const viewerImg = document.getElementById('viewerImg');
   const viewerClose = document.getElementById('viewerClose');
+  const reportsList = document.getElementById('reportsList');
+  const saveReportBtn = document.getElementById('saveReportBtn');
 
+  // --- State
   let sex = (localStorage.getItem('labs.sex') || 'female');
   let values = JSON.parse(localStorage.getItem('labs.values') || '{}');
   let photos = JSON.parse(localStorage.getItem('labs.photos') || '[]');
+  let reports = JSON.parse(localStorage.getItem('labs.reports') || '[]'); // array of report objects
 
+  // --- Sex toggle
   sexSeg.querySelectorAll('button').forEach(btn=>{
     if(btn.dataset.sex===sex) btn.classList.add('active');
     btn.addEventListener('click', ()=>{
@@ -349,6 +381,7 @@
     hdl.textContent = (sex==='female')? hdl.getAttribute('data-f') : hdl.getAttribute('data-m');
   }
 
+  // --- Ranges & status
   function rangesFor(key){
     if(key==='ALT') return (sex==='female')? {min:0, max:35} : {min:0, max:45};
     if(key==='AST') return (sex==='female')? {min:0, max:35} : {min:0, max:40};
@@ -362,26 +395,26 @@
     return null;
   }
 
-  function evalStatus(key, val){
-    if(val==='' || isNaN(val)) return {cls:'ok', label:'—'};
+  function statusFor(key, val){
+    if(val==='' || isNaN(val)) return {cls:'ok', label:'—', icon:''};
     const x = Number(val);
     const r = rangesFor(key);
-    if(!r) return {cls:'ok', label:'—'};
+    if(!r) return {cls:'ok', label:'—', icon:''};
     if('lt' in r){
-      if(x < r.lt) return {cls:'ok', label:'OK'};
-      if(x < r.lt*1.2) return {cls:'warn', label:'Погранично'};
-      return {cls:'bad', label:'Высокий'};
+      if(x < r.lt) return {cls:'ok', label:'OK', icon:'✓'};
+      if(x < r.lt*1.2) return {cls:'warn', label:'Погранично', icon:'↑'};
+      return {cls:'bad', label:'Высокий', icon:'↑↑'};
     }
     if('gt' in r){
-      if(x > r.gt) return {cls:'ok', label:'OK'};
-      if(x > r.gt*0.9) return {cls:'warn', label:'Низковато'};
-      return {cls:'bad', label:'Низкий'};
+      if(x > r.gt) return {cls:'ok', label:'OK', icon:'✓'};
+      if(x > r.gt*0.9) return {cls:'warn', label:'Низковато', icon:'↓'};
+      return {cls:'bad', label:'Низкий', icon:'↓↓'};
     }
-    if(x>=r.min && x<=r.max) return {cls:'ok', label:'OK'};
+    if(x>=r.min && x<=r.max) return {cls:'ok', label:'OK', icon:'✓'};
     const pad = (r.max - r.min) * 0.1;
-    if(x>r.max && x <= r.max + pad) return {cls:'warn', label:'Выше нормы'};
-    if(x<r.min && x >= r.min - pad) return {cls:'warn', label:'Ниже нормы'};
-    return {cls:'bad', label: x>r.max ? 'Высокий' : 'Низкий'};
+    if(x>r.max && x <= r.max + pad) return {cls:'warn', label:'Выше нормы', icon:'↑'};
+    if(x<r.min && x >= r.min - pad) return {cls:'warn', label:'Ниже нормы', icon:'↓'};
+    return {cls:'bad', label: x>r.max ? 'Высокий' : 'Низкий', icon: x>r.max ? '↑↑' : '↓↓'};
   }
 
   function recomputeAll(){
@@ -389,12 +422,13 @@
       const key = box.getAttribute('data-key');
       const input = box.querySelector('input');
       const chip = box.querySelector('.chip');
-      const st = evalStatus(key, input.value);
+      const st = statusFor(key, input.value);
       chip.className = 'chip ' + st.cls;
       chip.textContent = st.label;
     });
   }
 
+  // preload existing values (persist between sessions)
   document.querySelectorAll('.field').forEach(box=>{
     const key = box.getAttribute('data-key');
     const input = box.querySelector('input');
@@ -405,6 +439,7 @@
     });
   });
 
+  // Explicit save: persists "навсегда" до следующего изменения
   document.getElementById('saveBtn').addEventListener('click', ()=>{
     const out = {};
     document.querySelectorAll('.field').forEach(box=>{
@@ -427,6 +462,216 @@
     recomputeAll();
   });
 
+  // --- Reports
+  const NAMES = {
+    ALT: 'АЛТ (ALT)', AST: 'АСТ (AST)', BILIRUBIN: 'Общий билирубин',
+    ALP: 'ЩФ (ALP)', TG: 'Триглицериды', TC: 'Общий холестерин',
+    LDL: 'ЛПНП (LDL)', HDL: 'ЛПВП (HDL)', GLU: 'Глюкоза натощак'
+  };
+  const UNITS = {
+    ALT:'Ед/л', AST:'Ед/л', BILIRUBIN:'мкмоль/л', ALP:'Ед/л',
+    TG:'ммоль/л', TC:'ммоль/л', LDL:'ммоль/л', HDL:'ммоль/л', GLU:'ммоль/л'
+  };
+  function rangeText(key){
+    if(key==='ALT') return (sex==='female')? '0–35 Ед/л' : '0–45 Ед/л';
+    if(key==='AST') return (sex==='female')? '0–35 Ед/л' : '0–40 Ед/л';
+    if(key==='BILIRUBIN') return '3–21 мкмоль/л';
+    if(key==='ALP') return '40–130 Ед/л';
+    if(key==='TG') return '0.4–1.7 ммоль/л';
+    if(key==='TC') return '3.0–5.2 ммоль/л';
+    if(key==='LDL') return '< 3.0 ммоль/л';
+    if(key==='HDL') return (sex==='female')? '> 1.2 ммоль/л' : '> 1.0 ммоль/л';
+    if(key==='GLU') return '3.9–5.6 ммоль/л';
+    return '';
+  }
+  function collectCurrent(){
+    const out = {};
+    document.querySelectorAll('.field').forEach(box=>{
+      const key = box.getAttribute('data-key');
+      const input = box.querySelector('input');
+      const v = input.value;
+      if(v!=='' && !isNaN(Number(v))) out[key] = Number(v);
+    });
+    return out;
+  }
+  function buildReport(){
+    const vals = collectCurrent();
+    const entries = Object.keys(NAMES).map(k=>{
+      const v = (k in vals) ? vals[k] : null;
+      const st = statusFor(k, v==null? '' : String(v));
+      return { key:k, name:NAMES[k], value:v, unit:UNITS[k], range:rangeText(k), status:st };
+    });
+    const abn = entries.filter(e => e.value!=null && e.status.cls!=='ok');
+    return {
+      ts: Date.now(), sex,
+      entries, abnCount: abn.length
+    };
+  }
+  function reportTitle(rep){
+    const d = new Date(rep.ts);
+    const dd = d.toLocaleDateString();
+    const tt = d.toLocaleTimeString([], {hour:'2-digit', minute:'2-digit'});
+    return `${dd} ${tt} • ${rep.sex==='female'?'Ж':'М'}`;
+  }
+  function reportText(rep){
+    let lines = [];
+    lines.push(`Отчёт по анализам — ${reportTitle(rep)}`);
+    lines.push('');
+    rep.entries.forEach(e=>{
+      if(e.value==null) return;
+      lines.push(`${e.name}: ${e.value} ${e.unit} (норма ${e.range}) — ${e.status.label}`);
+    });
+    if(rep.abnCount>0){
+      lines.push('');
+      lines.push(`Отклонения: ${rep.entries.filter(e=>e.value!=null && e.status.cls!=='ok').map(e=>`${e.name} ${e.status.icon}`).join(', ')}`);
+    }
+    return lines.join('\n');
+  }
+  function saveReport(){
+    const rep = buildReport();
+    const hasAny = rep.entries.some(e=> e.value!=null);
+    if(!hasAny){
+      saveReportBtn.textContent = 'Нет значений';
+      setTimeout(()=> saveReportBtn.textContent='Сохранить как отчёт', 1000);
+      return;
+    }
+    reports.unshift(rep);
+    localStorage.setItem('labs.reports', JSON.stringify(reports));
+    renderReports(rep.ts); // auto-open freshly saved
+    saveReportBtn.textContent = 'Сохранено ✓';
+    setTimeout(()=> saveReportBtn.textContent='Сохранить как отчёт', 1200);
+  }
+  saveReportBtn.addEventListener('click', saveReport);
+
+  function toggleItem(el, open){
+    if(open===undefined) open = !el.classList.contains('open');
+    el.classList.toggle('open', open);
+    const panel = el.querySelector('.rep-panel');
+    if(open){
+      panel.style.maxHeight = panel.scrollHeight + 'px';
+    }else{
+      panel.style.maxHeight = '0px';
+    }
+  }
+
+  function renderReports(openTs){
+    reportsList.innerHTML = '';
+    if(!reports.length){
+      const m = document.createElement('div');
+      m.className='muted';
+      m.textContent = 'Отчётов пока нет. Заполните значения и нажмите «Сохранить как отчёт».';
+      reportsList.appendChild(m);
+      return;
+    }
+    reports.forEach((rep)=>{
+      const item = document.createElement('div');
+      item.className = 'rep-item';
+
+      const btn = document.createElement('button');
+      btn.className = 'rep-toggle';
+      const title = document.createElement('div');
+      title.className = 'rep-title';
+      title.textContent = reportTitle(rep);
+      const meta = document.createElement('div');
+      meta.className = 'rep-meta';
+      if(rep.abnCount>0){
+        const b = document.createElement('span');
+        b.className = 'badge ' + (rep.abnCount>1?'bad':'warn');
+        b.textContent = rep.abnCount===1 ? '1 отклонение' : rep.abnCount + ' отклонения';
+        meta.appendChild(b);
+      } else {
+        const b = document.createElement('span');
+        b.className = 'badge';
+        b.textContent = 'Без отклонений';
+        meta.appendChild(b);
+      }
+      const chev = document.createElement('span');
+      chev.className = 'chev';
+      chev.textContent = '›';
+      btn.appendChild(title);
+      btn.appendChild(meta);
+      btn.appendChild(chev);
+
+      const panel = document.createElement('div');
+      panel.className = 'rep-panel';
+
+      const body = document.createElement('div');
+      body.className = 'rep-body';
+      const table = document.createElement('table');
+      table.className = 'rep-table';
+      const thead = document.createElement('thead');
+      thead.innerHTML = '<tr><th>Показатель</th><th>Значение</th><th>Норма</th><th>Статус</th></tr>';
+      table.appendChild(thead);
+      const tb = document.createElement('tbody');
+      rep.entries.forEach(e=>{
+        if(e.value==null) return;
+        const tr = document.createElement('tr');
+        tr.innerHTML = `<td>${e.name}</td><td>${e.value} ${e.unit}</td><td>${e.range}</td><td>${e.status.label}</td>`;
+        tb.appendChild(tr);
+      });
+      table.appendChild(tb);
+      body.appendChild(table);
+
+      const actions = document.createElement('div');
+      actions.className = 'rep-actions';
+      const btnCopy = document.createElement('button');
+      btnCopy.className = 'btn';
+      btnCopy.textContent = 'Скопировать';
+      btnCopy.addEventListener('click', async ()=>{
+        const txt = reportText(rep);
+        try{
+          await navigator.clipboard.writeText(txt);
+          btnCopy.textContent = 'Скопировано ✓';
+        }catch(_){
+          const ta = document.createElement('textarea');
+          ta.value = txt; document.body.appendChild(ta); ta.select();
+          try{ document.execCommand('copy'); btnCopy.textContent = 'Скопировано ✓'; }catch(__){ btnCopy.textContent='Ошибка копирования'; }
+          ta.remove();
+        }
+        setTimeout(()=> btnCopy.textContent='Скопировать', 1200);
+      });
+      const btnDl = document.createElement('a');
+      btnDl.className = 'btn';
+      btnDl.textContent = 'Скачать .txt';
+      btnDl.href = '#';
+      btnDl.addEventListener('click', (e)=>{
+        e.preventDefault();
+        const blob = new Blob([reportText(rep)], {type:'text/plain;charset=utf-8'});
+        const url = URL.createObjectURL(blob);
+        btnDl.href = url;
+        const d = new Date(rep.ts);
+        btnDl.download = `labs-report-${d.toISOString().slice(0,16).replace(/[:T]/g,'-')}.txt`;
+        setTimeout(()=> URL.revokeObjectURL(url), 15000);
+      });
+      const btnDel = document.createElement('button');
+      btnDel.className = 'btn';
+      btnDel.textContent = 'Удалить';
+      btnDel.addEventListener('click', ()=>{
+        if(!confirm('Удалить этот отчёт?')) return;
+        reports = reports.filter(r => r.ts !== rep.ts);
+        localStorage.setItem('labs.reports', JSON.stringify(reports));
+        renderReports();
+      });
+      actions.appendChild(btnCopy);
+      actions.appendChild(btnDl);
+      actions.appendChild(btnDel);
+
+      panel.appendChild(body);
+      panel.appendChild(actions);
+
+      item.appendChild(btn);
+      item.appendChild(panel);
+      reportsList.appendChild(item);
+
+      btn.addEventListener('click', ()=> toggleItem(item));
+      if(openTs && rep.ts === openTs){
+        toggleItem(item, true);
+      }
+    });
+  }
+  renderReports();
+
+  // --- Gallery
   function renderThumbs(){
     thumbs.innerHTML = '';
     if(!photos.length){
@@ -448,7 +693,6 @@
       });
       open.addEventListener('click', ()=>{
         viewerImg.src = p.data;
-        // show overlay
         viewer.style.display = 'flex';
         viewer.removeAttribute('aria-hidden');
         viewerClose.style.display = 'inline-block';
@@ -518,8 +762,8 @@
     fileInput.value = '';
   });
 
+  // --- Fade+slide navigation
   function navigateWithFx(url){
-    const pageRoot = document.getElementById('pageRoot');
     pageRoot.classList.add('exit');
     const done = ()=> window.location.href = url;
     let handled = false;

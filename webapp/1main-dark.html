@@ -615,10 +615,10 @@ body.light .tab.active{ color:#0d1220; background: linear-gradient(180deg, rgba(
   <div class="wrap">
     <h1>Roaccutane Tracker</h1>
 
-    <section class="card clickable" id="profileHeader" aria-label="Профиль">
+    <section class="card clickable" id="cardProfile" aria-label="Профиль">
       <div class="glow"></div>
       <div class="row">
-        <div class="ava" id="ava" data-shared="avatar">ДД</div>
+        <div class="ava" id="ava">ДД</div>
         <div style="flex:1">
           <div id="fullName" data-tg-name style="font-weight:700">—</div>
           <div class="muted">День курса: <span id="courseDay">—</span> · Выпито: <span id="consumedTop">0</span> мг</div>
@@ -1738,33 +1738,6 @@ document.addEventListener('click', (e)=>{
 })();
 </script>
 
-
-
-<script>
-(function sharedAvatarLauncher(){
-  const card = document.getElementById('profileHeader');
-  if(!card) return;
-  card.addEventListener('click', ()=>{
-    try{
-      const el = card.querySelector('[data-shared="avatar"]') || document.querySelector('[data-shared="avatar"]');
-      if(!el){ location.href = 'myprofile.html'; return; }
-      const rect = el.getBoundingClientRect();
-      const img  = el.querySelector('img');
-      const style = getComputedStyle(el);
-      const payload = {
-        x: rect.left, y: rect.top, w: rect.width, h: rect.height,
-        br: style.borderRadius || '50%',
-        src: img ? img.currentSrc || img.src : '',
-        text: (!img ? (el.textContent || '').trim() : ''),
-        bg: style.backgroundColor || '#0d1623',
-        ts: Date.now()
-      };
-      sessionStorage.setItem('share:avatar', JSON.stringify(payload));
-    }catch(_){}
-    location.href = 'myprofile.html#fx=avatar';
-  });
-})();
-</script>
 
 </body>
 </html>

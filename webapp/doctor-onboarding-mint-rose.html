@@ -11,8 +11,11 @@
       --dr-text: #EDEFF2;
       --dr-text-muted: #9AA3AE;
       --dr-stroke: #1F2833;
+
+      /* Мята → пастельно-розовый */
       --dr-grad-1: linear-gradient(135deg, #6FEAD8 0%, #BDF7EE 40%, #FFD6E9 100%);
       --dr-grad-2: linear-gradient(135deg, rgba(111,234,216,.18) 0%, rgba(255,214,233,.18) 100%);
+
       --dr-r: 18px;
       --dr-dur:.24s;
       --dr-ease:cubic-bezier(.2,.6,.2,1);
@@ -26,10 +29,7 @@
     body{margin:0;background:var(--dr-bg);color:var(--dr-text);font:16px/1.4 system-ui,-apple-system,Segoe UI,Roboto,Inter,Arial,sans-serif}
     .dr-wrap{max-width:720px;margin:0 auto;padding:20px clamp(14px,4vw,24px) 28px;display:flex;flex-direction:column;gap:24px}
     .dr-header{display:flex;align-items:center;justify-content:space-between}
-    .dr-left{display:flex;align-items:center;gap:10px}
     .dr-title{font-weight:800;font-size:clamp(18px,2.8vw,24px)}
-    .dr-back{padding:8px 12px;border-radius:999px;border:1px solid var(--dr-stroke);background:transparent;color:var(--dr-text);cursor:pointer;display:inline-flex;align-items:center;gap:6px}
-    .dr-back:hover{border-color:#2A3442}
     .dr-stepper{display:flex;gap:8px;align-items:center}
     .dr-dot{width:8px;height:8px;border-radius:999px;background:#2A3442;opacity:.6;transition:all var(--dr-dur) var(--dr-ease)}
     .dr-dot.active{width:24px;background:var(--dr-grad-1);opacity:1;box-shadow:0 0 0 1px rgba(255,255,255,.06) inset,0 2px 8px rgba(255,214,233,.25)}
@@ -63,18 +63,18 @@
     .dr-modal{position:fixed;inset:0;display:none;align-items:center;justify-content:center;background:rgba(0,0,0,.5)}
     .dr-modal.show{display:flex}
     .dr-modal-card{background:var(--dr-card);border:1px solid var(--dr-stroke);border-radius:16px;padding:16px;width:min(92vw,360px)}
+    .ava{width:32px;height:32px;border-radius:999px;overflow:hidden;border:1px solid var(--dr-stroke);display:grid;place-items:center;background:var(--dr-grad-1);color:#0b1511;font-weight:800}
+    .ava img{width:100%;height:100%;object-fit:cover;display:block}
   </style>
 </head>
 <body>
   <div class="dr-wrap">
     <div class="dr-header">
-      <div class="dr-left">
-        <button class="dr-back" id="backWelcome" aria-label="Назад на welcome">← Назад</button>
-        <div class="dr-title">Онбординг врача</div>
-      </div>
+      <div class="dr-title">Онбординг врача</div>
       <div class="dr-stepper" id="drStepper">
         <div class="dr-dot active"></div><div class="dr-dot"></div><div class="dr-dot"></div>
       </div>
+      <div class="ava" id="smallAva" title="Ваш аватар">JD</div>
     </div>
 
     <div class="dr-pages">
@@ -152,22 +152,29 @@
   <script>
     const $ = s=>document.querySelector(s); const $$=s=>Array.from(document.querySelectorAll(s));
     const store = {set:(k,v)=>localStorage.setItem(k,JSON.stringify(v)),get:(k,d=null)=>JSON.parse(localStorage.getItem(k)||'null')??d};
+    function initialsFrom(name=''){ const parts=(name||'').trim().split(/\s+/); return ((parts[0]||'').charAt(0)+(parts[1]||'').charAt(0)||'JD').toUpperCase(); }
+    function parseHandle(tg){ if(!tg) return null; const m=String(tg).trim().match(/@?([a-zA-Z0-9_]+)/); return m?m[1]:null; }
+    function applySmallAvatar(url, init){ const box=document.getElementById('smallAva'); if(!box) return; if(url){ box.innerHTML='<img alt=\"ava\">'; box.querySelector('img').src=url; } else { box.textContent=init||'JD'; } }
+    function setAvatarUrl(url){ if(!url) return; localStorage.setItem('doctorAvatarUrl', url); applySmallAvatar(url); }
+    function tryUnavatarFromHandle(handle){ if(!handle) return; const url=`https://unavatar.io/telegram/${handle}`; const img=new Image(); img.crossOrigin='anonymous'; img.onload=()=>setAvatarUrl(url); img.onerror=()=>{}; img.src=url; }
+    function tryTG(){ try{ const url=window.Telegram?.WebApp?.initDataUnsafe?.user?.photo_url; if(url){ setAvatarUrl(url); } }catch(e){} }
     const ABC='ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
     const genCode=()=> Array.from({length:5},()=>ABC[Math.floor(Math.random()*ABC.length)]).join('');
     const step=(i)=> $$('#drStepper .dr-dot').forEach((d,idx)=>d.classList.toggle('active',idx<=i));
     const page=(i)=>['#page1','#page2','#page3'].forEach((sel,idx)=>$(sel).classList.toggle('active',idx===i))||step(i);
     const valid1=()=>['#fio','#spec','#city','#clinic'].every(sel=>$(sel).value.trim());
 
-    // Welcome back button (fixed)
-    function goWelcome(){ location.href = 'welcome-rt.html'; }
-    document.getElementById('backWelcome').addEventListener('click', goWelcome);
-
     // Screen 1
     const next1=$('#next1');
+    // init small avatar from TG or initials
+    (function(){ tryTG(); if(!localStorage.getItem('doctorAvatarUrl')) applySmallAvatar(null, initialsFrom($('#fio').value)); })();
+    $('#fio').addEventListener('input', ()=>{ if(!localStorage.getItem('doctorAvatarUrl')) applySmallAvatar(null, initialsFrom($('#fio').value)); });
     ['#fio','#spec','#city','#clinic'].forEach(s=>{ $(s).addEventListener('input',()=>next1.disabled=!valid1()); $(s).addEventListener('change',()=>next1.disabled=!valid1()); });
     next1.addEventListener('click',()=>{
       store.set('doctorProfile',{name:$('#fio').value.trim(),specialty:$('#spec').value.trim(),city:$('#city').value.trim(),clinic:$('#clinic').value.trim(),tg:$('#tg').value.trim(),contact:$('#contact').value.trim()});
       page(1);
+      const h=parseHandle($('#tg').value);
+      if(h && !localStorage.getItem('doctorAvatarUrl')) tryUnavatarFromHandle(h);
     });
 
     // Screen 2
@@ -202,11 +209,17 @@
 
     $('#finishBtn').addEventListener('click',()=>{
       store.set('doctorOnboardingDone',{at:new Date().toISOString()});
-      location.href='doctor-cabinet-mint-rose.html#/doctor/patients';
+      const _code=store.get('doctorCode'); location.href='doctor-cabinet-mint-rose.html?code='+encodeURIComponent(_code)+'#/doctor/patients';
     });
 
     function toast(txt){ const n=document.createElement('div'); n.textContent=txt; n.style.cssText='position:fixed;left:50%;bottom:28px;transform:translateX(-50%);padding:10px 14px;border-radius:12px;background:rgba(0,0,0,.7);color:#fff;font-weight:600;z-index:9999'; document.body.appendChild(n); setTimeout(()=>n.remove(),1400); }
     next1.disabled=!valid1();
   </script>
+  <script>
+  document.getElementById('doc-finish')?.addEventListener('click', () => {
+    localStorage.setItem('rt_doctor_done','1');
+    location.replace('doctor-cabinet-mint-rose.html');
+  });
+</script>
 </body>
 </html>
