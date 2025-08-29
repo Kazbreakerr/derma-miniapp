@@ -4,17 +4,6 @@
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>Roaccutane Tracker — загрузка</title>
-  <script>
-  // Уже видел предупреждения? (ставится на warnings.html, см. п.4)
-  const seenWarnings = localStorage.getItem('rt_seen_warnings') === '1';
-
-  // Всегда показываем сплэш, но подсказываем ему "куда после".
-  const next = seenWarnings ? 'welcome-rt.html' : 'warnings.html';
-
-  const url = new URL('splash-video.html', location.href);
-  url.searchParams.set('after', next);
-  location.replace(url.toString());
-</script>
   <!-- Telegram SDK -->
   <script src="https://telegram.org/js/telegram-web-app.js"></script>
 
@@ -116,9 +105,15 @@
           try {
             localStorage.removeItem('derma_consent');
             localStorage.removeItem('derma_next');
+            
             if (tgId) {
               localStorage.removeItem(`dermaApp:${tgId}:consentAccepted`);
               localStorage.removeItem(`dermaApp:${tgId}:splash_seen`);
+              // уже есть: derma_consent, derma_next, ...:splash_seen — оставь
+localStorage.removeItem('rt_patient_done');
+localStorage.removeItem('rt_doctor_done');
+localStorage.removeItem('rt_role');
+localStorage.removeItem('rt_seen_warnings');
             }
           } catch(_){}
           return goToSplash('./welcome-rt.html');

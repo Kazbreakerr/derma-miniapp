@@ -161,19 +161,7 @@
     if (tgApp && tgApp.ready) tgApp.ready();
     if (tgApp && tgApp.expand) tgApp.expand();
     const initUser = (tgApp && tgApp.initDataUnsafe && tgApp.initDataUnsafe.user) ? tgApp.initDataUnsafe.user : null;
-    (function fillHeader(){
-      const name = initUser ? [initUser.first_name, initUser.last_name].filter(Boolean).join(' ') : '—';
-      const ava = document.getElementById('ava');
-      const nm  = document.getElementById('tgName');
-      if (nm) nm.textContent = name;
-      if (ava){
-        if (initUser && initUser.photo_url){ ava.innerHTML = '<img alt="" src="'+initUser.photo_url+'">'; }
-        else{
-          const initials = (name||'').trim().split(/\s+/).slice(0,2).map(s=>s[0]||'').join('').toUpperCase() || 'U';
-          ava.textContent = initials;
-        }
-      }
-    })();
+    
 
     const initData = (tgApp && tgApp.initData) ? tgApp.initData : '';
     const API_BASE = String(window.API_BASE||'').replace(/\/$/, '');
@@ -188,6 +176,53 @@
       if (initData) headers['X-Telegram-InitData'] = initData;
       return fetch(url, { ...opts, headers });
     }
+    <!-- ВСТАВИТЬ ВОТ ЭТО СЮДА -->
+  (async function hydrateHeader(){
+    const tg = window.Telegram?.WebApp;
+    const nameEl = document.getElementById('tgName');
+    const avaEl  = document.getElementById('ava');
+
+    function setInitials(target, name){
+      if (!target) return;
+      const i = (name||'').trim().split(/\s+/).map(s=>s[0]||'').slice(0,2).join('').toUpperCase() || 'U';
+      target.textContent = i;
+    }
+    function putPhoto(target, url, fallbackName){
+      if (!target) return setInitials(target, fallbackName);
+      const img = new Image(); img.alt=''; img.src = url;
+      img.onload = ()=>{ target.innerHTML=''; img.style.width='100%'; img.style.height='100%'; img.style.objectFit='cover'; target.appendChild(img); };
+      img.onerror = ()=> setInitials(target, fallbackName);
+    }
+
+    // 1) Telegram
+    let name = '', photo = '';
+    const u = tg?.initDataUnsafe?.user;
+    if (u) {
+      name  = [u.first_name, u.last_name].filter(Boolean).join(' ');
+      photo = u.photo_url || '';
+    }
+
+    // 2) Dev-qs
+    if (!name) {
+      const qs = new URLSearchParams(location.search);
+      name  = qs.get('tg_name')  || '';
+      photo = qs.get('tg_photo') || '';
+    }
+
+    // 3) Фолбэк на /api/me
+    if (!name) {
+      try{
+        const r = await api('/api/me');
+        if (r.ok) {
+          const me = await r.json();
+          name = me.full_name || me.name || '';
+        }
+      }catch(_){}
+    }
+
+    if (nameEl) nameEl.textContent = name || '—';
+    if (photo) putPhoto(avaEl, photo, name); else setInitials(avaEl, name);
+  })();
 
     // ====== Allergies UX ======
     document.getElementById('noAllergies').addEventListener('change', (e)=>{

@@ -1,0 +1,339 @@
+<!doctype html><html lang="ru"><head><meta charset="utf-8"/>
+<script>
+  /* Гейт: без согласия — обратно на warnings (сохраняем ?tg) */
+  (function(){
+    try{
+      const qs  = location.search || '';
+      const dev = new URLSearchParams(qs).get('tg') || '';
+      const tg  = window.Telegram?.WebApp;
+      const uid = String(dev || tg?.initDataUnsafe?.user?.id || '');
+      const hasNs  = uid && localStorage.getItem(`dermaApp:${uid}:consentAccepted`) === '1';
+      const hasOld = localStorage.getItem('derma_consent') === '1';
+      if (!(hasNs || hasOld)) { location.replace('./warnings.html' + qs); }
+    }catch(_){}
+  })();
+</script>
+<meta name="viewport" content="width=device-width, initial-scale=1"/>
+<title>Roaccutane Tracker - План Курса</title>
+<script src="https://telegram.org/js/telegram-web-app.js"></script>
+<script>window.API_BASE=window.API_BASE||'';</script>
+<style>
+:root{
+  --bg:#0B1220;--surface:#0E1726;--card:#121C2E;--border:#1F2A3C;
+  --primary:#14B8A6;--text-high:#F3F7FF;--text-low:#93A3BF;--info:#60A5FA;--focus-ring:#93C5FD;
+  --accent:#22D3EE;--accent-2:#14B8A6;--danger:#EF4444;
+}
+*{box-sizing:border-box}html,body{height:100%}
+body{margin:0;background:var(--bg);color:var(--text-high);
+     font-family:ui-sans-serif,system-ui,-apple-system,Segoe UI,Roboto,Inter,Manrope,Helvetica,Arial;font-size:16px;line-height:1.5}
+.wrap{max-width:900px;margin:0 auto;padding:24px 24px 40px}
+h1{font-size:28px;line-height:34px;margin:0 0 16px;font-weight:600;text-align:center}
+.card{position:relative;background:var(--card);border:1px solid var(--border);border-radius:16px;padding:20px;
+      box-shadow:0 8px 24px rgba(0,0,0,.35)}
+.glow{position:absolute;inset:0;pointer-events:none;
+      background:radial-gradient(120% 120% at 10% 0%, rgba(20,184,166,.18) 0%, rgba(18,28,46,0) 50%)}
+.title{display:flex;gap:12px;align-items:center;margin-bottom:12px}
+.title h2{margin:0;font-size:22px;line-height:28px;font-weight:600}
+.row{display:flex;flex-wrap:wrap;gap:12px;align-items:center}
+.muted{color:var(--text-low)}.field{display:flex;flex-direction:column;gap:6px}.inline{display:flex;gap:12px;flex-wrap:wrap;align-items:flex-start}
+label{display:inline-flex;gap:8px;align-items:center}
+input[type=number],input[type=date],input[type=time],select{
+  background:var(--surface);border:1px solid var(--border);color:var(--text-high);
+  border-radius:12px;padding:10px 12px;font-size:16px;line-height:24px;outline:none
+}
+input:focus,select:focus{border-color:#0EA5A6;box-shadow:0 0 0 2px var(--focus-ring)}
+input[disabled]{opacity:.6;cursor:not-allowed}
+/* подсветка ошибки даты */
+.input-error{border-color:var(--danger)!important;box-shadow:0 0 0 2px rgba(239,68,68,.35)!important}
+
+.cta{height:48px;padding:0 20px;border-radius:12px;border:none;font-weight:600;cursor:pointer;
+     background-image:linear-gradient(135deg,#22D3EE 0%,#14B8A6 100%);color:#07121F;box-shadow:0 6px 16px rgba(0,0,0,.25)}
+footer{margin:24px 0 8px;color:var(--text-low);text-align:center;font-size:13px}
+.rec{background:#0e1524;border:1px solid #1f2a3c;border-radius:12px;padding:14px}
+.rec h3{margin:0 0 8px;font-size:18px}
+
+/* плашка-комментарий у даты */
+.badge{
+  display:inline-flex;align-items:center;gap:8px;
+  padding:6px 10px;border-radius:10px;border:1px solid #315072;
+  background:linear-gradient(180deg,#132034,#0e1626);
+  color:#EAF2FF;font-size:13px;font-weight:700;white-space:nowrap;
+}
+.badge svg{width:14px;height:14px;stroke:#7AA2FF}
+
+/* Тумблер "Я уже на курсе" */
+.pill-switch{
+  display:inline-flex;align-items:center;gap:12px;
+  padding:10px 14px;border-radius:999px;border:1px solid #315072;
+  background:linear-gradient(180deg,#132034,#0e1626);color:#EAF2FF;font-weight:800;letter-spacing:.2px;
+  cursor:pointer;user-select:none;transition:all .15s ease-out;box-shadow:0 6px 16px rgba(0,0,0,.25);
+}
+.pill-switch:hover{ border-color:#4C78A8 }
+.pill-switch:focus-visible{ outline:none; box-shadow:0 0 0 2px var(--focus-ring),0 0 0 6px rgba(11,18,32,.9) }
+.pill-switch .dot{
+  position:relative;width:22px;height:22px;border-radius:999px;background:transparent;
+  border:3px solid #7AA2FF;box-shadow:0 0 0 1px #2a405e;transition:transform .15s ease-out, background .15s, border-color .15s;
+}
+.pill-switch:not([aria-pressed="true"]) .dot::after{
+  content:""; position:absolute; inset:-6px; border-radius:inherit;
+  border:2px solid rgba(122,162,255,.25); animation:pillPulse 2.2s ease-out infinite; pointer-events:none;
+}
+.pill-switch[aria-pressed="true"]{border-color:#60A5FA;background:linear-gradient(135deg,#3B82F6,#22D3EE);color:#02131A}
+.pill-switch[aria-pressed="true"] .dot{background:#fff;border-color:#fff;box-shadow:0 0 0 1px rgba(0,0,0,.25) inset;transform:translateX(2px)}
+
+/* Кнопка-колокольчик */
+.bell{display:inline-flex;align-items:center;gap:10px;padding:10px 12px;border-radius:12px;border:1px solid #315072;
+  background:linear-gradient(180deg,#132034,#0e1626);color:#EAF2FF;font-weight:800;cursor:pointer;transition:all .15s ease-out;}
+.bell svg{width:18px;height:18px;stroke:currentColor}
+.bell:hover{ border-color:#4C78A8 }
+.bell[data-on="1"]{border-color:#60A5FA;background:linear-gradient(135deg,#1D4ED8,#3B82F6);color:#E6F0FF}
+.bell[data-on="1"] svg{ color:#E6F0FF }
+
+/* служебные */
+.tip{font-size:13px;color:var(--text-low);margin-top:6px}
+.motto{font-size:14px;color:#c4d6ff;margin:6px 0 10px;font-style:italic}
+</style></head>
+<body>
+<div class="wrap">
+  <h1>Roaccutane Tracker</h1>
+
+  <section class="card" aria-labelledby="plan-title">
+    <div class="glow"></div>
+    <div class="title">
+      <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#60A5FA" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+        <rect x="3" y="4" width="18" height="18" rx="2"/><path d="M3 10h18"/><path d="M8 2v4"/><path d="M16 2v4"/>
+      </svg>
+      <h2 id="plan-title">План курса</h2>
+    </div>
+
+    <div class="field" style="max-width:340px">
+      <label for="plan_drug">Препарат:</label>
+      <select id="plan_drug">
+        <option value="roaccutane">Роаккутан</option>
+        <option value="aknekutan">Акнекутан</option>
+        <option value="other">Другое</option>
+      </select>
+    </div>
+
+    <!-- Дата + плашка-комментарий -->
+    <div class="field" style="margin-top:8px;max-width:280px">
+      <label for="plan_start">
+        Дата начала курса:
+        <span class="badge" title="Без указания даты план не сохранится">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+            <circle cx="12" cy="12" r="10"></circle><line x1="12" y1="16" x2="12" y2="12"></line><line x1="12" y1="8" x2="12" y2="8"></line>
+          </svg>
+          Обязательно
+        </span>
+      </label>
+      <input id="plan_start" type="date" aria-required="true">
+      <div id="dateHint" class="tip">Укажите реальную дату начала — это нужно для календаря и расчётов.</div>
+    </div>
+
+    <div class="rec" style="margin-top:12px">
+      <h3>Рекомендуемая кумулятивная доза</h3>
+      <div><b>Минимальная (120 мг/кг):</b> <span id="minDose">—</span> мг</div>
+      <div><b>Оптимальная (135 мг/кг):</b> <span id="optDose">—</span> мг</div>
+      <div><b>Максимальная (150 мг/кг):</b> <span id="maxDose">—</span> мг</div>
+      <div class="muted" style="margin-top:6px">Суточная доза варьируется от 10–20 мг в начале до 60–80 мг в пике.</div>
+      <div class="tip">Суточная доза обычно рассчитывается как 0,5–1 мг/кг. Точную дозу подбирает врач.</div>
+    </div>
+
+    <!-- "Я уже на курсе" -->
+    <div class="inline" style="margin-top:14px">
+      <button id="alreadyBtn" class="pill-switch" aria-pressed="false" type="button">
+        <span class="dot" aria-hidden="true"></span>
+        <span class="label">Я уже на курсе</span>
+      </button>
+    </div>
+
+    <div id="alreadyWrap" class="inline" style="display:none;margin-top:8px">
+      <div class="field">
+        <label for="alreadyMg">Уже принял(а), примерно (мг):</label>
+        <input id="alreadyMg" type="number" placeholder="например, 2400" style="width:220px">
+      </div>
+      <div class="muted" style="max-width:420px">Нужно, чтобы учесть это на главной. Можно округлить.</div>
+    </div>
+
+    <!-- Напоминания -->
+    <div class="inline" style="margin-top:14px">
+      <button id="bell" class="bell" type="button" data-on="0" title="Напоминать о приёме">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+          <path d="M6 8a6 6 0 0 1 12 0c0 7 3 7 3 9H3c0-2 3-2 3-9" />
+          <path d="M10 21a2 2 0 0 0 4 0" />
+        </svg>
+        <span>Напоминать о приёме</span>
+      </button>
+
+      <div class="field" style="min-width:170px">
+        <label for="remindTime" class="muted">Время:</label>
+        <input id="remindTime" type="time" value="09:00">
+        <div class="tip">Время можно будет изменить в профиле.</div>
+      </div>
+    </div>
+
+    <div class="motto">Регулярность приёма — ключ к результату</div>
+
+    <div class="inline" style="margin-top:12px">
+      <button class="cta" id="btnSavePlan">Сохранить план</button>
+      <div id="planMsg" class="muted"></div>
+    </div>
+  </section>
+
+  <footer>Приложение не даёт медицинских рекомендаций. Решения — только с врачом.</footer>
+</div>
+
+<script>
+const tgApp=(window.Telegram&&window.Telegram.WebApp)?window.Telegram.WebApp:null;
+tgApp?.ready?.(); tgApp?.expand?.();
+
+const initData=(tgApp&&tgApp.initData)?tgApp.initData:'';
+const API_BASE=String(window.API_BASE||'').replace(/\/$/,'');
+const devTg=new URLSearchParams(location.search).get('tg')||'1002';
+
+function api(path,opts={}) {
+  let url=/^https?:\/\//i.test(path)?path:(API_BASE+path);
+  const p=[]; if(!initData&&devTg)p.push('tg='+encodeURIComponent(devTg));
+  p.push('v=plan-2025-08-29');
+  url+=(url.includes('?')?'&':'?')+p.join('&');
+  const h={'Content-Type':'application/json',...(opts.headers||{})};
+  if(initData) h['X-Telegram-InitData']=initData;
+  return fetch(url,{...opts,headers:h});
+}
+
+function storeReminder(on, time){
+  try{
+    localStorage.setItem('derma_remind_optin', on ? '1' : '0');
+    if(time) localStorage.setItem('derma_remind_time', time);
+  }catch(_){}
+}
+function parseTimeStr(t){
+  const m = /^([01]\d|2[0-3]):([0-5]\d)$/.exec(t||'');
+  return m?{hour:+m[1],minute:+m[2]}:null;
+}
+
+/* Подтягиваем вес для расчёта доз */
+(async function preload(){
+  try{
+    const r=await api('/api/me'); if(!r.ok) return;
+    const me=await r.json(); const w=Number(me.weight_kg||0);
+    if(w>0){
+      document.getElementById('minDose').textContent = Math.round(120*w);
+      document.getElementById('optDose').textContent = Math.round(135*w);
+      document.getElementById('maxDose').textContent = Math.round(150*w);
+    }
+  }catch(e){}
+})();
+
+/* Тумблер "Я уже на курсе" */
+const alreadyBtn = document.getElementById('alreadyBtn');
+const alreadyWrap= document.getElementById('alreadyWrap');
+alreadyBtn.addEventListener('click', ()=>{
+  const on = alreadyBtn.getAttribute('aria-pressed') !== 'true';
+  alreadyBtn.setAttribute('aria-pressed', String(on));
+  alreadyWrap.style.display = on ? '' : 'none';
+});
+
+/* Напоминания */
+const bell = document.getElementById('bell');
+const timeEl = document.getElementById('remindTime');
+
+(function initReminderUI(){
+  try{
+    const on = localStorage.getItem('derma_remind_optin') === '1';
+    const t  = localStorage.getItem('derma_remind_time') || '09:00';
+    bell.dataset.on = on ? '1' : '0';
+    timeEl.value = t;
+    timeEl.disabled = !on;
+  }catch(_){}
+})();
+
+async function syncReminder(on, time){
+  storeReminder(on, time);
+  try{
+    const tm = parseTimeStr(time)||{};
+    await api('/api/reminders/optin',{
+      method:'POST',
+      body:JSON.stringify({ enable:on, time, hour:tm.hour, minute:tm.minute })
+    });
+  }catch(_){}
+}
+
+bell.addEventListener('click', async ()=>{
+  const on = bell.dataset.on !== '1';
+  bell.dataset.on = on ? '1' : '0';
+  timeEl.disabled = !on;
+  await syncReminder(on, timeEl.value || '09:00');
+});
+
+timeEl.addEventListener('change', async ()=>{
+  const t = timeEl.value || '09:00';
+  if(bell.dataset.on === '1'){ await syncReminder(true, t); }
+  else { storeReminder(false, t); }
+});
+
+/* Сохранение плана (+ жёсткая проверка даты) */
+function prevDay(iso){ try{ const d=new Date(iso); d.setDate(d.getDate()-1); return d.toISOString().slice(0,10) }catch(_){ return null } }
+
+const planStartEl = document.getElementById('plan_start');
+
+planStartEl.addEventListener('change', ()=>{
+  planStartEl.classList.remove('input-error');
+  document.getElementById('planMsg').textContent='';
+});
+
+document.getElementById('btnSavePlan').addEventListener('click', async ()=>{
+  const msg=document.getElementById('planMsg');
+  const drug=document.getElementById('plan_drug').value;
+  const start=(planStartEl.value)||null;
+
+  const taken=Number(document.getElementById('alreadyMg').value||0);
+  const alreadyOn = (alreadyBtn.getAttribute('aria-pressed')==='true');
+
+  /* Требуем дату — иначе не даём продолжить */
+  if(!start){
+    planStartEl.classList.add('input-error');
+    msg.textContent='Укажите дату начала курса — без неё нельзя продолжить.';
+    planStartEl.focus();
+    return;
+  }
+
+  msg.textContent='Сохраняю план...';
+  try{
+    const payload = { drug, start_date:start, capsule_mg:undefined };
+    const r=await api('/api/plan',{method:'POST', body:JSON.stringify(payload)});
+    if(!r.ok){ msg.textContent='Ошибка '+r.status; return; }
+
+    if(alreadyOn && taken>0){
+      msg.textContent='Сохраняю учтённую дозу...'; let seeded=false;
+      try{
+        const s=await api('/api/progress/seed',{method:'POST',
+          body:JSON.stringify({ cum_mg:Math.round(taken), as_of:(start||new Date().toISOString().slice(0,10)) })});
+        if(s.ok) seeded=true;
+      }catch(_){}
+      if(!seeded){
+        const d = start ? prevDay(start) : new Date().toISOString().slice(0,10);
+        try{
+          const dres=await api('/api/dose',{method:'POST',
+            body:JSON.stringify({ mg:Math.round(taken), date:d, note:'seed:already_taken' })});
+          seeded=dres.ok;
+        }catch(_){}
+      }
+      if(!seeded){ try{ localStorage.setItem('derma_seed_cum_mg', String(Math.round(taken))); }catch(_){ } }
+    }
+
+    /* Зафиксируем состояние напоминаний и время (чтобы main/myprofile подняли тумблеры) */
+    const bellOn = bell.dataset.on === '1';
+    const t = timeEl.value || '09:00';
+    await syncReminder(bellOn, t);
+
+    msg.textContent = bellOn ? ('Готово. Напоминания: ' + t) : 'Готово';
+    try{ localStorage.setItem('derma_next','main'); }catch(_){}
+    const qs = location.search || '';
+    try{ localStorage.setItem('rt_patient_done','1'); }catch(_){}
+    location.replace('./main-dark.html' + qs);
+  }catch(e){ msg.textContent='Ошибка сети'; }
+});
+</script>
+
+</body></html>

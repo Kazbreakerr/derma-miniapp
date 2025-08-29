@@ -60,7 +60,60 @@
 </script>
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>Roaccutane Tracker — Главная</title>
- <script src="https://telegram.org/js/telegram-web-app.js"></script>
+  <script src="https://telegram.org/js/telegram-web-app.js">
+(function hookOpenCalendar(){
+  const btn = document.getElementById('openCalendarBtn');
+  if(!btn) return;
+  btn.addEventListener('click', (e)=>{
+    e.preventDefault();
+    try{ if(typeof go==='function'){ go('/calendar'); return; } }catch(_){}
+    location.assign('/calendar');
+  });
+})();
+
+
+// --- Pill burst animation on Add button ---
+(function setupPillBurst(){
+  const btn = document.getElementById('save');
+  if(!btn) return;
+  function burst(x,y){
+    const rect = btn.getBoundingClientRect();
+    const cx = x ? (x - rect.left) : rect.width/2;
+    const cy = y ? (y - rect.top)  : rect.height/2;
+    // Pill emoji
+    const pill = document.createElement('span');
+    pill.className = 'fx-pill';
+    pill.textContent = '💊';
+    pill.style.left = cx + 'px';
+    pill.style.top  = cy + 'px';
+    btn.appendChild(pill);
+    setTimeout(()=>pill.remove(), 900);
+
+    // Particles
+    const colors = ['#22D3EE','#14B8A6','#5EEAD4','#FDE047','#A7F3D0','#93C5FD'];
+    const N = 10;
+    for(let i=0;i<N;i++){
+      const dot = document.createElement('span');
+      dot.className = 'fx-dot';
+      dot.style.left = cx + 'px';
+      dot.style.top  = cy + 'px';
+      const angle = (Math.PI*2) * (i/N) + (Math.random()*0.6 - 0.3);
+      const r = 22 + Math.random()*16;
+      dot.style.setProperty('--dx',  Math.cos(angle)*r + 'px');
+      dot.style.setProperty('--dy',  Math.sin(angle)*r + 'px');
+      dot.style.width = dot.style.height = (4 + Math.random()*4) + 'px';
+      dot.style.background = colors[i % colors.length];
+      btn.appendChild(dot);
+      setTimeout(()=>dot.remove(), 800);
+    }
+  }
+  btn.addEventListener('click', (e)=>{
+    try{ burst(e.clientX, e.clientY); }catch(_){ burst(); }
+  });
+  btn.addEventListener('touchstart', (e)=>{
+    try{ const t = e.touches[0]; if(t) burst(t.clientX, t.clientY); }catch(_){ burst(); }
+  }, {passive:true});
+})();
 
 </script>
   <script>window.API_BASE = window.API_BASE || '';
@@ -1361,38 +1414,34 @@ const isoLocal = (d) => {
       }
     });
 
-    (async function hydrateTgUser(){
-  const tg  = window.Telegram?.WebApp;
-  const nameEl = document.querySelector('#tgName, #topName, #fullName, [data-tg-name]');
-  const avaEl  = document.querySelector('#ava, #topAva, [data-tg-ava]');
-
-  function setInitials(target, name){
-    const i = (name||'').trim().split(/\s+/).map(s=>s[0]||'').slice(0,2).join('').toUpperCase() || 'U';
-    if (target) target.textContent = i;
-  }
-  function putPhoto(target, url, fallbackName){
-    if (!target) return setInitials(target, fallbackName);
-    const img = new Image(); img.alt='';
-    img.src = url; img.onload = ()=>{ target.innerHTML=''; img.style.width='100%'; img.style.height='100%'; img.style.objectFit='cover'; target.appendChild(img); };
-    img.onerror = ()=> setInitials(target, fallbackName);
-  }
-
-  let name = '', photo = '';
-  const u = tg?.initDataUnsafe?.user;
-  if (u) { name = [u.first_name,u.last_name].filter(Boolean).join(' '); photo = u.photo_url||''; }
-  if (!name) {
-    const qs = new URLSearchParams(location.search);
-    name  = qs.get('tg_name')  || '';
-    photo = qs.get('tg_photo') || '';
-  }
-  if (!name) {
-    try { const r = await api('/api/me'); if (r.ok) { const me = await r.json(); name = me.full_name || name; } } catch(_){}
-  }
-
-  if (nameEl) nameEl.textContent = name || '—';
-  if (photo) putPhoto(avaEl, photo, name); else setInitials(avaEl, name);
-})();
-
+    (function hydrateTgUser(){
+      const tg = window.Telegram?.WebApp;
+      const nameEl = document.querySelector('#tgName, #topName, [data-tg-name]');
+      const avaEl  = document.querySelector('#ava, #topAva, [data-tg-ava]');
+      function setInitials(name){
+        if (!avaEl) return;
+        const initials = (name||'').trim().split(/\s+/).map(s=>s[0]||'').slice(0,2).join('').toUpperCase() || 'U';
+        avaEl.innerHTML = initials;
+      }
+      let u = null; try { u = tg?.initDataUnsafe?.user || null; } catch(_){}
+      if (u && (u.first_name || u.last_name)) {
+        const name = [u.first_name, u.last_name].filter(Boolean).join(' ');
+        if (nameEl) nameEl.textContent = name;
+        if (avaEl) {
+          if (u.photo_url) { const img = new Image(); img.alt=''; img.src=u.photo_url; img.onload=()=>{ avaEl.innerHTML=''; img.style.width='100%'; img.style.height='100%'; img.style.objectFit='cover'; avaEl.appendChild(img); }; img.onerror=()=>setInitials(name); }
+          else { setInitials(name); }
+        }
+      } else {
+        const qs = new URLSearchParams(location.search);
+        const devName  = qs.get('tg_name')  || '';
+        const devPhoto = qs.get('tg_photo') || '';
+        if (devName && nameEl) nameEl.textContent = devName;
+        if (avaEl) {
+          if (devPhoto) { const img = new Image(); img.alt=''; img.src=devPhoto; img.onload=()=>{ avaEl.innerHTML=''; img.style.width='100%'; img.style.height='100%'; img.style.objectFit='cover'; avaEl.appendChild(img); }; img.onerror=()=>setInitials(devName); }
+          else { setInitials(devName); }
+        }
+      }
+    })();
 
     document.getElementById('resetBtn').addEventListener('click', ()=>{
       location.href = './reset-dark.html' + (location.search||'');
@@ -1695,49 +1744,31 @@ document.addEventListener('click', (e)=>{
   }
 });
 </script>
+
 <script>
-(function hookOpenCalendar(){
-  const btn = document.getElementById('openCalendarBtn');
-  if(!btn) return;
-  btn.addEventListener('click', (e)=>{
-    e.preventDefault();
-    try{ if(typeof go==='function'){ go('/calendar'); return; } }catch(_){}
-    location.assign('/calendar');
-  });
+// === Shared Element Transition: avatar (main -> myprofile) ===
+(function setupSharedAvatarNav(){
+  const header = document.getElementById('profileHeader') || document.getElementById('cardProfile');
+  const ava = document.querySelector('#ava');
+  if (ava && !ava.hasAttribute('data-shared')) ava.setAttribute('data-shared','avatar');
+  if (!header || !ava) return;
+  header.style.cursor = 'pointer';
+  header.addEventListener('click', (e)=>{
+    const r = ava.getBoundingClientRect();
+    const img = ava.querySelector('img');
+    const data = {
+      left: r.left, top: r.top, width: r.width, height: r.height,
+      br: getComputedStyle(ava).borderRadius,
+      text: img ? '' : (ava.textContent||'').trim(),
+      src: img ? img.src : '',
+      dpr: window.devicePixelRatio || 1,
+      ts: Date.now()
+    };
+    try{ sessionStorage.setItem('share:avatar', JSON.stringify(data)); }catch(_){}
+    const go = ()=>{ window.location.href = 'myprofile.html#fx=avatar'; };
+    if (document.startViewTransition) { document.startViewTransition(go); } else { go(); }
+  }, {passive:true});
 })();
 </script>
-<script>
-(function setupPillBurst(){
-  const btn = document.getElementById('save');
-  if(!btn) return;
-  function burst(x,y){
-    const rect = btn.getBoundingClientRect();
-    const cx = x ? (x - rect.left) : rect.width/2;
-    const cy = y ? (y - rect.top)  : rect.height/2;
-    const pill = document.createElement('span');
-    pill.className = 'fx-pill'; pill.textContent = '💊';
-    pill.style.left = cx + 'px'; pill.style.top = cy + 'px';
-    btn.appendChild(pill); setTimeout(()=>pill.remove(), 900);
-
-    const colors = ['#22D3EE','#14B8A6','#5EEAD4','#FDE047','#A7F3D0','#93C5FD'];
-    for(let i=0;i<10;i++){
-      const dot = document.createElement('span');
-      dot.className = 'fx-dot';
-      dot.style.left = cx + 'px'; dot.style.top = cy + 'px';
-      const angle = (Math.PI*2)*(i/10) + (Math.random()*0.6 - 0.3);
-      const r = 22 + Math.random()*16;
-      dot.style.setProperty('--dx',  Math.cos(angle)*r + 'px');
-      dot.style.setProperty('--dy',  Math.sin(angle)*r + 'px');
-      dot.style.width = dot.style.height = (4 + Math.random()*4) + 'px';
-      dot.style.background = colors[i % colors.length];
-      btn.appendChild(dot); setTimeout(()=>dot.remove(), 800);
-    }
-  }
-  btn.addEventListener('click', (e)=>{ try{ burst(e.clientX, e.clientY); }catch(_){ burst(); }});
-  btn.addEventListener('touchstart', (e)=>{ try{ const t=e.touches[0]; if(t) burst(t.clientX,t.clientY); }catch(_){ burst(); } }, {passive:true});
-})();
-</script>
-
-
 </body>
 </html>

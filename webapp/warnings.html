@@ -183,13 +183,16 @@
     setEnabled(next);
   });
 
-  // Старт: фиксируем согласие, помечаем следующий шаг и возвращаемся в index С СОХРАНЕНИЕМ ?tg
-  startBtn.addEventListener('click', () => {
-    setConsent(true);
-    try { localStorage.setItem('rt_seen_warnings','1'); } catch(_) {}
-    const qs = location.search || '';
-    location.replace('./welcome-rt.html' + qs);
-  }, { once: true });
+ // Старт: фиксируем согласие и идём туда, что записано в derma_next (по умолчанию — profile)
+startBtn.addEventListener('click', () => {
+  setConsent(true);
+  try { localStorage.setItem('rt_seen_warnings','1'); } catch(_) {}
+  const qs = location.search || '';
+  const map = { welcome:'welcome-rt.html', profile:'profile-dark.html', plan:'plan-dark.html', main:'main-dark.html' };
+  const key = (localStorage.getItem('derma_next') || 'profile').trim();
+  try { localStorage.removeItem('derma_next'); } catch(_) {}
+  location.replace('./' + (map[key] || 'profile-dark.html') + qs);
+}, { once: true });
 </script>
 </body>
 </html>

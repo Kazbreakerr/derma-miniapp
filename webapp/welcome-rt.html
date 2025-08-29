@@ -135,25 +135,24 @@
     })();
 
     // Старт: роутинг в зависимости от роли
-    document.getElementById('startBtn').addEventListener('click', () => {
-      // A/B routing: first-time vs subsequent visits by role
-      const role =
-        document.querySelector('input[name="role"]:checked')?.value
-        || (document.getElementById('roleSwitch')?.checked ? 'patient' : 'doctor')
-        || localStorage.getItem('derma_role')
-        || localStorage.getItem('rt_role')
-        || 'patient';
+   document.getElementById('startBtn').addEventListener('click', () => {
+  const role =
+    document.querySelector('input[name="role"]:checked')?.value
+    || localStorage.getItem('rt_role')
+    || 'patient';
 
-      const next = (role === 'doctor')
-        ? (localStorage.getItem('rt_doctor_done') === '1'
-            ? './doctor-cabinet-mint-rose.html'     // B: subsequent
-            : './doctor-onboarding-mint-rose.html') // A: first time
-        : (localStorage.getItem('rt_patient_done') === '1'
-            ? './main-dark.html'                    // B: subsequent
-            : './profile-dark.html');               // A: first time
-
-      location.replace(next);
-    }, { once: true });
+  const qs = location.search || '';
+  if (role === 'patient') {
+    try{ localStorage.setItem('derma_next', 'profile'); }catch(_){}
+    location.replace('./warnings.html' + qs);         // → предупреждения
+  } else {
+    // как и было для врача
+    const next = (localStorage.getItem('rt_doctor_done') === '1')
+      ? './doctor-cabinet-mint-rose.html'
+      : './doctor-onboarding-mint-rose.html';
+    location.replace(next);
+  }
+}, { once:true });
 
     // Смена темы
     (function(){

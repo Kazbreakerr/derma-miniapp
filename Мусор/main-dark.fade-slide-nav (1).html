@@ -57,10 +57,75 @@
   }, {passive:true});
 })();
 
+
+// Helper: fade&slide navigate for onboarding (use to('/myprofile.html') or to('/labs.html'))
+function to(path){
+  try{
+    const fsn = document.getElementById('fadeSlideNav');
+    if (!fsn){ location.assign(path); return; }
+    fsn.classList.add('run');
+    try{ window.Telegram?.WebApp?.HapticFeedback?.impactOccurred?.('light'); }catch(_){}
+    setTimeout(()=>{ location.assign(path); }, 340);
+  }catch(_){ location.assign(path); }
+}
+
 </script>
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>Roaccutane Tracker — Главная</title>
- <script src="https://telegram.org/js/telegram-web-app.js"></script>
+  <script src="https://telegram.org/js/telegram-web-app.js">
+(function hookOpenCalendar(){
+  const btn = document.getElementById('openCalendarBtn');
+  if(!btn) return;
+  btn.addEventListener('click', (e)=>{
+    e.preventDefault();
+    try{ if(typeof go==='function'){ go('/calendar'); return; } }catch(_){}
+    location.assign('/calendar');
+  });
+})();
+
+
+// --- Pill burst animation on Add button ---
+(function setupPillBurst(){
+  const btn = document.getElementById('save');
+  if(!btn) return;
+  function burst(x,y){
+    const rect = btn.getBoundingClientRect();
+    const cx = x ? (x - rect.left) : rect.width/2;
+    const cy = y ? (y - rect.top)  : rect.height/2;
+    // Pill emoji
+    const pill = document.createElement('span');
+    pill.className = 'fx-pill';
+    pill.textContent = '💊';
+    pill.style.left = cx + 'px';
+    pill.style.top  = cy + 'px';
+    btn.appendChild(pill);
+    setTimeout(()=>pill.remove(), 900);
+
+    // Particles
+    const colors = ['#22D3EE','#14B8A6','#5EEAD4','#FDE047','#A7F3D0','#93C5FD'];
+    const N = 10;
+    for(let i=0;i<N;i++){
+      const dot = document.createElement('span');
+      dot.className = 'fx-dot';
+      dot.style.left = cx + 'px';
+      dot.style.top  = cy + 'px';
+      const angle = (Math.PI*2) * (i/N) + (Math.random()*0.6 - 0.3);
+      const r = 22 + Math.random()*16;
+      dot.style.setProperty('--dx',  Math.cos(angle)*r + 'px');
+      dot.style.setProperty('--dy',  Math.sin(angle)*r + 'px');
+      dot.style.width = dot.style.height = (4 + Math.random()*4) + 'px';
+      dot.style.background = colors[i % colors.length];
+      btn.appendChild(dot);
+      setTimeout(()=>dot.remove(), 800);
+    }
+  }
+  btn.addEventListener('click', (e)=>{
+    try{ burst(e.clientX, e.clientY); }catch(_){ burst(); }
+  });
+  btn.addEventListener('touchstart', (e)=>{
+    try{ const t = e.touches[0]; if(t) burst(t.clientX, t.clientY); }catch(_){ burst(); }
+  }, {passive:true});
+})();
 
 </script>
   <script>window.API_BASE = window.API_BASE || '';
@@ -173,16 +238,6 @@
       .pos-right{transform:translate(calc(-50% + 130px),-50%) scale(0.56)}
     }
     .ring button{all:unset;cursor:pointer;display:block}
-    /* --- Неоновые толстые кольца --- */
-.ring circle.track{ stroke: url(#ringTrackGrad); stroke-width:18; }
-.ring circle[data-arc]{
-  stroke: url(#ringArcGrad);
-  stroke-width:18;
-  stroke-linecap:round;
-  transition: stroke-dashoffset .8s cubic-bezier(.2,.8,.2,1);
-  filter: url(#ringGlow);
-}
-.ring svg{ filter: url(#ringInner); } /* объём трека */
     
 
     /* === BOTTOM NAV WITH ICONS === */
@@ -547,71 +602,23 @@
   50%    { transform: translate(-50%, -52%) scaleX(-1); }
 }
 
-/* === Page Fade&Slide transitions === */
-body.page-enter{
-  opacity:0; transform:translateY(8px);
-  animation:pageIn .22s ease forwards;
+/* === Fade&Slide page transition (only for Profile & Labs) === */
+.fsn{ position:fixed; inset:0; pointer-events:none; z-index:9999; }
+.fsn-panel{
+  position:absolute; inset:0;
+  background:linear-gradient(180deg, var(--surface), var(--bg));
+  opacity:0; transform: translateX(16px);
+  transition: transform .32s cubic-bezier(.2,.7,.2,1), opacity .24s ease;
+  will-change: transform, opacity;
 }
-body.page-exit{
-  pointer-events:none;
-  animation:pageOut .22s ease forwards;
+.fsn.run .fsn-panel{ opacity:1; transform: translateX(0); }
+@media (prefers-reduced-motion: reduce){
+  .fsn-panel{ transition:none; }
 }
-@keyframes pageIn{to{opacity:1; transform:none}}
-@keyframes pageOut{to{opacity:0; transform:translateY(-8px)}}
-
-/* --- Bottom tabbar (copied from myprofile.html) --- */
-.tabbar{ position:fixed; left:0; right:0; bottom:0; z-index:40; display:grid; grid-template-columns:repeat(5,1fr); gap:6px; padding:8px 12px calc(8px + env(safe-area-inset-bottom)); background:rgba(6,12,19,.78); backdrop-filter: blur(12px); border-top:1px solid rgba(255,255,255,.12) }
-.tab{ display:flex; flex-direction:column; align-items:center; justify-content:center; gap:6px; height:56px; border-radius:14px; color:#a9b0c8 }
-.tab.active{ color:#fff; background:linear-gradient(180deg, rgba(255,255,255,.08), rgba(255,255,255,.02)); border:1px solid rgba(255,255,255,.14) }
-.tab svg{ width:20px; height:20px }
-/* Light theme override for tabbar to match myprofile */
-body.light .tabbar{ background:rgba(255,255,255,.85); border-top:1px solid rgba(0,0,0,.08); }
-body.light .tab.active{ color:#0d1220; background: linear-gradient(180deg, rgba(255,255,255,.85), rgba(255,255,255,.65)); border:1px solid rgba(0,0,0,.12); }
-
-
-/* View Transitions Fade&Slide to match myprofile */
-@keyframes vt-fade-slide-in {
-  from { opacity: 0; transform: translateY(8px) scale(.995); }
-  to   { opacity: 1; transform: translateY(0) scale(1); }
-}
-@keyframes vt-fade-slide-out {
-  from { opacity: 1; transform: translateY(0) scale(1); }
-  to   { opacity: 0; transform: translateY(-8px) scale(.995); }
-}
-::view-transition-old(root){ animation: vt-fade-slide-out .35s ease both; }
-::view-transition-new(root){ animation: vt-fade-slide-in  .35s ease both; }
 
 </style>
 </head>
 <body>
-  <!-- defs для новых колец прогресса -->
-<svg width="0" height="0" style="position:absolute;left:-9999px;top:-9999px" aria-hidden="true" focusable="false">
-  <defs>
-    <!-- трек -->
-    <linearGradient id="ringTrackGrad" x1="0" y1="0" x2="1" y2="1">
-      <stop offset="0" stop-color="#1c2636"/>
-      <stop offset="1" stop-color="#0f1726"/>
-    </linearGradient>
-    <!-- активная дуга -->
-    <linearGradient id="ringArcGrad" x1="0" y1="0" x2="1" y2="1">
-      <stop offset="0" stop-color="#13ef8b"/>
-      <stop offset="1" stop-color="#11d1f0"/>
-    </linearGradient>
-    <!-- внешнее мягкое свечение -->
-    <filter id="ringGlow" x="-40%" y="-40%" width="180%" height="180%">
-      <feGaussianBlur in="SourceGraphic" stdDeviation="3" result="b"/>
-      <feMerge><feMergeNode in="b"/><feMergeNode in="SourceGraphic"/></feMerge>
-    </filter>
-    <!-- лёгкое внутреннее затемнение трека -->
-    <filter id="ringInner" x="-50%" y="-50%" width="200%" height="200%">
-      <feGaussianBlur stdDeviation="3" result="blur"/>
-      <feComposite in="SourceGraphic" in2="blur" operator="arithmetic" k2="-1" k3="1" result="inner"/>
-      <feColorMatrix in="inner" type="matrix"
-        values="0 0 0 0 0  0 0 0 0 0  0 0 0 0 0  0 0 0 .75 0" result="shadow"/>
-      <feMerge><feMergeNode in="shadow"/><feMergeNode in="SourceGraphic"/></feMerge>
-    </filter>
-  </defs>
-</svg>
   <div class="wrap">
     <h1>Roaccutane Tracker</h1>
 
@@ -631,10 +638,10 @@ body.light .tab.active{ color:#0d1220; background: linear-gradient(180deg, rgba(
       <div class="row" style="justify-content:space-between; align-items:center">
         <h2 id="progress-title" style="margin:0">Прогресс</h2>
         <div class="seg" id="doseSeg">
-  <button data-mode="min" data-short="Мин." data-full="Минимальная">Мин.</button>
-  <button data-mode="opt" class="active" data-short="Опт." data-full="Оптимальная">Опт.</button>
-  <button data-mode="max" data-short="Макс." data-full="Максимальная">Макс.</button>
-</div>
+          <button data-mode="min" data-short="Мин.">Минимальная</button>
+          <button data-mode="opt" class="active" data-short="Опт.">Оптимальная</button>
+          <button data-mode="max" data-short="Макс.">Максимальная</button>
+        </div>
       </div>
 
       <div class="row" style="justify-content:space-between;align-items:center;margin-top:4px">
@@ -647,17 +654,8 @@ body.light .tab.active{ color:#0d1220; background: linear-gradient(180deg, rgba(
         <div class="ring pos-left small" data-mode="min">
           <button type="button" aria-label="Минимальная доза">
             <svg viewBox="0 0 110 110">
-              <svg viewBox="0 0 110 110">
-  <!-- r=46, толстый штрих 18px -->
-  <circle class="track" cx="55" cy="55" r="46"
-          stroke="url(#ringTrackGrad)" stroke-width="18" fill="none"
-          filter="url(#ringInner)"/>
-  <circle data-arc cx="55" cy="55" r="46"
-          stroke="url(#ringArcGrad)" stroke-width="18" fill="none"
-          stroke-linecap="round" stroke-dasharray="289" stroke-dashoffset="289"
-          filter="url(#ringGlow)"/>
-</svg>
-
+              <circle cx="55" cy="55" r="50" stroke="var(--ring-gray)" stroke-width="10" fill="none"></circle>
+              <circle data-arc cx="55" cy="55" r="50" stroke="var(--ring-ok)" stroke-width="10" fill="none" stroke-linecap="round" stroke-dasharray="314.159" stroke-dashoffset="314.159"></circle>
             </svg>
             <div class="pct" data-pct></div>
           </button>
@@ -665,17 +663,8 @@ body.light .tab.active{ color:#0d1220; background: linear-gradient(180deg, rgba(
 
         <div class="ring pos-center" data-mode="opt">
           <svg viewBox="0 0 110 110">
-            <svg viewBox="0 0 110 110">
-  <!-- r=46, толстый штрих 18px -->
-  <circle class="track" cx="55" cy="55" r="46"
-          stroke="url(#ringTrackGrad)" stroke-width="18" fill="none"
-          filter="url(#ringInner)"/>
-  <circle data-arc cx="55" cy="55" r="46"
-          stroke="url(#ringArcGrad)" stroke-width="18" fill="none"
-          stroke-linecap="round" stroke-dasharray="289" stroke-dashoffset="289"
-          filter="url(#ringGlow)"/>
-</svg>
-
+            <circle cx="55" cy="55" r="50" stroke="var(--ring-gray)" stroke-width="10" fill="none"></circle>
+            <circle data-arc cx="55" cy="55" r="50" stroke="var(--ring-ok)" stroke-width="10" fill="none" stroke-linecap="round" stroke-dasharray="314.159" stroke-dashoffset="314.159"></circle>
           </svg>
           <div class="pct" data-pct></div>
         </div>
@@ -683,17 +672,8 @@ body.light .tab.active{ color:#0d1220; background: linear-gradient(180deg, rgba(
         <div class="ring pos-right small" data-mode="max">
           <button type="button" aria-label="Максимальная доза">
             <svg viewBox="0 0 110 110">
-              <svg viewBox="0 0 110 110">
-  <!-- r=46, толстый штрих 18px -->
-  <circle class="track" cx="55" cy="55" r="46"
-          stroke="url(#ringTrackGrad)" stroke-width="18" fill="none"
-          filter="url(#ringInner)"/>
-  <circle data-arc cx="55" cy="55" r="46"
-          stroke="url(#ringArcGrad)" stroke-width="18" fill="none"
-          stroke-linecap="round" stroke-dasharray="289" stroke-dashoffset="289"
-          filter="url(#ringGlow)"/>
-</svg>
-
+              <circle cx="55" cy="55" r="50" stroke="var(--ring-gray)" stroke-width="10" fill="none"></circle>
+              <circle data-arc cx="55" cy="55" r="50" stroke="var(--ring-ok)" stroke-width="10" fill="none" stroke-linecap="round" stroke-dasharray="314.159" stroke-dashoffset="314.159"></circle>
             </svg>
             <div class="pct" data-pct></div>
           </button>
@@ -810,31 +790,28 @@ body.light .tab.active{ color:#0d1220; background: linear-gradient(180deg, rgba(
   </div>
 
   <!-- Нижняя навигация: inline SVG (currentColor) -->
-  
-  <!-- Bottom tabbar identical to myprofile.html -->
-  <nav class="tabbar">
-    <a class="tab active" href="main-dark.html" data-vt-link>
-      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 11l9-7 9 7"/><path d="M5 12v7a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2v-7"/><path d="M9 21v-6h6v6"/></svg>
-      <small>Главная</small>
+  <nav class="bottom-nav" role="navigation" aria-label="Нижняя навигация">
+    <a href="/main" data-route="main" class="active" aria-current="page">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 10.5 12 3l9 7.5"/><path d="M5 9.5V21h14V9.5"/><path d="M9 21v-6h6v6"/></svg>
+      <span>Главная</span>
     </a>
-    <a class="tab" href="calendar.html" data-vt-link>
-      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="18" rx="3"/><path d="M16 2v4"/><path d="M8 2v4"/><path d="M3 10h18"/></svg>
-      <small>Календарь</small>
+    <a href="/calendar" data-route="calendar">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="18" rx="2"/><path d="M16 2v4M8 2v4M3 10h18"/><path d="M8 14h3M8 18h3M14 14h3M14 18h3"/></svg>
+      <span>Календарь</span>
     </a>
-    <a class="tab" href="myprofile.html" data-vt-link>
-      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
-      <small>Профиль</small>
+    <a href="/profile" data-route="profile">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="8" r="4"/><path d="M4 21a8 8 0 0 1 16 0"/></svg>
+      <span>Профиль</span>
     </a>
-    <a class="tab" href="photolog.html" data-vt-link>
-      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="5" width="18" height="14" rx="2"/><circle cx="8.5" cy="12" r="2.5"/><path d="M21 13l-4-4-6 6"/></svg>
-      <small>Фотодневник</small>
+    <a href="/photos" data-route="photos">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="5" width="18" height="14" rx="2"/><path d="M9 5l2-2h2l2 2"/><circle cx="9" cy="12" r="2"/><path d="M14 12l3 3 3-3"/></svg>
+      <span>Фотодневник</span>
     </a>
-    <a class="tab" href="labs.html" data-vt-link>
-      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10 2v5l-5 9a4 4 0 0 0 3.5 6h7a4 4 0 0 0 3.5-6l-5-9V2"/><path d="M8 11h8"/></svg>
-      <small>Анализы</small>
+    <a href="/labs" data-route="labs">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10 2v6l-6 10a4 4 0 0 0 3.5 6h9a4 4 0 0 0 3.5-6l-6-10V2"/><path d="M4 16h16"/></svg>
+      <span>Анализы</span>
     </a>
   </nav>
-
 
   <script>
     const tgApp = (window.Telegram && window.Telegram.WebApp) ? window.Telegram.WebApp : null;
@@ -865,22 +842,14 @@ body.light .tab.active{ color:#0d1220; background: linear-gradient(180deg, rgba(
 
 
     // Compact labels for segmented control if it overflows
-   function updateSegLabels(){
-  const seg = document.getElementById('doseSeg');
-  if(!seg) return;
-  const btns = Array.from(seg.querySelectorAll('button'));
-
-  // если в разметке уже есть data-full — используем её; иначе запоминаем текущий текст
-  btns.forEach(b => { b.dataset.full = b.dataset.full || b.textContent.trim(); });
-
-  const overflow = seg.scrollWidth > seg.clientWidth + 2;
-  btns.forEach(b => {
-    b.textContent = overflow
-      ? (b.dataset.short || b.dataset.full)   // узко — короткие
-      : (b.dataset.full  || b.textContent);   // широко — полные
-  });
-}
-updateSegLabels();  // вызываем сразу, без ожидания load
+    function updateSegLabels(){
+      const seg = document.getElementById('doseSeg');
+      if(!seg) return;
+      const btns = Array.from(seg.querySelectorAll('button'));
+      btns.forEach(b=>{ if(!b.dataset.full){ b.dataset.full = b.textContent.trim(); } });
+      const overflow = seg.scrollWidth > seg.clientWidth + 2;
+      btns.forEach(b=>{ b.textContent = overflow ? (b.dataset.short || b.dataset.full) : b.dataset.full; });
+    }
     new ResizeObserver(()=>updateSegLabels()).observe(document.getElementById('doseSeg'));
     window.addEventListener('orientationchange', updateSegLabels);
     window.addEventListener('load', updateSegLabels);
@@ -980,16 +949,26 @@ updateSegLabels();  // вызываем сразу, без ожидания load
 
     // Bottom nav
     function go(path){ try{ history.pushState(null,'',path); location.assign(path);}catch{ location.href = path; } }
+    
     document.querySelectorAll('.bottom-nav a').forEach(a=>{
-      a.addEventListener('click', (e)=>{ e.preventDefault(); go(a.getAttribute('href')); });
+      a.addEventListener('click', (e)=>{
+        e.preventDefault();
+        const raw = a.getAttribute('href') || '';
+        const path = (raw === '/profile' || /myprofile/i.test(raw)) ? ('myprofile.html' + (location.search||'')) :
+                     (raw === '/labs'    || /labs/i.test(raw))      ? ('labs.html' + (location.search||'')) :
+                     raw;
+        const fsn = document.getElementById('fadeSlideNav');
+        if (fsn && (/(myprofile|\/profile)/i.test(raw) || /(labs|\/labs)/i.test(raw))){
+          fsn.classList.add('run');
+          try{ window.Telegram?.WebApp?.HapticFeedback?.impactOccurred?.('light'); }catch(_){}
+          setTimeout(()=>{ location.assign(path); }, 340);
+        } else {
+          go(path);
+        }
+      });
     });
-
-    function navWithFx(url){
-  const DUR = 220;
-  document.body.classList.remove('page-enter');
-  document.body.classList.add('page-exit');
-  setTimeout(()=>{ location.assign(url); }, DUR);
-}
+    
+    });
 
     // Header user
     (function fillHeader(){
@@ -1008,8 +987,7 @@ updateSegLabels();  // вызываем сразу, без ожидания load
     let DOSE_MODE = loadDoseMode();
 
     // RING helpers – обновляем все три кольца и подписи
-    const RING_R = 46;                 // новый радиус
-const RING_C = 2*Math.PI*RING_R;   // ~289.03
+    const RING_C = 2*Math.PI*50;
     function setRing(el, pct){
       const arc = el.querySelector('circle[data-arc]');
       const lbl = el.querySelector('[data-pct]');
@@ -1049,120 +1027,33 @@ const RING_C = 2*Math.PI*RING_R;   // ~289.03
     }
 
     function setDoseMode(mode){
-  if (DOSE_MODE === mode) return;         // без лишних перерисовок
-  DOSE_MODE = mode;
-  saveDoseMode(mode);
-
-  // подсветка сегмента
-  document.querySelectorAll('#doseSeg button')
-    .forEach(b => b.classList.toggle('active', b.dataset.mode === mode));
-
-  // подписи целей
-  document.getElementById('targetLabel').textContent = DOSE_PER_KG[mode];
-  const etaLbl = document.getElementById('etaTargetLabel');
-  if (etaLbl) etaLbl.textContent = DOSE_PER_KG[mode];
-
-  // ВАЖНО: моментально пересчитываем кольца и улитку
-  updateSummary();
-}
-    // ——— Свайпы/клики по кольцам (левое/центр/правое) ———
-(function wireProgressGestures(){
-  const rail = document.getElementById('ringsRail');
-  if (!rail) return;
-
-  // последовательность режимов
-  const order = ['min','opt','max'];
-  const step = (dir)=>{                   // dir: +1 вправо, -1 влево
-    let i = order.indexOf(DOSE_MODE);
-    if (i < 0) i = 1;                     // дефолт 'opt'
-    i = (i + dir + 3) % 3;
-    setDoseMode(order[i]);                // МГНОВЕННОЕ обновление
-  };
-
-  // клики/клавиатура по каждому кольцу
-  rail.querySelectorAll('.ring').forEach(r=>{
-    r.style.cursor = 'pointer';
-    r.setAttribute('role','button');
-    r.setAttribute('tabindex','0');
-    r.addEventListener('click', ()=> setDoseMode(r.dataset.mode));
-    r.addEventListener('keydown', e=>{
-      if (e.key==='Enter' || e.key===' ') { e.preventDefault(); setDoseMode(r.dataset.mode); }
-    });
-  });
-
-  // свайп (touch + mouse/trackpad)
-  let x0 = null;
-  const down = x => x0 = x;
-  const up   = x => {
-    if (x0 == null) return;
-    const dx = x - x0; x0 = null;
-    if (Math.abs(dx) > 30) step(dx < 0 ? +1 : -1);  // влево → следующий, вправо → предыдущий
-  };
-
-  // touch
-  rail.addEventListener('touchstart', e=>down(e.touches[0].clientX), {passive:true});
-  rail.addEventListener('touchend',   e=>{ const t=e.changedTouches[0]; up(t ? t.clientX : 0); }, {passive:true});
-
-  // mouse
-  rail.addEventListener('mousedown',  e=>down(e.clientX));
-  window.addEventListener('mouseup',  e=>up(e.clientX));
-})();
+      DOSE_MODE = mode; saveDoseMode(mode);
+      document.querySelectorAll('#doseSeg button').forEach(b=> b.classList.toggle('active', b.dataset.mode===mode));
+      document.getElementById('targetLabel').textContent = DOSE_PER_KG[mode];
+      document.getElementById('etaTargetLabel').textContent = DOSE_PER_KG[mode];
+      updateSummary();
+    }
 
     // Swipe по блоку прогресса + тап по мини-кольцам
-    
-(function wireProgressGestures(){
-  const rail = document.getElementById('ringsRail');
-  if(!rail) return;
+    (function wireProgressGestures(){
+      const rail = document.getElementById('ringsRail'); let x0=null;
+      rail.addEventListener('touchstart', (e)=>{ x0 = e.touches[0].clientX; }, {passive:true});
+      rail.addEventListener('touchend', (e)=>{
+        if (x0==null) return;
+        const x1 = (e.changedTouches[0]||{}).clientX || x0;
+        const dx = x1 - x0; x0=null;
+        if (Math.abs(dx) > 30){
+          const seq = ['min','opt','max'];
+          let i = seq.indexOf(DOSE_MODE);
+          if (dx < 0) i = (i+1)%3; else i = (i+2)%3;
+          setDoseMode(seq[i]);
+        }
+      }, {passive:true});
+      rail.querySelector('.ring[data-mode="min"] button')?.addEventListener('click', ()=> setDoseMode('min'));
+      rail.querySelector('.ring[data-mode="max"] button')?.addEventListener('click', ()=> setDoseMode('max'));
+    })();
 
-  // helper: move selection left/right
-  const seq = ['min','opt','max'];
-  const nextMode = (dir)=>{
-    let i = seq.indexOf(DOSE_MODE);
-    if (i === -1) i = 1; // default 'opt'
-    if (dir > 0) i = (i + 1) % 3;      // to the right
-    else        i = (i + 2) % 3;       // to the left
-    setDoseMode(seq[i]);
-  };
-
-  // click/tap on ANY ring switches to that mode
-  rail.querySelectorAll('.ring').forEach(r=>{
-    r.setAttribute('role','button');
-    r.setAttribute('tabindex','0');
-    r.style.cursor = 'pointer';
-    r.addEventListener('click', ()=> setDoseMode(r.dataset.mode));
-    r.addEventListener('keydown', (e)=>{
-      if(e.key === 'Enter' || e.key === ' '){
-        e.preventDefault(); setDoseMode(r.dataset.mode);
-      }
-    });
-  });
-
-  // swipe (touch + mouse/trackpad)
-  let startX = null;
-  const onDown = (x)=>{ startX = x; };
-  const onUp   = (x)=>{
-    if(startX == null) return;
-    const dx = x - startX; startX = null;
-    if (Math.abs(dx) > 30){ nextMode(dx < 0 ? +1 : -1); }
-  };
-
-  // touch
-  rail.addEventListener('touchstart', (e)=>{ onDown(e.touches[0].clientX); }, {passive:true});
-  rail.addEventListener('touchend',   (e)=>{ const t=e.changedTouches[0]; onUp(t ? t.clientX : 0); }, {passive:true});
-
-  // mouse/trackpad
-  rail.addEventListener('mousedown', (e)=> onDown(e.clientX));
-  window.addEventListener('mouseup', (e)=> onUp(e.clientX));
-
-  // keyboard arrows on the whole rail
-  rail.setAttribute('tabindex','0');
-  rail.addEventListener('keydown', (e)=>{
-    if (e.key === 'ArrowLeft'){ e.preventDefault(); nextMode(-1); }
-    if (e.key === 'ArrowRight'){ e.preventDefault(); nextMode(+1); }
-  });
-})();
-
-// Кнопки доз
+    // Кнопки доз
     
     function syncChipsSelection(){ /* chips removed */ }
     function renderChips(drug){ /* chips removed */ updateDoseHint(); }
@@ -1185,10 +1076,7 @@ const toMonday = (wd === 0 ? -6 : (1 - wd));
 base.setDate(base.getDate() + toMonday);
       for(let i=0;i<7;i++){
         const d = new Date(base); d.setDate(base.getDate()+i);
-        const y  = d.getFullYear();
-const m  = String(d.getMonth()+1).padStart(2,'0');
-const dd = String(d.getDate()).padStart(2,'0');
-const iso = `${y}-${m}-${dd}`;
+        const iso = d.toISOString().slice(0,10);
         const card = document.createElement('div'); card.className='day-card'; card.tabIndex=0; card.setAttribute('data-iso', iso);
         if (iso === todayISO()) card.classList.add('today');
         const mg = map.get(iso);
@@ -1250,11 +1138,6 @@ const iso = `${y}-${m}-${dd}`;
       let eta = '—';
       const byDate = {}; DOSES.forEach(x=>{ const k=(normalizeDate(x.date)||'').slice(0,10); byDate[k]=(byDate[k]||0)+Number(x.mg||x.mg_taken||0); });
       const today = todayISO();
-      // Берём ISO без сдвига в UTC (локальная дата устройства)
-const isoLocal = (d) => {
-  const t = new Date(d.getTime() - d.getTimezoneOffset()*60000);
-  return t.toISOString().slice(0,10);
-};
       const sumDays = (n) => {
         let s = 0;
         const [Y,M,D] = today.split('-').map(Number);
@@ -1361,38 +1244,34 @@ const isoLocal = (d) => {
       }
     });
 
-    (async function hydrateTgUser(){
-  const tg  = window.Telegram?.WebApp;
-  const nameEl = document.querySelector('#tgName, #topName, #fullName, [data-tg-name]');
-  const avaEl  = document.querySelector('#ava, #topAva, [data-tg-ava]');
-
-  function setInitials(target, name){
-    const i = (name||'').trim().split(/\s+/).map(s=>s[0]||'').slice(0,2).join('').toUpperCase() || 'U';
-    if (target) target.textContent = i;
-  }
-  function putPhoto(target, url, fallbackName){
-    if (!target) return setInitials(target, fallbackName);
-    const img = new Image(); img.alt='';
-    img.src = url; img.onload = ()=>{ target.innerHTML=''; img.style.width='100%'; img.style.height='100%'; img.style.objectFit='cover'; target.appendChild(img); };
-    img.onerror = ()=> setInitials(target, fallbackName);
-  }
-
-  let name = '', photo = '';
-  const u = tg?.initDataUnsafe?.user;
-  if (u) { name = [u.first_name,u.last_name].filter(Boolean).join(' '); photo = u.photo_url||''; }
-  if (!name) {
-    const qs = new URLSearchParams(location.search);
-    name  = qs.get('tg_name')  || '';
-    photo = qs.get('tg_photo') || '';
-  }
-  if (!name) {
-    try { const r = await api('/api/me'); if (r.ok) { const me = await r.json(); name = me.full_name || name; } } catch(_){}
-  }
-
-  if (nameEl) nameEl.textContent = name || '—';
-  if (photo) putPhoto(avaEl, photo, name); else setInitials(avaEl, name);
-})();
-
+    (function hydrateTgUser(){
+      const tg = window.Telegram?.WebApp;
+      const nameEl = document.querySelector('#tgName, #topName, [data-tg-name]');
+      const avaEl  = document.querySelector('#ava, #topAva, [data-tg-ava]');
+      function setInitials(name){
+        if (!avaEl) return;
+        const initials = (name||'').trim().split(/\s+/).map(s=>s[0]||'').slice(0,2).join('').toUpperCase() || 'U';
+        avaEl.innerHTML = initials;
+      }
+      let u = null; try { u = tg?.initDataUnsafe?.user || null; } catch(_){}
+      if (u && (u.first_name || u.last_name)) {
+        const name = [u.first_name, u.last_name].filter(Boolean).join(' ');
+        if (nameEl) nameEl.textContent = name;
+        if (avaEl) {
+          if (u.photo_url) { const img = new Image(); img.alt=''; img.src=u.photo_url; img.onload=()=>{ avaEl.innerHTML=''; img.style.width='100%'; img.style.height='100%'; img.style.objectFit='cover'; avaEl.appendChild(img); }; img.onerror=()=>setInitials(name); }
+          else { setInitials(name); }
+        }
+      } else {
+        const qs = new URLSearchParams(location.search);
+        const devName  = qs.get('tg_name')  || '';
+        const devPhoto = qs.get('tg_photo') || '';
+        if (devName && nameEl) nameEl.textContent = devName;
+        if (avaEl) {
+          if (devPhoto) { const img = new Image(); img.alt=''; img.src=devPhoto; img.onload=()=>{ avaEl.innerHTML=''; img.style.width='100%'; img.style.height='100%'; img.style.objectFit='cover'; avaEl.appendChild(img); }; img.onerror=()=>setInitials(devName); }
+          else { setInitials(devName); }
+        }
+      }
+    })();
 
     document.getElementById('resetBtn').addEventListener('click', ()=>{
       location.href = './reset-dark.html' + (location.search||'');
@@ -1671,73 +1550,12 @@ function updateDoseHint(){
   }, {passive:true});
 })();
 
-document.addEventListener('DOMContentLoaded', ()=>{
-  document.body.classList.add('page-enter');
-  document.body.addEventListener('animationend', e=>{
-    if(e.animationName==='pageIn') document.body.classList.remove('page-enter');
-  }, {once:true});
-});
-
 </script>
 
-<script>
-// Match myprofile cross-page animation for links with data-vt-link
-document.addEventListener('click', (e)=>{
-  const a = e.target.closest('a[data-vt-link]');
-  if(!a) return;
-  if(e.metaKey||e.ctrlKey||e.shiftKey||e.altKey||a.target==='_blank') return;
-  e.preventDefault();
-  const go = ()=>{ window.location.href = a.getAttribute('href'); };
-  if (document.startViewTransition) {
-    document.startViewTransition(go);
-  } else {
-    go();
-  }
-});
-</script>
-<script>
-(function hookOpenCalendar(){
-  const btn = document.getElementById('openCalendarBtn');
-  if(!btn) return;
-  btn.addEventListener('click', (e)=>{
-    e.preventDefault();
-    try{ if(typeof go==='function'){ go('/calendar'); return; } }catch(_){}
-    location.assign('/calendar');
-  });
-})();
-</script>
-<script>
-(function setupPillBurst(){
-  const btn = document.getElementById('save');
-  if(!btn) return;
-  function burst(x,y){
-    const rect = btn.getBoundingClientRect();
-    const cx = x ? (x - rect.left) : rect.width/2;
-    const cy = y ? (y - rect.top)  : rect.height/2;
-    const pill = document.createElement('span');
-    pill.className = 'fx-pill'; pill.textContent = '💊';
-    pill.style.left = cx + 'px'; pill.style.top = cy + 'px';
-    btn.appendChild(pill); setTimeout(()=>pill.remove(), 900);
-
-    const colors = ['#22D3EE','#14B8A6','#5EEAD4','#FDE047','#A7F3D0','#93C5FD'];
-    for(let i=0;i<10;i++){
-      const dot = document.createElement('span');
-      dot.className = 'fx-dot';
-      dot.style.left = cx + 'px'; dot.style.top = cy + 'px';
-      const angle = (Math.PI*2)*(i/10) + (Math.random()*0.6 - 0.3);
-      const r = 22 + Math.random()*16;
-      dot.style.setProperty('--dx',  Math.cos(angle)*r + 'px');
-      dot.style.setProperty('--dy',  Math.sin(angle)*r + 'px');
-      dot.style.width = dot.style.height = (4 + Math.random()*4) + 'px';
-      dot.style.background = colors[i % colors.length];
-      btn.appendChild(dot); setTimeout(()=>dot.remove(), 800);
-    }
-  }
-  btn.addEventListener('click', (e)=>{ try{ burst(e.clientX, e.clientY); }catch(_){ burst(); }});
-  btn.addEventListener('touchstart', (e)=>{ try{ const t=e.touches[0]; if(t) burst(t.clientX,t.clientY); }catch(_){ burst(); } }, {passive:true});
-})();
-</script>
-
+  <!-- Fade&Slide transition overlay -->
+  <div id="fadeSlideNav" class="fsn" aria-hidden="true">
+    <div class="fsn-panel"></div>
+  </div>
 
 </body>
 </html>
