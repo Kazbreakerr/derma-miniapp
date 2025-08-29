@@ -68,8 +68,8 @@
     tg?.ready?.(); tg?.expand?.();
 
     const sp   = new URLSearchParams(location.search);
-    const next = sp.get('next') || './index.html';
-    sp.delete('next');
+    const next = sp.get('after') || sp.get('next') || 'warnings.html';
+    sp.delete('after'); sp.delete('next');
     const tail = sp.toString() ? ('?' + sp.toString()) : '';
 
     // Режим подгонки: по умолчанию 'contain'. Можно принудить 'cover' параметром ?fit=cover

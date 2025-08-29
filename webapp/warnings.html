@@ -186,11 +186,10 @@
   // Старт: фиксируем согласие, помечаем следующий шаг и возвращаемся в index С СОХРАНЕНИЕМ ?tg
   startBtn.addEventListener('click', () => {
     setConsent(true);
-    try{ localStorage.setItem('derma_next', 'profile'); }catch(_){}
+    try { localStorage.setItem('rt_seen_warnings','1'); } catch(_) {}
     const qs = location.search || '';
-    location.replace('./index.html' + qs);
+    location.replace('./welcome-rt.html' + qs);
   }, { once: true });
 </script>
-
 </body>
 </html>

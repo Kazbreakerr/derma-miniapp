@@ -4,6 +4,17 @@
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>Roaccutane Tracker — загрузка</title>
+  <script>
+  // Уже видел предупреждения? (ставится на warnings.html, см. п.4)
+  const seenWarnings = localStorage.getItem('rt_seen_warnings') === '1';
+
+  // Всегда показываем сплэш, но подсказываем ему "куда после".
+  const next = seenWarnings ? 'welcome-rt.html' : 'warnings.html';
+
+  const url = new URL('splash-video.html', location.href);
+  url.searchParams.set('after', next);
+  location.replace(url.toString());
+</script>
   <!-- Telegram SDK -->
   <script src="https://telegram.org/js/telegram-web-app.js"></script>
 

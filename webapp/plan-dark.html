@@ -330,8 +330,10 @@ document.getElementById('btnSavePlan').addEventListener('click', async ()=>{
     msg.textContent = bellOn ? ('Готово. Напоминания: ' + t) : 'Готово';
     try{ localStorage.setItem('derma_next','main'); }catch(_){}
     const qs = location.search || '';
-    location.replace('./index.html' + qs);
+    try{ localStorage.setItem('rt_patient_done','1'); }catch(_){}
+    location.replace('./main-dark.html' + qs);
   }catch(e){ msg.textContent='Ошибка сети'; }
 });
 </script>
+
 </body></html>

@@ -3,36 +3,36 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
-  <title>Roaccutane Tracker — Добро пожаловать</title>
+  <title>Roaccutane Tracker — Добро пожаловать (Light)</title>
   <script src="https://telegram.org/js/telegram-web-app.js"></script>
   <style>
     :root{
-      --bg:#0B1220; --card:#121C2E; --border:#1F2A3C;
-      --text-high:#F3F7FF; --text-mid:#C7D2FE; --text-low:#93A3BF;
+      --bg:#F8FAFB; --card:#FFFFFF; --border:#E6EAF0;
+      --text-high:#0F172A; --text-mid:#334155; --text-low:#64748B;
       --primary:#14B8A6;
     }
     *{box-sizing:border-box}
     body{
       margin:0; color:var(--text-high);
-      background:radial-gradient(100% 60% at 20% 0%, rgba(20,184,166,.10), transparent 60%), radial-gradient(100% 60% at 80% 10%, rgba(96,165,250,.10), transparent 60%), var(--bg);
+      background:radial-gradient(60% 50% at 0% 0%, rgba(34,197,94,.22), transparent 60%), radial-gradient(70% 60% at 100% 100%, rgba(236,72,153,.22), transparent 60%), linear-gradient(135deg, #E8F9E9 0%, #FFF6F9 100%);
       font-family:ui-sans-serif,system-ui,-apple-system,Segoe UI,Roboto,Inter,Manrope,Helvetica,Arial;
       min-height:100dvh; display:grid; place-items:center;
     }
     .wrap{width:min(1100px,94vw); padding:24px}
-    .card{position:relative; overflow:hidden; background:var(--card); border:1px solid var(--border); border-radius:24px; padding:28px 28px 22px; box-shadow:0 16px 48px rgba(0,0,0,.40);}
-    .glow{position:absolute; inset:0; pointer-events:none; background:radial-gradient(120% 80% at 10% 0%, rgba(20,184,166,.18), transparent 50%), radial-gradient(120% 80% at 90% 20%, rgba(96,165,250,.18), transparent 60%);}
-    .chip{position:absolute; top:max(12px,env(safe-area-inset-top)); right:max(12px,env(safe-area-inset-right)); display:inline-flex; gap:6px; padding:8px 12px; border-radius:999px; font-size:13px; color:var(--text-mid); background:rgba(255,255,255,.06); border:1px solid var(--border); box-shadow:0 10px 20px rgba(0,0,0,.06);}
+    .card{position:relative; overflow:hidden; background:var(--card); border:1px solid var(--border); border-radius:24px; padding:28px 28px 22px; box-shadow:0 10px 30px rgba(2,6,23,.05), 0 2px 8px rgba(2,6,23,.04);}
+    .glow{position:absolute; inset:0; pointer-events:none; background:radial-gradient(120% 80% at 10% -10%, rgba(34,197,94,.12), transparent 50%), radial-gradient(120% 80% at 110% 110%, rgba(236,72,153,.12), transparent 50%);}
+    .chip{position:absolute; top:max(12px,env(safe-area-inset-top)); right:max(12px,env(safe-area-inset-right)); display:inline-flex; gap:6px; padding:8px 12px; border-radius:999px; font-size:13px; color:var(--text-low); background:#fff; border:1px solid var(--border); box-shadow:0 10px 20px rgba(0,0,0,.06);}
     .row{display:grid; grid-template-columns:180px 1fr; gap:24px; align-items:start}
-    .stage{position:relative; width:180px; height:180px; border-radius:18px; border:1px solid var(--border); background:linear-gradient(160deg,#0E1726,#101b2b); display:grid; place-items:center}
-    .pill{width:96px; height:40px} .pill .left{fill:#fff} .pill .right{fill:#14b8a6}
-    .ring{position:absolute; width:132px; height:132px; border-radius:999px; border:3px solid rgba(94,234,212,.35); animation:r 2.8s ease-out infinite}
+    .stage{position:relative; width:180px; height:180px; border-radius:18px; border:1px solid var(--border); background:linear-gradient(160deg,#FFFFFF,#F4F7FB); display:grid; place-items:center}
+    .pill{width:96px; height:40px} .pill .left{fill:#fff} .pill .right{fill:#f472b6}
+    .ring{position:absolute; width:132px; height:132px; border-radius:999px; border:3px solid rgba(34,197,94,.28); animation:r 2.8s ease-out infinite}
     @keyframes r{0%{transform:scale(.85);opacity:.8}80%{transform:scale(1.15);opacity:.08}100%{opacity:0}}
     h1{margin:0 0 6px; font-weight:800; font-size:40px; letter-spacing:.2px}
     p.lead{margin:10px 0 14px; color:var(--text-mid); font-size:20px}
 
     /* Вопрос + варианты роли (дизайн как на скрине) */
     .question{color:var(--text-mid); font-size:18px; margin:10px 0 10px; display:flex; align-items:center; gap:18px; flex-wrap:wrap;}
-    .vline{width:2px; height:36px; border-radius:2px; background:#1F2A3C; opacity:.7;}
+    .vline{width:2px; height:36px; border-radius:2px; background:#E6EAF0; opacity:.7;}
     .role-options{display:flex; gap:28px; align-items:center; flex-wrap:wrap;}
     .radio{ position:relative; display:inline-flex; align-items:center; gap:10px; padding:10px 14px; border-radius:12px;
              border:1px solid var(--border); background:transparent; color:var(--text-mid); cursor:pointer; user-select:none; }
@@ -45,8 +45,8 @@
 
     /* Низ: кнопки */
     .footer{display:flex; align-items:center; gap:12px; margin-top:16px; flex-wrap:wrap;}
-    .start{appearance:none; border:none; background:var(--primary); color:#001016; font-weight:800; padding:12px 18px; border-radius:14px; box-shadow:0 8px 24px rgba(20,184,166,.25); cursor:pointer;}
-    .theme{margin-left:auto} .theme button{height:46px; padding:0 18px; border-radius:14px; font-weight:800; background-image: linear-gradient(135deg,#22c55e 0%,#06b6d4 60%,#8b5cf6 100%); color:#061116; border:0;}
+    .start{appearance:none; border:none; background:linear-gradient(90deg, #22C55E 0%, #EC4899 100%); color:#fff; font-weight:800; padding:12px 18px; border-radius:14px; box-shadow:0 10px 20px rgba(34,197,94,.18), 0 10px 22px rgba(236,72,153,.12); cursor:pointer;}
+    .theme{margin-left:auto} .theme button{height:46px; padding:0 18px; border-radius:14px; font-weight:800; background-image: linear-gradient(135deg,#0ea5a6 0%, #0f172a 100%); color:#fff; border:1px solid transparent;}
 
     @media (max-width:820px){
       h1{font-size:28px}
@@ -76,16 +76,16 @@
             <defs><clipPath id="capsule"><rect x="0" y="0" rx="43" ry="43" width="200" height="86"/></clipPath></defs>
             <g clip-path="url(#capsule)">
               <rect x="0" y="0" width="100" height="86" fill="#ffffff"/>
-              <rect x="100" y="0" width="100" height="86" fill="#14b8a6"/>
-              <rect x="94" y="0" width="12" height="86" fill="#0E1726" opacity=".45"/>
+              <rect x="100" y="0" width="100" height="86" fill="#f472b6"/>
+              <rect x="94" y="0" width="12" height="86" fill="#FFFFFF" opacity=".45"/>
             </g>
-            <rect x="0" y="0" rx="43" ry="43" width="200" height="86" fill="none" stroke="rgba(255,255,255,.65)" stroke-width="2"/>
+            <rect x="0" y="0" rx="43" ry="43" width="200" height="86" fill="none" stroke="rgba(15,23,42,.15)" stroke-width="2"/>
           </svg>
         </div>
 
         <div>
           <h1>Добро пожаловать в Roaccutane Tracker</h1>
-          <p class="lead">Поможем аккуратно пройти курс: фиксируйте дозы, следите за прогрессом и не пропускайте приём.</p>
+          <p class="lead">Лёгкая версия: светлая тема с зелёно-розовым градиентом. Фиксируйте дозы, следите за прогрессом и не пропускайте приём.</p>
 
           <div class="question">
             <span>Вы используете приложение от лица <b>пациента</b> или <b>врача</b>?</span>
@@ -106,7 +106,7 @@
 
           <div class="footer">
             <button id="startBtn" class="start">Начать</button>
-            <div class="theme"><button id="themeToggle">🌤 <b>Светлая тема</b></button></div>
+            <div class="theme"><button id="themeToggle">🌙 <b>Тёмная тема</b></button></div>
           </div>
         </div>
       </div>
@@ -136,23 +136,10 @@
 
     // Старт: роутинг в зависимости от роли
     document.getElementById('startBtn').addEventListener('click', () => {
-      // A/B routing: first-time vs subsequent visits by role
-      const role =
-        document.querySelector('input[name="role"]:checked')?.value
-        || (document.getElementById('roleSwitch')?.checked ? 'patient' : 'doctor')
-        || localStorage.getItem('derma_role')
-        || localStorage.getItem('rt_role')
-        || 'patient';
-
-      const next = (role === 'doctor')
-        ? (localStorage.getItem('rt_doctor_done') === '1'
-            ? './doctor-cabinet-mint-rose.html'     // B: subsequent
-            : './doctor-onboarding-mint-rose.html') // A: first time
-        : (localStorage.getItem('rt_patient_done') === '1'
-            ? './main-dark.html'                    // B: subsequent
-            : './profile-dark.html');               // A: first time
-
-      location.replace(next);
+      const role = document.querySelector('input[name="role"]:checked')?.value || 'patient';
+      const qs = location.search || '';
+      const url = role === 'doctor' ? './doctor-onboarding-mint-rose.html' : './profile-dark.html';
+      location.replace(url + qs);
     }, { once: true });
 
     // Смена темы
@@ -161,8 +148,8 @@
       if(!btn) return;
       const qs = location.search || '';
       btn.addEventListener('click', ()=> {
-        try{ localStorage.setItem('rt_theme','light'); }catch(_ ){}
-        location.replace('./welcome-rt-light.html'+ qs);
+        try{ localStorage.setItem('rt_theme','dark'); }catch(_ ){}
+        location.replace('./welcome-rt.html'+ qs);
       });
     })();
   </script>

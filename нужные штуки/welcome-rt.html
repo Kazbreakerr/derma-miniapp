@@ -136,23 +136,10 @@
 
     // Старт: роутинг в зависимости от роли
     document.getElementById('startBtn').addEventListener('click', () => {
-      // A/B routing: first-time vs subsequent visits by role
-      const role =
-        document.querySelector('input[name="role"]:checked')?.value
-        || (document.getElementById('roleSwitch')?.checked ? 'patient' : 'doctor')
-        || localStorage.getItem('derma_role')
-        || localStorage.getItem('rt_role')
-        || 'patient';
-
-      const next = (role === 'doctor')
-        ? (localStorage.getItem('rt_doctor_done') === '1'
-            ? './doctor-cabinet-mint-rose.html'     // B: subsequent
-            : './doctor-onboarding-mint-rose.html') // A: first time
-        : (localStorage.getItem('rt_patient_done') === '1'
-            ? './main-dark.html'                    // B: subsequent
-            : './profile-dark.html');               // A: first time
-
-      location.replace(next);
+      const role = document.querySelector('input[name="role"]:checked')?.value || 'patient';
+      const qs = location.search || '';
+      const url = role === 'doctor' ? './doctor-onboarding-mint-rose.html' : './profile-dark.html';
+      location.replace(url + qs);
     }, { once: true });
 
     // Смена темы

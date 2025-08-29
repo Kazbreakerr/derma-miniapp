@@ -11,11 +11,8 @@
       --dr-text: #EDEFF2;
       --dr-text-muted: #9AA3AE;
       --dr-stroke: #1F2833;
-
-      /* Мята → пастельно-розовый */
       --dr-grad-1: linear-gradient(135deg, #6FEAD8 0%, #BDF7EE 40%, #FFD6E9 100%);
       --dr-grad-2: linear-gradient(135deg, rgba(111,234,216,.18) 0%, rgba(255,214,233,.18) 100%);
-
       --dr-r: 18px;
       --dr-dur:.24s;
       --dr-ease:cubic-bezier(.2,.6,.2,1);
@@ -29,7 +26,10 @@
     body{margin:0;background:var(--dr-bg);color:var(--dr-text);font:16px/1.4 system-ui,-apple-system,Segoe UI,Roboto,Inter,Arial,sans-serif}
     .dr-wrap{max-width:720px;margin:0 auto;padding:20px clamp(14px,4vw,24px) 28px;display:flex;flex-direction:column;gap:24px}
     .dr-header{display:flex;align-items:center;justify-content:space-between}
+    .dr-left{display:flex;align-items:center;gap:10px}
     .dr-title{font-weight:800;font-size:clamp(18px,2.8vw,24px)}
+    .dr-back{padding:8px 12px;border-radius:999px;border:1px solid var(--dr-stroke);background:transparent;color:var(--dr-text);cursor:pointer;display:inline-flex;align-items:center;gap:6px}
+    .dr-back:hover{border-color:#2A3442}
     .dr-stepper{display:flex;gap:8px;align-items:center}
     .dr-dot{width:8px;height:8px;border-radius:999px;background:#2A3442;opacity:.6;transition:all var(--dr-dur) var(--dr-ease)}
     .dr-dot.active{width:24px;background:var(--dr-grad-1);opacity:1;box-shadow:0 0 0 1px rgba(255,255,255,.06) inset,0 2px 8px rgba(255,214,233,.25)}
@@ -68,7 +68,10 @@
 <body>
   <div class="dr-wrap">
     <div class="dr-header">
-      <div class="dr-title">Онбординг врача</div>
+      <div class="dr-left">
+        <button class="dr-back" id="backWelcome" aria-label="Назад на welcome">← Назад</button>
+        <div class="dr-title">Онбординг врача</div>
+      </div>
       <div class="dr-stepper" id="drStepper">
         <div class="dr-dot active"></div><div class="dr-dot"></div><div class="dr-dot"></div>
       </div>
@@ -154,6 +157,10 @@
     const step=(i)=> $$('#drStepper .dr-dot').forEach((d,idx)=>d.classList.toggle('active',idx<=i));
     const page=(i)=>['#page1','#page2','#page3'].forEach((sel,idx)=>$(sel).classList.toggle('active',idx===i))||step(i);
     const valid1=()=>['#fio','#spec','#city','#clinic'].every(sel=>$(sel).value.trim());
+
+    // Welcome back button (fixed)
+    function goWelcome(){ location.href = 'welcome-rt.html'; }
+    document.getElementById('backWelcome').addEventListener('click', goWelcome);
 
     // Screen 1
     const next1=$('#next1');

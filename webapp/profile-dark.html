@@ -63,11 +63,26 @@
     footer{margin:24px 0 8px;color:var(--text-low);text-align:center;font-size:13px}
     .badge{display:inline-flex;align-items:center;gap:6px;padding:4px 10px;border-radius:999px;font-size:12px;
            border:1px solid #2a3a52;color:var(--text-mid);background:#0f1a2b}
+  
+    /* Back button */
+    .backbar{display:flex;align-items:center;gap:8px;margin:8px 0 12px}
+    .back{display:inline-flex;align-items:center;gap:8px;padding:8px 12px;border-radius:10px;border:1px solid var(--border);background:var(--surface);color:var(--text-high);cursor:pointer}
+    .back:hover{border-color:#2a3a52}
+
   </style>
 </head>
 <body>
   <div class="wrap">
-    <h1>Roaccutane Tracker </h1>
+        <div class="backbar">
+      <button id="btnBack" class="back" type="button" aria-label="Назад">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+          <polyline points="15 18 9 12 15 6"></polyline>
+          <line x1="9" y1="12" x2="21" y2="12"></line>
+        </svg>
+        <span>Назад</span>
+      </button>
+    </div>
+<h1>Roaccutane Tracker </h1>
 
     <section class="card" aria-labelledby="profile-title">
       <div class="glow"></div>
@@ -231,12 +246,21 @@
       msg.textContent = 'Сохранено';
       try{ localStorage.setItem('derma_next','plan'); }catch(_){}
       const qs = location.search || '';
-      setTimeout(()=>location.replace('./index.html' + qs), 200);
+      setTimeout(()=>location.replace('./plan-dark.html' + qs), 200);
     }catch(_){ msg.textContent='Ошибка сети'; }
   }, { once:true });  // защита от двойного клика
 
     // начальная валидация
     syncSaveBtn();
-  </script>
+  
+    // ====== Back to welcome ======
+    (function(){
+      const btn = document.getElementById('btnBack');
+      if (btn) btn.addEventListener('click', ()=>{
+        const qs = location.search || '';
+        location.replace('./welcome-rt.html' + qs);
+      });
+    })();
+</script>
 </body>
 </html>
