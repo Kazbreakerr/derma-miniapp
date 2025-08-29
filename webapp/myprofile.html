@@ -191,8 +191,16 @@
     .btn.contrast:hover{ background:rgba(255,255,255,.1); }
     .btn.contrast svg{ stroke: currentColor; }
   /* Doctor bind */
-    .doc-bind{ display:flex; gap:10px; align-items:center; padding-top:6px }
+    .doc-bind{ display:flex; gap:10px; align-items:center; padding-top:6px; flex-wrap: wrap; }
     .text-input{ height:42px; padding:0 12px; border-radius:12px; border:1px solid var(--bd-1); background:rgba(255,255,255,.06); color:var(--txt); font-weight:600; min-width:220px }
+    .doc-bind .text-input{
+  flex: 1 1 180px;              /* <-- Раньше было min-width:220px: убираем жёсткость */
+  min-width: 0;
+}
+    .doc-bind .btn{
+  flex: 0 0 auto;
+  white-space: nowrap;
+}
     .text-input::placeholder{ color:var(--muted) }
     .help{ font-size:13px; color:var(--muted) }
   /* Doctor small avatar + detach */
@@ -256,22 +264,56 @@ body.light .tab.active{
  <script src="https://telegram.org/js/telegram-web-app.js"></script>
 <script>window.API_BASE = window.API_BASE || '';</script>
 <script>
-  // Локальный helper
-  const tgApp   = window.Telegram?.WebApp || null;
+  // === Telegram context ===
+  const tgApp    = window.Telegram?.WebApp || null;
   tgApp?.ready?.(); tgApp?.expand?.();
-  const initData = tgApp?.initData || '';
-  function api(path, opts={}) {
-    const base  = String(window.API_BASE||'').replace(/\/$/,'');
-    const devTg = new URLSearchParams(location.search).get('tg') || '';
-    const headers = {'Content-Type':'application/json', ...(opts.headers||{})};
+
+  const initData = tgApp?.initData || '';                 // есть => мы внутри Телеги
+  const tgUserId = tgApp?.initDataUnsafe?.user?.id || ''; // реальный TG id, если Телега
+
+  // Если мы внутри Телеги — вычищаем любые dev-параметры из URL/LS
+  if (initData) {
+    try { localStorage.removeItem('rt_dev_tg'); } catch(_) {}
+    try {
+      const u = new URL(location.href);
+      if (u.searchParams.has('tg')) {                     // кто-то мог открыть со старым ?tg=1002
+        u.searchParams.delete('tg');
+        history.replaceState({}, '', u.toString());
+      }
+    } catch(_) {}
+  }
+
+  // === API helper ===
+  function api(path, opts = {}) {
+    const base = String(window.API_BASE || '').replace(/\/$/,'');
+    const headers = { 'Content-Type':'application/json', ...(opts.headers||{}) };
+
+    // В Телеге шлём подпись в заголовке (бэк сам извлечёт tg id)
     if (initData) headers['X-Telegram-InitData'] = initData;
-    let url = (path.startsWith('http') ? path : base + path);
-    if (!initData && devTg) url += (url.includes('?')?'&':'?') + 'tg=' + encodeURIComponent(devTg);
-    url += (url.includes('?')?'&':'?') + 'v=' + Date.now();
+
+    // Сборка URL
+    let url = /^https?:\/\//i.test(path) ? path : (base + path);
+
+    // *** Важно: добавляем ?tg=... ТОЛЬКО если НЕ в Телеге (dev-режим в браузере) ***
+    if (!initData) {
+      const devTg =
+        new URLSearchParams(location.search).get('tg') ||
+        localStorage.getItem('rt_dev_tg') || '1002';     // можно поменять на свой
+      try { localStorage.setItem('rt_dev_tg', devTg); } catch(_) {}
+      url += (url.includes('?') ? '&' : '?') + 'tg=' + encodeURIComponent(devTg);
+    }
+
+    // анти-кэш и, при желании, передача initData в query (если бэку так удобнее)
+    url += (url.includes('?') ? '&' : '?') + 'v=myprofile-2025-08-29';
     if (initData) url += '&tgWebAppData=' + encodeURIComponent(initData);
+
     return fetch(url, { ...opts, headers, credentials:'include' });
   }
+
+  // (опционально) можно использовать tgUserId для локального отображения
+  // console.log('[myprofile] mode:', initData ? 'telegram' : 'dev', 'tgId:', tgUserId || '(dev)');
 </script>
+
 </head>
 <body>
   <div class="topbar">

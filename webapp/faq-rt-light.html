@@ -117,72 +117,106 @@
     }
 
   </style>
+
   <style>
-    .topbar { display:flex; align-items:center; gap:12px; flex-wrap:wrap; }
-    #themeToggle{ margin-left:auto; }
-    .topbar .back-btn{ position:relative; z-index:20; }
-    #themeToggle.theme-toggle{ position:relative; z-index:10; }
+  /* === Exact-look Theme Toggle === */
+  .topbar { display:flex; align-items:center; gap:12px; flex-wrap:wrap; }
+  #themeToggle{ margin-left:auto; }
 
-    #themeToggle.theme-toggle{
-      --h:64px; --w:192px; --pad:8px; --bd:2px;
-      --thumb:calc(var(--h) - 2*(var(--pad) + var(--bd)));
-      width:var(--w); height:var(--h); border-radius:999px; padding:0; overflow:hidden;
-      border:var(--bd) solid #D7E0E2; background:#F4F8F9; cursor:pointer;
-      -webkit-tap-highlight-color:transparent;
-      box-shadow: inset 0 0 0 1px rgba(255,255,255,.65);
-    }
-    html[data-theme="dark"] #themeToggle.theme-toggle{
-      background:#0F1726; border-color:rgba(255,255,255,.06);
-      box-shadow: inset 0 0 0 1px rgba(255,255,255,.05);
-    }
-    #themeToggle .scene{ position:absolute; inset:var(--pad); border-radius:calc(var(--h)/2 - var(--pad));
-      overflow:hidden; transition:opacity .28s ease, transform .38s cubic-bezier(.2,.7,.2,1); }
-    #themeToggle .scene svg{ position:absolute; inset:0; width:100%; height:100%; display:block; }
-    /* Inverted visuals: show DARK scene on LIGHT page and LIGHT scene on DARK page */
-    html[data-theme="light"] #themeToggle .scene.light{ opacity:0; transform: translateX(-6px); }
-    html[data-theme="light"] #themeToggle .scene.dark { opacity:1; transform: translateX(0); }
-    html[data-theme="dark"]  #themeToggle .scene.light{ opacity:1; transform: translateX(0); }
-    html[data-theme="dark"]  #themeToggle .scene.dark { opacity:0; transform: translateX(6px); }
+  #themeToggle.theme-toggle{
+    --h:88px; --w:260px; --pad:10px; --bd:2px;
+    --thumb:calc(var(--h) - 2*(var(--pad) + var(--bd)));
+    position:relative; width:var(--w); height:var(--h);
+    padding:0; border:var(--bd) solid #D7E0E2; border-radius:999px;
+    background:#F4F8F9; cursor:pointer; overflow:hidden;
+    -webkit-tap-highlight-color:transparent;
+    box-shadow: inset 0 0 0 1px rgba(255,255,255,.65);
+  }
+  html[data-theme="dark"] #themeToggle.theme-toggle{
+    background:#0F1726;
+    border-color: rgba(255,255,255,.06);
+    box-shadow: inset 0 0 0 1px rgba(255,255,255,.05);
+  }
+  #themeToggle .scene{
+    position:absolute; inset:var(--pad); border-radius:calc(var(--h)/2 - var(--pad));
+    overflow:hidden; pointer-events:none;
+    transition: opacity .28s ease, transform .38s cubic-bezier(.2,.7,.2,1);
+  }
+  #themeToggle .scene svg{ position:absolute; inset:0; width:100%; height:100%; display:block; }
+  #themeToggle .scene.light{ opacity:1; }
+  #themeToggle .scene.dark{ opacity:0; }
 
-    #themeToggle .thumb{
-      position:absolute; top:calc(var(--pad) + var(--bd)); left:calc(var(--pad) + var(--bd));
-      width:var(--thumb); height:var(--thumb); border-radius:50%; background:#FFF;
-      box-shadow: 0 8px 24px rgba(0,0,0,.25), inset 0 0 0 1px rgba(0,0,0,.08), inset 0 1px 0 rgba(0,0,0,.06);
-      transform: translateX(0); transition: transform .38s cubic-bezier(.2,.7,.2,1); z-index:3;
-    }
-    /* Inverted thumb mapping: on LIGHT page thumb on the RIGHT */
-    html[data-theme="light"] #themeToggle .thumb{ transform: translateX(calc(var(--w) - 2*(var(--pad) + var(--bd)) - var(--thumb))); }
-    html[data-theme="dark"]  #themeToggle .thumb{ transform: translateX(0); }
+  html[data-theme="dark"] #themeToggle .scene.light{ opacity:0; transform: translateX(-6px); }
+  html[data-theme="dark"] #themeToggle .scene.dark { opacity:1; transform: translateX(0); }
 
-    /* Mini toggle for phones */
-    @media (max-width: 480px){ #themeToggle.theme-toggle{ --h:44px; --w:148px; --pad:6px; } }
-    @media (max-width: 360px){ #themeToggle.theme-toggle{ --h:40px; --w:136px; --pad:6px; } }
+  /* Thumb */
+  #themeToggle .thumb{
+    position:absolute; top:calc(var(--pad) + var(--bd)); left:calc(var(--pad) + var(--bd));
+    width:var(--thumb); height:var(--thumb); border-radius:50%;
+    background:#FFFFFF;
+    box-shadow: 0 10px 28px rgba(0,0,0,.25),
+                inset 0 0 0 1px rgba(0,0,0,.08),
+                inset 0 1px 0 rgba(0,0,0,.06);
+    transform: translateX(0);
+    transition: transform .38s cubic-bezier(.2,.7,.2,1);
+    z-index:3;
+  }
+  html[data-theme="dark"] #themeToggle .thumb{
+    transform: translateX(calc(var(--w) - 2*(var(--pad) + var(--bd)) - var(--thumb)));
+  }
 
-    @media (prefers-reduced-motion: reduce){
-      #themeToggle .scene, #themeToggle .thumb{ transition:none!important; }
+  /* Reduced motion */
+  @media (prefers-reduced-motion: reduce){
+    #themeToggle .thumb, #themeToggle .scene{ transition:none !important; }
+  }
+  </style>
+    
+
+  <style>
+    /* --- Invert toggle visuals: show DARK scene on LIGHT page, and LIGHT scene on DARK page --- */
+    html[data-theme="light"] #themeToggle.theme-toggle .scene.light{ opacity:0; transform: translateX(-6px); }
+    html[data-theme="light"] #themeToggle.theme-toggle .scene.dark { opacity:1; transform: translateX(0); }
+    html[data-theme="dark"]  #themeToggle.theme-toggle .scene.light{ opacity:1; transform: translateX(0); }
+    html[data-theme="dark"]  #themeToggle.theme-toggle .scene.dark { opacity:0; transform: translateX(6px); }
+    /* Invert thumb mapping too: on LIGHT page thumb on the RIGHT, on DARK page on the LEFT */
+    #themeToggle.theme-toggle .thumb{ transform: translateX(0); }
+    html[data-theme="light"] #themeToggle.theme-toggle .thumb{
+      transform: translateX(calc(var(--w) - 2*(var(--pad) + var(--bd)) - var(--thumb)));
     }
+    html[data-theme="dark"] #themeToggle.theme-toggle .thumb{ transform: translateX(0); }
   </style>
     
 
   <script>
     (function(){
       try{ if('scrollRestoration' in history) history.scrollRestoration = 'manual'; }catch(_){}
-      function toTop(){ try{ window.scrollTo(0,0); }catch(_){} }
-      if(document.readyState === 'complete' || document.readyState === 'interactive'){ toTop(); }
-      else { window.addEventListener('DOMContentLoaded', toTop, {once:true}); }
-      window.addEventListener('pageshow', toTop, {once:true});
+      var toTop = function(){ try{
+        document.documentElement.scrollTop = 0;
+        document.body.scrollTop = 0;
+        window.scrollTo(0,0);
+      }catch(_){} };
+      if(document.readyState === 'complete' || document.readyState === 'interactive'){
+        toTop();
+      }else{
+        window.addEventListener('DOMContentLoaded', toTop, {once:true});
+      }
+      window.addEventListener('pageshow', function(){ toTop(); }, {once:true});
     })();
   </script>
 
 
   <style>
-    /* Drag-friendly touch behavior */
-    #themeToggle.theme-toggle{ touch-action: pan-y; }
-    #themeToggle.theme-toggle.dragging{ cursor:grabbing; }
-    #themeToggle.theme-toggle.dragging .thumb,
-    #themeToggle.theme-toggle.dragging .scene{ transition:none !important; }
+    /* Ensure the back button is not overlapped by the toggle */
+    .topbar .back-btn{ position:relative; z-index: 20; }
+    #themeToggle.theme-toggle{ position:relative; z-index: 10; }
   </style>
 
+
+  <style>
+    /* Force scene to fill the toggle edge-to-edge on all screens */
+    #themeToggle .scene{ inset: var(--bd) !important; border-radius: calc(var(--h)/2 - var(--bd)) !important; }
+    #themeToggle .scene svg{ width:100%; height:100%; display:block; }
+  </style>
 </head>
 <body>
   <div class="wrap">
@@ -192,36 +226,75 @@
         <span>Назад</span>
       </a>
       <h1 style="margin:0">Roaccutane Tracker</h1>
+
       <!-- Theme toggle exact -->
       <button id="themeToggle" class="theme-toggle" role="switch" aria-checked="false" aria-label="Переключить тему">
         <span class="scene light">
-          <svg viewBox="0 0 260 88" xmlns="http://www.w3.org/2000/svg">
-            <defs><linearGradient id="lgLight" x1="0" y1="0" x2="1" y2="0">
-              <stop offset="0%" stop-color="#5ECFC8"/><stop offset="100%" stop-color="#FFD3A3"/></linearGradient>
-            </defs>
-            <rect x="0" y="0" width="260" height="88" rx="34" fill="url(#lgLight)"/>
-            <g fill="#FFF1E2">
-              <g opacity=".85"><circle cx="170" cy="46" r="18"/><circle cx="188" cy="46" r="22"/><circle cx="209" cy="50" r="18"/></g>
-              <g opacity=".35"><circle cx="130" cy="54" r="10"/><circle cx="145" cy="56" r="12"/></g>
-            </g>
-          </svg>
-        </span>
+      <svg viewBox="0 0 260 88" preserveAspectRatio="none" xmlns="http://www.w3.org/2000/svg">
+        <!-- gradient sky -->
+        <defs>
+          <linearGradient id="lgLight" x1="0" y1="0" x2="1" y2="0">
+            <stop offset="0%" stop-color="#5ECFC8"/>
+            <stop offset="100%" stop-color="#FFD3A3"/>
+          </linearGradient>
+        </defs>
+        <rect x="0" y="0" width="260" height="88" rx="0" fill="url(#lgLight)"/>
+        <!-- clouds (creamy) -->
+        <g fill="#FFF1E2">
+          <g opacity=".85">
+            <circle cx="170" cy="46" r="18"/>
+            <circle cx="188" cy="46" r="22"/>
+            <circle cx="209" cy="50" r="18"/>
+          </g>
+          <g opacity=".35">
+            <circle cx="130" cy="54" r="10"/>
+            <circle cx="145" cy="56" r="12"/>
+          </g>
+        </g>
+      </svg>
+    </span>
         <span class="scene dark">
-          <svg viewBox="0 0 260 88" xmlns="http://www.w3.org/2000/svg">
-            <defs><linearGradient id="lgDark" x1="0" y1="0" x2="1" y2="0">
-              <stop offset="0%" stop-color="#1C2140"/><stop offset="100%" stop-color="#2A0F4A"/></linearGradient>
-            </defs>
-            <rect x="0" y="0" width="260" height="88" rx="34" fill="url(#lgDark)"/>
-            <g opacity=".55" style="mix-blend-mode:multiply"><ellipse cx="230" cy="44" rx="58" ry="44" fill="rgba(0,0,0,.22)"/></g>
-            <g opacity=".38" style="mix-blend-mode:multiply"><ellipse cx="236" cy="44" rx="82" ry="60" fill="rgba(0,0,0,.15)"/></g>
-            <g fill="#3B2A6B"><g opacity=".75"><circle cx="86" cy="52" r="22"/><circle cx="110" cy="50" r="18"/><circle cx="132" cy="54" r="22"/></g>
-              <g opacity=".40"><circle cx="46" cy="56" r="18"/><circle cx="64" cy="56" r="14"/></g></g>
-            <g fill="#A98DF7" opacity=".8"><circle cx="136" cy="18" r="1.8"/><circle cx="152" cy="24" r="1.4"/><circle cx="170" cy="20" r="1.3"/><circle cx="186" cy="28" r="1.6"/><circle cx="200" cy="22" r="1.2"/></g>
-          </svg>
-        </span>
+      <svg viewBox="0 0 260 88" preserveAspectRatio="none" xmlns="http://www.w3.org/2000/svg">
+        <!-- gradient night -->
+        <defs>
+          <linearGradient id="lgDark" x1="0" y1="0" x2="1" y2="0">
+            <stop offset="0%" stop-color="#1C2140"/>
+            <stop offset="100%" stop-color="#2A0F4A"/>
+          </linearGradient>
+        </defs>
+        <rect x="0" y="0" width="260" height="88" rx="0" fill="url(#lgDark)"/>
+        <!-- rings on right -->
+        <g opacity=".55" mix-blend-mode="multiply">
+          <ellipse cx="230" cy="44" rx="58" ry="44" fill="rgba(0,0,0,.22)"/>
+        </g>
+        <g opacity=".38" mix-blend-mode="multiply">
+          <ellipse cx="236" cy="44" rx="82" ry="60" fill="rgba(0,0,0,.15)"/>
+        </g>
+        <!-- clouds (violet) -->
+        <g fill="#3B2A6B">
+          <g opacity=".75">
+            <circle cx="86" cy="52" r="22"/>
+            <circle cx="110" cy="50" r="18"/>
+            <circle cx="132" cy="54" r="22"/>
+          </g>
+          <g opacity=".40">
+            <circle cx="46" cy="56" r="18"/>
+            <circle cx="64" cy="56" r="14"/>
+          </g>
+        </g>
+        <!-- stars -->
+        <g fill="#A98DF7" opacity=".8">
+          <circle cx="136" cy="18" r="1.8"/>
+          <circle cx="152" cy="24" r="1.4"/>
+          <circle cx="170" cy="20" r="1.3"/>
+          <circle cx="186" cy="28" r="1.6"/>
+          <circle cx="200" cy="22" r="1.2"/>
+        </g>
+      </svg>
+    </span>
         <span class="thumb"></span>
       </button>
-                
+    
 
     </div>
     <h1>Derma Mini‑App</h1>
@@ -374,10 +447,11 @@
       </div>
     </section>
 
-        <section class="card" aria-label="Навигация">
+    <section class="card" aria-label="Навигация">
       <div class="glow"></div>
       <div class="row" style="justify-content:space-between">
-        <a id="to-home" href="./main-light.html">← На главную</a>
+        <a href="./main-light.html">← На главную</a>
+        <a href="/profile">Профиль</a>
       </div>
     </section>
 
@@ -414,172 +488,64 @@
 const back=document.getElementById('btn-back');if(back){back.addEventListener('click',e=>{e.preventDefault();try{if(history.length>1){history.back();return;}}catch(_){}location.href='./main-light.html';});}
   </script>
 
+  <script>
+  (function(){
+    const PAGES = { light: 'faq-rt-light.html', dark: 'faq.html' };
+    const btn = document.getElementById('themeToggle');
+    if(!btn) return;
+
+    const isLight = /faq-rt-light\.html$/i.test(location.pathname) || /\(Light\)/.test(document.title);
+    setTheme(isLight ? 'light' : 'dark', true);
+    btn.setAttribute('aria-checked', String(!isLight));
+
+    btn.addEventListener('click', toggle);
+    btn.addEventListener('keydown', (e)=>{
+      if(e.key === ' ' || e.key === 'Enter'){ e.preventDefault(); toggle(); }
+    });
+
+    function toggle(){
+      const next = (document.documentElement.dataset.theme === 'dark') ? 'light' : 'dark';
+      setTheme(next);
+      try{ localStorage.setItem('rt.theme', next); }catch(_){}
+      const target = PAGES[next];
+      const hash = location.hash || '';
+      if(target && !location.pathname.endsWith('/'+target)){
+        location.href = target;
+      }
+    }
+    function setTheme(t, silent){
+      document.documentElement.setAttribute('data-theme', t);
+      if(!silent){ document.dispatchEvent(new CustomEvent('themechange', {detail:t})); }
+    }
+
+    // honor saved theme if user lands directly
+    try{
+      const saved = localStorage.getItem('rt.theme');
+      if(saved && saved !== (isLight?'light':'dark')){
+        setTheme(saved, true);
+        const target = PAGES[saved];
+        if(target && !location.pathname.endsWith('/'+target)){
+          location.replace(target);
+        }
+      }
+    }catch(_){}
+  })();
+  </script>
+    
+
 <script>
 (function(){
   var back = document.getElementById('btn-back');
-  if(back){
-    back.addEventListener('click', function(e){
-      e.stopPropagation();
-      var t = document.documentElement.dataset.theme || 'light';
-      var target = (t === 'dark') ? './main-dark.html' : './main-light.html';
-      if (back.getAttribute('href') !== target) back.setAttribute('href', target);
-    }, {capture:true});
-  }
-  var link = document.getElementById('to-home');
-  if(link){
-    link.addEventListener('click', function(ev){
-      ev.preventDefault(); window.location.href = link.getAttribute('href');
-    }, {capture:true});
-  }
-})();
-</script>
-
-
-<script>
-(function(){
-  const PAGES = { light: 'faq-rt-light.html', dark: 'faq.html' };
-  const btn = document.getElementById('themeToggle');
-  if(!btn) return;
-
-  const isLight = /faq-rt-light\.html$/i.test(location.pathname) || /\(Light\)/.test(document.title);
-  setTheme(isLight ? 'light' : 'dark', true);
-  btn.setAttribute('aria-checked', String(!isLight));
-
-  btn.addEventListener('click', toggle);
-  btn.addEventListener('keydown', (e)=>{
-    if(e.key === ' ' || e.key === 'Enter'){ e.preventDefault(); toggle(); }
-  });
-
-  function toggle(){
-    const next = (document.documentElement.dataset.theme === 'dark') ? 'light' : 'dark';
-    setTheme(next);
-    try{ localStorage.setItem('rt.theme', next); }catch(_){}
-    const target = PAGES[next];
-    if(target && !location.pathname.endsWith('/'+target)){
-      location.href = target;
-    }
-  }
-  function setTheme(t, silent){
-    document.documentElement.setAttribute('data-theme', t);
-    if(!silent){ document.dispatchEvent(new CustomEvent('themechange', {detail:t})); }
-  }
-
-  // honor saved theme
-  try{
-    const saved = localStorage.getItem('rt.theme');
-    if(saved && saved !== (isLight?'light':'dark')){
-      setTheme(saved, true);
-      const target = PAGES[saved];
-      if(target && !location.pathname.endsWith('/'+target)){
-        location.replace(target);
-      }
-    }
-  }catch(_){}
-})();
-</script>
-
-
-<script>
-(function(){
-  var btn = document.getElementById('themeToggle');
-  if(!btn) return;
-  var thumb = btn.querySelector('.thumb');
-  var scenes = btn.querySelectorAll('.scene');
-
-  // blocking click after drag to avoid double-toggle
-  btn.addEventListener('click', function(e){
-    if (btn.dataset.blockClick === '1') {
-      e.preventDefault(); e.stopPropagation();
-      btn.dataset.blockClick = '0';
-    }
-  }, true);
-
-  function cssNum(el, varName, fallback){
-    var v = getComputedStyle(el).getPropertyValue(varName);
-    var n = parseFloat(v);
-    return isFinite(n) ? n : fallback;
-  }
-
-  var dragging = false, startX = 0, startPos = 0, travel = 0;
-
-  function currentPos(){
-    // map current theme to position
+  if(!back) return;
+  back.addEventListener('click', function(e){
+    // Prevent any bubbling that could hit other handlers
+    e.stopPropagation();
+    // Let anchor navigate, but ensure it always points to correct main page for current theme
     var t = document.documentElement.dataset.theme || 'dark';
-    // left for dark, right for light (inverted visuals)
-    return (t === 'dark') ? 0 : travel;
-  }
-
-  function onDown(e){
-    // accept left mouse or any touch/pen
-    if (e.pointerType === 'mouse' && e.button !== 0) return;
-    btn.setPointerCapture && btn.setPointerCapture(e.pointerId);
-    dragging = true;
-    btn.classList.add('dragging');
-    startX = e.clientX;
-
-    var pad = cssNum(btn, '--pad', 8);
-    var bd  = cssNum(btn, '--bd', 2);
-    var w = btn.getBoundingClientRect().width;
-    var tw = thumb.getBoundingClientRect().width;
-    travel = Math.max(0, w - 2*(pad+bd) - tw);
-    startPos = currentPos();
-  }
-
-  function onMove(e){
-    if(!dragging) return;
-    var dx = e.clientX - startX;
-    var x = Math.min(travel, Math.max(0, startPos + dx));
-    thumb.style.transform = 'translateX(' + x + 'px)';
-    // Optional: light/dark scene preview (crossfade by progress)
-    var p = travel ? (x / travel) : 0;
-    if (scenes.length === 2){
-      // dark scene should be visible when p -> 1 (light side due to inversion)
-      scenes[0].style.opacity = (document.documentElement.dataset.theme==='dark') ? (1 - p) : (p); // light scene element
-      scenes[1].style.opacity = (document.documentElement.dataset.theme==='dark') ? (p) : (1 - p); // dark scene element
-    }
-    e.preventDefault();
-  }
-
-  function onUp(e){
-    if(!dragging) return;
-    dragging = false;
-    btn.classList.remove('dragging');
-
-    var matrix = getComputedStyle(thumb).transform;
-    var x = 0;
-    if (matrix && matrix !== 'none'){
-      var m = matrix.match(/matrix\(.*,\s*([-\d\.e]+)\)$/) || matrix.match(/matrix\([\d\.,\s-]+\)/);
-      // fallback: parse matrix string (works in most browsers)
-      try{
-        var parts = matrix.replace('matrix(', '').replace(')', '').split(',');
-        x = parseFloat(parts[4]) || 0;
-      }catch(_){ x = 0; }
-    }
-    // Decide next theme by threshold
-    var nextTheme = (x > travel/2) ? 'light' : 'dark';
-    var curTheme = document.documentElement.dataset.theme || 'dark';
-    // Revert inline transform to let CSS animate to the final state
-    thumb.style.transform = '';
-
-    if(nextTheme !== curTheme){
-      btn.dataset.blockClick = '1'; // block click bubble
-      // Use existing toggle flow by simulating a click on keyboard handler
-      try{
-        // we know pages mapping from previous script; fallback to simple navigation here
-        var target = (nextTheme === 'light') ? 'faq-rt-light.html' : 'faq.html';
-        document.documentElement.setAttribute('data-theme', nextTheme);
-        try{ localStorage.setItem('rt.theme', nextTheme); }catch(_){}
-        if(!location.pathname.endsWith('/'+target)){
-          location.href = target;
-        }
-      }catch(_){}
-    }
-  }
-
-  btn.addEventListener('pointerdown', onDown);
-  window.addEventListener('pointermove', onMove);
-  window.addEventListener('pointerup', onUp);
-  window.addEventListener('pointercancel', onUp);
+    var target = (t === 'dark') ? './main-dark.html' : './main-light.html';
+    if (back.getAttribute('href') !== target) back.setAttribute('href', target);
+    // no preventDefault -> allow native navigation
+  }, {capture:true});
 })();
 </script>
 

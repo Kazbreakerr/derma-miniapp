@@ -20,27 +20,15 @@
     .code-pill b{letter-spacing:1.2px;color:var(--text)}
     .ava{width:36px;height:36px;border-radius:999px;overflow:hidden;border:1px solid var(--stroke);display:grid;place-items:center;background:var(--grad1);color:#0b1511;font-weight:800;cursor:pointer}
     .ava img{width:100%;height:100%;object-fit:cover;display:block}
-    /* Табы в шапке кабинета */
-.tabs{
-  display:flex;gap:8px;align-items:center;
-  border-bottom:1px solid var(--stroke);
-  padding-bottom:8px;position:sticky;top:0;background:var(--bg);z-index:10;
-}
-.tab{
-  padding:10px 14px;border-radius:999px;cursor:pointer;
-  /* было: без background → браузер ставил белый */
-  background:#0D1219;                 /* тёмная «пилюля» */
-  color:var(--text);
-  border:1px solid var(--stroke);
-  transition:background .2s ease,border-color .2s ease,opacity .2s ease;
-}
-.tab:hover{ border-color:rgba(255,255,255,.18); }
-.tab.active{
-  background:var(--grad1);             /* мятно-персиковый градиент */
-  color:#0b1511;
-  border-color:transparent;
-  font-weight:700;
-}
+
+    /* Табы */
+    .tabs{display:flex;gap:8px;align-items:center;border-bottom:1px solid var(--stroke);
+      padding-bottom:8px;position:sticky;top:0;background:var(--bg);z-index:10}
+    .tab{padding:10px 14px;border-radius:999px;cursor:pointer;background:#0D1219;color:var(--text);
+      border:1px solid var(--stroke);transition:background .2s ease,border-color .2s ease}
+    .tab:hover{border-color:rgba(255,255,255,.18)}
+    .tab.active{background:var(--grad1);color:#0b1511;border-color:transparent;font-weight:700}
+
     .row{display:flex;gap:10px;align-items:center;flex-wrap:wrap;margin:14px 0}
     .search{flex:1 1 320px;min-width:220px;display:flex}
     .input{width:100%;padding:12px;border-radius:12px;background:#0D1219;border:1px solid var(--stroke);color:var(--text)}
@@ -232,24 +220,52 @@
 
 <script>
   const $=s=>document.querySelector(s), $$=s=>Array.from(document.querySelectorAll(s));
-  const storage={set:(k,v)=>localStorage.setItem(k,JSON.stringify(v)),get:(k,d=null)=>JSON.parse(localStorage.getItem(k)||'null')??d};
+  const storage={ set:(k,v)=>localStorage.setItem(k,JSON.stringify(v)),
+                  get:(k,d=null)=>JSON.parse(localStorage.getItem(k)||'null')??d };
   const fmtDate=iso=>{ if(!iso) return '—'; const d=new Date(iso); return String(d.getDate()).padStart(2,'0')+'.'+String(d.getMonth()+1).padStart(2,'0')+'.'+d.getFullYear(); };
   const shareURL=code=>`${location.origin}${location.pathname}?attach=doctor&code=${code}`;
   const getQuery=(name)=>{ try{ return new URLSearchParams(location.search).get(name);}catch(e){ return null; } };
 
-  // Аватар
+  /* ===== Аватар из Telegram ===== */
   const parseHandle=tg=>{ if(!tg) return null; const m=String(tg).trim().match(/@?([a-zA-Z0-9_]+)/); return m?m[1]:null; };
   const initialsFrom=(name='')=>{ const p=(name||'').trim().split(/\s+/); return ((p[0]||'').charAt(0)+(p[1]||'').charAt(0)||'JD').toUpperCase(); };
   function setSmallAvatar(url, init){ const box=$('#smallAva'); if(url){ box.innerHTML='<img alt="ava">'; box.querySelector('img').src=url; } else { box.textContent=init||'JD'; } }
   function setBigAvatar(url, init){ const img=$('#bigAvaImg'), txt=$('#bigAvaTxt'); if(url){ img.src=url; img.style.display='block'; txt.style.display='none'; }else{ img.style.display='none'; txt.textContent=init||'JD'; txt.style.display='block'; } }
   function setAvatarUrl(url){ if(!url) return; localStorage.setItem('doctorAvatarUrl', url); applyAvatar(); }
-  function tryTG(){ try{ const url=window.Telegram?.WebApp?.initDataUnsafe?.user?.photo_url; if(url){ setAvatarUrl(url); return; } }catch(e){} }
-  function applyAvatar(){ const prof=storage.get('doctorProfile',{name:'Врач'}); const init=initialsFrom(prof.name); const url=localStorage.getItem('doctorAvatarUrl'); setSmallAvatar(url,init); setBigAvatar(url,init); }
 
-  // состояние
-  let state={patients:storage.get('patientsList', []),requests:storage.get('patientsRequests', []),filters:{q:'',status:'all',red:false,days:0}};
+  // 1) WebApp: прямая ссылка из Telegram
+  function tryTG(){
+    try{
+      const url=window.Telegram?.WebApp?.initDataUnsafe?.user?.photo_url;
+      if(url){ setAvatarUrl(url); return true; }
+    }catch(e){}
+    return false;
+  }
+  // 2) Веб-страница: по @handle через unavatar
+  function tryUnavatarFromHandle(handle){
+    if(!handle) return false;
+    const url=`https://unavatar.io/telegram/${handle}`;
+    const img=new Image();
+    img.crossOrigin='anonymous';
+    img.onload=()=>setAvatarUrl(url);
+    img.onerror=()=>{};
+    img.src=url;
+    return true;
+  }
+  function applyAvatar(){
+    const prof=storage.get('doctorProfile',{name:'Врач'});
+    const init=initialsFrom(prof.name);
+    const url=localStorage.getItem('doctorAvatarUrl');
+    setSmallAvatar(url,init);
+    setBigAvatar(url,init);
+  }
 
-  // табы
+  /* ===== Данные/состояние ===== */
+  let state={patients:storage.get('patientsList', []),
+             requests:storage.get('patientsRequests', []),
+             filters:{q:'',status:'all',red:false,days:0}};
+
+  /* ===== Табы ===== */
   function setTab(tab){
     const tabs=['patients','requests','profile'];
     if(!tabs.includes(tab)) tab='patients';
@@ -259,9 +275,9 @@
   $('#tabsNav').addEventListener('click', (e)=>{ const btn=e.target.closest('.tab'); if(!btn) return; e.preventDefault(); setTab(btn.dataset.tab); renderAll(); });
   window.addEventListener('hashchange', ()=>{ const h=(location.hash||'').replace('#/doctor/',''); setTab(h); renderAll(); });
 
-  // header/profile init
+  /* ===== Хедер/профиль ===== */
   function initHeader(){
-    // читаем код из query и сохраняем
+    // код из query → сохранить
     const qCode=getQuery('code'); if(qCode && /^[A-Z0-9]{5}$/.test(qCode)) localStorage.setItem('doctorCode', JSON.stringify(qCode));
     const code=storage.get('doctorCode')||'AB12C';
     const elTop=$('#topCode'); if(elTop) elTop.textContent=code;
@@ -272,7 +288,7 @@
     $('#profMeta').textContent=`${prof.specialty||'Специализация'} • ${prof.clinic||'Клиника'}, ${prof.city||'Город'}`;
   }
 
-  // фильтры пациентов
+  /* ===== Пациенты (фильтры/рендер) ===== */
   const matchesFilters=p=>{
     const q=state.filters.q.toLowerCase().trim();
     const inSearch=!q||[p.name,p.handle,p.id].some(x=>(x||'').toLowerCase().includes(q));
@@ -335,7 +351,7 @@
     arr.forEach(p=>list.appendChild(patientCard(p)));
   }
 
-  // Заявки — подсказка при автопринятии
+  /* ===== Заявки ===== */
   function updateRequestsTips(){
     const settings=storage.get('doctorSettings',{autoAccept:false});
     const hint=$('#autoAcceptHint'); if(hint) hint.style.display = settings.autoAccept ? 'block' : 'none';
@@ -348,7 +364,7 @@
     updateRequestsTips();
   });
 
-  // Профиль/общие кнопки
+  /* ===== Общие кнопки ===== */
   $('#copyCode').onclick=async()=>{ try{ await navigator.clipboard.writeText(storage.get('doctorCode')||''); }catch(e){} };
   function openQR(){
     const code=storage.get('doctorCode')||'AB12C';
@@ -377,7 +393,7 @@
     $('#stTotal').textContent=totals.total; $('#stOn').textContent=totals.on; $('#stRed').textContent=totals.red; $('#stNeeds').textContent=totals.needs;
   }
 
-  // Поиск/фильтры
+  /* ===== Поиск/фильтры ===== */
   $('#search').addEventListener('input',e=>{ state.filters.q=e.target.value; renderPatients(); });
   $$('#sec-patients .chip').forEach(chip=>chip.addEventListener('click',()=>{
     const f=chip.dataset.filter, val=chip.dataset.value;
@@ -392,7 +408,7 @@
     renderPatients();
   });
 
-  // Загрузка аватара
+  /* ===== Загрузка аватара вручную (опция) ===== */
   $('#smallAva').addEventListener('click',()=>$('#avaInput').click());
   $('#editAvaBtn').addEventListener('click',()=>$('#avaInput').click());
   $('#avaInput').addEventListener('change',e=>{
@@ -400,10 +416,23 @@
     if(f){ const r=new FileReader(); r.onload=()=>{ localStorage.setItem('doctorAvatarUrl', r.result); applyAvatar(); }; r.readAsDataURL(f); }
   });
 
+  /* ===== Инициализация ===== */
   function renderAll(){ renderPatients(); renderProfile(); updateRequestsTips(); }
   function init(){
     const qCode=getQuery('code'); if(qCode && /^[A-Z0-9]{5}$/.test(qCode)) localStorage.setItem('doctorCode', JSON.stringify(qCode));
-    initHeader(); tryTG(); applyAvatar();
+    initHeader();
+
+    // Аватар: сперва то, что уже сохранено. Если нет — Telegram WebApp → @handle через unavatar.
+    const saved = localStorage.getItem('doctorAvatarUrl');
+    if(!saved){
+      const gotTG = tryTG(); // внутри Telegram
+      if(!gotTG){
+        const handle = parseHandle(storage.get('doctorProfile',{}).tg);
+        if(handle) tryUnavatarFromHandle(handle); // веб-страница
+      }
+    }
+    applyAvatar();
+
     const h2=(location.hash||'').replace('#/doctor/',''); setTab(h2||'patients');
     renderAll();
   }
