@@ -486,17 +486,7 @@ body.light .tab.active{
 
   function populate(){
     $('#userName').textContent = STATE.name || 'Профиль';
-    const av = $('#avatarImg');
-const fb = $('#avatarFallback');
-if (STATE.avatarUrl) {
-  // не удаляем <img> при ошибке — просто оставляем инициалы
-  av.removeAttribute('onerror');    // если был в разметке
-  av.src = STATE.avatarUrl;
-  fb.textContent = (STATE.name||'U').trim().charAt(0).toUpperCase();
-} else {
-  fb.textContent = (STATE.name||'U').trim().charAt(0).toUpperCase();
-}
-
+    const av = $('#avatarImg'); if(STATE.avatarUrl){ av.src = STATE.avatarUrl; } else { $('#avatarFallback').textContent = (STATE.name||'U').trim().charAt(0).toUpperCase(); }
 
     const goalMg = Math.round(STATE.weightKg * STATE.goalMgPerKg);
     const pct = clamp(goalMg? (STATE.takenMg/goalMg*100):0, 0, 100);
