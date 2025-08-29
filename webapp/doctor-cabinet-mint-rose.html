@@ -69,7 +69,19 @@
     .profile{display:flex;gap:16px;align-items:center;flex-wrap:wrap}
     .ava-big{width:112px;height:112px;border-radius:999px;overflow:hidden;border:1px solid var(--stroke);display:grid;place-items:center;background:var(--grad1);color:#0b1511;font-weight:800;font-size:28px;position:relative}
     .ava-big img{width:100%;height:100%;object-fit:cover}
-    .ava-edit{position:absolute;right:6px;bottom:6px;background:#0D1219;border:1px solid var(--stroke);border-radius:999px;padding:6px 8px;font-size:12px;cursor:pointer}
+    .ava-edit{
+  position:absolute; right:8px; bottom:8px;
+  width:36px; height:36px; border-radius:50%;
+  display:grid; place-items:center;
+  background:#0D1219CC;              /* полупрозрачный, не перекрывает фото */
+  border:1px solid var(--stroke);
+  color:#EDEFF2; cursor:pointer;
+  backdrop-filter:blur(4px);
+  box-shadow:0 2px 6px rgba(0,0,0,.25);
+  z-index:2;
+}
+.ava-edit:hover{ transform:scale(1.03); }
+.ava-edit svg{ pointer-events:none; }
   </style>
 </head>
 <body>
@@ -182,7 +194,7 @@
             <div class="ava-big" id="bigAva">
               <span id="bigAvaTxt">JD</span>
               <img id="bigAvaImg" alt="" style="display:none">
-              <button class="ava-edit" id="editAvaBtn">Изменить</button>
+              <button class="ava-edit" id="editAvaBtn">+</button>
             </div>
             <div>
               <div style="font-weight:800;font-size:18px" id="profName">ФИО врача</div>
@@ -191,7 +203,11 @@
                 <div class="code-pill">Мой код: <b id="profCode">— — — — —</b></div>
                 <button class="btn-ghost" id="copyCode">Скопировать</button>
                 <button class="btn-ghost" id="qrCode">QR</button>
-                <button class="btn-ghost" id="shareCode">Поделиться</button>
+                <button class="ava-edit" id="editAvaBtn" aria-label="Сменить фото" title="Сменить фото">
+  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+    <path d="M12 5v14M5 12h14" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+  </svg>
+</button>
               </div>
             </div>
           </div>
@@ -434,26 +450,39 @@
     const f=e.target.files?.[0];
     if(f){ const r=new FileReader(); r.onload=()=>{ localStorage.setItem('doctorAvatarUrl', r.result); applyAvatar(); }; r.readAsDataURL(f); }
   });
-
+  async function hydrateCodeFromServer(){
+    try{
+      const initData = window.Telegram?.WebApp?.initData || '';
+      const r = await fetch((window.API_BASE||'') + '/api/doctor/me', {
+        headers: { ...(initData ? { 'X-Telegram-InitData': initData } : {}) }
+      });
+      if(r.ok){
+        const j = await r.json();
+        if (j?.code) localStorage.setItem('doctorCode', JSON.stringify(j.code));
+        if (j?.profile) localStorage.setItem('doctorProfile', JSON.stringify(j.profile));
+      }
+    }catch(_){}
+  }
   /* ===== Инициализация ===== */
   function renderAll(){ renderPatients(); renderProfile(); updateRequestsTips(); }
   async function init(){
-    const qCode=getQuery('code'); if(qCode && /^[A-Z0-9]{5}$/.test(qCode)) localStorage.setItem('doctorCode', JSON.stringify(qCode));
-    initHeader();
+  await hydrateCodeFromServer();             // ← ОБЯЗАТЕЛЬНО до initHeader()
+  // строку с qCode можно удалить — в твоём файле это уже делает initHeader()
+  initHeader();
 
-    const saved = localStorage.getItem('doctorAvatarUrl');
-    if(!saved){
-      const got = await tryTGAvatar();
-      if(!got){
-        const handle = parseHandle(storage.get('doctorProfile',{}).tg);
-        if(handle) tryUnavatarFromHandle(handle);
-      }
+  const saved = localStorage.getItem('doctorAvatarUrl');
+  if(!saved){
+    const got = await tryTGAvatar();
+    if(!got){
+      const handle = parseHandle(storage.get('doctorProfile',{}).tg);
+      if(handle) tryUnavatarFromHandle(handle);
     }
-    applyAvatar();
-
-    const h2=(location.hash||'').replace('#/doctor/',''); setTab(h2||'patients');
-    renderAll();
   }
+  applyAvatar();
+
+  const h2=(location.hash||'').replace('#/doctor/',''); setTab(h2||'patients');
+  renderAll();
+}
   document.addEventListener('DOMContentLoaded', init);
 </script>
 </body>

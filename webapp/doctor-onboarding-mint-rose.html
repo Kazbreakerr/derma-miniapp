@@ -246,12 +246,31 @@
     });
     $('#qrClose').addEventListener('click',()=>$('#qrModal').classList.remove('show'));
 
-    document.getElementById('finishBtn').addEventListener('click', () => {
-      try { localStorage.setItem('rt_doctor_done', '1'); localStorage.setItem('rt_role', 'doctor'); } catch(_) {}
-      store.set('doctorOnboardingDone', { at: new Date().toISOString() });
-      const qs = location.search || '';
-      location.href = 'doctor-cabinet-mint-rose.html' + qs + '#/doctor/patients';
-    });
+    document.getElementById('finishBtn').addEventListener('click', async () => {
+    const store = { set:(k,v)=>localStorage.setItem(k,JSON.stringify(v)), get:(k,d=null)=>JSON.parse(localStorage.getItem(k)||'null')??d };
+    const code     = store.get('doctorCode');
+    const profile  = store.get('doctorProfile', {});
+    const settings = store.get('doctorSettings', {});
+    const avatarUrl= localStorage.getItem('doctorAvatarUrl') || null;
+
+    try{
+      const initData = window.Telegram?.WebApp?.initData || '';
+      await fetch((window.API_BASE||'') + '/api/doctor/code', {
+        method: 'POST',
+        headers: {
+          'Content-Type':'application/json',
+          ...(initData ? { 'X-Telegram-InitData': initData } : {})
+        },
+        body: JSON.stringify({ code, profile, settings, avatarUrl })
+      });
+    }catch(e){ console.warn('persist doctor code failed', e); }
+
+    try { localStorage.setItem('rt_doctor_done', '1'); localStorage.setItem('rt_role', 'doctor'); } catch(_) {}
+    store.set('doctorOnboardingDone', { at: new Date().toISOString() });
+    const qs = location.search || '';
+    location.href = 'doctor-cabinet-mint-rose.html' + qs + '#/doctor/patients';
+  });
+</script>
 
     function toast(txt){ const n=document.createElement('div'); n.textContent=txt; n.style.cssText='position:fixed;left:50%;bottom:28px;transform:translateX(-50%);padding:10px 14px;border-radius:12px;background:rgba(0,0,0,.7);color:#fff;font-weight:600;z-index:9999'; document.body.appendChild(n); setTimeout(()=>n.remove(),1400); }
     next1.disabled=!valid1();

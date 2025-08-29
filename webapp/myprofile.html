@@ -314,10 +314,76 @@ body.light .tab.active{
   // console.log('[myprofile] mode:', initData ? 'telegram' : 'dev', 'tgId:', tgUserId || '(dev)');
 </script>
 
+
+  <!-- Theme toggle styles -->
+  <style>
+    .topbar{ display:flex; align-items:center; gap:12px; }
+    #themeToggle{ margin-left:auto; margin-right:8px; position:relative; }
+    #themeToggle.theme-toggle{
+      --h:64px; --w:192px; --pad:8px; --bd:2px;
+      --thumb:calc(var(--h) - 2*(var(--pad) + var(--bd)));
+      width:var(--w); height:var(--h); border-radius:999px; padding:0; overflow:hidden;
+      border:var(--bd) solid #D7E0E2; background:#F4F8F9; cursor:pointer;
+      -webkit-tap-highlight-color:transparent;
+      box-shadow: inset 0 0 0 1px rgba(255,255,255,.65);
+    }
+    html[data-theme="dark"] #themeToggle.theme-toggle{
+      background:#0F1726; border-color:rgba(255,255,255,.06);
+      box-shadow: inset 0 0 0 1px rgba(255,255,255,.05);
+    }
+    #themeToggle .scene{ position:absolute; inset:var(--pad); border-radius:calc(var(--h)/2 - var(--pad));
+      overflow:hidden; transition:opacity .28s ease, transform .38s cubic-bezier(.2,.7,.2,1); }
+    #themeToggle .scene svg{ position:absolute; inset:0; width:100%; height:100%; display:block; }
+    html[data-theme="light"] #themeToggle .scene.light{ opacity:0; transform: translateX(-6px); }
+    html[data-theme="light"] #themeToggle .scene.dark { opacity:1; transform: translateX(0); }
+    html[data-theme="dark"]  #themeToggle .scene.light{ opacity:1; transform: translateX(0); }
+    html[data-theme="dark"]  #themeToggle .scene.dark { opacity:0; transform: translateX(6px); }
+    #themeToggle .thumb{
+      position:absolute; top:calc(var(--pad) + var(--bd)); left:calc(var(--pad) + var(--bd));
+      width:var(--thumb); height:var(--thumb); border-radius:50%; background:#FFF;
+      box-shadow: 0 8px 24px rgba(0,0,0,.25), inset 0 0 0 1px rgba(0,0,0,.08), inset 0 1px 0 rgba(0,0,0,.06);
+      transform: translateX(0); transition: transform .38s cubic-bezier(.2,.7,.2,1); z-index:3;
+    }
+    html[data-theme="light"] #themeToggle .thumb{ transform: translateX(calc(var(--w) - 2*(var(--pad) + var(--bd)) - var(--thumb))); }
+    html[data-theme="dark"]  #themeToggle .thumb{ transform: translateX(0); }
+    @media (max-width: 480px){ #themeToggle.theme-toggle{ --h:44px; --w:148px; --pad:6px; } }
+    @media (max-width: 360px){ #themeToggle.theme-toggle{ --h:40px; --w:136px; --pad:6px; } }
+    @media (prefers-reduced-motion: reduce){
+      #themeToggle .scene, #themeToggle .thumb{ transition:none!important; }
+    }
+    #themeToggle.theme-toggle .scene{ inset: var(--bd) !important; border-radius: calc(var(--h)/2 - var(--bd)) !important; overflow: hidden !important; }
+    #themeToggle.theme-toggle .scene svg{ width: 100% !important; height: 100% !important; display: block !important; }
+  </style>
+
 </head>
 <body>
   <div class="topbar">
     <div class="title">Профиль</div>
+    <button id="themeToggle" class="theme-toggle" role="switch" aria-checked="false" aria-label="Переключить тему">
+      <span class="scene light">
+        <svg viewBox="0 0 260 88" preserveAspectRatio="none" xmlns="http://www.w3.org/2000/svg">
+          <defs><linearGradient id="lgLight" x1="0" y1="0" x2="1" y2="0">
+            <stop offset="0%" stop-color="#5ECFC8"/><stop offset="100%" stop-color="#FFD3A3"/></linearGradient></defs>
+          <rect x="0" y="0" width="260" height="88" rx="0" fill="url(#lgLight)"/>
+          <g fill="#FFF1E2"><g opacity=".85"><circle cx="170" cy="46" r="18"/><circle cx="188" cy="46" r="22"/><circle cx="209" cy="50" r="18"/></g>
+            <g opacity=".35"><circle cx="130" cy="54" r="10"/><circle cx="145" cy="56" r="12"/></g></g>
+        </svg>
+      </span>
+      <span class="scene dark">
+        <svg viewBox="0 0 260 88" preserveAspectRatio="none" xmlns="http://www.w3.org/2000/svg">
+          <defs><linearGradient id="lgDark" x1="0" y1="0" x2="1" y2="0">
+            <stop offset="0%" stop-color="#1C2140"/><stop offset="100%" stop-color="#2A0F4A"/></linearGradient></defs>
+          <rect x="0" y="0" width="260" height="88" rx="0" fill="url(#lgDark)"/>
+          <g opacity=".55" style="mix-blend-mode:multiply"><ellipse cx="230" cy="44" rx="58" ry="44" fill="rgba(0,0,0,.22)"/></g>
+          <g opacity=".38" style="mix-blend-mode:multiply"><ellipse cx="236" cy="44" rx="82" ry="60" fill="rgba(0,0,0,.15)"/></g>
+          <g fill="#3B2A6B"><g opacity=".75"><circle cx="86" cy="52" r="22"/><circle cx="110" cy="50" r="18"/><circle cx="132" cy="54" r="22"/></g>
+            <g opacity=".40"><circle cx="46" cy="56" r="18"/><circle cx="64" cy="56" r="14"/></g></g>
+          <g fill="#A98DF7" opacity=".8"><circle cx="136" cy="18" r="1.8"/><circle cx="152" cy="24" r="1.4"/><circle cx="170" cy="20" r="1.3"/><circle cx="186" cy="28" r="1.6"/><circle cx="200" cy="22" r="1.2"/></g>
+        </svg>
+      </span>
+      <span class="thumb"></span>
+    </button>
+
     <button class="iconbtn modern" id="editBtn" title="Редактировать профиль" aria-label="Редактировать">
       <!-- pencil icon -->
       <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20h9"/><path d="M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4 12.5-12.5z"/></svg>
@@ -588,7 +654,7 @@ body.light .tab.active{
       STATE.drug        ??= s.drug || 'Изотретиноин';
       STATE.startISO    ??= (s.startISO || '').slice(0,10);
       <!-- Overrides from Telegram + sessionStorage + localStorage -->
-      
+
 (function applyExternalUser(){
   // Telegram WebApp user (имя + фото)
   try{
@@ -852,25 +918,40 @@ body.light .tab.active{
   docCodeInput?.addEventListener('keydown', (e)=>{ if(e.key==='Enter'){ e.preventDefault(); docBindBtn?.click(); } });
   docCodeInput?.addEventListener('input', (e)=>{ const t=e.target; t.value = t.value.toUpperCase().replace(/[^A-Z0-9]/g,''); const valid = CODE_RE.test(t.value); if(docBindBtn) docBindBtn.disabled = !valid; const err = document.getElementById('docError'); if(err) err.hidden = true; });
 
-  docBindBtn?.addEventListener('click', ()=>{
-    const code = (docCodeInput?.value||'').trim(); if(!CODE_RE.test(code)) { const err = document.getElementById('docError'); if(err) err.hidden = false; return; }
-    // Demo-реестр: подставь реальный запрос к API
-    const REG = {
-      '12345': { name:'Иванова Н.В.', clinic:'Derma Clinic', phone:'+7 999 000‑00‑00', url:'doctor-ivanova.html', avatarUrl:'' },
-      'ABCDE': { name:'Петров А.С.',  clinic:'SkinLab',      phone:'+7 999 111‑11‑11', url:'doctor-petrov.html',  avatarUrl:'' }
-    };
-    const d = REG[code];
-    if(!d){ const err = document.getElementById('docError'); if(err) err.hidden = false; return; }
-    const data = { code, ...d, status:'OK', deadlineISO: new Date(Date.now()+10*864e5).toISOString().slice(0,10) };
-    setDoctor(data);
-    applyDoctor();
+  docBindBtn?.addEventListener('click', async ()=>{
+  const code = (docCodeInput?.value||'').trim().toUpperCase();
+  if(!CODE_RE.test(code)){
+    const err = document.getElementById('docError'); if(err) err.hidden = false;
+    return;
+  }
+  // сначала валидируем код, затем прикрепляем
+  const v = await api('/api/doctor/validate?code=' + encodeURIComponent(code));
+  if(!v.ok){
+    const err = document.getElementById('docError'); if(err) err.hidden = false;
+    return;
+  }
+  const a = await api('/api/doctor/attach', { method:'POST', body: JSON.stringify({ code }) });
+  if(!a.ok){
+    const err = document.getElementById('docError'); if(err) err.hidden = false;
+    return;
+  }
+  const j = await a.json();
+  setDoctor({
+    code,
+    name: j.doctor?.name || ('Врач по коду '+code),
+    clinic: j.doctor?.clinic || '',
+    phone:  '', // можно потом дополнить
+    avatarUrl: j.doctor?.avatar_url || ''
   });
+  applyDoctor();
+});
 
-  docDetachBtn?.addEventListener('click', ()=>{
-    setDoctor(null);
-    if(docCodeInput) docCodeInput.value = '';
-    applyDoctor();
-  });
+  docDetachBtn?.addEventListener('click', async ()=>{
+  await api('/api/doctor/attach', { method:'DELETE' });
+  setDoctor(null);
+  if(docCodeInput) docCodeInput.value = '';
+  applyDoctor();
+});
 
   // ======= Edit flow =======
   document.getElementById('editBtn').addEventListener('click', (ev)=>{
@@ -878,12 +959,24 @@ body.light .tab.active{
   });
 
   // ======= View Transitions helper for links =======
-  document.addEventListener('click', (e)=>{
-    const a = e.target.closest('a[data-vt-link]');
-    if(!a) return;
-    if(e.metaKey||e.ctrlKey||e.shiftKey||e.altKey||a.target==='_blank') return;
-    e.preventDefault(); navigateWithVT(a.href);
-  });
+  document.addEventListener('DOMContentLoaded', async ()=>{
+  try{
+    const r = await api('/api/doctor/attached');
+    if(r.ok){
+      const j = await r.json();
+      if (j && j.doctor){
+        setDoctor({
+          code: j.code || '',
+          name: j.doctor.name,
+          clinic: j.doctor.clinic || '',
+          phone: '',
+          avatarUrl: j.doctor.avatar_url || ''
+        });
+        applyDoctor();
+      }
+    }
+  }catch(_){}
+});
 
   function navigateWithVT(href){
     if (document.startViewTransition) {
@@ -955,7 +1048,8 @@ body.light .tab.active{
     const sx = rect.width  / data.w;
     const sy = rect.height / data.h;
 
-    const page = document.querySelector('main, .container, body');
+    const page = document.querySelector('.container') || document.querySelector('main');
+
     if(page){ page.style.opacity = '0'; page.style.transform = 'translateY(8px)'; }
 
     const DUR = 460;
@@ -998,6 +1092,35 @@ body.light .tab.active{
     if(location.hash.includes('fx=avatar')){
       history.replaceState(null, '', location.pathname + location.search);
     }
+  }
+})();
+</script>
+
+
+<script>
+(function(){
+  const btn = document.getElementById('themeToggle');
+  if(!btn) return;
+  const saved = (localStorage.getItem('rt.theme') || localStorage.getItem('rt_theme')) ||
+                (document.body.classList.contains('light') ? 'light' : 'dark');
+  setTheme(saved, true);
+  btn.setAttribute('aria-checked', String(saved !== 'light'));
+
+  btn.addEventListener('click', toggle);
+  btn.addEventListener('keydown', (e)=>{
+    if(e.key === ' ' || e.key === 'Enter'){ e.preventDefault(); toggle(); }
+  });
+
+  function toggle(){
+    const next = (document.documentElement.dataset.theme === 'dark' && !document.body.classList.contains('light')) ? 'light'
+               : (document.body.classList.contains('light') ? 'dark' : 'light');
+    setTheme(next);
+    try{ localStorage.setItem('rt.theme', next); localStorage.setItem('rt_theme', next); }catch(_){}
+  }
+  function setTheme(t, silent){
+    document.body.classList.toggle('light', t === 'light');
+    document.documentElement.setAttribute('data-theme', t);
+    if(!silent){ document.dispatchEvent(new CustomEvent('themechange', {detail:t})); }
   }
 })();
 </script>

@@ -486,6 +486,157 @@ app.post('/api/me', tgAuth, async (req, res) => {
     res.status(500).json({ error: e.message });
   }
 });
+// ===== DOCTOR: code + attach API =====
+app.post('/api/doctor/code', tgAuth, async (req, res) => {
+  try {
+    await pool.query('SET search_path = derma, public');
+    const uid  = await userIdByTg(req.tg || req.tgUser?.id);
+    const code = String(req.body?.code || '').toUpperCase();
+    if (!/^[A-Z0-9]{5}$/.test(code)) return res.status(400).json({ error: 'bad code' });
+
+    // код не должен конфликтовать с активными
+    const taken = await pool.query('SELECT 1 FROM derma.doctor_codes WHERE code=$1 AND active', [code]);
+    if (taken.rowCount) return res.status(409).json({ error: 'code taken' });
+
+    // деактивируем старый код этого врача (если был)
+    await pool.query('UPDATE derma.doctor_codes SET active=false, revoked_at=now() WHERE doctor_id=$1 AND active', [uid]);
+    await pool.query('INSERT INTO derma.doctor_codes(code, doctor_id, active) VALUES ($1,$2,true)', [code, uid]);
+
+    // профиль/настройки
+    const p   = req.body?.profile  || {};
+    const s   = req.body?.settings || {};
+    const ava = req.body?.avatarUrl || null;
+    await pool.query(`
+      INSERT INTO derma.doctor_profiles(user_id, specialty, city, clinic, tg_handle, contact_text, avatar_url, accepting, auto_accept)
+      VALUES ($1,$2,$3,$4,$5,$6,$7, COALESCE($8,true), COALESCE($9,false))
+      ON CONFLICT (user_id) DO UPDATE SET
+        specialty    = COALESCE(EXCLUDED.specialty, doctor_profiles.specialty),
+        city         = COALESCE(EXCLUDED.city,      doctor_profiles.city),
+        clinic       = COALESCE(EXCLUDED.clinic,    doctor_profiles.clinic),
+        tg_handle    = COALESCE(EXCLUDED.tg_handle, doctor_profiles.tg_handle),
+        contact_text = COALESCE(EXCLUDED.contact_text, doctor_profiles.contact_text),
+        avatar_url   = COALESCE(EXCLUDED.avatar_url,   doctor_profiles.avatar_url),
+        accepting    = EXCLUDED.accepting,
+        auto_accept  = EXCLUDED.auto_accept,
+        updated_at   = now()
+    `, [uid, p.specialty||null, p.city||null, p.clinic||null, p.tg||null, p.contact||null, ava, s.accepting===true, s.autoAccept===true]);
+
+    await pool.query('UPDATE derma.users SET is_doctor = true WHERE id=$1', [uid]);
+
+    res.json({ ok: true, code });
+  } catch (e) {
+    console.error('DOCTOR CODE ERROR:', e);
+    res.status(500).json({ error: e.message });
+  }
+});
+
+app.get('/api/doctor/me', tgAuth, async (req, res) => {
+  try {
+    await pool.query('SET search_path = derma, public');
+    const uid = await userIdByTg(req.tg || req.tgUser?.id);
+
+    const { rows: c } = await pool.query(
+      'SELECT code FROM derma.doctor_codes WHERE doctor_id=$1 AND active', [uid]);
+    const { rows: p } = await pool.query(
+      `SELECT specialty, city, clinic, tg_handle, contact_text, avatar_url, accepting, auto_accept
+         FROM derma.doctor_profiles WHERE user_id=$1`, [uid]);
+
+    res.json({ code: c[0]?.code || null, profile: p[0] || null });
+  } catch (e) {
+    console.error('DOCTOR ME ERROR:', e);
+    res.status(500).json({ error: e.message });
+  }
+});
+
+app.get('/api/doctor/validate', tgAuth, async (req, res) => {
+  try {
+    await pool.query('SET search_path = derma, public');
+    const code = String(req.query.code || '').toUpperCase();
+    if (!/^[A-Z0-9]{5}$/.test(code)) return res.status(400).json({ error: 'bad code' });
+
+    const { rows } = await pool.query(`
+      SELECT u.id AS doctor_id,
+             COALESCE(u.full_name,'Врач') AS name,
+             dp.clinic, dp.city, dp.avatar_url
+        FROM derma.doctor_codes dc
+        JOIN derma.users u ON u.id = dc.doctor_id
+        LEFT JOIN derma.doctor_profiles dp ON dp.user_id = u.id
+       WHERE dc.code = $1 AND dc.active`, [code]);
+
+    if (!rows.length) return res.status(404).json({ error: 'not found' });
+    res.json({ ok: true, doctor: rows[0], code });
+  } catch (e) {
+    console.error('DOCTOR VALIDATE ERROR:', e);
+    res.status(500).json({ error: e.message });
+  }
+});
+
+app.post('/api/doctor/attach', tgAuth, async (req, res) => {
+  try {
+    await pool.query('SET search_path = derma, public');
+    const pid  = await userIdByTg(req.tg || req.tgUser?.id);
+    const code = String(req.body?.code || '').toUpperCase();
+    if (!/^[A-Z0-9]{5}$/.test(code)) return res.status(400).json({ error: 'bad code' });
+
+    const r = await pool.query('SELECT doctor_id FROM derma.doctor_codes WHERE code=$1 AND active', [code]);
+    if (!r.rowCount) return res.status(404).json({ error: 'code not found' });
+
+    const did = r.rows[0].doctor_id;
+    await pool.query('UPDATE derma.patient_doctors SET unbound_at=now() WHERE patient_id=$1 AND unbound_at IS NULL', [pid]);
+    await pool.query('INSERT INTO derma.patient_doctors(patient_id, doctor_id) VALUES ($1,$2)', [pid, did]);
+
+    const { rows } = await pool.query(`
+      SELECT u.id AS doctor_id,
+             COALESCE(u.full_name,'Врач') AS name,
+             dp.clinic, dp.city, dp.avatar_url
+        FROM derma.users u
+        LEFT JOIN derma.doctor_profiles dp ON dp.user_id=u.id
+       WHERE u.id=$1`, [did]);
+
+    res.json({ ok: true, code, doctor: rows[0] });
+  } catch (e) {
+    console.error('DOCTOR ATTACH ERROR:', e);
+    res.status(500).json({ error: e.message });
+  }
+});
+
+app.get('/api/doctor/attached', tgAuth, async (req, res) => {
+  try {
+    await pool.query('SET search_path = derma, public');
+    const pid = await userIdByTg(req.tg || req.tgUser?.id);
+
+    const { rows } = await pool.query(`
+      SELECT dc.code,
+             u.id AS doctor_id,
+             COALESCE(u.full_name,'Врач') AS name,
+             dp.clinic, dp.city, dp.avatar_url
+        FROM derma.patient_doctors pd
+        JOIN derma.users u ON u.id = pd.doctor_id
+        LEFT JOIN derma.doctor_profiles dp ON dp.user_id = u.id
+        LEFT JOIN derma.doctor_codes dc ON dc.doctor_id = u.id AND dc.active
+       WHERE pd.patient_id=$1 AND pd.unbound_at IS NULL
+       LIMIT 1`, [pid]);
+
+    if (!rows.length) return res.json(null);
+    res.json({ ok: true, code: rows[0].code || null, doctor: rows[0] });
+  } catch (e) {
+    console.error('DOCTOR ATTACHED ERROR:', e);
+    res.status(500).json({ error: e.message });
+  }
+});
+
+app.delete('/api/doctor/attach', tgAuth, async (req, res) => {
+  try {
+    await pool.query('SET search_path = derma, public');
+    const pid = await userIdByTg(req.tg || req.tgUser?.id);
+    await pool.query('UPDATE derma.patient_doctors SET unbound_at=now() WHERE patient_id=$1 AND unbound_at IS NULL', [pid]);
+    res.json({ ok: true });
+  } catch (e) {
+    console.error('DOCTOR DETACH ERROR:', e);
+    res.status(500).json({ error: e.message });
+  }
+});
+
 
 
 // план курса
