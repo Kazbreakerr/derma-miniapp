@@ -1,0 +1,209 @@
+<!doctype html>
+<html lang="ru">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+  <title>Roaccutane Tracker — Добро пожаловать</title>
+  <script src="https://telegram.org/js/telegram-web-app.js"></script>
+  <style>
+    :root{
+      --bg:#0B1220; --surface:#0E1726; --card:#121C2E; --border:#1F2A3C;
+      --primary:#14B8A6;
+      --text-high:#F3F7FF; --text-mid:#C7D2FE; --text-low:#93A3BF;
+    }
+    *{box-sizing:border-box}
+    body{
+      margin:0;
+      background:
+        radial-gradient(100% 60% at 20% 0%, rgba(20,184,166,.10), transparent 60%),
+        radial-gradient(100% 60% at 80% 10%, rgba(96,165,250,.10), transparent 60%),
+        var(--bg);
+      color:var(--text-high);
+      font-family:ui-sans-serif,system-ui,-apple-system,Segoe UI,Roboto,Inter,Manrope,Helvetica,Arial;
+      min-height:100dvh; display:grid; place-items:center;
+    }
+    .wrap{width:min(980px,94vw); padding:24px}
+    .card{
+      background:var(--card); border:1px solid var(--border); border-radius:20px; padding:28px;
+      box-shadow:0 16px 48px rgba(0,0,0,.40); overflow:hidden; position:relative;
+    }
+    .glow{position:absolute; inset:0; pointer-events:none;
+      background:radial-gradient(120% 80% at 10% 0%, rgba(20,184,166,.18), transparent 50%),
+                 radial-gradient(120% 80% at 90% 20%, rgba(96,165,250,.18), transparent 60%);
+    }
+    /* TG WebApp готов — в правом верхнем углу */
+    .chip{
+      position:absolute;
+      top: max(12px, env(safe-area-inset-top));
+      right: max(12px, env(safe-area-inset-right));
+      z-index: 15;
+      display:inline-flex; align-items:center; gap:6px;
+      padding:8px 12px;
+      border-radius:999px;
+      font-size:13px; line-height:1; color:var(--text-mid);
+      background: rgba(255,255,255,.06);
+      border:1px solid var(--border);
+      backdrop-filter: blur(6px); -webkit-backdrop-filter: blur(6px);
+      box-shadow:0 10px 20px rgba(0,0,0,.18);
+      pointer-events:none;
+    }
+    h1{margin:0 0 8px; font-weight:800; font-size:28px}
+    p{margin:6px 0; color:var(--text-mid); font-size:16px}
+    .row{display:flex; gap:20px; align-items:center; flex-wrap:wrap}
+    .stage{position:relative; width:140px; height:140px; border-radius:16px;
+           background:linear-gradient(160deg,#0E1726,#101b2b);
+           border:1px solid var(--border); display:grid; place-items:center}
+    .pill{width:84px; height:36px}
+    .pill .left{fill:#fff} .pill .right{fill:#14b8a6}
+    .pill{animation:bob 2.4s ease-in-out infinite}
+    @keyframes bob{ 0%,100%{ transform:translateY(0)} 50%{ transform:translateY(-6px)} }
+    .ring{position:absolute; width:110px; height:110px; border-radius:999px; pointer-events:none;
+          border:3px solid rgba(94,234,212,.35); animation:ripple 2.8s ease-out infinite}
+    @keyframes ripple{ 0%{ transform:scale(.85); opacity:.8 } 80%{ transform:scale(1.15); opacity:.08 } 100%{opacity:0} }
+    @media (max-width:600px){
+      .stage{width:120px;height:120px}
+      .pill{width:76px;height:34px}
+    }
+
+    /* Actions: кнопки, роль, тема */
+    .actions{
+      display:flex; align-items:center; gap:12px; margin-top:16px;
+      padding-right: max(0px, env(safe-area-inset-right)); flex-wrap:wrap;
+    }
+    .cta{ display:flex; gap:12px; flex-wrap:wrap; }
+    .btn{appearance:none; border:none; background:var(--primary); color:#001016; font-weight:700;
+         padding:12px 16px; border-radius:12px; cursor:pointer; box-shadow:0 8px 24px rgba(20,184,166,.25)}
+
+    /* Тумблер роли */
+    .role-switch{ flex: 1 1 260px; min-width:240px; }
+    .role-toggle{
+      position:relative; height:44px; border-radius:14px; padding:3px;
+      background: linear-gradient(180deg, #0f1a2d, #0b1426);
+      border:1px solid var(--border);
+      display:block; width:100%;
+      box-shadow: 0 10px 20px rgba(0,0,0,.18);
+    }
+    .role-toggle .track{
+      display:grid; grid-template-columns:1fr 1fr; align-items:center;
+      height:100%; position:relative; z-index:1; pointer-events:none;
+      color:var(--text-low); font-weight:800; font-size:14px;
+    }
+    .role-toggle .opt{ display:flex; align-items:center; justify-content:center; gap:8px; }
+    .role-toggle .thumb{
+      position:absolute; inset:3px auto 3px 3px; width:calc(50% - 3px);
+      background:linear-gradient(135deg, #22c55e 0%, #06b6d4 60%, #8b5cf6 100%);
+      border-radius:10px; transition:transform .25s ease;
+      box-shadow:0 8px 20px rgba(0,0,0,.25);
+    }
+    .role-toggle input{position:absolute; inset:0; opacity:0; cursor:pointer}
+    .role-toggle input:checked + .thumb{ transform: translateX(100%); }
+    .role-toggle input:checked ~ .track .opt-patient,
+    .role-toggle:not(:has(input:checked)) .opt-doctor{ color:#061116; }
+
+    .theme-switch{ margin-left:auto; }
+    .theme-toggle{
+      display:inline-flex; align-items:center; gap:10px;
+      height:44px; padding:0 16px; border-radius:14px; font-size:15px; font-weight:800;
+      border:0; cursor:pointer; -webkit-tap-highlight-color:transparent;
+      background-image: linear-gradient(135deg, #22c55e 0%, #06b6d4 60%, #8b5cf6 100%);
+      color:#061116; box-shadow:0 10px 24px rgba(0,0,0,.25), 0 2px 8px rgba(0,0,0,.18);
+    }
+    .theme-toggle:active{ transform: translateY(1px) }
+
+    @media (max-width:540px){
+      .role-switch{ min-width:100%; }
+      .theme-switch{ width:100%; margin-left:0; }
+      .theme-toggle{ width:100%; justify-content:center; }
+    }
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <div class="card">
+      <div class="glow"></div>
+      <span class="chip">TG WebApp готов</span>
+
+      <div class="row">
+        <div class="stage" aria-hidden="true">
+          <div class="ring"></div>
+          <svg class="pill" viewBox="0 0 200 86" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="Капсула">
+            <defs><clipPath id="capsule"><rect x="0" y="0" rx="43" ry="43" width="200" height="86"/></clipPath></defs>
+            <g clip-path="url(#capsule)">
+              <rect class="left" x="0" y="0" width="100" height="86"/>
+              <rect class="right" x="100" y="0" width="100" height="86"/>
+              <rect x="94" y="0" width="12" height="86" fill="#0E1726" opacity=".45"/>
+            </g>
+            <rect x="0" y="0" rx="43" ry="43" width="200" height="86" fill="none" stroke="rgba(255,255,255,.65)" stroke-width="2"/>
+          </svg>
+        </div>
+        <div style="flex:1; min-width:240px">
+          <h1>Добро пожаловать в Roaccutane Tracker</h1>
+          <p>Поможем аккуратно пройти курс: фиксируйте дозы, следите за прогрессом и не пропускайте приём.</p>
+
+          <div class="actions">
+            <div class="cta">
+              <button id="startBtn" class="btn">Начать</button>
+            </div>
+
+            <div class="role-switch">
+              <label class="role-toggle">
+                <input id="roleSwitch" type="checkbox" aria-label="Роль: пациент">
+                <div class="thumb" aria-hidden="true"></div>
+                <div class="track" aria-hidden="true">
+                  <span class="opt opt-doctor">🩺 Врач</span>
+                  <span class="opt opt-patient">🙂 Пациент</span>
+                </div>
+              </label>
+            </div>
+
+            <div class="theme-switch" role="group" aria-label="Смена темы">
+              <button id="themeToggle" class="theme-toggle" type="button" title="Сменить тему на светлую">
+                <span class="ico">🌤</span><span class="txt"><b>Светлая тема</b></span>
+              </button>
+            </div>
+          </div>
+
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script>
+  const tgApp = window.Telegram?.WebApp || null;
+  tgApp?.ready?.();
+  tgApp?.expand?.();
+
+  document.getElementById('startBtn').addEventListener('click', () => {
+    const qs = location.search || '';
+    location.replace('./warnings.html' + qs);
+  }, { once: true });
+
+  // Переключение темы
+  (function(){
+    const btn = document.getElementById('themeToggle');
+    if(!btn) return;
+    const qs = location.search || '';
+    btn.addEventListener('click', ()=>{
+      try{ localStorage.setItem('rt_theme','light'); }catch(_){}
+      location.replace('./welcome-rt-light.html' + qs);
+    });
+  })();
+
+  // Тумблер роли
+  (function(){
+    const input = document.getElementById('roleSwitch');
+    if(!input) return;
+    const saved = (localStorage.getItem('rt_role') || 'patient'); // patient по умолчанию
+    const isPatient = saved === 'patient';
+    input.checked = isPatient; // checked = patient
+    document.documentElement.setAttribute('data-role', saved);
+    input.addEventListener('change', () => {
+      const role = input.checked ? 'patient' : 'doctor';
+      try{ localStorage.setItem('rt_role', role); }catch(_){}
+      document.documentElement.setAttribute('data-role', role);
+      tgApp?.HapticFeedback?.impactOccurred?.('light');
+    });
+  })();
+  </script>
+</body>
+</html>

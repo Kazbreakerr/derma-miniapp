@@ -27,7 +27,7 @@
 body{margin:0;background:var(--bg);color:var(--text-high);
      font-family:ui-sans-serif,system-ui,-apple-system,Segoe UI,Roboto,Inter,Manrope,Helvetica,Arial;font-size:16px;line-height:1.5}
 .wrap{max-width:900px;margin:0 auto;padding:24px 24px 40px}
-h1{font-size:28px;line-height:34px;margin:0 0 16px;font-weight:600;text-align:center} /* центрируем */
+h1{font-size:28px;line-height:34px;margin:0 0 16px;font-weight:600;text-align:center}
 .card{position:relative;background:var(--card);border:1px solid var(--border);border-radius:16px;padding:20px;
       box-shadow:0 8px 24px rgba(0,0,0,.35)}
 .glow{position:absolute;inset:0;pointer-events:none;
@@ -35,13 +35,14 @@ h1{font-size:28px;line-height:34px;margin:0 0 16px;font-weight:600;text-align:ce
 .title{display:flex;gap:12px;align-items:center;margin-bottom:12px}
 .title h2{margin:0;font-size:22px;line-height:28px;font-weight:600}
 .row{display:flex;flex-wrap:wrap;gap:12px;align-items:center}
-.muted{color:var(--text-low)}.field{display:flex;flex-direction:column;gap:6px}.inline{display:flex;gap:12px;flex-wrap:wrap}
+.muted{color:var(--text-low)}.field{display:flex;flex-direction:column;gap:6px}.inline{display:flex;gap:12px;flex-wrap:wrap;align-items:flex-start}
 label{display:inline-flex;gap:8px;align-items:center}
-input[type=number],input[type=date],select{
+input[type=number],input[type=date],input[type=time],select{
   background:var(--surface);border:1px solid var(--border);color:var(--text-high);
   border-radius:12px;padding:10px 12px;font-size:16px;line-height:24px;outline:none
 }
 input:focus,select:focus{border-color:#0EA5A6;box-shadow:0 0 0 2px var(--focus-ring)}
+input[disabled]{opacity:.6;cursor:not-allowed}
 /* подсветка ошибки даты */
 .input-error{border-color:var(--danger)!important;box-shadow:0 0 0 2px rgba(239,68,68,.35)!important}
 
@@ -60,13 +61,11 @@ footer{margin:24px 0 8px;color:var(--text-low);text-align:center;font-size:13px}
 }
 .badge svg{width:14px;height:14px;stroke:#7AA2FF}
 
-/* Тумблер "Я уже на курсе" — высокая контрастность */
+/* Тумблер "Я уже на курсе" */
 .pill-switch{
   display:inline-flex;align-items:center;gap:12px;
-  padding:10px 14px;border-radius:999px;
-  border:1px solid #315072;
-  background:linear-gradient(180deg,#132034,#0e1626);
-  color:#EAF2FF;font-weight:800;letter-spacing:.2px;
+  padding:10px 14px;border-radius:999px;border:1px solid #315072;
+  background:linear-gradient(180deg,#132034,#0e1626);color:#EAF2FF;font-weight:800;letter-spacing:.2px;
   cursor:pointer;user-select:none;transition:all .15s ease-out;box-shadow:0 6px 16px rgba(0,0,0,.25);
 }
 .pill-switch:hover{ border-color:#4C78A8 }
@@ -79,7 +78,6 @@ footer{margin:24px 0 8px;color:var(--text-low);text-align:center;font-size:13px}
   content:""; position:absolute; inset:-6px; border-radius:inherit;
   border:2px solid rgba(122,162,255,.25); animation:pillPulse 2.2s ease-out infinite; pointer-events:none;
 }
-@keyframes pillPulse{0%{transform:scale(.85);opacity:.6}100%{transform:scale(1.25);opacity:0}}
 .pill-switch[aria-pressed="true"]{border-color:#60A5FA;background:linear-gradient(135deg,#3B82F6,#22D3EE);color:#02131A}
 .pill-switch[aria-pressed="true"] .dot{background:#fff;border-color:#fff;box-shadow:0 0 0 1px rgba(0,0,0,.25) inset;transform:translateX(2px)}
 
@@ -122,7 +120,6 @@ footer{margin:24px 0 8px;color:var(--text-low);text-align:center;font-size:13px}
       <label for="plan_start">
         Дата начала курса:
         <span class="badge" title="Без указания даты план не сохранится">
-          <!-- иконка-инфо -->
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
             <circle cx="12" cy="12" r="10"></circle><line x1="12" y1="16" x2="12" y2="12"></line><line x1="12" y1="8" x2="12" y2="8"></line>
           </svg>
@@ -142,7 +139,7 @@ footer{margin:24px 0 8px;color:var(--text-low);text-align:center;font-size:13px}
       <div class="tip">Суточная доза обычно рассчитывается как 0,5–1 мг/кг. Точную дозу подбирает врач.</div>
     </div>
 
-    <!-- Красивый тумблер "Я уже на курсе" -->
+    <!-- "Я уже на курсе" -->
     <div class="inline" style="margin-top:14px">
       <button id="alreadyBtn" class="pill-switch" aria-pressed="false" type="button">
         <span class="dot" aria-hidden="true"></span>
@@ -159,7 +156,7 @@ footer{margin:24px 0 8px;color:var(--text-low);text-align:center;font-size:13px}
     </div>
 
     <!-- Напоминания -->
-    <div class="inline" style="margin-top:14px;align-items:flex-start">
+    <div class="inline" style="margin-top:14px">
       <button id="bell" class="bell" type="button" data-on="0" title="Напоминать о приёме">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
           <path d="M6 8a6 6 0 0 1 12 0c0 7 3 7 3 9H3c0-2 3-2 3-9" />
@@ -167,7 +164,12 @@ footer{margin:24px 0 8px;color:var(--text-low);text-align:center;font-size:13px}
         </svg>
         <span>Напоминать о приёме</span>
       </button>
-      <div class="tip">Если включить, приложение может присылать уведомления о приёме. (Можно отключить в любой момент.)</div>
+
+      <div class="field" style="min-width:170px">
+        <label for="remindTime" class="muted">Время:</label>
+        <input id="remindTime" type="time" value="09:00">
+        <div class="tip">Время можно будет изменить в профиле.</div>
+      </div>
     </div>
 
     <div class="motto">Регулярность приёма — ключ к результату</div>
@@ -192,11 +194,22 @@ const devTg=new URLSearchParams(location.search).get('tg')||'1002';
 function api(path,opts={}) {
   let url=/^https?:\/\//i.test(path)?path:(API_BASE+path);
   const p=[]; if(!initData&&devTg)p.push('tg='+encodeURIComponent(devTg));
-  p.push('v=plan-2025-08-26');
+  p.push('v=plan-2025-08-29');
   url+=(url.includes('?')?'&':'?')+p.join('&');
   const h={'Content-Type':'application/json',...(opts.headers||{})};
   if(initData) h['X-Telegram-InitData']=initData;
   return fetch(url,{...opts,headers:h});
+}
+
+function storeReminder(on, time){
+  try{
+    localStorage.setItem('derma_remind_optin', on ? '1' : '0');
+    if(time) localStorage.setItem('derma_remind_time', time);
+  }catch(_){}
+}
+function parseTimeStr(t){
+  const m = /^([01]\d|2[0-3]):([0-5]\d)$/.exec(t||'');
+  return m?{hour:+m[1],minute:+m[2]}:null;
 }
 
 /* Подтягиваем вес для расчёта доз */
@@ -223,17 +236,40 @@ alreadyBtn.addEventListener('click', ()=>{
 
 /* Напоминания */
 const bell = document.getElementById('bell');
-(function initBell(){
+const timeEl = document.getElementById('remindTime');
+
+(function initReminderUI(){
   try{
     const on = localStorage.getItem('derma_remind_optin') === '1';
+    const t  = localStorage.getItem('derma_remind_time') || '09:00';
     bell.dataset.on = on ? '1' : '0';
+    timeEl.value = t;
+    timeEl.disabled = !on;
   }catch(_){}
 })();
+
+async function syncReminder(on, time){
+  storeReminder(on, time);
+  try{
+    const tm = parseTimeStr(time)||{};
+    await api('/api/reminders/optin',{
+      method:'POST',
+      body:JSON.stringify({ enable:on, time, hour:tm.hour, minute:tm.minute })
+    });
+  }catch(_){}
+}
+
 bell.addEventListener('click', async ()=>{
   const on = bell.dataset.on !== '1';
   bell.dataset.on = on ? '1' : '0';
-  try{ localStorage.setItem('derma_remind_optin', on ? '1' : '0'); }catch(_){}
-  try{ await api('/api/reminders/optin',{method:'POST', body:JSON.stringify({ enable:on })}); }catch(_){}
+  timeEl.disabled = !on;
+  await syncReminder(on, timeEl.value || '09:00');
+});
+
+timeEl.addEventListener('change', async ()=>{
+  const t = timeEl.value || '09:00';
+  if(bell.dataset.on === '1'){ await syncReminder(true, t); }
+  else { storeReminder(false, t); }
 });
 
 /* Сохранение плана (+ жёсткая проверка даты) */
@@ -286,7 +322,12 @@ document.getElementById('btnSavePlan').addEventListener('click', async ()=>{
       if(!seeded){ try{ localStorage.setItem('derma_seed_cum_mg', String(Math.round(taken))); }catch(_){ } }
     }
 
-    msg.textContent='Готово';
+    /* Зафиксируем состояние напоминаний и время (чтобы main/myprofile подняли тумблеры) */
+    const bellOn = bell.dataset.on === '1';
+    const t = timeEl.value || '09:00';
+    await syncReminder(bellOn, t);
+
+    msg.textContent = bellOn ? ('Готово. Напоминания: ' + t) : 'Готово';
     try{ localStorage.setItem('derma_next','main'); }catch(_){}
     const qs = location.search || '';
     location.replace('./index.html' + qs);

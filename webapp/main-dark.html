@@ -1238,7 +1238,10 @@ const toMonday = (wd === 0 ? -6 : (1 - wd));
 base.setDate(base.getDate() + toMonday);
       for(let i=0;i<7;i++){
         const d = new Date(base); d.setDate(base.getDate()+i);
-        const iso = d.toISOString().slice(0,10);
+        const y  = d.getFullYear();
+const m  = String(d.getMonth()+1).padStart(2,'0');
+const dd = String(d.getDate()).padStart(2,'0');
+const iso = `${y}-${m}-${dd}`;
         const card = document.createElement('div'); card.className='day-card'; card.tabIndex=0; card.setAttribute('data-iso', iso);
         if (iso === todayISO()) card.classList.add('today');
         const mg = map.get(iso);
@@ -1300,6 +1303,11 @@ base.setDate(base.getDate() + toMonday);
       let eta = '—';
       const byDate = {}; DOSES.forEach(x=>{ const k=(normalizeDate(x.date)||'').slice(0,10); byDate[k]=(byDate[k]||0)+Number(x.mg||x.mg_taken||0); });
       const today = todayISO();
+      // Берём ISO без сдвига в UTC (локальная дата устройства)
+const isoLocal = (d) => {
+  const t = new Date(d.getTime() - d.getTimezoneOffset()*60000);
+  return t.toISOString().slice(0,10);
+};
       const sumDays = (n) => {
         let s = 0;
         const [Y,M,D] = today.split('-').map(Number);
@@ -1736,5 +1744,6 @@ document.addEventListener('click', (e)=>{
   }
 });
 </script>
+
 </body>
 </html>

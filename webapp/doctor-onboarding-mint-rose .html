@@ -1,0 +1,205 @@
+<!doctype html>
+<html lang="ru" data-theme="dark">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Онбординг врача — Roaccutane Tracker</title>
+  <style>
+    :root{
+      --dr-bg: #0E1116;
+      --dr-card: #141A22;
+      --dr-text: #EDEFF2;
+      --dr-text-muted: #9AA3AE;
+      --dr-stroke: #1F2833;
+
+      /* Мята → пастельно-розовый */
+      --dr-grad-1: linear-gradient(135deg, #6FEAD8 0%, #BDF7EE 40%, #FFD6E9 100%);
+      --dr-grad-2: linear-gradient(135deg, rgba(111,234,216,.18) 0%, rgba(255,214,233,.18) 100%);
+
+      --dr-r: 18px;
+      --dr-dur:.24s;
+      --dr-ease:cubic-bezier(.2,.6,.2,1);
+    }
+    [data-theme="light"]{
+      --dr-bg:#F7F8FA; --dr-card:#FFF; --dr-text:#0F1720; --dr-text-muted:#6B7280; --dr-stroke:#E7EAF0;
+      --dr-grad-1: linear-gradient(135deg, #CFF9F0 0%, #FFE6F2 100%);
+      --dr-grad-2: linear-gradient(135deg, #EFFFF9 0%, #FFF1F6 100%);
+    }
+    html,body{height:100%}
+    body{margin:0;background:var(--dr-bg);color:var(--dr-text);font:16px/1.4 system-ui,-apple-system,Segoe UI,Roboto,Inter,Arial,sans-serif}
+    .dr-wrap{max-width:720px;margin:0 auto;padding:20px clamp(14px,4vw,24px) 28px;display:flex;flex-direction:column;gap:24px}
+    .dr-header{display:flex;align-items:center;justify-content:space-between}
+    .dr-title{font-weight:800;font-size:clamp(18px,2.8vw,24px)}
+    .dr-stepper{display:flex;gap:8px;align-items:center}
+    .dr-dot{width:8px;height:8px;border-radius:999px;background:#2A3442;opacity:.6;transition:all var(--dr-dur) var(--dr-ease)}
+    .dr-dot.active{width:24px;background:var(--dr-grad-1);opacity:1;box-shadow:0 0 0 1px rgba(255,255,255,.06) inset,0 2px 8px rgba(255,214,233,.25)}
+    .dr-card{background:var(--dr-card);border:1px solid var(--dr-stroke);border-radius:var(--dr-r);padding:clamp(14px,3.5vw,20px);box-shadow:0 6px 22px rgba(0,0,0,.14)}
+    .dr-card-head{background:var(--dr-grad-1);border-radius:calc(var(--dr-r) - 6px);padding:14px 16px;margin-bottom:12px;color:#0B1B12;display:flex;justify-content:space-between;gap:12px}
+    .dr-grid{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+    .dr-grid-1{display:grid;grid-template-columns:1fr;gap:12px}
+    @media (max-width:640px){.dr-grid{grid-template-columns:1fr}}
+    .dr-field{display:flex;flex-direction:column;gap:6px}
+    .dr-label{font-size:12px;color:var(--dr-text-muted)}
+    .dr-input,.dr-select{width:100%;padding:12px;border-radius:12px;background:#0D1219;border:1px solid var(--dr-stroke);color:var(--dr-text);outline:none;transition:border var(--dr-dur) var(--dr-ease)}
+    [data-theme="light"] .dr-input,[data-theme="light"] .dr-select{background:#FAFBFC}
+    .dr-input:focus,.dr-select:focus{border-color:#22C55E}
+    .dr-hint{font-size:12px;color:var(--dr-text-muted)}
+    .dr-switch{display:inline-flex;align-items:center;gap:10px;cursor:pointer;user-select:none}
+    .dr-switch input{display:none}
+    .dr-toggle{width:44px;height:26px;border-radius:999px;background:#2A3442;position:relative;border:1px solid rgba(255,255,255,.06);transition:all var(--dr-dur) var(--dr-ease)}
+    .dr-knob{position:absolute;top:3px;left:3px;width:20px;height:20px;border-radius:999px;background:#fff;box-shadow:0 2px 6px rgba(0,0,0,.25);transition:all var(--dr-dur) var(--dr-ease)}
+    .dr-switch input:checked + .dr-toggle{background:var(--dr-grad-1);border-color:transparent;box-shadow:0 0 0 1px rgba(255,255,255,.06) inset}
+    .dr-switch input:checked + .dr-toggle .dr-knob{transform:translateX(18px);box-shadow:0 2px 6px rgba(0,0,0,.25),0 0 0 3px rgba(255,214,233,.28)}
+    .dr-actions{display:flex;gap:10px;justify-content:flex-end;margin-top:8px}
+    .dr-btn{padding:12px 16px;border-radius:12px;border:1px solid transparent;cursor:pointer;font-weight:700;color:#05140C;background:var(--dr-grad-1);transition:transform var(--dr-dur) var(--dr-ease)}
+    .dr-btn:active{transform:translateY(1px) scale(.99)}
+    .dr-btn-ghost{padding:12px 14px;border-radius:12px;background:transparent;color:var(--dr-text);border:1px solid var(--dr-stroke);cursor:pointer}
+    .dr-pages{position:relative;min-height:440px}
+    .dr-page{position:absolute;inset:0;opacity:0;pointer-events:none;transform:translateX(8px);transition:opacity var(--dr-dur) var(--dr-ease),transform var(--dr-dur) var(--dr-ease)}
+    .dr-page.active{opacity:1;pointer-events:auto;transform:translateX(0)}
+    .dr-code{font:700 32px/1.1 ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;letter-spacing:6px;padding:14px 12px;border-radius:14px;text-align:center;background:#0D1219;border:1px dashed var(--dr-stroke);user-select:text}
+    [data-theme="light"] .dr-code{background:#FAFBFC}
+    .dr-code.masked{letter-spacing:10px}
+    .dr-modal{position:fixed;inset:0;display:none;align-items:center;justify-content:center;background:rgba(0,0,0,.5)}
+    .dr-modal.show{display:flex}
+    .dr-modal-card{background:var(--dr-card);border:1px solid var(--dr-stroke);border-radius:16px;padding:16px;width:min(92vw,360px)}
+  </style>
+</head>
+<body>
+  <div class="dr-wrap">
+    <div class="dr-header">
+      <div class="dr-title">Онбординг врача</div>
+      <div class="dr-stepper" id="drStepper">
+        <div class="dr-dot active"></div><div class="dr-dot"></div><div class="dr-dot"></div>
+      </div>
+    </div>
+
+    <div class="dr-pages">
+      <!-- 1 -->
+      <section class="dr-page active" id="page1">
+        <div class="dr-card">
+          <div class="dr-card-head"><b>Кто вы и где принимаете</b><span class="dr-hint">Заполните базу</span></div>
+          <div class="dr-grid">
+            <div class="dr-field"><label class="dr-label">ФИО</label><input class="dr-input" id="fio" placeholder="Иванова Анастасия Сергеевна"></div>
+            <div class="dr-field"><label class="dr-label">Специализация</label>
+              <select class="dr-select" id="spec">
+                <option value="">Выбрать…</option><option>Дерматолог</option><option>Дерматовенеролог</option><option>Косметолог</option><option>Другая</option>
+              </select>
+            </div>
+            <div class="dr-field"><label class="dr-label">Город</label><input class="dr-input" id="city" placeholder="Москва"></div>
+            <div class="dr-field"><label class="dr-label">Клиника</label><input class="dr-input" id="clinic" placeholder="Медцентр «Скин+»"></div>
+          </div>
+          <div class="dr-grid" style="margin-top:12px">
+            <div class="dr-field"><label class="dr-label">Telegram (опц.)</label><input class="dr-input" id="tg" placeholder="@dr_skin"></div>
+            <div class="dr-field"><label class="dr-label">Телефон/сайт (опц.)</label><input class="dr-input" id="contact" placeholder="+7••• / site.ru"></div>
+          </div>
+          <div class="dr-actions"><button class="dr-btn" id="next1" disabled>Далее</button></div>
+        </div>
+      </section>
+
+      <!-- 2 -->
+      <section class="dr-page" id="page2">
+        <div class="dr-card">
+          <div class="dr-card-head"><b>Приём и заявки</b><span class="dr-hint">Настройте работу</span></div>
+          <div class="dr-grid-1">
+            <label class="dr-switch"><input type="checkbox" id="accepting" checked><span class="dr-toggle"><span class="dr-knob"></span></span><span>Принимаю новых пациентов</span></label>
+            <div class="dr-field"><label class="dr-label">Способ прикрепления</label>
+              <select class="dr-select" id="attachMethod"><option value="code">По коду</option><option value="link">По ссылке (QR)</option></select>
+            </div>
+            <label class="dr-switch"><input type="checkbox" id="autoAccept"><span class="dr-toggle"><span class="dr-knob"></span></span><span>Автопринятие заявок</span></label>
+            <div class="dr-hint">Автопринятие — пациенты с вашим кодом прикрепляются сразу.</div>
+          </div>
+          <div class="dr-actions"><button class="dr-btn-ghost" id="back2">Назад</button><button class="dr-btn" id="next2">Далее</button></div>
+        </div>
+      </section>
+
+      <!-- 3 -->
+      <section class="dr-page" id="page3">
+        <div class="dr-card">
+          <div class="dr-card-head"><b>Ваш код</b><span class="dr-hint">Поделитесь им с пациентом</span></div>
+          <div class="dr-field">
+            <div class="dr-code" id="doctorCode" aria-live="polite">AB12C</div>
+            <div class="dr-hint" style="margin-top:8px">Формат: A–Z / 0–9, 5 символов</div>
+          </div>
+          <div class="dr-actions" style="justify-content:space-between;flex-wrap:wrap">
+            <div style="display:flex;gap:8px;flex-wrap:wrap">
+              <button class="dr-btn-ghost" id="copyBtn">Скопировать</button>
+              <button class="dr-btn-ghost" id="qrBtn">Показать QR</button>
+              <button class="dr-btn-ghost" id="shareBtn">Поделиться</button>
+              <button class="dr-btn-ghost" id="toggleMaskBtn" aria-pressed="false">Скрыть код</button>
+            </div>
+            <button class="dr-btn" id="finishBtn">Перейти к работе</button>
+          </div>
+        </div>
+      </section>
+    </div>
+  </div>
+
+  <!-- QR modal -->
+  <div class="dr-modal" id="qrModal" aria-hidden="true">
+    <div class="dr-modal-card">
+      <h4 style="display:flex;justify-content:space-between;align-items:center;margin:0 0 12px">
+        <span>QR для пациента</span><button class="dr-btn-ghost" id="qrClose">Закрыть</button>
+      </h4>
+      <div id="qrBox" style="display:grid;place-items:center"></div>
+      <div class="dr-hint" style="margin-top:10px">Содержимое: ссылка с вашим кодом.</div>
+    </div>
+  </div>
+
+  <script>
+    const $ = s=>document.querySelector(s); const $$=s=>Array.from(document.querySelectorAll(s));
+    const store = {set:(k,v)=>localStorage.setItem(k,JSON.stringify(v)),get:(k,d=null)=>JSON.parse(localStorage.getItem(k)||'null')??d};
+    const ABC='ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
+    const genCode=()=> Array.from({length:5},()=>ABC[Math.floor(Math.random()*ABC.length)]).join('');
+    const step=(i)=> $$('#drStepper .dr-dot').forEach((d,idx)=>d.classList.toggle('active',idx<=i));
+    const page=(i)=>['#page1','#page2','#page3'].forEach((sel,idx)=>$(sel).classList.toggle('active',idx===i))||step(i);
+    const valid1=()=>['#fio','#spec','#city','#clinic'].every(sel=>$(sel).value.trim());
+
+    // Screen 1
+    const next1=$('#next1');
+    ['#fio','#spec','#city','#clinic'].forEach(s=>{ $(s).addEventListener('input',()=>next1.disabled=!valid1()); $(s).addEventListener('change',()=>next1.disabled=!valid1()); });
+    next1.addEventListener('click',()=>{
+      store.set('doctorProfile',{name:$('#fio').value.trim(),specialty:$('#spec').value.trim(),city:$('#city').value.trim(),clinic:$('#clinic').value.trim(),tg:$('#tg').value.trim(),contact:$('#contact').value.trim()});
+      page(1);
+    });
+
+    // Screen 2
+    $('#back2').addEventListener('click',()=>page(0));
+    $('#next2').addEventListener('click',()=>{
+      store.set('doctorSettings',{accepting:$('#accepting').checked,attachMethod:$('#attachMethod').value,autoAccept:$('#autoAccept').checked});
+      let code=store.get('doctorCode'); if(!code||!/^[A-Z0-9]{5}$/.test(code)){code=genCode();store.set('doctorCode',code)}
+      $('#doctorCode').textContent=code; page(2);
+    });
+
+    // Screen 3
+    (function initCode(){ const code=store.get('doctorCode'); if(code) $('#doctorCode').textContent=code; })();
+    let masked=false; const tBtn=$('#toggleMaskBtn');
+    tBtn.addEventListener('click',()=>{
+      const el=$('#doctorCode'); const real=store.get('doctorCode')||el.textContent.trim(); masked=!masked;
+      if(masked){ el.textContent='•••••'; el.classList.add('masked'); tBtn.textContent='Показать код'; tBtn.setAttribute('aria-pressed','true'); }
+      else{ el.textContent=real; el.classList.remove('masked'); tBtn.textContent='Скрыть код'; tBtn.setAttribute('aria-pressed','false'); }
+    });
+    $('#copyBtn').addEventListener('click',async()=>{ const real=store.get('doctorCode')||$('#doctorCode').textContent.trim(); try{await navigator.clipboard.writeText(real); toast('Код скопирован');}catch(e){} });
+    const shareURL = (code)=> `${location.origin}${location.pathname}?attach=doctor&code=${code}`;
+    $('#shareBtn').addEventListener('click',async()=>{
+      const real=store.get('doctorCode')||$('#doctorCode').textContent.trim(); const url=shareURL(real);
+      if(navigator.share){ try{await navigator.share({title:'Код врача',text:`Мой код: ${real}`,url})}catch(_){} }
+      else{ try{await navigator.clipboard.writeText(url); toast('Ссылка скопирована');}catch(e){ toast('Скопируйте: '+url);} }
+    });
+    $('#qrBtn').addEventListener('click',()=>{
+      const real=store.get('doctorCode')||$('#doctorCode').textContent.trim();
+      const api='https://api.qrserver.com/v1/create-qr-code/?size=256x256&data='+encodeURIComponent(shareURL(real));
+      $('#qrBox').innerHTML=`<img alt="QR" src="${api}" loading="lazy">`; $('#qrModal').classList.add('show');
+    });
+    $('#qrClose').addEventListener('click',()=>$('#qrModal').classList.remove('show'));
+
+    $('#finishBtn').addEventListener('click',()=>{
+      store.set('doctorOnboardingDone',{at:new Date().toISOString()});
+      location.href='doctor-cabinet-mint-rose.html#/doctor/patients';
+    });
+
+    function toast(txt){ const n=document.createElement('div'); n.textContent=txt; n.style.cssText='position:fixed;left:50%;bottom:28px;transform:translateX(-50%);padding:10px 14px;border-radius:12px;background:rgba(0,0,0,.7);color:#fff;font-weight:600;z-index:9999'; document.body.appendChild(n); setTimeout(()=>n.remove(),1400); }
+    next1.disabled=!valid1();
+  </script>
+</body>
+</html>

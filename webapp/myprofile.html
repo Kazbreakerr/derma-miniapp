@@ -184,7 +184,7 @@
 
 
     /* Theme switch FAB */
-    .theme-fab{ position:fixed; right:12px; bottom:calc(74px + env(safe-area-inset-bottom)); z-index:45; display:inline-flex; align-items:center; gap:8px; height:44px; padding:0 14px; border-radius:999px; border:none; cursor:pointer; font-weight:700; background:linear-gradient(135deg, var(--accent-1), var(--accent-2)); color:#0d1220; box-shadow:var(--shadow); }
+    .theme-fab{ display:none !important; position:fixed; right:12px; bottom:calc(74px + env(safe-area-inset-bottom)); z-index:45; display:inline-flex; align-items:center; gap:8px; height:44px; padding:0 14px; border-radius:999px; border:none; cursor:pointer; font-weight:700; background:linear-gradient(135deg, var(--accent-1), var(--accent-2)); color:#0d1220; box-shadow:var(--shadow); }
     .theme-fab svg{ width:18px; height:18px }
 
     .btn.contrast{ background:rgba(255,255,255,.06); border:1px solid rgba(255,255,255,.45); color:#fff; }
@@ -253,6 +253,7 @@ body.light .tab.active{
 ::view-transition-new(root){ animation: vt-fade-slide-in  .35s ease both; }
 
 </style>
+  <script src="https://telegram.org/js/telegram-web-app.js"></script>
 </head>
 <body>
   <div class="topbar">
@@ -334,7 +335,7 @@ body.light .tab.active{
           <div class="doc-bind" id="docBind" style="grid-column:1/-1">
             <input id="docCodeInput" class="text-input" type="text" placeholder="Введите код врача">
             <button class="btn primary" id="docBindBtn" disabled>Прикрепить врача</button>
-            <span class="help">Пусто — врач не прикреплён</span>
+            
           </div>
           <div class="err" id="docError" style="grid-column:1/-1" hidden>Код врача не найден</div>
           <div id="analysesBlock" style="grid-column:1/-1" hidden>
@@ -518,6 +519,20 @@ body.light .tab.active{
     const C = 2*Math.PI*54; const off = C*(1-pct/100);
     document.querySelector('.ring .bar').setAttribute('stroke-dashoffset', off);
   }
+
+
+  // --- Telegram user override (name + photo) ---
+  (function applyTelegramUser(){
+    try{
+      const tg = window.Telegram?.WebApp;
+      const u = tg?.initDataUnsafe?.user;
+      if(u){
+        const full = [u.first_name, u.last_name].filter(Boolean).join(' ').trim();
+        if (full) STATE.name = full;
+        if (u.photo_url) STATE.avatarUrl = u.photo_url;
+      }
+    }catch(_){}
+  })();
 
   populate();
 
