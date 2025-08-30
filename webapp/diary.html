@@ -1,0 +1,411 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Дневник — запись дня</title>
+<style>
+  :root{
+    --bgA:#0B1220;
+    --bgB:#0F1B2E;
+    --glow:#14B8A6;
+    --trackA:#ef4444; /* left */
+    --trackB:#22c55e; /* right */
+    --surface:#111827;
+    --card:#0F172A;
+    --muted:#8CA3B0;
+    --text:#E6EDF3;
+    --border:rgba(255,255,255,.08);
+    --radius:20px;
+  }
+  *{box-sizing:border-box}
+  html,body{height:100%}
+  body{
+    margin:0;
+    font:16px/1.45 system-ui, -apple-system, "Segoe UI", Roboto, Inter, Arial, sans-serif;
+    color:var(--text);
+    background:
+      radial-gradient(1200px 600px at 80% -20%, color-mix(in oklab, var(--glow), transparent 70%), transparent 60%),
+      radial-gradient(1000px 700px at -10% -20%, color-mix(in oklab, var(--trackB), transparent 80%), transparent 60%),
+      linear-gradient(180deg, var(--bgA), var(--bgB));
+    transition: background .5s ease, background-color .5s ease;
+  }
+  header{
+    position:sticky; top:0; z-index:20;
+    background:linear-gradient(180deg, color-mix(in oklab, var(--bgA), transparent 20%), color-mix(in oklab, var(--bgB), transparent 20%));
+    border-bottom:1px solid var(--border);
+    backdrop-filter: blur(8px);
+  }
+  .wrap{max-width:980px;margin:0 auto;padding:16px 18px}
+  h1{margin:0;font-size:22px; letter-spacing:.2px}
+  .date-row{display:flex; gap:12px; align-items:center; margin-top:8px; flex-wrap:wrap}
+  .date-row input[type="date"]{
+    background:var(--card); color:var(--text); border:1px solid var(--border);
+    padding:10px 12px; border-radius:12px;
+  }
+  .chip{
+    background:rgba(20,184,166,.15); color:#c7fffb;
+    border:1px solid rgba(20,184,166,.35);
+    padding:8px 10px; border-radius:999px; font-size:13px;
+  }
+  .date-nav{margin-left:auto; display:flex; gap:6px}
+  .icon-btn{appearance:none; border:1px solid var(--border); background:var(--surface); color:var(--text);
+    width:38px; height:38px; border-radius:10px; cursor:pointer}
+  .icon-btn:active{transform: translateY(1px)}
+
+  .card{background:var(--card); border:1px solid var(--border); border-radius:var(--radius); padding:16px; margin:16px 0; box-shadow:0 10px 30px rgba(0,0,0,.35)}
+  .card h2{font-size:18px; margin:0 0 12px 0}
+
+  /* ===== Mood block ===== */
+  .mood{ display:grid; grid-template-columns: 1fr 360px; gap:18px; align-items:center; }
+  @media (max-width: 900px){ .mood{ grid-template-columns: 1fr; } }
+  .mood-stage{
+    position:relative; height:360px; border-radius:22px; overflow:hidden;
+    background:
+      radial-gradient(420px 240px at 20% 0%, color-mix(in oklab, var(--glow), transparent 60%), transparent 60%),
+      radial-gradient(520px 300px at 80% 10%, color-mix(in oklab, var(--trackB), transparent 70%), transparent 70%),
+      linear-gradient(180deg, color-mix(in oklab, var(--bgA), #000 8%), color-mix(in oklab, var(--bgB), #000 6%));
+    border:1px solid var(--border);
+  }
+  .mood-stage svg{ position:absolute; inset:0; width:100%; height:100% }
+  /* Убрали всплывающую надпись состояния над анимацией */
+  .mood-stage .glow{ position:absolute; inset:0; filter: blur(28px); opacity:.65; pointer-events:none; }
+
+  .mood-ctrl{ display:grid; gap:14px; align-content:center; justify-items:stretch; }
+  .state-label{ text-align:center; font-weight:800; letter-spacing:.3px }
+
+  .bar{
+    --x: .5; /* 0..1 */
+    position:relative;
+    height:54px;
+    border-radius:999px;
+    background: linear-gradient(90deg, var(--trackA), var(--trackB));
+    box-shadow: inset 0 0 0 1px rgba(255,255,255,.12), 0 12px 30px rgba(0,0,0,.35);
+    display:flex; align-items:center; padding:0 18px;
+    cursor: pointer; user-select:none; -webkit-user-select:none; touch-action: none;
+  }
+  .bar .rail{
+    position:absolute; left:18px; right:18px; height:10px;
+    background: rgba(0,0,0,.35);
+    border-radius:999px; box-shadow: inset 0 0 0 1px rgba(255,255,255,.15);
+  }
+  .bar .center-mark{ position:absolute; top:50%; left:50%; width:2px; height:20px; transform:translate(-50%,-50%);
+    background:rgba(255,255,255,.36); border-radius:2px; }
+  .bar .knob{
+    position:absolute; top:50%;
+    width:42px; height:42px; transform:translate(-50%, -50%);
+    left: calc(18px + var(--x) * (100% - 36px));
+    border-radius:50%; background:#fff; color:#111; display:grid; place-items:center; font-weight:800;
+    box-shadow: 0 12px 24px rgba(0,0,0,.35), inset 0 0 0 1px rgba(0,0,0,.1);
+    transition: left .15s ease;
+  }
+  .bar.drag .knob{ transition:none }
+
+  /* ===== Side effects ===== */
+  .se-list{display:grid; gap:10px}
+  .se-item{display:grid; grid-template-columns: 1fr auto; align-items:center; gap:12px;
+    padding:10px 12px; border:1px solid var(--border); border-radius:12px; background:rgba(255,255,255,.02)}
+  .se-item .label{font-weight:700}
+  .se-item .ctrl{display:flex; align-items:center; gap:10px}
+  .se-item input[type="range"]{-webkit-appearance:none; width:160px; height:8px; border-radius:999px; background:linear-gradient(90deg, #475569, #94a3b8)}
+  .se-item input[type="range"]::-webkit-slider-thumb{-webkit-appearance:none; width:20px; height:20px; border-radius:50%; background:#fff; border:2px solid #0004; box-shadow:0 3px 8px rgba(0,0,0,.3)}
+  .se-badge{min-width:28px; text-align:center; padding:6px 8px; border-radius:10px; background:#0b1728; border:1px solid var(--border)}
+
+  /* ===== Photos & compare ===== */
+  .uploader{display:grid; grid-template-columns: 1fr 1fr; gap:12px}
+  .drop{position:relative; min-height:180px; border:1px dashed rgba(255,255,255,.25); border-radius:14px;
+    display:grid; place-items:center; overflow:hidden; background:rgba(255,255,255,.03)}
+  .drop input{position:absolute; inset:0; opacity:0; cursor:pointer}
+  .drop .hint{color:var(--muted); text-align:center; padding:12px}
+  .thumb{width:100%; height:100%; object-fit:cover}
+  .actions-row{display:flex; gap:10px; flex-wrap:wrap}
+  .outline{background:transparent; border:1px solid var(--border); color:var(--text)}
+  .compare{position:relative; width:100%; max-width:760px; margin:8px auto 0; border:1px solid var(--border); border-radius:14px; overflow:hidden}
+  .compare img{display:block; width:100%; height:auto}
+  .compare .top{position:absolute; inset:0; overflow:hidden}
+  .compare .handle{position:absolute; top:0; bottom:0; width:2px; background:#fff; left:50%; transform:translateX(-1px)}
+  .compare .knob{position:absolute; top:50%; left:50%; transform:translate(-50%,-50%); width:38px; height:38px; border-radius:50%; background:#fff; color:#111; display:grid; place-items:center; box-shadow:0 8px 18px rgba(0,0,0,.35)}
+  .compare .label{position:absolute; top:10px; padding:6px 10px; border-radius:10px; font-size:12px; background:rgba(0,0,0,.35); backdrop-filter: blur(8px)}
+  .compare .label.start{left:10px} .compare .label.current{right:10px}
+  .compare input[type="range"]{position:absolute; inset:0; opacity:0}
+
+  /* ===== Notes ===== */
+  textarea{width:100%; min-height:100px; resize:vertical; background:var(--surface); color:var(--text); border:1px solid var(--border); border-radius:12px; padding:12px}
+
+  @media (max-width: 760px){
+    .uploader{ grid-template-columns: 1fr; }
+    .mood-stage{ height:300px; }
+  }
+</style>
+</head>
+<body>
+<header>
+  <div class="wrap">
+    <h1>Дневник</h1>
+    <div class="date-row">
+      <input id="datePicker" type="date">
+      <span class="chip" id="dayChip">Текущий день: —</span>
+      <div class="date-nav">
+        <button class="icon-btn" id="prevDay" title="Предыдущий день">◀</button>
+        <button class="icon-btn" id="todayBtn" title="Сегодня">●</button>
+        <button class="icon-btn" id="nextDay" title="Следующий день">▶</button>
+      </div>
+    </div>
+  </div>
+</header>
+
+<main class="wrap">
+  <!-- Mood section -->
+  <section class="card" id="moodSection">
+    <h2>Оценка самочувствия</h2>
+    <div class="mood">
+      <div class="mood-stage">
+        <svg id="moodSVG" viewBox="-180 -180 360 360" aria-hidden="true"></svg>
+        <canvas class="glow" id="glowCanvas"></canvas>
+      </div>
+      <div class="mood-ctrl">
+        <div class="state-label" id="stateLabel">Нейтрально</div>
+        <div class="bar" id="moodBar" role="slider" aria-valuemin="-100" aria-valuemax="100" aria-valuenow="0" aria-label="Самочувствие">
+          <div class="rail"></div>
+          <div class="center-mark" aria-hidden="true"></div>
+          <div class="knob" id="moodKnob"></div>
+        </div>
+        <button class="btn" id="confirmMood">Подтвердить</button>
+      </div>
+    </div>
+  </section>
+
+  <!-- Side effects -->
+  <section class="card">
+    <h2>Побочные эффекты</h2>
+    <div class="se-list" id="seList"></div>
+  </section>
+
+  <!-- Photos -->
+  <section class="card">
+    <h2>Фото дня</h2>
+    <div class="uploader">
+      <label class="drop" id="faceDrop">
+        <img class="thumb" id="faceThumb" alt="" hidden>
+        <input type="file" accept="image/*" capture="environment" id="faceInput">
+        <div class="hint"><b>Лицо (обязательно)</b><br>Сделать фото или загрузить</div>
+      </label>
+      <label class="drop" id="bodyDrop">
+        <img class="thumb" id="bodyThumb" alt="" hidden>
+        <input type="file" accept="image/*" capture="environment" id="bodyInput">
+        <div class="hint"><b>Тело (по желанию)</b><br>Сделать фото или загрузить</div>
+      </label>
+    </div>
+    <div class="actions-row" style="margin-top:10px">
+      <button class="outline btn" id="removeFace">Удалить лицо</button>
+      <button class="outline btn" id="removeBody">Удалить тело</button>
+      <button class="btn" id="saveAll">Сохранить запись</button>
+    </div>
+
+    <div class="compare" id="compareWrap" hidden>
+      <img id="imgStart" alt="День 1">
+      <div class="top" id="topWrap">
+        <img id="imgCurrent" alt="Сегодня">
+      </div>
+      <div class="handle"></div>
+      <div class="knob">↔</div>
+      <div class="label start">День 1</div>
+      <div class="label current">Сегодня</div>
+      <input id="compareRange" type="range" min="0" max="100" value="50">
+    </div>
+  </section>
+
+  <!-- Notes -->
+  <section class="card">
+    <h2>Заметка дня</h2>
+    <textarea id="notes" placeholder="Например: вода 2л, спорт 30 мин, губы ок..."></textarea>
+    <div class="actions-row" style="justify-content:flex-end; margin-top:8px">
+      <button class="outline btn" id="exportJSON">Экспорт JSON</button>
+    </div>
+  </section>
+
+</main>
+
+<script>
+/* ===== Storage ===== */
+const KEY = 'rt.diary.v2';
+function todayISO(){ return new Date().toISOString().slice(0,10); }
+function parseISO(s){ const [y,m,d] = s.split('-').map(Number); return new Date(y, m-1, d); }
+function loadDB(){ try{const v=JSON.parse(localStorage.getItem(KEY)); if(v&&v.version===2) return v;}catch(e){} const fresh={version:2,baseline:null,entries:{}}; localStorage.setItem(KEY,JSON.stringify(fresh)); return fresh; }
+function saveDB(db){ localStorage.setItem(KEY, JSON.stringify(db)); }
+function getEntry(date){ const db=loadDB(); return db.entries[date] || {date, wellness:50, sideEffects:{}, photos:{face:null, body:null}, notes:''}; }
+function putEntry(entry){ const db=loadDB(); db.entries[entry.date]=entry; if(!db.baseline) db.baseline = entry.date; saveDB(db); return db; }
+
+/* ===== Date controls ===== */
+const datePicker=document.getElementById('datePicker');
+const dayChip=document.getElementById('dayChip');
+const prevDay=document.getElementById('prevDay'), nextDay=document.getElementById('nextDay'), todayBtn=document.getElementById('todayBtn');
+function setDate(d){ datePicker.value=d; loadIntoUI(d); }
+function stepDate(dt){ const d=parseISO(datePicker.value||todayISO()); d.setDate(d.getDate()+dt); setDate(d.toISOString().slice(0,10)); }
+prevDay.addEventListener('click',()=>stepDate(-1)); nextDay.addEventListener('click',()=>stepDate(1)); todayBtn.addEventListener('click',()=>setDate(todayISO()));
+datePicker.addEventListener('change',e=>loadIntoUI(e.target.value));
+
+/* ===== Flower animation (continuous valence) ===== */
+const svg=document.getElementById('moodSVG');
+const ctxGlow=document.getElementById('glowCanvas').getContext('2d');
+const stateLabel=document.getElementById('stateLabel');
+const bar=document.getElementById('moodBar'); const knob=document.getElementById('moodKnob');
+
+const LAYERS=6, PETALS=6, POINTS=240;
+let phase=0, tLast=0;
+const layers=[];
+for(let i=0;i<LAYERS;i++){ const p=document.createElementNS('http://www.w3.org/2000/svg','path'); p.setAttribute('fill','none'); p.setAttribute('stroke','white'); p.setAttribute('stroke-width', String(14 - i*2.2)); p.setAttribute('opacity', String(0.25 + (i/LAYERS)*0.6)); p.setAttribute('stroke-linejoin','round'); svg.appendChild(p); layers.push(p); }
+function lerp(a,b,t){ return a+(b-a)*t } function clamp(x,a,b){ return Math.max(a,Math.min(b,x)) } function hsl(h,s,l){ return `hsl(${h}deg ${s}% ${l}%)` }
+function textFromV(v){ const s=(v-50)/50; if(s<-0.66) return 'Очень плохо'; if(s<-0.33) return 'Плохо'; if(s<-0.06) return 'Ниже нормы'; if(s<0.06) return 'Нейтрально'; if(s<0.33) return 'Неплохо'; if(s<0.66) return 'Хорошо'; return 'Отлично'; }
+
+let valence = 50; // 0..100
+function hueFromValence(v){ return lerp(210, 30, v/100); } // blue -> orange/green
+function drawGlow(h){
+  const c=ctxGlow.canvas, w=c.width=c.clientWidth, hpx=c.height=c.clientHeight;
+  const cx=w/2, cy=hpx/2, grad=ctxGlow.createRadialGradient(cx,cy,0,cx,cy,Math.min(w,hpx)/2);
+  grad.addColorStop(0, `hsla(${h}, 95%, 60%, 0.45)`); grad.addColorStop(1, `hsla(${h}, 95%, 60%, 0)`);
+  ctxGlow.clearRect(0,0,w,hpx); ctxGlow.fillStyle=grad; ctxGlow.beginPath(); ctxGlow.arc(cx,cy,Math.min(w,hpx)/2,0,Math.PI*2); ctxGlow.fill();
+}
+function shapePath(R, amp, pet, spin, wobble){
+  const pts=[];
+  for(let i=0;i<POINTS;i++){ const t=(i/POINTS)*Math.PI*2;
+    const r=R*(1 + amp*Math.sin(pet*t + spin)*(1 - 0.15*Math.sin(t*0.5 + wobble)));
+    pts.push([r*Math.cos(t), r*Math.sin(t)]);
+  }
+  let d=`M ${pts[0][0].toFixed(2)} ${pts[0][1].toFixed(2)} `;
+  for(let i=1;i<pts.length;i++){ const a=pts[i-1], b=pts[i]; const mx=(a[0]+b[0])/2, my=(a[1]+b[1])/2; d+=`Q ${a[0].toFixed(2)} ${a[1].toFixed(2)} ${mx.toFixed(2)} ${my.toFixed(2)} `; }
+  const a=pts[pts.length-1], b=pts[0]; const mx=(a[0]+b[0])/2, my=(a[1]+b[1])/2; d+=`Q ${a[0].toFixed(2)} ${a[1].toFixed(2)} ${mx.toFixed(2)} ${my.toFixed(2)} Z`; return d;
+}
+function updateColorsByValence(v){
+  const h=hueFromValence(v);
+  layers.forEach((p,i)=>{ const l=70 - i*6; p.setAttribute('stroke', hsl(h,85,l)); });
+  stateLabel.textContent = textFromV(v);
+  drawGlow(h);
+  // track hues
+  const leftH = 10;  // red/orange
+  const rightH = 140; // green/teal
+  document.documentElement.style.setProperty('--trackA', `hsl(${leftH} 90% 55%)`);
+  document.documentElement.style.setProperty('--trackB', `hsl(${rightH} 72% 45%)`);
+  // background palette based on v
+  const s=(v-50)/50;
+  const palettes=[
+    ['#2a1b4d','#110b26'],
+    ['#0b2c3f','#081422'],
+    ['#0c3d3a','#0a1f22'],
+    ['#0B1220','#0F1B2E'],
+    ['#163c2a','#0b2415'],
+    ['#f2f7fb','#e9f5ff'],
+    ['#b8895c','#5c3e1e']
+  ];
+  let idx=3;
+  if(s<-0.66) idx=0; else if(s<-0.33) idx=1; else if(s<-0.06) idx=2; else if(s<0.06) idx=3;
+  else if(s<0.33) idx=4; else if(s<0.66) idx=5; else idx=6;
+  const [A,B]=palettes[idx];
+  document.documentElement.style.setProperty('--bgA', A);
+  document.documentElement.style.setProperty('--bgB', B);
+  document.documentElement.style.setProperty('--glow', `hsl(${h} 95% 60%)`);
+}
+function animate(t){ const dt=(t-(tLast||t))/1000; tLast=t; phase+=dt*1.2;
+  const AMP = lerp(0.42, 0.08, valence/100); const BASE=55;
+  for(let i=0;i<LAYERS;i++){ const R=BASE + i*18; const a=AMP*(1 - i*0.14); const spin=phase*(0.6 - i*0.05); const wobble=phase*(0.4 + i*0.03);
+    layers[i].setAttribute('d', shapePath(R,a,PETALS,spin,wobble));
+  } requestAnimationFrame(animate);
+}
+requestAnimationFrame(animate);
+
+function applyValence(v, setKnob=true){
+  valence = clamp(v, 0, 100);
+  if(setKnob){
+    const x = valence/100;
+    document.getElementById('moodBar').style.setProperty('--x', x);
+    knob.setAttribute('aria-valuenow', Math.round((x-0.5)*200));
+  }
+  updateColorsByValence(valence);
+}
+function clientToValence(xClient){
+  const rect=document.getElementById('moodBar').getBoundingClientRect(); const left=rect.left+18, right=rect.right-18; const w=right-left;
+  const t=clamp((xClient-left)/w,0,1); return Math.round(t*100);
+}
+const barEl=document.getElementById('moodBar');
+barEl.addEventListener('pointerdown', e=>{ barEl.classList.add('drag'); applyValence(clientToValence(e.clientX)); });
+window.addEventListener('pointermove', e=>{ if(!barEl.classList.contains('drag'))return; applyValence(clientToValence(e.clientX)); });
+window.addEventListener('pointerup', ()=> barEl.classList.remove('drag'));
+barEl.addEventListener('click', e=> applyValence(clientToValence(e.clientX)));
+
+/* ===== Side effects ===== */
+const SE_DEFS=[['lips_dry','Сухость губ'],['skin_dry','Сухость кожи'],['nose_bleed','Кровотечения из носа'],['muscle_pain','Боль в мышцах/суставах'],['headache','Головная боль'],['mood','Настроение/раздражительность']];
+const seList=document.getElementById('seList');
+function renderSE(entry){
+  seList.innerHTML='';
+  SE_DEFS.forEach(([key,title])=>{
+    const level=entry.sideEffects[key]??0;
+    const row=document.createElement('div'); row.className='se-item';
+    row.innerHTML=`<div class="label">${title}</div><div class="ctrl"><input type="range" min="0" max="3" step="1" value="${level}"><span class="se-badge">${level}</span></div>`;
+    const input=row.querySelector('input'); const badge=row.querySelector('.se-badge');
+    input.addEventListener('input',e=>{ const v=+e.target.value; badge.textContent=v; entry.sideEffects[key]=v; putEntry(entry); });
+    seList.appendChild(row);
+  });
+}
+
+/* ===== Photos & compare ===== */
+const faceInput=document.getElementById('faceInput'); const bodyInput=document.getElementById('bodyInput');
+const faceThumb=document.getElementById('faceThumb'); const bodyThumb=document.getElementById('bodyThumb');
+const removeFace=document.getElementById('removeFace'), removeBody=document.getElementById('removeBody');
+const compareWrap=document.getElementById('compareWrap'); const imgStart=document.getElementById('imgStart'); const imgCurrent=document.getElementById('imgCurrent'); const topWrap=document.getElementById('topWrap');
+const compareRange=document.getElementById('compareRange');
+function readImageFile(file,max=1600,quality=0.85){ return new Promise((res,rej)=>{ const R=new FileReader(); R.onload=()=>{ const img=new Image(); img.onload=()=>{ const sc=Math.min(1,max/Math.max(img.width,img.height)); const w=Math.round(img.width*sc), h=Math.round(img.height*sc); const c=document.createElement('canvas'); c.width=w;c.height=h; c.getContext('2d').drawImage(img,0,0,w,h); res(c.toDataURL('image/jpeg',quality)); }; img.onerror=rej; img.src=R.result; }; R.onerror=rej; R.readAsDataURL(file); }); }
+async function onPick(input,key,thumb){ const f=input.files&&input.files[0]; if(!f)return; const url=await readImageFile(f); const d=datePicker.value||todayISO(); const e=getEntry(d); e.photos[key]=url; putEntry(e); thumb.src=url; thumb.hidden=false; refreshCompare(); }
+faceInput.addEventListener('change',()=>onPick(faceInput,'face',faceThumb)); bodyInput.addEventListener('change',()=>onPick(bodyInput,'body',bodyThumb));
+removeFace.addEventListener('click',()=>{ const d=datePicker.value||todayISO(); const e=getEntry(d); e.photos.face=null; putEntry(e); faceThumb.hidden=true; faceThumb.src=''; refreshCompare(); });
+removeBody.addEventListener('click',()=>{ const d=datePicker.value||todayISO(); const e=getEntry(d); e.photos.body=null; putEntry(e); bodyThumb.hidden=true; bodyThumb.src=''; });
+function setSplit(p){ p=Math.max(0,Math.min(100,p)); const w=compareWrap.getBoundingClientRect().width; const cut=w*p/100; topWrap.style.clipPath=`inset(0 ${Math.max(0,w-cut)}px 0 0)`; document.querySelector('.compare .handle').style.left=p+'%'; document.querySelector('.compare .knob').style.left=p+'%'; }
+compareRange.addEventListener('input', e=> setSplit(+e.target.value));
+function refreshCompare(){ const db=loadDB(); const curDate=datePicker.value||todayISO(); const e=getEntry(curDate); if(!db.baseline||!db.entries[db.baseline]||!db.entries[db.baseline].photos.face||!e.photos.face){ compareWrap.hidden=true; return; } imgStart.src=db.entries[db.baseline].photos.face; imgCurrent.src=e.photos.face; compareWrap.hidden=false; setSplit(50); }
+
+/* ===== Notes ===== */
+const notesEl=document.getElementById('notes');
+
+/* ===== Load/Save UI ===== */
+const confirmMood=document.getElementById('confirmMood'); const saveAll=document.getElementById('saveAll');
+function updateDayChip(dateISO){
+  const t=todayISO();
+  if(dateISO===t){
+    dayChip.textContent = 'Текущий день: ' + dateISO;
+  }else{
+    dayChip.textContent = 'Выбранный день: ' + dateISO;
+  }
+}
+function loadIntoUI(dateISO){
+  const entry=getEntry(dateISO); const db=loadDB();
+  // day chip
+  updateDayChip(dateISO);
+  // wellness → apply (центр по умолчанию 50)
+  applyValence(entry.wellness ?? 50, true);
+  renderSE(entry);
+  if(entry.photos.face){ faceThumb.src=entry.photos.face; faceThumb.hidden=false; } else { faceThumb.hidden=true; }
+  if(entry.photos.body){ bodyThumb.src=entry.photos.body; bodyThumb.hidden=false; } else { bodyThumb.hidden=true; }
+  notesEl.value = entry.notes || '';
+  refreshCompare();
+}
+confirmMood.addEventListener('click',()=>{
+  const date=datePicker.value||todayISO(); const entry=getEntry(date);
+  entry.wellness = Math.round(valence); putEntry(entry);
+  confirmMood.disabled=true; const old=confirmMood.textContent; confirmMood.textContent='Сохранено ✓'; setTimeout(()=>{confirmMood.disabled=false; confirmMood.textContent=old;},1200);
+});
+document.getElementById('exportJSON').addEventListener('click',()=>{
+  const data=localStorage.getItem(KEY) || '{}';
+  const a=document.createElement('a'); a.href='data:application/json;charset=utf-8,'+encodeURIComponent(data);
+  a.download='diary-export.json'; a.click();
+});
+
+/* ===== Init ===== */
+(function init(){
+  const d=todayISO(); datePicker.value=d;
+  const db=loadDB(); if(!db.baseline){ const en=getEntry(d); putEntry(en); }
+  updateDayChip(d);
+  applyValence(50,true); // изначально строго по центру
+  loadIntoUI(d);
+})();
+</script>
+</body>
+</html>

@@ -331,13 +331,7 @@ document.getElementById('btnSavePlan').addEventListener('click', async ()=>{
     try{ localStorage.setItem('derma_next','main'); }catch(_){}
     const qs = location.search || '';
     try{ localStorage.setItem('rt_patient_done','1'); }catch(_){}
-    try{
-  var sel=document.getElementById('plan_drug');
-  var drugName = sel ? sel.options[sel.selectedIndex].textContent.trim() : (drug||'');
-  localStorage.setItem('rt_drug', drugName||drug||'');
-  if(start) localStorage.setItem('rt_startISO', start);
-}catch(_){}
-location.replace('./main-dark.html' + qs);
+    location.replace('./main-dark.html' + qs);
   }catch(e){ msg.textContent='Ошибка сети'; }
 });
 </script>
