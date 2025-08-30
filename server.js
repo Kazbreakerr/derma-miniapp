@@ -817,6 +817,38 @@ app.get('/faq', (req, res) => {
   res.redirect(302, '/faq.html' + q);
 });
 
+// ===== DOCTOR: code + me (минимально для кабинета) =====
+app.post('/api/doctor/code', tgAuth, async (req, res) => {
+  try {
+    await pool.query('SET search_path = derma, public');
+    const uid  = await userIdByTg(req.tg || req.tgUser?.id);
+    const code = String(req.body?.code || '').toUpperCase();
+    if (!/^[A-Z0-9]{5}$/.test(code)) return res.status(400).json({ error: 'bad code' });
+
+    // деактивируем прежний код и записываем новый
+    await pool.query('UPDATE derma.doctor_codes SET active=false, revoked_at=now() WHERE doctor_id=$1 AND active', [uid]);
+    await pool.query('INSERT INTO derma.doctor_codes(code, doctor_id, active) VALUES ($1,$2,true) ON CONFLICT (code) DO UPDATE SET doctor_id=EXCLUDED.doctor_id, active=true, revoked_at=NULL', [code, uid]);
+
+    res.json({ ok: true, code });
+  } catch (e) {
+    console.error('DOCTOR CODE ERROR:', e);
+    res.status(500).json({ error: e.message });
+  }
+});
+
+app.get('/api/doctor/me', tgAuth, async (req, res) => {
+  try {
+    await pool.query('SET search_path = derma, public');
+    const uid = await userIdByTg(req.tg || req.tgUser?.id);
+    const { rows } = await pool.query('SELECT code FROM derma.doctor_codes WHERE doctor_id=$1 AND active', [uid]);
+    res.json({ code: rows[0]?.code || null, profile: null });
+  } catch (e) {
+    console.error('DOCTOR ME ERROR:', e);
+    res.status(500).json({ error: e.message });
+  }
+});
+
+
 // ====== static ======
 const staticDir = path.join(__dirname, 'webapp');
 app.use(express.static(staticDir));
