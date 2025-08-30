@@ -453,7 +453,9 @@
   async function hydrateCodeFromServer(){
     try{
       const initData = window.Telegram?.WebApp?.initData || '';
-      const r = await fetch((window.API_BASE||'') + '/api/doctor/me', {
+       const devTg = new URLSearchParams(location.search).get('tg');
+       const url = (window.API_BASE||'') + '/api/doctor/me' + (devTg ? ('?tg=' + encodeURIComponent(devTg)) : '');
+       const r = await fetch(url, {
         headers: { ...(initData ? { 'X-Telegram-InitData': initData } : {}) }
       });
       if(r.ok){

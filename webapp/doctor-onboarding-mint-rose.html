@@ -255,7 +255,9 @@
 
     try{
       const initData = window.Telegram?.WebApp?.initData || '';
-      await fetch((window.API_BASE||'') + '/api/doctor/code', {
+        const devTg = new URLSearchParams(location.search).get('tg');
+ const url = (window.API_BASE||'') + '/api/doctor/code' + (devTg ? ('?tg=' + encodeURIComponent(devTg)) : '');
+      await fetch(url, {
         method: 'POST',
         headers: {
           'Content-Type':'application/json',
