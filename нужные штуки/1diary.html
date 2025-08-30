@@ -166,55 +166,6 @@
     .se-item{ grid-template-columns: 1fr; align-items:start }
     .se-item .ctrl{ max-width:100% }
   }
-
-  /* ===== Top day navigation ===== */
-  .day-nav{
-    display:grid;
-    grid-template-columns: 56px minmax(260px, 640px) 56px;
-    align-items:center;
-    justify-content:center;
-    gap:14px;
-    margin-top:12px;
-  }
-  .day-nav .center-stack{
-    display:flex; flex-direction:column; align-items:center; gap:10px;
-    padding:14px 18px;
-    border-radius:18px;
-    background: linear-gradient(180deg, color-mix(in oklab, var(--card), transparent 30%), color-mix(in oklab, var(--surface), transparent 30%));
-    border:1px solid var(--border);
-    box-shadow: 0 14px 32px rgba(0,0,0,.35), inset 0 0 0 1px rgba(255,255,255,.04);
-    backdrop-filter: blur(8px);
-  }
-  .chip.big{ font-size:14px; padding:10px 14px; }
-  .date-input{
-    background:var(--card); color:var(--text);
-    border:1px solid var(--border);
-    padding:10px 12px; border-radius:12px; font-weight:700;
-    box-shadow:inset 0 0 0 1px rgba(255,255,255,.03);
-  }
-  .nav-arrow{
-    appearance:none; border:1px solid var(--border);
-    background:linear-gradient(180deg, #0f172a, #0b1120);
-    color:var(--text);
-    width:56px; height:56px; border-radius:16px; cursor:pointer;
-    display:grid; place-items:center;
-    box-shadow:0 12px 28px rgba(0,0,0,.35), inset 0 0 0 1px rgba(255,255,255,.03);
-    transition:transform .08s ease, filter .2s ease;
-  }
-  .nav-arrow:hover{ filter:brightness(1.08) }
-  .nav-arrow:active{ transform:translateY(1px) }
-  @media (max-width:560px){
-    .day-nav{ grid-template-columns: 46px 1fr 46px }
-    .nav-arrow{ width:46px; height:46px; border-radius:14px }
-  }
-
-  /* ===== Day pane transition ===== */
-  #dayPane{ position:relative }
-  .fade-slide-enter{ animation:fadeSlideIn .28s ease both }
-  .fade-slide-leave{ animation:fadeSlideOut .28s ease both }
-  @keyframes fadeSlideIn{ from{ opacity:0; transform:translateY(8px) } to{ opacity:1; transform:none } }
-  @keyframes fadeSlideOut{ from{ opacity:1; transform:none } to{ opacity:0; transform:translateY(-8px) } }
-
 </style>
 </head>
 <body>
@@ -224,22 +175,19 @@
       <a href="myprofile.html" style="text-decoration:none;display:inline-flex;align-items:center;gap:8px;padding:10px 12px;border-radius:12px;background:rgba(255,255,255,.06);border:1px solid var(--border);color:#E6EDF3;font-weight:800;">← В профиль</a>
       <h1>Дневник</h1>
     </div>
-    <div class="day-nav">
-      <button class="nav-arrow left" id="prevDay" aria-label="Предыдущий день">
-        <svg width="18" height="18" viewBox="0 0 24 24" fill="none"><path d="M15 19l-7-7 7-7" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
-      </button>
-      <div class="center-stack">
-        <div class="chip big" id="dayChip">Текущий день: —</div>
-        <input id="datePicker" type="date" class="date-input">
+    <div class="date-row">
+      <input id="datePicker" type="date">
+      <span class="chip" id="dayChip">Текущий день: —</span>
+      <div class="date-nav">
+        <button class="icon-btn" id="prevDay" title="Предыдущий день">◀</button>
+        <button class="icon-btn" id="todayBtn" title="Сегодня">●</button>
+        <button class="icon-btn" id="nextDay" title="Следующий день">▶</button>
       </div>
-      <button class="nav-arrow right" id="nextDay" aria-label="Следующий день">
-        <svg width="18" height="18" viewBox="0 0 24 24" fill="none"><path d="M9 5l7 7-7 7" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
-      </button>
     </div>
   </div>
 </header>
 
-<main class="wrap"><div id="dayPane">
+<main class="wrap">
   <!-- Mood section -->
   <section class="card" id="moodSection">
     <h2>Оценка самочувствия</h2>
@@ -309,14 +257,12 @@
     </div>
   </section>
 
-</div>
 </main>
 
 <script>
 /* ===== Storage ===== */
 const KEY = 'rt.diary.v2';
-function toLocalISO(d){ const y=d.getFullYear(); const m=String(d.getMonth()+1).padStart(2,'0'); const dd=String(d.getDate()).padStart(2,'0'); return `${y}-${m}-${dd}`; }
-function todayISO(){ return toLocalISO(new Date()); }
+function todayISO(){ return new Date().toISOString().slice(0,10); }
 function parseISO(s){ const [y,m,d] = s.split('-').map(Number); return new Date(y, m-1, d); }
 function loadDB(){ try{const v=JSON.parse(localStorage.getItem(KEY)); if(v&&v.version===2) return v;}catch(e){} const fresh={version:2,baseline:null,entries:{}}; localStorage.setItem(KEY,JSON.stringify(fresh)); return fresh; }
 function saveDB(db){ localStorage.setItem(KEY, JSON.stringify(db)); }
@@ -326,22 +272,10 @@ function putEntry(entry){ const db=loadDB(); db.entries[entry.date]=entry; if(!d
 /* ===== Date controls ===== */
 const datePicker=document.getElementById('datePicker');
 const dayChip=document.getElementById('dayChip');
-const prevDay=document.getElementById('prevDay'), nextDay=document.getElementById('nextDay');
-function animatePane(dir){
-  const pane=document.getElementById('dayPane');
-  pane.classList.remove('fade-slide-enter','fade-slide-leave');
-  // leave
-  pane.classList.add('fade-slide-leave');
-  setTimeout(()=>{
-    pane.classList.remove('fade-slide-leave');
-    // enter
-    pane.classList.add('fade-slide-enter');
-    setTimeout(()=>pane.classList.remove('fade-slide-enter'), 280);
-  }, 140);
-}
-function setDate(d, dir=0){ datePicker.value=d; animatePane(dir); loadIntoUI(d); }
-function stepDate(dt){ const d=parseISO(datePicker.value||todayISO()); d.setDate(d.getDate()+dt); setDate(toLocalISO(d), dt); }
-prevDay.addEventListener('click',()=>stepDate(-1)); nextDay.addEventListener('click',()=>stepDate(1));
+const prevDay=document.getElementById('prevDay'), nextDay=document.getElementById('nextDay'), todayBtn=document.getElementById('todayBtn');
+function setDate(d){ datePicker.value=d; loadIntoUI(d); }
+function stepDate(dt){ const d=parseISO(datePicker.value||todayISO()); d.setDate(d.getDate()+dt); setDate(d.toISOString().slice(0,10)); }
+prevDay.addEventListener('click',()=>stepDate(-1)); nextDay.addEventListener('click',()=>stepDate(1)); todayBtn.addEventListener('click',()=>setDate(todayISO()));
 datePicker.addEventListener('change',e=>loadIntoUI(e.target.value));
 
 /* ===== Flower animation (continuous valence) ===== */
@@ -432,7 +366,7 @@ window.addEventListener('pointerup', ()=> barEl.classList.remove('drag'));
 barEl.addEventListener('click', e=> applyValence(clientToValence(e.clientX)));
 
 /* ===== Side effects ===== */
-const SE_DEFS=[['lips_dry','Сухость губ'],['skin_dry','Сухость кожи'],['nose_bleed','Кровотечения из носа'],['muscle_pain','Боль в мышцах/суставах'],['headache','Головная боль'],];
+const SE_DEFS=[['lips_dry','Сухость губ'],['skin_dry','Сухость кожи'],['nose_bleed','Кровотечения из носа'],['muscle_pain','Боль в мышцах/суставах'],['headache','Головная боль'],['mood','Настроение/раздражительность']];
 const seList=document.getElementById('seList');
 function renderSE(entry){
   seList.innerHTML='';

@@ -726,8 +726,8 @@ body.light .tab.active{
   STATE.avatarUrl   = photo || '';
   STATE.weightKg    = Number(me.weight_kg || me.weight || 0) || 0;
   STATE.goalMgPerKg = Number(me.target_mg_per_kg || 135) || 135;
-  STATE.drug        = me.drug || 'Изотретиноин';
-  STATE.startISO    = (me.course_start || me.start_date || '').slice(0,10);
+  STATE.drug        = (me.drug || STATE.drug || localStorage.getItem('rt_drug') || 'Изотретиноин');
+  STATE.startISO    = (me.course_start || me.start_date || STATE.startISO || localStorage.getItem('rt_startISO') || '').slice(0,10);
 
   STATE.takenMg     = Number(sum.cum_mg || 0) || 0;
   STATE.todayMg     = Number(sum.today_mg || sum.avg7 || 0) || 0;
