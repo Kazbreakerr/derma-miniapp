@@ -53,81 +53,9 @@
     .list li{margin:6px 0}
     .hint{font-size:14px; color:#cfd7ee; opacity:.8; margin-top:8px}
   </style>
-
-  <style>
-    .topbar { display:flex; align-items:center; gap:12px; flex-wrap:wrap; margin-bottom:12px }
-    #themeToggle{ margin-left:auto; }
-    #themeToggle.theme-toggle{
-      --h:64px; --w:192px; --pad:8px; --bd:2px;
-      --thumb:calc(var(--h) - 2*(var(--pad) + var(--bd)));
-      width:var(--w); height:var(--h); border-radius:999px; padding:0; overflow:hidden;
-      border:var(--bd) solid #D7E0E2; background:#F4F8F9; cursor:pointer;
-      -webkit-tap-highlight-color:transparent;
-      box-shadow: inset 0 0 0 1px rgba(255,255,255,.65);
-      position:relative; z-index:1;
-    }
-    html[data-theme="dark"] #themeToggle.theme-toggle{
-      background:#0F1726; border-color:rgba(255,255,255,.06);
-      box-shadow: inset 0 0 0 1px rgba(255,255,255,.05);
-    }
-    #themeToggle .scene{ position:absolute; inset:var(--pad); border-radius:calc(var(--h)/2 - var(--pad));
-      overflow:hidden; transition:opacity .28s ease, transform .38s cubic-bezier(.2,.7,.2,1); }
-    #themeToggle .scene svg{ position:absolute; inset:0; width:100%; height:100%; display:block; }
-    html[data-theme="light"] #themeToggle .scene.light{ opacity:0; transform: translateX(-6px); }
-    html[data-theme="light"] #themeToggle .scene.dark { opacity:1; transform: translateX(0); }
-    html[data-theme="dark"]  #themeToggle .scene.light{ opacity:1; transform: translateX(0); }
-    html[data-theme="dark"]  #themeToggle .scene.dark { opacity:0; transform: translateX(6px); }
-    #themeToggle .thumb{
-      position:absolute; top:calc(var(--pad) + var(--bd)); left:calc(var(--pad) + var(--bd));
-      width:var(--thumb); height:var(--thumb); border-radius:50%; background:#FFF;
-      box-shadow: 0 8px 24px rgba(0,0,0,.25), inset 0 0 0 1px rgba(0,0,0,.08), inset 0 1px 0 rgba(0,0,0,.06);
-      transform: translateX(0); transition: transform .38s cubic-bezier(.2,.7,.2,1); z-index:3;
-    }
-    html[data-theme="light"] #themeToggle .thumb{ transform: translateX(calc(var(--w) - 2*(var(--pad) + var(--bd)) - var(--thumb))); }
-    html[data-theme="dark"]  #themeToggle .thumb{ transform: translateX(0); }
-    @media (max-width: 480px){ #themeToggle.theme-toggle{ --h:44px; --w:148px; --pad:6px; } }
-    @media (max-width: 360px){ #themeToggle.theme-toggle{ --h:40px; --w:136px; --pad:6px; } }
-    @media (prefers-reduced-motion: reduce){
-      #themeToggle .scene, #themeToggle .thumb{ transition:none!important; }
-    }
-    #themeToggle.theme-toggle .scene{ inset: var(--bd) !important; border-radius: calc(var(--h)/2 - var(--bd)) !important; overflow: hidden !important; }
-    #themeToggle.theme-toggle .scene svg{ width: 100% !important; height: 100% !important; display: block !important; }
-  </style>
 </head>
 <body>
   <div class="wrap">
-    <div class="topbar">
-      <h1 style="margin:0">Roaccutane Tracker</h1>
-      <button id="themeToggle" class="theme-toggle" role="switch" aria-checked="false" aria-label="Переключить тему">
-        <span class="scene light">
-          <svg viewBox="0 0 260 88" preserveAspectRatio="none" xmlns="http://www.w3.org/2000/svg">
-            <defs><linearGradient id="lgLight" x1="0" y1="0" x2="1" y2="0">
-              <stop offset="0%" stop-color="#5ECFC8"/><stop offset="100%" stop-color="#FFD3A3"/></linearGradient>
-            </defs>
-            <rect x="0" y="0" width="260" height="88" rx="0" fill="url(#lgLight)"/>
-            <g fill="#FFF1E2">
-              <g opacity=".85"><circle cx="170" cy="46" r="18"/><circle cx="188" cy="46" r="22"/><circle cx="209" cy="50" r="18"/></g>
-              <g opacity=".35"><circle cx="130" cy="54" r="10"/><circle cx="145" cy="56" r="12"/></g>
-            </g>
-          </svg>
-        </span>
-        <span class="scene dark">
-          <svg viewBox="0 0 260 88" preserveAspectRatio="none" xmlns="http://www.w3.org/2000/svg">
-            <defs><linearGradient id="lgDark" x1="0" y1="0" x2="1" y2="0">
-              <stop offset="0%" stop-color="#1C2140"/><stop offset="100%" stop-color="#2A0F4A"/></linearGradient>
-            </defs>
-            <rect x="0" y="0" width="260" height="88" rx="0" fill="url(#lgDark)"/>
-            <g opacity=".55" style="mix-blend-mode:multiply"><ellipse cx="230" cy="44" rx="58" ry="44" fill="rgba(0,0,0,.22)"/></g>
-            <g opacity=".38" style="mix-blend-mode:multiply"><ellipse cx="236" cy="44" rx="82" ry="60" fill="rgba(0,0,0,.15)"/></g>
-            <g fill="#3B2A6B"><g opacity=".75"><circle cx="86" cy="52" r="22"/><circle cx="110" cy="50" r="18"/><circle cx="132" cy="54" r="22"/></g>
-              <g opacity=".40"><circle cx="46" cy="56" r="18"/><circle cx="64" cy="56" r="14"/></g></g>
-            <g fill="#A98DF7" opacity=".8"><circle cx="136" cy="18" r="1.8"/><circle cx="152" cy="24" r="1.4"/><circle cx="170" cy="20" r="1.3"/><circle cx="186" cy="28" r="1.6"/><circle cx="200" cy="22" r="1.2"/></g>
-          </svg>
-        </span>
-        <span class="thumb"></span>
-      </button>
-    </div>
-
     <h1>Обнуление данных</h1>
     <div class="card">
       <p>Это действие удалит ваши локальные отметки и серверные данные, связанные с прогрессом:</p>
@@ -249,44 +177,5 @@
       }
     }
   </script>
-
-<script>
-(function(){
-  const PAGES = { light: 'reset-rt-light.html', dark: 'reset-dark.html' };
-  const btn = document.getElementById('themeToggle');
-  if(!btn) return;
-  const isLight = /reset-rt-light\.html$/i.test(location.pathname) || /\(Light\)/.test(document.title);
-  setTheme(isLight ? 'light' : 'dark', true);
-  btn.setAttribute('aria-checked', String(!isLight));
-  btn.addEventListener('click', toggle);
-  btn.addEventListener('keydown', (e)=>{ if(e.key === ' ' || e.key === 'Enter'){ e.preventDefault(); toggle(); } });
-  function toggle(){
-    const next = (document.documentElement.dataset.theme === 'dark') ? 'light' : 'dark';
-    setTheme(next);
-    try{ localStorage.setItem('rt.theme', next); }catch(_){}
-    const target = PAGES[next];
-    if(target && !location.pathname.endsWith('/'+target)){
-      location.href = target + location.search;
-    }
-  }
-  function setTheme(t, silent){
-    document.documentElement.setAttribute('data-theme', t);
-    if(!silent){ document.dispatchEvent(new CustomEvent('themechange', {detail:t})); }
-    var cancel = document.getElementById('btnCancel');
-    if(cancel){ cancel.setAttribute('href', t==='light' ? './main-light.html' : './main-dark.html'); }
-  }
-  try{
-    const saved = localStorage.getItem('rt.theme');
-    if(saved && saved !== (isLight?'light':'dark')){
-      setTheme(saved, true);
-      const target = PAGES[saved];
-      if(target && !location.pathname.endsWith('/'+target)){
-        location.replace(target + location.search);
-      }
-    }
-  }catch(_){}
-})();
-</script>
-
 </body>
 </html>
