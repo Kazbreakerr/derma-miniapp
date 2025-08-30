@@ -1,0 +1,204 @@
+<!-- ==== Animated Pill / Capsule ==== -->
+<div class="pill-wrap">
+  <canvas id="pillCanvas"></canvas>
+</div>
+
+<style>
+  .pill-wrap{
+    width: 100%;
+    max-width: 560px;   /* можно убрать, если надо во всю ширину */
+    aspect-ratio: 4 / 3;
+    margin: 0 auto;
+    border-radius: 18px;
+    background: radial-gradient(120% 120% at 50% 40%,
+      rgba(80,180,110,.25), rgba(20,40,32,.45) 60%, rgba(8,12,16,.75));
+    box-shadow: inset 0 1px 0 rgba(255,255,255,.05),
+                0 16px 40px rgba(0,0,0,.35);
+    overflow: hidden;
+  }
+  #pillCanvas{ width:100%; height:100%; display:block; }
+</style>
+
+<script>
+(() => {
+  const canvas = document.getElementById('pillCanvas');
+  const ctx = canvas.getContext('2d');
+
+  // --- Анимация: те же параметры ---
+  const rotationPeriod = 10;   // сек/оборот
+  const breathAmp = 0.04;      // ±4% масштаб
+  const breathPeriod = 1.6;    // сек на «дыхание»
+  const morphAmp = 0.08;       // морфинг пропорций
+  const morphSpeed = 0.6;      // рад/с
+
+  // --- Вспомогательные ---
+  function fit(){
+    const dpr = Math.max(1, window.devicePixelRatio || 1);
+    const w = canvas.clientWidth, h = canvas.clientHeight;
+    canvas.width = Math.round(w*dpr);
+    canvas.height = Math.round(h*dpr);
+    ctx.setTransform(dpr,0,0,dpr,0,0);
+  }
+  window.addEventListener('resize', fit);
+  fit();
+
+  function pathCapsule(c, W, H, R){
+    const r = Math.max(0, Math.min(R, Math.min(W,H)/2));
+    const x = -W/2, y = -H/2;
+    c.beginPath();
+    c.moveTo(x + r, y);
+    c.lineTo(x + W - r, y);
+    c.quadraticCurveTo(x + W, y, x + W, y + r);
+    c.lineTo(x + W, y + H - r);
+    c.quadraticCurveTo(x + W, y + H, x + W - r, y + H);
+    c.lineTo(x + r, y + H);
+    c.quadraticCurveTo(x, y + H, x, y + H - r);
+    c.lineTo(x, y + r);
+    c.quadraticCurveTo(x, y, x + r, y);
+    c.closePath();
+  }
+
+  // Полосы «отражений» (radial/linear) поверх капсулы
+  function glossyBand(x1,y1,x2,y2, a1, a2, alpha){
+    const g = ctx.createLinearGradient(x1,y1,x2,y2);
+    g.addColorStop(0, 'rgba(255,255,255,0)');
+    g.addColorStop(0.35, a1);
+    g.addColorStop(0.65, a2);
+    g.addColorStop(1, 'rgba(255,255,255,0)');
+    ctx.globalCompositeOperation = 'screen';
+    ctx.globalAlpha = alpha;
+    ctx.fillStyle = g;
+    ctx.fillRect(-9999,-9999,19999,19999); // заполняем клип-область
+    ctx.globalAlpha = 1;
+    ctx.globalCompositeOperation = 'source-over';
+  }
+  function glint(cx,cy, rx,ry, color='rgba(255,255,255,.9)', a=1){
+    const gr = ctx.createRadialGradient(cx,cy,0, cx,cy, Math.max(rx,ry));
+    gr.addColorStop(0, color);
+    gr.addColorStop(1, 'rgba(255,255,255,0)');
+    ctx.globalCompositeOperation = 'screen';
+    ctx.globalAlpha = a;
+    ctx.fillStyle = gr;
+    ctx.beginPath(); ctx.ellipse(cx,cy,rx,ry,0,0,Math.PI*2); ctx.fill();
+    ctx.globalAlpha = 1;
+    ctx.globalCompositeOperation = 'source-over';
+  }
+
+  // --- Рендер одного кадра ---
+  let start = performance.now();
+  function frame(nowMs){
+    const t = (nowMs - start)/1000;
+
+    const W0 = canvas.clientWidth, H0 = canvas.clientHeight;
+    ctx.clearRect(0,0,W0,H0);
+
+    // Центр сцены
+    const cx = W0/2, cy = H0/2;
+
+    // Параметры движения
+    const rot = (2*Math.PI/rotationPeriod)*t;
+    const breath = 1 + breathAmp * Math.sin(2*Math.PI*t/breathPeriod);
+    const morph = Math.sin(t * morphSpeed);
+
+    // Базовые размеры капсулы
+    const baseW = W0*0.55, baseH = H0*0.30;
+    const W = baseW * (1 + morphAmp*0.55*morph);
+    const H = baseH * (1 - morphAmp*0.35*morph);
+    const R = Math.min(W,H)/2 * (0.86 + 0.10*Math.sin(t * morphSpeed*1.7));
+
+    // ---------- ТЕНЬ НА «СТОЛЕ» ----------
+    // (Мягкая эллипс. тень под ориентированной капсулой)
+    ctx.save();
+    ctx.translate(cx, cy + H*0.25);
+    ctx.rotate(rot + 0.5);
+    const shGrad = ctx.createRadialGradient(0,0, H*0.05, 0,0, W*0.75);
+    shGrad.addColorStop(0, 'rgba(0,0,0,.40)');
+    shGrad.addColorStop(1, 'rgba(0,0,0,0)');
+    ctx.fillStyle = shGrad;
+    ctx.beginPath();
+    ctx.ellipse(0,0, W*0.62, H*0.35, 0, 0, Math.PI*2);
+    ctx.fill();
+    ctx.restore();
+
+    // ---------- КАПСУЛА ----------
+    ctx.save();
+    ctx.translate(cx, cy);
+    ctx.rotate(rot + 0.5); // небольшой постоянный наклон, как у референса
+    ctx.scale(breath, breath);
+
+    // Клип по форме
+    pathCapsule(ctx, W, H, R);
+    ctx.save();
+    ctx.clip();
+
+    // Базовый «металлик/стекло»
+    const base = ctx.createLinearGradient(-W/2,-H/2, W/2,H/2);
+    base.addColorStop(0.00, '#0b1220');
+    base.addColorStop(0.45, '#101a2f');
+    base.addColorStop(1.00, '#070b14');
+    ctx.fillStyle = base;
+    ctx.fillRect(-W, -H, W*2, H*2);
+
+    // Радужные отражения (дисперсия)
+    glossyBand(-W*0.85,-H*0.20,  W*0.75,H*0.10,  'rgba(0,195,255,.38)','rgba(150,80,255,.32)', .95);
+    glossyBand(-W*0.25,-H*0.90,  W*0.25,H*0.80,  'rgba(255,210,80,.28)','rgba(90,180,255,.30)', .9);
+    glossyBand(-W*0.70, H*0.28,  W*0.85,-H*0.38, 'rgba(255,80,130,.26)','rgba(80,255,190,.28)', .85);
+
+    // Локальные блики
+    glint(W*0.30, -H*0.28, W*0.22, H*0.20, 'rgba(200,240,255,.9)', .95);
+    glint(-W*0.34, H*0.26, W*0.18, H*0.16, 'rgba(255,170,220,.75)', .8);
+
+    // Внутренняя мягкая затемнённая ось — добавляет объёма
+    const core = ctx.createLinearGradient(-W/2,0, W/2,0);
+    core.addColorStop(0.0, 'rgba(0,0,0,0.15)');
+    core.addColorStop(0.5, 'rgba(255,255,255,0.06)');
+    core.addColorStop(1.0, 'rgba(0,0,0,0.15)');
+    ctx.globalCompositeOperation = 'overlay';
+    ctx.fillStyle = core;
+    ctx.fillRect(-W, -H, W*2, H*2);
+    ctx.globalCompositeOperation = 'source-over';
+
+    // Френелевая каёмка (rim)
+    const rim = ctx.createLinearGradient(-W/2,-H/2, W/2,H/2);
+    rim.addColorStop(0, 'rgba(0,255,255,.35)');
+    rim.addColorStop(0.5,'rgba(255,255,255,.12)');
+    rim.addColorStop(1, 'rgba(255,120,0,.35)');
+    ctx.lineWidth = Math.max(1.5, Math.min(W,H)/18);
+    ctx.strokeStyle = rim;
+    ctx.shadowColor = 'rgba(90,150,255,.45)';
+    ctx.shadowBlur = 12;
+    pathCapsule(ctx, W, H, R);
+    ctx.globalCompositeOperation = 'screen';
+    ctx.stroke();
+    ctx.globalCompositeOperation = 'source-over';
+    ctx.shadowBlur = 0;
+
+    // Тонкая внутренняя светлая обводка — «стеклянность»
+    ctx.lineWidth = 1.2;
+    ctx.strokeStyle = 'rgba(255,255,255,.32)';
+    pathCapsule(ctx, W*0.985, H*0.985, R*0.985);
+    ctx.stroke();
+
+    // Разделительное кольцо посередине
+    const rx = W*0.015, ry = H*0.44;
+    const ringGrad = ctx.createLinearGradient(-rx,0, rx,0);
+    ringGrad.addColorStop(0, 'rgba(255,120,200,.9)');
+    ringGrad.addColorStop(0.5,'rgba(150,200,255,.9)');
+    ringGrad.addColorStop(1, 'rgba(255,200,120,.9)');
+    ctx.lineWidth = Math.max(2.0, Math.min(W,H)/45);
+    ctx.strokeStyle = ringGrad;
+    ctx.shadowColor = 'rgba(120,180,255,.45)';
+    ctx.shadowBlur = 10;
+    ctx.beginPath();
+    ctx.ellipse(0,0, rx, ry, 0, 0, Math.PI*2);
+    ctx.stroke();
+    ctx.shadowBlur = 0;
+
+    ctx.restore();   // из clip
+    ctx.restore();   // из transform
+
+    requestAnimationFrame(frame);
+  }
+  requestAnimationFrame(frame);
+})();
+</script>

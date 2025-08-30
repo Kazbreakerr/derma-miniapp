@@ -77,46 +77,44 @@
     background:rgba(239,68,68,.12);
     color:#fecaca;
     border:1px solid rgba(239,68,68,.55);
-    box-shadow:inset 0 0 0 1px rgba(255,255,255,.04);
   }
   .btn-sm{ padding:8px 12px; border-radius:12px; font-size:14px }
-
 
   /* ===== Mood block ===== */
   .mood{ display:grid; grid-template-columns: 1fr 360px; gap:18px; align-items:center; }
   @media (max-width: 900px){ .mood{ grid-template-columns: 1fr; } }
   .mood-stage{
     position:relative; height:360px; border-radius:22px; overflow:hidden;
+    border:1px solid var(--border);
+    /* базовый фолбэк под изображением */
     background:
       radial-gradient(420px 240px at 20% 0%, color-mix(in oklab, var(--glow), transparent 60%), transparent 60%),
-      radial-gradient(520px 300px at 80% 10%, color-mix(in oklab, var(--trackB), transparent 70%), transparent 70%),
       linear-gradient(180deg, color-mix(in oklab, var(--bgA), #000 8%), color-mix(in oklab, var(--bgB), #000 6%));
-    border:1px solid var(--border);
   }
+  /* Сильно размытая картинка позади пилюли */
+  .mood-stage::before{
+    content:"";
+    position:absolute; inset:0;
+    background-image: var(--mood-bg, none);
+    background-size: cover; background-position: center; background-repeat: no-repeat;
+    filter: blur(var(--bg-blur, 16px)) saturate(.92) brightness(1.02);
+    transform: scale(1.06);     /* чтобы блюр не срезался по краям */
+    z-index:0; pointer-events:none;
+  }
+  .mood-stage #pillCanvas{ position:absolute; inset:0; width:100%; height:100%; display:block; z-index:2; }
   .mood-stage svg{ position:absolute; inset:0; width:100%; height:100% }
-  /* Убрали всплывающую надпись состояния над анимацией */
-  .mood-stage .glow{ position:absolute; inset:0; filter: blur(28px); opacity:.65; pointer-events:none; }
-
   .mood-ctrl{ display:grid; gap:14px; align-content:center; justify-items:stretch; }
   .state-label{ text-align:center; font-weight:800; letter-spacing:.3px }
 
   .bar{
     --x: .5; /* 0..1 */
-    position:relative;
-    height:54px;
-    border-radius:999px;
+    position:relative; height:54px; border-radius:999px;
     background: linear-gradient(90deg, var(--trackA), var(--trackB));
     box-shadow: inset 0 0 0 1px rgba(255,255,255,.12), 0 12px 30px rgba(0,0,0,.35);
-    display:flex; align-items:center; padding:0 18px;
-    cursor: pointer; user-select:none; -webkit-user-select:none; touch-action: none;
+    display:flex; align-items:center; padding:0 18px; cursor: pointer; user-select:none; -webkit-user-select:none; touch-action: none;
   }
-  .bar .rail{
-    position:absolute; left:18px; right:18px; height:10px;
-    background: rgba(0,0,0,.35);
-    border-radius:999px; box-shadow: inset 0 0 0 1px rgba(255,255,255,.15);
-  }
-  .bar .center-mark{ position:absolute; top:50%; left:50%; width:2px; height:20px; transform:translate(-50%,-50%);
-    background:rgba(255,255,255,.36); border-radius:2px; }
+  .bar .rail{ position:absolute; left:18px; right:18px; height:10px; background: rgba(0,0,0,.35); border-radius:999px; box-shadow: inset 0 0 0 1px rgba(255,255,255,.15); }
+  .bar .center-mark{ position:absolute; top:50%; left:50%; width:2px; height:20px; transform:translate(-50%,-50%); background:rgba(255,255,255,.36); border-radius:2px; }
   .bar .knob{
     position:absolute; top:50%;
     width:42px; height:42px; transform:translate(-50%, -50%);
@@ -214,7 +212,6 @@
   .fade-slide-leave{ animation:fadeSlideOut .28s ease both }
   @keyframes fadeSlideIn{ from{ opacity:0; transform:translateY(8px) } to{ opacity:1; transform:none } }
   @keyframes fadeSlideOut{ from{ opacity:1; transform:none } to{ opacity:0; transform:translateY(-8px) } }
-
 </style>
 </head>
 <body>
@@ -245,8 +242,7 @@
     <h2>Оценка самочувствия</h2>
     <div class="mood">
       <div class="mood-stage">
-        <svg id="moodSVG" viewBox="-180 -180 360 360" aria-hidden="true"></svg>
-        <canvas class="glow" id="glowCanvas"></canvas>
+        <canvas id="pillCanvas"></canvas>
       </div>
       <div class="mood-ctrl">
         <div class="state-label" id="stateLabel">Нейтрально</div>
@@ -330,11 +326,9 @@ const prevDay=document.getElementById('prevDay'), nextDay=document.getElementByI
 function animatePane(dir){
   const pane=document.getElementById('dayPane');
   pane.classList.remove('fade-slide-enter','fade-slide-leave');
-  // leave
   pane.classList.add('fade-slide-leave');
   setTimeout(()=>{
     pane.classList.remove('fade-slide-leave');
-    // enter
     pane.classList.add('fade-slide-enter');
     setTimeout(()=>pane.classList.remove('fade-slide-enter'), 280);
   }, 140);
@@ -344,74 +338,282 @@ function stepDate(dt){ const d=parseISO(datePicker.value||todayISO()); d.setDate
 prevDay.addEventListener('click',()=>stepDate(-1)); nextDay.addEventListener('click',()=>stepDate(1));
 datePicker.addEventListener('change',e=>loadIntoUI(e.target.value));
 
-/* ===== Flower animation (continuous valence) ===== */
-const svg=document.getElementById('moodSVG');
-const ctxGlow=document.getElementById('glowCanvas').getContext('2d');
+// ===== Mood PILL animation (replaces flower) =====
 const stateLabel=document.getElementById('stateLabel');
 const bar=document.getElementById('moodBar'); const knob=document.getElementById('moodKnob');
+const canvas = document.getElementById('pillCanvas');
+const ctx = canvas.getContext('2d');
 
-const LAYERS=6, PETALS=6, POINTS=240;
-let phase=0, tLast=0;
-const layers=[];
-for(let i=0;i<LAYERS;i++){ const p=document.createElementNS('http://www.w3.org/2000/svg','path'); p.setAttribute('fill','none'); p.setAttribute('stroke','white'); p.setAttribute('stroke-width', String(14 - i*2.2)); p.setAttribute('opacity', String(0.25 + (i/LAYERS)*0.6)); p.setAttribute('stroke-linejoin','round'); svg.appendChild(p); layers.push(p); }
-function lerp(a,b,t){ return a+(b-a)*t } function clamp(x,a,b){ return Math.max(a,Math.min(b,x)) } function hsl(h,s,l){ return `hsl(${h}deg ${s}% ${l}%)` }
-function textFromV(v){ const s=(v-50)/50; if(s<-0.66) return 'Очень плохо'; if(s<-0.33) return 'Плохо'; if(s<-0.06) return 'Ниже нормы'; if(s<0.06) return 'Нейтрально'; if(s<0.33) return 'Неплохо'; if(s<0.66) return 'Хорошо'; return 'Отлично'; }
+// Фоновые изображения для 7 состояний (по порядку: очень плохо → отлично)
+const BG_URLS = [
+  'img/bg-very-bad.png',
+  'img/bg-bad.png',
+  'img/bg-below.png',
+  'img/bg-neutral.png',
+  'img/bg-fair.png',
+  'img/bg-good.png',
+  'img/bg-excellent.png'
+];
 
-let valence = 50; // 0..100
-function hueFromValence(v){ return lerp(210, 30, v/100); } // blue -> orange/green
-function drawGlow(h){
-  const c=ctxGlow.canvas, w=c.width=c.clientWidth, hpx=c.height=c.clientHeight;
-  const cx=w/2, cy=hpx/2, grad=ctxGlow.createRadialGradient(cx,cy,0,cx,cy,Math.min(w,hpx)/2);
-  grad.addColorStop(0, `hsla(${h}, 95%, 60%, 0.45)`); grad.addColorStop(1, `hsla(${h}, 95%, 60%, 0)`);
-  ctxGlow.clearRect(0,0,w,hpx); ctxGlow.fillStyle=grad; ctxGlow.beginPath(); ctxGlow.arc(cx,cy,Math.min(w,hpx)/2,0,Math.PI*2); ctxGlow.fill();
+// --- анимация как раньше ---
+const rotationPeriod=10, breathAmp=0.04, breathPeriod=1.6, morphSpeed=0.7, morphAmpBase=0.06;
+
+// --- управление «самочувствием»: 0..100 ---
+let valence=50;                  // 0..100
+let mood01=0.5, moodVis=0.5;     // 0..1 (внутреннее)
+window.setPillMood01 = x => { mood01 = Math.max(0, Math.min(1, x)); };
+
+// — служебные —
+function fit(){
+  const dpr=Math.max(1, window.devicePixelRatio||1);
+  const w=canvas.clientWidth, h=canvas.clientHeight;
+  canvas.width=Math.round(w*dpr); canvas.height=Math.round(h*dpr);
+  ctx.setTransform(dpr,0,0,dpr,0,0);
 }
-function shapePath(R, amp, pet, spin, wobble){
-  const pts=[];
-  for(let i=0;i<POINTS;i++){ const t=(i/POINTS)*Math.PI*2;
-    const r=R*(1 + amp*Math.sin(pet*t + spin)*(1 - 0.15*Math.sin(t*0.5 + wobble)));
-    pts.push([r*Math.cos(t), r*Math.sin(t)]);
+window.addEventListener('resize', fit); fit();
+
+function pathCapsule(c, W, H, R){
+  const r=Math.max(0, Math.min(R, Math.min(W,H)/2));
+  const x=-W/2, y=-H/2;
+  c.beginPath();
+  c.moveTo(x+r,y); c.lineTo(x+W-r,y); c.quadraticCurveTo(x+W,y,x+W,y+r);
+  c.lineTo(x+W,y+H-r); c.quadraticCurveTo(x+W,y+H,x+W-r,y+H);
+  c.lineTo(x+r,y+H); c.quadraticCurveTo(x,y+H,x,y+H-r);
+  c.lineTo(x,y+r); c.quadraticCurveTo(x,y,x+r,y); c.closePath();
+}
+const lerp=(a,b,t)=>a+(b-a)*t;
+const clamp=(x,a,b)=>Math.max(a,Math.min(b,x));
+function hexToRgb(h){ const m=/^#?([a-f\d]{2})([a-f\d]{2})([a-f\d]{2})$/i.exec(h);
+  return m?{r:parseInt(m[1],16),g:parseInt(m[2],16),b:parseInt(m[3],16)}:{r:255,g:255,b:255}; }
+function mixHex(h1,h2,t,a=1){ const A=hexToRgb(h1),B=hexToRgb(h2);
+  const r=Math.round(lerp(A.r,B.r,t)), g=Math.round(lerp(A.g,B.g,t)), b=Math.round(lerp(A.b,B.b,t));
+  return `rgba(${r},${g},${b},${a})`;
+}
+
+// Палитра капсулы: 0 — тёпло/«плохо», 1 — холодно/«отлично»
+function palette(m){
+  const warm1='#e96a5a', warm2='#ffb36b';
+  const mid1 ='#19d06a', mid2 ='#66e08f';
+  const cool1='#00d2ff', cool2='#38f9d7';
+  let cA,cB; if(m<0.5){ const t=m/0.5; cA=mixHex(warm1,mid1,t); cB=mixHex(warm2,mid2,t);}
+  else { const t=(m-0.5)/0.5; cA=mixHex(mid1,cool1,t); cB=mixHex(mid2,cool2,t); }
+  return {
+    baseDark: mixHex('#0c1322', '#0b141e', m, 1),
+    baseMid:  mixHex('#141d34', '#0f2234', m, 1),
+    tintA: cA, tintB: cB,
+    rimA: mixHex('#ff9866','#00ffee', m, .35),
+    rimB: mixHex('#ffd8a0','#a0d8ff', m, .16),
+    glintA: mixHex('#ffe5d4','#e8fbff', m, .85),
+    glintB: mixHex('#ffd0f0','#c7e6ff', m, .72)
+  };
+}
+
+// Текстуры: low-freq «бамп» + микро-поры
+function makeValueNoise(size=256, cell=16, oct=3){
+  const cnv=document.createElement('canvas'), c=cnv.getContext('2d');
+  cnv.width=cnv.height=size; const img=c.createImageData(size,size);
+  function pass(freq, amp){
+    const gx=Math.ceil(size/freq)+2, gy=Math.ceil(size/freq)+2;
+    const grid=Array.from({length:gy},()=>Array.from({length:gx},()=>Math.random()));
+    for(let y=0;y<size;y++){ const fy=y/freq, y0=Math.floor(fy), ty=fy-y0;
+      for(let x=0;x<size;x++){ const fx=x/freq, x0=Math.floor(fx), tx=fx-x0;
+        const v00=grid[y0][x0], v10=grid[y0][x0+1], v01=grid[y0+1][x0], v11=grid[y0+1][x0+1];
+        const v=((v00*(1-tx)+v10*tx)*(1-ty) + (v01*(1-tx)+v11*tx)*ty)*amp;
+        const i=(y*size+x)*4; img.data[i]+=v*255; img.data[i+1]+=v*255; img.data[i+2]+=v*255; img.data[i+3]=255;
+      }
+    }
   }
-  let d=`M ${pts[0][0].toFixed(2)} ${pts[0][1].toFixed(2)} `;
-  for(let i=1;i<pts.length;i++){ const a=pts[i-1], b=pts[i]; const mx=(a[0]+b[0])/2, my=(a[1]+b[1])/2; d+=`Q ${a[0].toFixed(2)} ${a[1].toFixed(2)} ${mx.toFixed(2)} ${my.toFixed(2)} `; }
-  const a=pts[pts.length-1], b=pts[0]; const mx=(a[0]+b[0])/2, my=(a[1]+b[1])/2; d+=`Q ${a[0].toFixed(2)} ${a[1].toFixed(2)} ${mx.toFixed(2)} ${my.toFixed(2)} Z`; return d;
+  for(let o=0;o<oct;o++) pass(cell/(2**o), 1/(2**(o+1)));
+  c.putImageData(img,0,0); return cnv;
 }
+function makeSpeckles(size=512, count=2200){
+  const cnv=document.createElement('canvas'), c=cnv.getContext('2d');
+  cnv.width=cnv.height=size; c.clearRect(0,0,size,size);
+  for(let i=0;i<count;i++){
+    const x=Math.random()*size, y=Math.random()*size, r=(Math.random()*1.6)+0.5, ang=Math.random()*Math.PI;
+    c.fillStyle=`rgba(0,0,0,${0.10+Math.random()*0.10})`;
+    c.beginPath(); c.ellipse(x,y,r*1.1,r*0.9,ang,0,Math.PI*2); c.fill();
+    if(Math.random()<0.25){
+      c.fillStyle=`rgba(255,255,255,${0.06+Math.random()*0.06})`;
+      c.beginPath(); c.ellipse(x+0.2,y-0.2,r*0.8,r*0.6,ang,0,Math.PI*2); c.fill();
+    }
+  }
+  return cnv;
+}
+const noiseTex = makeValueNoise(256,18,3);
+const speckleTex = makeSpeckles(512,2200);
+
+// Помощники для бликов/полос
+function glossyBand(x1,y1,x2,y2, a1, a2, alpha){
+  const g=ctx.createLinearGradient(x1,y1,x2,y2);
+  g.addColorStop(0,'rgba(255,255,255,0)'); g.addColorStop(0.35,a1);
+  g.addColorStop(0.65,a2); g.addColorStop(1,'rgba(255,255,255,0)');
+  ctx.globalCompositeOperation='screen'; ctx.globalAlpha=alpha; ctx.fillStyle=g;
+  ctx.fillRect(-9999,-9999,19999,19999);
+  ctx.globalAlpha=1; ctx.globalCompositeOperation='source-over';
+}
+function glint(cx,cy,rx,ry,color='rgba(255,255,255,.9)',a=1){
+  const gr=ctx.createRadialGradient(cx,cy,0,cx,cy,Math.max(rx,ry));
+  gr.addColorStop(0,color); gr.addColorStop(1,'rgba(255,255,255,0)');
+  ctx.globalCompositeOperation='screen'; ctx.globalAlpha=a; ctx.fillStyle=gr;
+  ctx.beginPath(); ctx.ellipse(cx,cy,rx,ry,0,0,Math.PI*2); ctx.fill();
+  ctx.globalAlpha=1; ctx.globalCompositeOperation='source-over';
+}
+
+// Текст пояснения
+function textFromV(v){ const s=(v-50)/50;
+  if(s<-0.66) return 'Очень плохо'; if(s<-0.33) return 'Плохо'; if(s<-0.06) return 'Ниже нормы';
+  if(s<0.06) return 'Нейтрально'; if(s<0.33) return 'Неплохо'; if(s<0.66) return 'Хорошо'; return 'Отлично';
+}
+
+// Обновление цветов UI + фон-картинка
 function updateColorsByValence(v){
-  const h=hueFromValence(v);
-  layers.forEach((p,i)=>{ const l=70 - i*6; p.setAttribute('stroke', hsl(h,85,l)); });
   stateLabel.textContent = textFromV(v);
-  drawGlow(h);
-  // track hues
-  const leftH = 10;  // red/orange
-  const rightH = 140; // green/teal
-  document.documentElement.style.setProperty('--trackA', `hsl(${leftH} 90% 55%)`);
-  document.documentElement.style.setProperty('--trackB', `hsl(${rightH} 72% 45%)`);
-  // background palette based on v
+
+  // индексация 0..6 по порогам
   const s=(v-50)/50;
-  const palettes=[
-    ['#2a1b4d','#110b26'],
-    ['#0b2c3f','#081422'],
-    ['#0c3d3a','#0a1f22'],
-    ['#0B1220','#0F1B2E'],
-    ['#163c2a','#0b2415'],
-    ['#f2f7fb','#e9f5ff'],
-    ['#b8895c','#5c3e1e']
-  ];
   let idx=3;
   if(s<-0.66) idx=0; else if(s<-0.33) idx=1; else if(s<-0.06) idx=2; else if(s<0.06) idx=3;
   else if(s<0.33) idx=4; else if(s<0.66) idx=5; else idx=6;
-  const [A,B]=palettes[idx];
+
+  // ===== Новая карта градиентов для страницы =====
+  // 0: бордовый, 1: оранжевый, 2: бежево-коричневый, 3: перламутровый,
+  // 4: желтоватый, 5: зеленоватый, 6: синий
+  const THEMES = [
+    ['#3a0d1b', '#14060d'], // very bad — maroon
+    ['#4a2609', '#1a0d05'], // bad — orange/dark amber
+    ['#4a3a2b', '#1e1812'], // below — beige-brown
+    ['#2c3342', '#10141e'], // neutral — pearly cool
+    ['#3d3a12', '#161306'], // fair — yellowish
+    ['#0e2b1b', '#081712'], // good — greenish
+    ['#0a2240', '#06121e']  // excellent — blue
+  ];
+  const [A,B]=THEMES[idx];
   document.documentElement.style.setProperty('--bgA', A);
   document.documentElement.style.setProperty('--bgB', B);
-  document.documentElement.style.setProperty('--glow', `hsl(${h} 95% 60%)`);
-}
-function animate(t){ const dt=(t-(tLast||t))/1000; tLast=t; phase+=dt*1.2;
-  const AMP = lerp(0.42, 0.08, valence/100); const BASE=55;
-  for(let i=0;i<LAYERS;i++){ const R=BASE + i*18; const a=AMP*(1 - i*0.14); const spin=phase*(0.6 - i*0.05); const wobble=phase*(0.4 + i*0.03);
-    layers[i].setAttribute('d', shapePath(R,a,PETALS,spin,wobble));
-  } requestAnimationFrame(animate);
-}
-requestAnimationFrame(animate);
 
+  // трек слайдера оставляем красно-зелёным
+  document.documentElement.style.setProperty('--trackA', 'hsl(10 90% 55%)');
+  document.documentElement.style.setProperty('--trackB', 'hsl(140 72% 45%)');
+
+  // Фон-картинка за пилюлей (меняем var(--mood-bg))
+  const moodStageEl = document.querySelector('.mood-stage');
+  if (moodStageEl) {
+    moodStageEl.style.setProperty('--mood-bg', `url('${BG_URLS[idx]}')`);
+    moodStageEl.style.setProperty('--bg-blur', '8px'); // усилили блюр
+  }
+
+  // передаём настроение в капсулу
+  window.setPillMood01(v/100);
+}
+
+// ===== Рендер капсулы (как был) =====
+let start=performance.now();
+function frame(nowMs){
+  const t=(nowMs-start)/1000;
+  moodVis += (mood01 - moodVis)*0.08;
+
+  const W0=canvas.clientWidth, H0=canvas.clientHeight;
+  ctx.clearRect(0,0,W0,H0);
+  const cx=W0/2, cy=H0/2;
+
+  const rot=(2*Math.PI/rotationPeriod)*t;
+  const breath=1 + breathAmp*Math.sin(2*Math.PI*t/breathPeriod);
+  const morphAmp = morphAmpBase * (0.7 + 0.6*Math.abs(moodVis-0.5));
+  const morph=Math.sin(t*morphSpeed);
+
+  const baseW=W0*0.60, baseH=H0*0.34;
+  const W=baseW*(1 + morphAmp*0.52*morph) * (1 - 0.05*(moodVis-0.5));
+  const H=baseH*(1 - morphAmp*0.34*morph) * (1 + 0.05*(moodVis-0.5));
+  const R=Math.min(W,H)/2*(0.86 + 0.10*Math.sin(t*morphSpeed*1.7));
+  const pal=palette(moodVis);
+
+  /* тень и рисование пилюли — без изменений (опущено тут для краткости),
+     оставь как в твоём текущем файле, если нужно — он уже ниже полностью */ 
+  // … (ниже полный блок из твоего файла)
+
+  // Тень (капсула)
+  ctx.save();
+  ctx.translate(cx, cy + H*0.24);
+  ctx.rotate(rot + 0.5);
+  const sw = W * 0.78, sh = H * 0.24, sr = Math.min(sw, sh) / 2;
+  pathCapsule(ctx, sw, sh, sr); ctx.save(); ctx.clip();
+  let g = ctx.createLinearGradient(0, -sh/2, 0, sh/2);
+  g.addColorStop(0.00, 'rgba(0,0,0,.22)');
+  g.addColorStop(0.45, 'rgba(0,0,0,.32)');
+  g.addColorStop(1.00, 'rgba(0,0,0,0)');
+  ctx.fillStyle = g; ctx.fillRect(-sw/2, -sh/2, sw, sh);
+  ctx.filter = 'blur(3px)'; ctx.globalAlpha = 0.9; ctx.fillRect(-sw/2, -sh/2, sw, sh);
+  ctx.filter = 'none'; ctx.globalAlpha = 1; ctx.restore();
+  pathCapsule(ctx, sw * 0.72, sh * 0.64, sr * 0.64);
+  ctx.fillStyle = 'rgba(0,0,0,.18)'; ctx.filter = 'blur(1.2px)'; ctx.fill(); ctx.filter = 'none';
+  ctx.restore();
+
+  // Капсула
+  ctx.save();
+  ctx.translate(cx,cy); ctx.rotate(rot + 0.5); ctx.scale(breath,breath);
+  pathCapsule(ctx,W,H,R); ctx.save(); ctx.clip();
+
+  const base=ctx.createLinearGradient(-W/2,-H/2, W/2,H/2);
+  base.addColorStop(0.0,pal.baseDark); base.addColorStop(0.45,pal.baseMid); base.addColorStop(1.0,'#070b14');
+  ctx.fillStyle=base; ctx.fillRect(-W,-H,W*2,H*2);
+
+  glossyBand(-W*0.9,-H*0.2,  W*0.7,H*0.15, pal.tintA, pal.tintB, .45);
+  glossyBand(-W*0.2,-H*0.85, W*0.2,H*0.75, mixHex('#ffd070','#a0d8ff',moodVis,.20), mixHex('#90e0ff','#70ffd8',moodVis,.22), .38);
+
+  ctx.save(); ctx.rotate(-(rot + 0.5));
+  const light=ctx.createLinearGradient(-W,0, W,0);
+  light.addColorStop(0.0,'rgba(255,255,255,.18)');
+  light.addColorStop(0.55,'rgba(0,0,0,0)');
+  light.addColorStop(1.0,'rgba(0,0,0,.22)');
+  ctx.globalCompositeOperation='overlay'; ctx.fillStyle=light; ctx.fillRect(-W,-H,W*2,H*2);
+  ctx.globalCompositeOperation='source-over'; ctx.restore();
+
+  ctx.globalCompositeOperation='multiply'; ctx.globalAlpha=0.10; ctx.drawImage(noiseTex, -W,-H, W*2,H*2);
+  ctx.globalAlpha=0.20; ctx.drawImage(speckleTex, -W,-H, W*2,H*2);
+  ctx.globalCompositeOperation='screen'; ctx.globalAlpha=0.06; ctx.drawImage(speckleTex, -W,-H, W*2,H*2);
+  ctx.globalAlpha=1; ctx.globalCompositeOperation='source-over';
+
+  glint(W*0.26,-H*0.26, W*0.20,H*0.18, pal.glintA, .55);
+  glint(-W*0.30, H*0.26, W*0.16,H*0.14, pal.glintB, .40);
+
+  const rimAO=ctx.createLinearGradient(-W/2,0, W/2,0);
+  rimAO.addColorStop(0.0,'rgba(0,0,0,0.16)'); rimAO.addColorStop(0.5,'rgba(0,0,0,0)');
+  rimAO.addColorStop(1.0,'rgba(0,0,0,0.16)');
+  ctx.globalCompositeOperation='multiply'; ctx.fillStyle=rimAO; ctx.fillRect(-W,-H,W*2,H*2);
+  ctx.globalCompositeOperation='source-over';
+
+  const rim=ctx.createLinearGradient(-W/2,-H/2, W/2,H/2);
+  rim.addColorStop(0,pal.rimA); rim.addColorStop(0.5,'rgba(255,255,255,.08)'); rim.addColorStop(1,pal.rimB);
+  ctx.lineWidth=Math.max(1.2, Math.min(W,H)/22); ctx.strokeStyle=rim; pathCapsule(ctx,W,H,R); ctx.stroke();
+
+  ctx.lineWidth=1.0; ctx.strokeStyle='rgba(255,255,255,.20)';
+  pathCapsule(ctx, W*0.988, H*0.988, R*0.988); ctx.stroke();
+
+  const rx=W*0.014, ry=H*0.44; const seam=ctx.createLinearGradient(-rx,0, rx,0);
+  seam.addColorStop(0, mixHex('#ffffff','#d0f0ff',moodVis,.40));
+  seam.addColorStop(0.5,'rgba(0,0,0,.18)');
+  seam.addColorStop(1, mixHex('#ffffff','#d0f0ff',moodVis,.40));
+  ctx.lineWidth=Math.max(1.4, Math.min(W,H)/50); ctx.strokeStyle=seam;
+  ctx.beginPath(); ctx.ellipse(0,0, rx,ry, 0,0,Math.PI*2); ctx.stroke();
+
+  ctx.restore(); // clip
+  ctx.restore(); // transform
+
+  // Матовое отражение на «столе»
+  ctx.save();
+  ctx.translate(cx, cy + H*0.38); ctx.rotate(rot + 0.5); ctx.scale(1,-0.55);
+  pathCapsule(ctx, W*0.98, H*0.98, R*0.98); ctx.clip();
+  const refl=ctx.createLinearGradient(0,-H,0,H);
+  refl.addColorStop(0,'rgba(255,255,255,.10)'); refl.addColorStop(1,'rgba(255,255,255,0)');
+  ctx.fillStyle=refl; ctx.filter='blur(2.5px)'; ctx.fillRect(-W,-H,W*2,H*2);
+  ctx.filter='none'; ctx.restore();
+
+  requestAnimationFrame(frame);
+}
+requestAnimationFrame(frame);
+
+// ==== ЛОГИКА СЛАЙДЕРА ====
 function applyValence(v, setKnob=true){
   valence = clamp(v, 0, 100);
   if(setKnob){
@@ -422,14 +624,13 @@ function applyValence(v, setKnob=true){
   updateColorsByValence(valence);
 }
 function clientToValence(xClient){
-  const rect=document.getElementById('moodBar').getBoundingClientRect(); const left=rect.left+18, right=rect.right-18; const w=right-left;
-  const t=clamp((xClient-left)/w,0,1); return Math.round(t*100);
+  const rect=bar.getBoundingClientRect(); const left=rect.left+18, right=rect.right-18; const w=right-left;
+  return Math.round(clamp((xClient-left)/w,0,1)*100);
 }
-const barEl=document.getElementById('moodBar');
-barEl.addEventListener('pointerdown', e=>{ barEl.classList.add('drag'); applyValence(clientToValence(e.clientX)); });
-window.addEventListener('pointermove', e=>{ if(!barEl.classList.contains('drag'))return; applyValence(clientToValence(e.clientX)); });
-window.addEventListener('pointerup', ()=> barEl.classList.remove('drag'));
-barEl.addEventListener('click', e=> applyValence(clientToValence(e.clientX)));
+bar.addEventListener('pointerdown', e=>{ bar.classList.add('drag'); applyValence(clientToValence(e.clientX)); });
+window.addEventListener('pointermove', e=>{ if(!bar.classList.contains('drag')) return; applyValence(clientToValence(e.clientX)); });
+window.addEventListener('pointerup', ()=> bar.classList.remove('drag'));
+bar.addEventListener('click', e=> applyValence(clientToValence(e.clientX)));
 
 /* ===== Side effects ===== */
 const SE_DEFS=[['lips_dry','Сухость губ'],['skin_dry','Сухость кожи'],['nose_bleed','Кровотечения из носа'],['muscle_pain','Боль в мышцах/суставах'],['headache','Головная боль'],];
@@ -476,9 +677,7 @@ function updateDayChip(dateISO){
 }
 function loadIntoUI(dateISO){
   const entry=getEntry(dateISO); const db=loadDB();
-  // day chip
   updateDayChip(dateISO);
-  // wellness → apply (центр по умолчанию 50)
   applyValence(entry.wellness ?? 50, true);
   renderSE(entry);
   if(entry.photos.face){ faceThumb.src=entry.photos.face; faceThumb.hidden=false; } else { faceThumb.hidden=true; }
@@ -502,7 +701,7 @@ document.getElementById('exportJSON').addEventListener('click',()=>{
   const d=todayISO(); datePicker.value=d;
   const db=loadDB(); if(!db.baseline){ const en=getEntry(d); putEntry(en); }
   updateDayChip(d);
-  applyValence(50,true); // изначально строго по центру
+  applyValence(50,true);
   loadIntoUI(d);
 })();
 </script>
