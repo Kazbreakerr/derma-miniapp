@@ -438,7 +438,8 @@ body.light .tab.active{
           <dl class="kv">
             <dt>Аллергии</dt><dd id="allergies">нет данных</dd>
             <dt>Сегодня</dt><dd id="today">— мг</dd>
-            <dt>Последний приём</dt><dd id="lastDose">— мг</dd>
+            <dt>Выпил вчера</dt><dd id="yesterday">— мг</dd>
+            <dt>Выпить завтра</dt><dd id="tomorrow">—</dd>
           </dl>
         </div>
 
@@ -592,6 +593,40 @@ body.light .tab.active{
   function fmtDate(iso){ try{ const d=new Date(iso+'T00:00:00'); return d.toLocaleDateString('ru-RU'); }catch(_){ return iso||'—'; } }
   function clamp(n,min,max){ return Math.max(min, Math.min(max,n)); }
 
+  function dateISO(d){ const x=d||new Date(); const y=x.getFullYear(); const m=String(x.getMonth()+1).padStart(2,'0'); const dd=String(x.getDate()).padStart(2,'0'); return y+'-'+m+'-'+dd; }
+
+  async function getDoseByDate(iso){
+    // API preferred
+    try{
+      const r = await api('/api/intake?date=' + encodeURIComponent(iso));
+      if(r.ok){
+        const j = await r.json();
+        if (j && j.mg != null) return Number(j.mg)||0;
+      }
+    }catch(_){}
+    // Fallback: localStorage diaryByDate
+    try{
+      const map = JSON.parse(localStorage.getItem('diaryByDate')||'{}');
+      if (map && map[iso] && map[iso].doseMg != null) return Number(map[iso].doseMg)||0;
+    }catch(_){}
+    return 0;
+  }
+
+  async function getPlanDailyMg(){
+    // API preferred
+    try{
+      const r = await api('/api/plan/me');
+      if(r.ok){ const j=await r.json(); if(j && j.dailyMg != null) return Number(j.dailyMg)||0; }
+    }catch(_){}
+    // Fallback: localStorage coursePlan.dailyMg
+    try{
+      const plan = JSON.parse(localStorage.getItem('coursePlan')||'{}');
+      if(plan && plan.dailyMg != null) return Number(plan.dailyMg)||0;
+    }catch(_){}
+    return null; // нет плана
+  }
+
+
   function populate(){
     $('#userName').textContent = STATE.name || 'Профиль';
     const av = $('#avatarImg'); if(STATE.avatarUrl){ av.src = STATE.avatarUrl; } else { $('#avatarFallback').textContent = (STATE.name||'U').trim().charAt(0).toUpperCase(); }
@@ -616,7 +651,8 @@ body.light .tab.active{
 
     $('#allergies').textContent = STATE.allergies || 'Не указаны';
     $('#today').textContent = (STATE.todayMg||0) + ' мг';
-    $('#lastDose').textContent = (STATE.lastDoseMg||0) + ' мг';
+    $('#yesterday').textContent = (STATE.yesterdayMg!=null?STATE.yesterdayMg:0) + ' мг';
+    $('#tomorrow').textContent = (STATE.tomorrowPlanMg!=null?STATE.tomorrowPlanMg + ' мг':'—');
 
     const doc = STATE.doctor||{}; $('#doctorMeta').textContent = [doc.name, doc.clinic, doc.phone].filter(Boolean).join(' • ');
 
@@ -737,6 +773,24 @@ body.light .tab.active{
 
   // 4) Только теперь отрисовываем UI
   populate();
+
+  // --- Pull doses by date (today/yesterday) + plan for tomorrow ---
+  try{
+    const todayISO = dateISO(new Date());
+    const yestISO  = dateISO(new Date(Date.now()-864e5));
+    const [tMg, yMg, tPlan] = await Promise.all([
+      getDoseByDate(todayISO),
+      getDoseByDate(yestISO),
+      getPlanDailyMg()
+    ]);
+    STATE.todayMg = Number(tMg)||0;
+    STATE.yesterdayMg = Number(yMg)||0;
+    STATE.tomorrowPlanMg = (tPlan!=null ? Number(tPlan) : null);
+
+    // reflect to UI and recompute ring/meta
+    populate();
+  }catch(_){}
+
 })();
 
   // ======= Theme toggle =======
