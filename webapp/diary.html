@@ -56,6 +56,32 @@
   .card{background:var(--card); border:1px solid var(--border); border-radius:var(--radius); padding:16px; margin:16px 0; box-shadow:0 10px 30px rgba(0,0,0,.35)}
   .card h2{font-size:18px; margin:0 0 12px 0}
 
+  /* === App button styles === */
+  .btn{
+    appearance:none; border:0; border-radius:14px;
+    padding:12px 16px; font-weight:700; cursor:pointer;
+    transition:transform .06s ease, filter .2s ease, box-shadow .25s ease;
+    will-change: transform, filter; color:#062217;
+  }
+  .btn:active{ transform: translateY(1px) }
+  .btn-primary{
+    background:linear-gradient(180deg, #20e3b2, #14b8a6);
+    box-shadow:0 10px 26px rgba(20,184,166,.35), inset 0 0 0 1px rgba(255,255,255,.06);
+  }
+  .btn-secondary{
+    background:rgba(255,255,255,.06);
+    color:#E6EDF3;
+    border:1px solid rgba(255,255,255,.12);
+  }
+  .btn-danger{
+    background:rgba(239,68,68,.12);
+    color:#fecaca;
+    border:1px solid rgba(239,68,68,.55);
+    box-shadow:inset 0 0 0 1px rgba(255,255,255,.04);
+  }
+  .btn-sm{ padding:8px 12px; border-radius:12px; font-size:14px }
+
+
   /* ===== Mood block ===== */
   .mood{ display:grid; grid-template-columns: 1fr 360px; gap:18px; align-items:center; }
   @media (max-width: 900px){ .mood{ grid-template-columns: 1fr; } }
@@ -103,11 +129,11 @@
 
   /* ===== Side effects ===== */
   .se-list{display:grid; gap:10px}
-  .se-item{display:grid; grid-template-columns: 1fr auto; align-items:center; gap:12px;
+  .se-item{display:grid; grid-template-columns: minmax(0,1fr) auto; align-items:center; gap:12px;
     padding:10px 12px; border:1px solid var(--border); border-radius:12px; background:rgba(255,255,255,.02)}
-  .se-item .label{font-weight:700}
-  .se-item .ctrl{display:flex; align-items:center; gap:10px}
-  .se-item input[type="range"]{-webkit-appearance:none; width:160px; height:8px; border-radius:999px; background:linear-gradient(90deg, #475569, #94a3b8)}
+  .se-item .label{font-weight:700; min-width:0}
+  .se-item .ctrl{display:flex; align-items:center; gap:10px; width:100%; max-width:420px}
+  .se-item input[type="range"]{-webkit-appearance:none; width:100%; height:8px; border-radius:999px; background:linear-gradient(90deg, #475569, #94a3b8)}
   .se-item input[type="range"]::-webkit-slider-thumb{-webkit-appearance:none; width:20px; height:20px; border-radius:50%; background:#fff; border:2px solid #0004; box-shadow:0 3px 8px rgba(0,0,0,.3)}
   .se-badge{min-width:28px; text-align:center; padding:6px 8px; border-radius:10px; background:#0b1728; border:1px solid var(--border)}
 
@@ -136,12 +162,19 @@
     .uploader{ grid-template-columns: 1fr; }
     .mood-stage{ height:300px; }
   }
+  @media (max-width:700px){
+    .se-item{ grid-template-columns: 1fr; align-items:start }
+    .se-item .ctrl{ max-width:100% }
+  }
 </style>
 </head>
 <body>
 <header>
   <div class="wrap">
-    <h1>Дневник</h1>
+    <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap;">
+      <a href="myprofile.html" style="text-decoration:none;display:inline-flex;align-items:center;gap:8px;padding:10px 12px;border-radius:12px;background:rgba(255,255,255,.06);border:1px solid var(--border);color:#E6EDF3;font-weight:800;">← В профиль</a>
+      <h1>Дневник</h1>
+    </div>
     <div class="date-row">
       <input id="datePicker" type="date">
       <span class="chip" id="dayChip">Текущий день: —</span>
@@ -170,7 +203,7 @@
           <div class="center-mark" aria-hidden="true"></div>
           <div class="knob" id="moodKnob"></div>
         </div>
-        <button class="btn" id="confirmMood">Подтвердить</button>
+        <button class="btn btn-primary" id="confirmMood">Подтвердить</button>
       </div>
     </div>
   </section>
@@ -197,9 +230,9 @@
       </label>
     </div>
     <div class="actions-row" style="margin-top:10px">
-      <button class="outline btn" id="removeFace">Удалить лицо</button>
-      <button class="outline btn" id="removeBody">Удалить тело</button>
-      <button class="btn" id="saveAll">Сохранить запись</button>
+      <button class="btn btn-danger btn-sm" id="removeFace">Удалить лицо</button>
+      <button class="btn btn-danger btn-sm" id="removeBody">Удалить тело</button>
+      <button class="btn btn-primary" id="saveAll">Сохранить запись</button>
     </div>
 
     <div class="compare" id="compareWrap" hidden>
@@ -220,7 +253,7 @@
     <h2>Заметка дня</h2>
     <textarea id="notes" placeholder="Например: вода 2л, спорт 30 мин, губы ок..."></textarea>
     <div class="actions-row" style="justify-content:flex-end; margin-top:8px">
-      <button class="outline btn" id="exportJSON">Экспорт JSON</button>
+      <button class="btn btn-secondary" id="exportJSON">Экспорт JSON</button>
     </div>
   </section>
 
