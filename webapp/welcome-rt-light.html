@@ -4,7 +4,38 @@
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
   <title>Roaccutane Tracker — Добро пожаловать (Light)</title>
+
+  <script src="js/app-state.js"></script>
+  <script>
+    document.addEventListener('DOMContentLoaded', () => {
+      const settings = AppState.get('settings') || {};
+      const theme = (settings.theme === 'light') ? 'light' : 'dark';
+      document.documentElement.dataset.theme = theme;
+
+      document.querySelectorAll('[data-role="theme-switch"]').forEach(sw => {
+        const isLight = (document.documentElement.dataset.theme === 'light');
+        sw.setAttribute('aria-pressed', isLight ? 'true' : 'false');
+        sw.addEventListener('click', () => {
+          const cur = document.documentElement.dataset.theme === 'light' ? 'light' : 'dark';
+          const next = (cur === 'light') ? 'dark' : 'light';
+          AppState.applyTheme(next);
+          document.querySelectorAll('[data-role="theme-switch"]')
+            .forEach(x => x.setAttribute('aria-pressed', next === 'light' ? 'true' : 'false'));
+        });
+      });
+    });
+  </script>
+
   <script src="https://telegram.org/js/telegram-web-app.js"></script>
+
+  <link rel="stylesheet" href="css/ui-tokens.css">
+  <script>
+    try{
+      const s = JSON.parse(localStorage.getItem('rt.settings')||'{}');
+      document.documentElement.dataset.theme = s?.theme || 'dark';
+    }catch(e){ document.documentElement.dataset.theme = 'dark'; }
+  </script>
+
   <style>
     :root{
       --bg:#F8FAFB; --card:#FFFFFF; --border:#E6EAF0;
@@ -14,23 +45,26 @@
     *{box-sizing:border-box}
     body{
       margin:0; color:var(--text-high);
-      background:radial-gradient(60% 50% at 0% 0%, rgba(34,197,94,.22), transparent 60%), radial-gradient(70% 60% at 100% 100%, rgba(236,72,153,.22), transparent 60%), linear-gradient(135deg, #E8F9E9 0%, #FFF6F9 100%);
+      background:
+        radial-gradient(60% 50% at 0% 0%, rgba(34,197,94,.22), transparent 60%),
+        radial-gradient(70% 60% at 100% 100%, rgba(236,72,153,.22), transparent 60%),
+        linear-gradient(135deg, #E8F9E9 0%, #FFF6F9 100%);
       font-family:ui-sans-serif,system-ui,-apple-system,Segoe UI,Roboto,Inter,Manrope,Helvetica,Arial;
       min-height:100dvh; display:grid; place-items:center;
     }
     .wrap{width:min(1100px,94vw); padding:24px}
     .card{position:relative; overflow:hidden; background:var(--card); border:1px solid var(--border); border-radius:24px; padding:28px 28px 22px; box-shadow:0 10px 30px rgba(2,6,23,.05), 0 2px 8px rgba(2,6,23,.04);}
-    .glow{position:absolute; inset:0; pointer-events:none; background:radial-gradient(120% 80% at 10% -10%, rgba(34,197,94,.12), transparent 50%), radial-gradient(120% 80% at 110% 110%, rgba(236,72,153,.12), transparent 50%);}
-    .chip{position:absolute; top:max(12px,env(safe-area-inset-top)); right:max(12px,env(safe-area-inset-right)); display:inline-flex; gap:6px; padding:8px 12px; border-radius:999px; font-size:13px; color:var(--text-low); background:#fff; border:1px solid var(--border); box-shadow:0 10px 20px rgba(0,0,0,.06);}
+    .glow{position:absolute; inset:0; pointer-events:none;
+      background:
+        radial-gradient(120% 80% at 10% -10%, rgba(34,197,94,.12), transparent 50%),
+        radial-gradient(120% 80% at 110% 110%, rgba(236,72,153,.12), transparent 50%);}
     .row{display:grid; grid-template-columns:180px 1fr; gap:24px; align-items:start}
     .stage{position:relative; width:180px; height:180px; border-radius:18px; border:1px solid var(--border); background:linear-gradient(160deg,#FFFFFF,#F4F7FB); display:grid; place-items:center}
-    .pill{width:96px; height:40px} .pill .left{fill:#fff} .pill .right{fill:#f472b6}
+    .pill{width:96px; height:40px}
     .ring{position:absolute; width:132px; height:132px; border-radius:999px; border:3px solid rgba(34,197,94,.28); animation:r 2.8s ease-out infinite}
     @keyframes r{0%{transform:scale(.85);opacity:.8}80%{transform:scale(1.15);opacity:.08}100%{opacity:0}}
     h1{margin:0 0 6px; font-weight:800; font-size:40px; letter-spacing:.2px}
     p.lead{margin:10px 0 14px; color:var(--text-mid); font-size:20px}
-
-    /* Вопрос + варианты роли (дизайн как на скрине) */
     .question{color:var(--text-mid); font-size:18px; margin:10px 0 10px; display:flex; align-items:center; gap:18px; flex-wrap:wrap;}
     .vline{width:2px; height:36px; border-radius:2px; background:#E6EAF0; opacity:.7;}
     .role-options{display:flex; gap:28px; align-items:center; flex-wrap:wrap;}
@@ -42,12 +76,9 @@
     .radio input:checked ~ .dot::after{ content:''; position:absolute; inset:-2px; border-radius:999px; background:linear-gradient(135deg,#22c55e,#06b6d4,#8b5cf6); }
     .radio input:checked ~ .txt{ color:var(--text-high); font-weight:800; }
     .radio:hover{ border-color:var(--text-mid); }
-
-    /* Низ: кнопки */
     .footer{display:flex; align-items:center; gap:12px; margin-top:16px; flex-wrap:wrap;}
     .start{appearance:none; border:none; background:linear-gradient(90deg, #22C55E 0%, #EC4899 100%); color:#fff; font-weight:800; padding:12px 18px; border-radius:14px; box-shadow:0 10px 20px rgba(34,197,94,.18), 0 10px 22px rgba(236,72,153,.12); cursor:pointer;}
     .theme{margin-left:auto} .theme button{height:46px; padding:0 18px; border-radius:14px; font-weight:800; background-image: linear-gradient(135deg,#0ea5a6 0%, #0f172a 100%); color:#fff; border:1px solid transparent;}
-
     @media (max-width:820px){
       h1{font-size:28px}
       .row{grid-template-columns:150px 1fr}
@@ -67,12 +98,11 @@
   <div class="wrap">
     <div class="card">
       <div class="glow"></div>
-      <span class="chip">TG WebApp готов</span>
 
       <div class="row">
         <div class="stage">
           <div class="ring"></div>
-          <svg class="pill" viewBox="0 0 200 86" xmlns="http://www.w3.org/2000/svg">
+          <svg class="pill" viewBox="0 0 200 86" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
             <defs><clipPath id="capsule"><rect x="0" y="0" rx="43" ry="43" width="200" height="86"/></clipPath></defs>
             <g clip-path="url(#capsule)">
               <rect x="0" y="0" width="100" height="86" fill="#ffffff"/>
@@ -117,7 +147,13 @@
     const tg = window.Telegram?.WebApp || null;
     tg?.ready?.(); tg?.expand?.();
 
-    // Инициализация радиокнопок из localStorage
+    // На всякий — удаляем любую кнопку «Закрыть», если она пришла из окружения/шаблона
+    document.addEventListener('DOMContentLoaded', () => {
+      document.querySelectorAll('button, a, [role="button"]').forEach(el => {
+        if (el.textContent && el.textContent.trim() === 'Закрыть') el.remove();
+      });
+    });
+
     (function(){
       const saved = localStorage.getItem('rt_role') || 'patient';
       const doc = document.getElementById('roleDoctor');
@@ -134,9 +170,7 @@
       });
     })();
 
-    // Старт: роутинг в зависимости от роли
     document.getElementById('startBtn').addEventListener('click', () => {
-      // A/B routing: first-time vs subsequent visits by role
       const role =
         document.querySelector('input[name="role"]:checked')?.value
         || (document.getElementById('roleSwitch')?.checked ? 'patient' : 'doctor')
@@ -146,16 +180,15 @@
 
       const next = (role === 'doctor')
         ? (localStorage.getItem('rt_doctor_done') === '1'
-            ? './doctor-cabinet-mint-rose.html'     // B: subsequent
-            : './doctor-onboarding-mint-rose.html') // A: first time
+            ? './doctor-cabinet-mint-rose.html'
+            : './doctor-onboarding-mint-rose.html')
         : (localStorage.getItem('rt_patient_done') === '1'
-            ? './main-dark.html'                    // B: subsequent
-            : './profile-dark.html');               // A: first time
+            ? './main-dark.html'
+            : './profile-dark.html');
 
       location.replace(next);
     }, { once: true });
 
-    // Смена темы
     (function(){
       const btn = document.getElementById('themeToggle');
       if(!btn) return;

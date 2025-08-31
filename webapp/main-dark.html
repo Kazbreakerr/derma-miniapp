@@ -1,7 +1,44 @@
 <!doctype html>
 <html lang="ru">
 <head>
+
+  <script>
+  // мгновенно фиксируем тёмную тему до отрисовки CSS
+  document.documentElement.dataset.theme = 'dark';
+</script>
+<script src="js/app-state.js"></script>
+<script>
+  // и сохраняем её как выбранную пользователем
+  document.addEventListener('DOMContentLoaded', () => AppState.applyTheme('dark'));
+</script>
   <meta charset="utf-8" />
+
+  <script src="js/app-state.js"></script>
+  <script>
+  // Инициализация всех переключателей темы на странице
+  document.addEventListener('DOMContentLoaded', () => {
+    const settings = AppState.get('settings') || {};
+    const theme = (settings.theme === 'light') ? 'light' : 'dark';
+    document.documentElement.dataset.theme = theme;
+
+    // найдём все тумблеры с data-role="theme-switch"
+    document.querySelectorAll('[data-role="theme-switch"]').forEach(sw => {
+      const isLight = (document.documentElement.dataset.theme === 'light');
+      sw.setAttribute('aria-pressed', isLight ? 'true' : 'false');
+
+      sw.addEventListener('click', () => {
+        const cur = document.documentElement.dataset.theme === 'light' ? 'light' : 'dark';
+        const next = (cur === 'light') ? 'dark' : 'light';
+        AppState.applyTheme(next);                  // сохраняем и ставим data-theme
+        // визуально обновим все тумблеры на странице
+        document.querySelectorAll('[data-role="theme-switch"]')
+          .forEach(x => x.setAttribute('aria-pressed', next === 'light' ? 'true' : 'false'));
+      });
+    });
+  });
+</script>
+
+
   <script>try{ if(localStorage.getItem('derma_consent')!=='1'){ location.replace('./warnings.html' + (location.search||'')); } }catch(_){}
 (function hookOpenCalendar(){
   const btn = document.getElementById('openCalendarBtn');
@@ -119,6 +156,17 @@
 })();
 
 </script>
+
+<link rel="stylesheet" href="css/ui-tokens.css">
+<link rel="stylesheet" href="css/neumorph-ui.css">
+<script>
+  try{
+    const s = JSON.parse(localStorage.getItem('rt.settings')||'{}');
+    document.documentElement.dataset.theme = s?.theme || 'dark';
+  }catch(e){ document.documentElement.dataset.theme = 'dark'; }
+</script>
+
+
   <style>
     :root{
       --bg:#0B1220; --surface:#0E1726; --card:#121C2E; --border:#1F2A3C;
@@ -1824,6 +1872,7 @@ document.addEventListener('click', (e)=>{
   });
 })();
 </script>
+
 
 
 </body>

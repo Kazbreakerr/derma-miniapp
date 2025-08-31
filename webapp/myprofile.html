@@ -4,6 +4,17 @@
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>Профиль — RoaccutaneTracker</title>
+
+
+  
+<link rel="stylesheet" href="css/ui-tokens.css">
+<script>
+  try{
+    const s = JSON.parse(localStorage.getItem('rt.settings')||'{}');
+    document.documentElement.dataset.theme = s?.theme || 'dark';
+  }catch(e){ document.documentElement.dataset.theme = 'dark'; }
+</script>
+
   <style>
     :root{
       --bg-0:#0f1722; /* общий фон */
@@ -260,6 +271,36 @@ body.light .tab.active{
 ::view-transition-old(root){ animation: vt-fade-slide-out .35s ease both; }
 ::view-transition-new(root){ animation: vt-fade-slide-in  .35s ease both; }
 
+
+
+
+
+/* === Emphasized diary block + CTA === */
+.diary.is-cta{
+  background:
+    linear-gradient(135deg, rgba(35,227,204,.16), rgba(52,137,255,.12)),
+    var(--bg-1) !important;
+  box-shadow: 0 10px 28px rgba(0,0,0,.25), inset 0 0 0 1px rgba(255,255,255,.06);
+  border-color: rgba(255,255,255,.18) !important;
+}
+.diary .diary-title{ font-weight:800; font-size:16px; letter-spacing:.2px; margin-bottom:4px; }
+.diary .diary-desc{ color:var(--muted); max-width:52ch; }
+.btn.primary.cta{
+  min-height:48px; padding:0 18px; font-size:15px; border-radius:16px;
+  background: linear-gradient(135deg, var(--accent-1), var(--accent-2));
+  box-shadow: 0 10px 22px rgba(35,227,204,.25);
+}
+.btn.primary.cta:hover{ transform: translateY(-1px) scale(1.01); }
+body.light .diary.is-cta{
+  background: linear-gradient(135deg, rgba(94,207,200,.35), rgba(255,211,163,.30)), var(--bg-1) !important;
+  border-color: rgba(0,0,0,.08) !important;
+  box-shadow: 0 10px 22px rgba(94,207,200,.20);
+}
+
+/* === Compact theme toggle variant (preserves design) === */
+#themeToggle.theme-toggle.small{ --h:32px; --w:88px; --pad:4px; --bd:2px; }
+@media (max-width: 480px){ #themeToggle.theme-toggle.small{ --h:30px; --w:80px; --pad:4px; } }
+
 </style>
  <script src="https://telegram.org/js/telegram-web-app.js"></script>
 <script>window.API_BASE = window.API_BASE || '';</script>
@@ -359,7 +400,7 @@ body.light .tab.active{
 <body>
   <div class="topbar">
     <div class="title">Профиль</div>
-    <button id="themeToggle" class="theme-toggle" role="switch" aria-checked="false" aria-label="Переключить тему">
+<button id="themeToggle" class="theme-toggle small" role="switch" aria-checked="false" aria-label="Переключить тему">
       <span class="scene light">
         <svg viewBox="0 0 260 88" preserveAspectRatio="none" xmlns="http://www.w3.org/2000/svg">
           <defs><linearGradient id="lgLight" x1="0" y1="0" x2="1" y2="0">
@@ -438,8 +479,7 @@ body.light .tab.active{
           <dl class="kv">
             <dt>Аллергии</dt><dd id="allergies">нет данных</dd>
             <dt>Сегодня</dt><dd id="today">— мг</dd>
-            <dt>Выпил вчера</dt><dd id="yesterday">— мг</dd>
-            <dt>Выпить завтра</dt><dd id="tomorrow">—</dd>
+            <dt>Последний приём</dt><dd id="lastDose">— мг</dd>
           </dl>
         </div>
 
@@ -585,6 +625,32 @@ body.light .tab.active{
     <svg viewBox="0 0 24 24" fill="none" stroke="#0d1220" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="5"/><path d="M12 1v2"/><path d="M12 21v2"/><path d="M4.22 4.22l1.42 1.42"/><path d="M18.36 18.36l1.42 1.42"/><path d="M1 12h2"/><path d="M21 12h2"/><path d="M4.22 19.78l1.42-1.42"/><path d="M18.36 5.64l1.42-1.42"/></svg>
     <span>Светлая тема</span>
   </button>
+  
+<script src="js/app-state.js"></script>
+<script>
+  // Инициализация всех переключателей темы на странице
+  document.addEventListener('DOMContentLoaded', () => {
+    const settings = AppState.get('settings') || {};
+    const theme = (settings.theme === 'light') ? 'light' : 'dark';
+    document.documentElement.dataset.theme = theme;
+
+    // найдём все тумблеры с data-role="theme-switch"
+    document.querySelectorAll('[data-role="theme-switch"]').forEach(sw => {
+      const isLight = (document.documentElement.dataset.theme === 'light');
+      sw.setAttribute('aria-pressed', isLight ? 'true' : 'false');
+
+      sw.addEventListener('click', () => {
+        const cur = document.documentElement.dataset.theme === 'light' ? 'light' : 'dark';
+        const next = (cur === 'light') ? 'dark' : 'light';
+        AppState.applyTheme(next);                  // сохраняем и ставим data-theme
+        // визуально обновим все тумблеры на странице
+        document.querySelectorAll('[data-role="theme-switch"]')
+          .forEach(x => x.setAttribute('aria-pressed', next === 'light' ? 'true' : 'false'));
+      });
+    });
+  });
+</script>
+
 
   <script>
 
@@ -592,40 +658,6 @@ body.light .tab.active{
   const $ = s => document.querySelector(s);
   function fmtDate(iso){ try{ const d=new Date(iso+'T00:00:00'); return d.toLocaleDateString('ru-RU'); }catch(_){ return iso||'—'; } }
   function clamp(n,min,max){ return Math.max(min, Math.min(max,n)); }
-
-  function dateISO(d){ const x=d||new Date(); const y=x.getFullYear(); const m=String(x.getMonth()+1).padStart(2,'0'); const dd=String(x.getDate()).padStart(2,'0'); return y+'-'+m+'-'+dd; }
-
-  async function getDoseByDate(iso){
-    // API preferred
-    try{
-      const r = await api('/api/intake?date=' + encodeURIComponent(iso));
-      if(r.ok){
-        const j = await r.json();
-        if (j && j.mg != null) return Number(j.mg)||0;
-      }
-    }catch(_){}
-    // Fallback: localStorage diaryByDate
-    try{
-      const map = JSON.parse(localStorage.getItem('diaryByDate')||'{}');
-      if (map && map[iso] && map[iso].doseMg != null) return Number(map[iso].doseMg)||0;
-    }catch(_){}
-    return 0;
-  }
-
-  async function getPlanDailyMg(){
-    // API preferred
-    try{
-      const r = await api('/api/plan/me');
-      if(r.ok){ const j=await r.json(); if(j && j.dailyMg != null) return Number(j.dailyMg)||0; }
-    }catch(_){}
-    // Fallback: localStorage coursePlan.dailyMg
-    try{
-      const plan = JSON.parse(localStorage.getItem('coursePlan')||'{}');
-      if(plan && plan.dailyMg != null) return Number(plan.dailyMg)||0;
-    }catch(_){}
-    return null; // нет плана
-  }
-
 
   function populate(){
     $('#userName').textContent = STATE.name || 'Профиль';
@@ -651,8 +683,7 @@ body.light .tab.active{
 
     $('#allergies').textContent = STATE.allergies || 'Не указаны';
     $('#today').textContent = (STATE.todayMg||0) + ' мг';
-    $('#yesterday').textContent = (STATE.yesterdayMg!=null?STATE.yesterdayMg:0) + ' мг';
-    $('#tomorrow').textContent = (STATE.tomorrowPlanMg!=null?STATE.tomorrowPlanMg + ' мг':'—');
+    $('#lastDose').textContent = (STATE.lastDoseMg||0) + ' мг';
 
     const doc = STATE.doctor||{}; $('#doctorMeta').textContent = [doc.name, doc.clinic, doc.phone].filter(Boolean).join(' • ');
 
@@ -773,24 +804,6 @@ body.light .tab.active{
 
   // 4) Только теперь отрисовываем UI
   populate();
-
-  // --- Pull doses by date (today/yesterday) + plan for tomorrow ---
-  try{
-    const todayISO = dateISO(new Date());
-    const yestISO  = dateISO(new Date(Date.now()-864e5));
-    const [tMg, yMg, tPlan] = await Promise.all([
-      getDoseByDate(todayISO),
-      getDoseByDate(yestISO),
-      getPlanDailyMg()
-    ]);
-    STATE.todayMg = Number(tMg)||0;
-    STATE.yesterdayMg = Number(yMg)||0;
-    STATE.tomorrowPlanMg = (tPlan!=null ? Number(tPlan) : null);
-
-    // reflect to UI and recompute ring/meta
-    populate();
-  }catch(_){}
-
 })();
 
   // ======= Theme toggle =======
@@ -1175,6 +1188,31 @@ body.light .tab.active{
     document.body.classList.toggle('light', t === 'light');
     document.documentElement.setAttribute('data-theme', t);
     if(!silent){ document.dispatchEvent(new CustomEvent('themechange', {detail:t})); }
+  }
+})();
+</script>
+
+
+<script>
+// Enhance "Дневник состояния" block: stronger CTA + richer description
+(function(){
+  const wrap = document.querySelector('.diary');
+  if(!wrap) return;
+  wrap.classList.add('is-cta');
+  // title/desc
+  const title = wrap.querySelector('.diary-title') || wrap.querySelector('div > div[style*="font-weight"]') || wrap.firstElementChild?.firstElementChild;
+  const desc  = wrap.querySelector('.diary-desc')  || wrap.querySelector('.muted');
+  if (title && !title.classList.contains('diary-title')) title.classList.add('diary-title');
+  if (desc){
+    if (!desc.classList.contains('diary-desc')) desc.classList.add('diary-desc');
+    desc.innerHTML = 'Отслеживайте самочувствие, сухость кожи/губ, настроение. Добавляйте <b>фотографии лица/тела</b> и короткие <b>заметки</b>.';
+  }
+  // CTA button
+  const btn = wrap.querySelector('a.btn.primary');
+  if (btn){
+    btn.classList.add('cta');
+    btn.setAttribute('href','diary.html');
+    btn.setAttribute('data-vt-link','');
   }
 })();
 </script>

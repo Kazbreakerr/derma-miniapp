@@ -1,0 +1,101 @@
+
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Mood • PixiJS (slider below)</title>
+<style>
+  :root{ --bg:#F2F5F7; --text:#0B1220; --muted:#5B6B76; --card:#ffffff; --border:#e6e8ea; }
+  *{box-sizing:border-box}
+  body{ margin:0; font:16px/1.45 Inter, system-ui, Arial, sans-serif; background:var(--bg); color:var(--text); }
+  .wrap{ max-width:420px; margin:0 auto; padding:20px }
+  .card{ background:var(--card); border:1px solid var(--border); border-radius:20px; padding:18px; box-shadow:0 10px 26px rgba(0,0,0,.08) }
+  .title{ text-align:center; font-weight:800; margin:8px 0 12px }
+  .stage{ position:relative; width:100%; aspect-ratio:1/1; border-radius:18px; overflow:hidden; background:radial-gradient(800px 500px at 50% -30%, rgba(0,0,0,.05), transparent) }
+  #gl{ position:absolute; inset:0 }
+  .label{ text-align:center; font-weight:800; margin-top:10px }
+  .sliderBox{ margin-top:16px }
+  .scale{ font-size:12px; color:var(--muted); display:flex; justify-content:space-between }
+  input[type=range]{ -webkit-appearance:none; width:100%; height:12px; border-radius:999px; outline:none; background:linear-gradient(90deg, #6D7AFD, #22C55E 50%, #FF9D5C) }
+  input[type=range]::-webkit-slider-thumb{ -webkit-appearance:none; width:28px; height:28px; border-radius:50%; background:#fff; border:2px solid #0002; box-shadow:0 6px 16px rgba(0,0,0,.20) }
+  .btn{ margin-top:18px; width:100%; padding:14px 16px; font-weight:800; border:0; border-radius:14px; background:#16C271; color:white; }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div class="title">Choose how you're feeling right now</div>
+  <div class="card">
+    <div class="stage"><canvas id="gl"></canvas></div>
+    <div class="label" id="state">Neutral</div>
+    <div class="sliderBox">
+      <input id="range" type="range" min="0" max="100" value="50" step="1">
+      <div class="scale"><span>VERY UNPLEASANT</span><span>VERY PLEASANT</span></div>
+    </div>
+    <button class="btn" id="save">Next</button>
+  </div>
+</div>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/pixi.js/7.4.0/pixi.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/pixi-filters/5.3.1/filters.min.js"></script>
+<script>
+const W=400,H=400;
+const app = new PIXI.Application({ view: document.getElementById('gl'), width: W, height: H, backgroundAlpha: 0, antialias:true });
+const stage = app.stage;
+function hue(v){ return 260 + (25-260)*(v/100) }
+
+// glow bg
+const glow = new PIXI.Container(); stage.addChild(glow);
+function drawGlow(hueVal){
+  glow.removeChildren();
+  const cx=W/2, cy=H/2, r=Math.min(cx,cy)*0.9;
+  for(let i=0;i<120;i++){
+    const t = i/120;
+    const g = new PIXI.Graphics();
+    g.beginFill(PIXI.utils.string2hex(`hsl(${hueVal},95%,60%)`), 0.45*(1-t));
+    g.drawCircle(cx,cy, r*(1-t));
+    g.endFill();
+    glow.addChild(g);
+  }
+}
+
+// layers
+const layers=[]; const L=5;
+for(let i=0;i<L;i++){ const g=new PIXI.Graphics(); stage.addChild(g); layers.push(g); }
+stage.filters = [new PIXI.filters.AdvancedBloomFilter({threshold:0.6, bloomScale:1.1, brightness:1.05, blur:4, quality:6})];
+
+let val=50, phase=0;
+const range = document.getElementById('range');
+const state = document.getElementById('state');
+function txt(v){
+  const a=["Very Unpleasant","Unpleasant","Slightly Unpleasant","Neutral","Slightly Pleasant","Pleasant","Very Pleasant"];
+  return a[Math.min(6,Math.max(0,Math.round(v/100*6)))];
+}
+function draw(){
+  const h = hue(val); drawGlow(h);
+  const smooth = val/100;
+  const PETALS = 5;
+  const BASE = 45;
+  const AMP = 0.45 + (1-smooth)*0.4;
+  for(let i=0;i<L;i++){
+    const g = layers[i];
+    const R = BASE + i*28;
+    const a = AMP*(1 - i*0.14);
+    const points = 240;
+    g.clear();
+    g.lineStyle(9 - i*1.2, PIXI.utils.string2hex(`hsl(${h},85%,${80 - i*6}%)`), 1);
+    let first=true;
+    for(let k=0;k<=points;k++){
+      const t=k/points * Math.PI*2;
+      const r = R*(1 + a*Math.sin(PETALS*t + phase*0.8)*(1 - 0.15*Math.sin(t*0.5 + phase*0.5)));
+      const x=W/2 + r*Math.cos(t), y=H/2 + r*Math.sin(t);
+      if(first){ g.moveTo(x,y); first=false; } else { g.lineTo(x,y); }
+    }
+    g.closePath();
+  }
+}
+app.ticker.add((dt)=>{ phase += dt/40; draw(); });
+range.addEventListener('input', e=>{ val=+e.target.value; state.textContent = txt(val); });
+state.textContent = txt(val); draw();
+</script>
+</body>
+</html>

@@ -1,4 +1,31 @@
 <!doctype html><html lang="ru"><head><meta charset="utf-8"/>
+
+<script src="js/app-state.js"></script>
+<script>
+  // Инициализация всех переключателей темы на странице
+  document.addEventListener('DOMContentLoaded', () => {
+    const settings = AppState.get('settings') || {};
+    const theme = (settings.theme === 'light') ? 'light' : 'dark';
+    document.documentElement.dataset.theme = theme;
+
+    // найдём все тумблеры с data-role="theme-switch"
+    document.querySelectorAll('[data-role="theme-switch"]').forEach(sw => {
+      const isLight = (document.documentElement.dataset.theme === 'light');
+      sw.setAttribute('aria-pressed', isLight ? 'true' : 'false');
+
+      sw.addEventListener('click', () => {
+        const cur = document.documentElement.dataset.theme === 'light' ? 'light' : 'dark';
+        const next = (cur === 'light') ? 'dark' : 'light';
+        AppState.applyTheme(next);                  // сохраняем и ставим data-theme
+        // визуально обновим все тумблеры на странице
+        document.querySelectorAll('[data-role="theme-switch"]')
+          .forEach(x => x.setAttribute('aria-pressed', next === 'light' ? 'true' : 'false'));
+      });
+    });
+  });
+</script>
+
+
 <script>
   /* Гейт: без согласия — обратно на warnings (сохраняем ?tg) */
   (function(){
@@ -17,39 +44,108 @@
 <title>Roaccutane Tracker - План Курса</title>
 <script src="https://telegram.org/js/telegram-web-app.js"></script>
 <script>window.API_BASE=window.API_BASE||'';</script>
+
+<link rel="stylesheet" href="css/ui-tokens.css">
+<script>
+  try{
+    const s = JSON.parse(localStorage.getItem('rt.settings')||'{}');
+    document.documentElement.dataset.theme = s?.theme || 'dark';
+  }catch(e){ document.documentElement.dataset.theme = 'dark'; }
+</script>
+
 <style>
 :root{
   --bg:#0B1220;--surface:#0E1726;--card:#121C2E;--border:#1F2A3C;
   --primary:#14B8A6;--text-high:#F3F7FF;--text-low:#93A3BF;--info:#60A5FA;--focus-ring:#93C5FD;
   --accent:#22D3EE;--accent-2:#14B8A6;--danger:#EF4444;
+  --neo-dark: rgba(0,0,0,.65);      /* внешняя тень */
+  --neo-light: rgba(255,255,255,.06); /* верхний хайлайт */
 }
 *{box-sizing:border-box}html,body{height:100%}
-body{margin:0;background:var(--bg);color:var(--text-high);
-     font-family:ui-sans-serif,system-ui,-apple-system,Segoe UI,Roboto,Inter,Manrope,Helvetica,Arial;font-size:16px;line-height:1.5}
+body{
+  margin:0;color:var(--text-high);
+  font-family:ui-sans-serif,system-ui,-apple-system,Segoe UI,Roboto,Inter,Manrope,Helvetica,Arial;
+  font-size:16px;line-height:1.5;
+  background:
+    radial-gradient(1100px 1400px at 8% -10%, rgba(32, 196, 181, .18) 0%, rgba(11,18,32,0) 55%),
+    radial-gradient(1200px 1000px at 100% 0%, rgba(96, 165, 250, .16) 0%, rgba(11,18,32,0) 60%),
+    radial-gradient(1000px 1200px at 90% 100%, rgba(126, 71, 196, .16) 0%, rgba(11,18,32,0) 60%),
+    linear-gradient(180deg, #0B1220 0%, #0E1726 100%);
+  background-attachment:fixed,fixed,fixed,fixed;
+}
 .wrap{max-width:900px;margin:0 auto;padding:24px 24px 40px}
-h1{font-size:28px;line-height:34px;margin:0 0 16px;font-weight:600;text-align:center}
-.card{position:relative;background:var(--card);border:1px solid var(--border);border-radius:16px;padding:20px;
-      box-shadow:0 8px 24px rgba(0,0,0,.35)}
+h1{font-size:28px;line-height:34px;margin:0 0 16px;font-weight:800;text-align:center}
+.card{
+  position:relative;
+  background:
+    radial-gradient(120% 160% at 15% 0%, rgba(20,184,166,.10) 0%, rgba(18,28,46,0) 60%),
+    linear-gradient(180deg, #142034 0%, #0F1A2B 55%, #0D1727 100%);
+  border:1px solid rgba(255,255,255,.06);
+  border-radius:20px;
+  padding:26px;
+  box-shadow:
+    12px 18px 36px var(--neo-dark),
+    -6px -6px 14px var(--neo-light),
+    inset 0 1px 0 rgba(255,255,255,.03);
+  overflow:hidden;
+  transform:translateY(2px) scale(.985);
+  opacity:1;
+  animation:pop .18s ease-out both;
+}
 .glow{position:absolute;inset:0;pointer-events:none;
-      background:radial-gradient(120% 120% at 10% 0%, rgba(20,184,166,.18) 0%, rgba(18,28,46,0) 50%)}
+  background:
+    radial-gradient(80% 120% at 12% 0%, rgba(20,184,166,.14) 0%, rgba(18,28,46,0) 60%),
+    radial-gradient(65% 90% at 100% 0%, rgba(96,165,250,.10) 0%, rgba(18,28,46,0) 65%);
+}
 .title{display:flex;gap:12px;align-items:center;margin-bottom:12px}
 .title h2{margin:0;font-size:22px;line-height:28px;font-weight:600}
 .row{display:flex;flex-wrap:wrap;gap:12px;align-items:center}
 .muted{color:var(--text-low)}.field{display:flex;flex-direction:column;gap:6px}.inline{display:flex;gap:12px;flex-wrap:wrap;align-items:flex-start}
 label{display:inline-flex;gap:8px;align-items:center}
 input[type=number],input[type=date],input[type=time],select{
-  background:var(--surface);border:1px solid var(--border);color:var(--text-high);
-  border-radius:12px;padding:10px 12px;font-size:16px;line-height:24px;outline:none
+  background:linear-gradient(180deg,#101A2C 0%, #0E1726 100%);
+  border:1px solid rgba(255,255,255,.06);
+  color:var(--text-high);
+  border-radius:14px;
+  padding:12px 14px;
+  font-size:16px;line-height:24px;outline:none;
+  box-shadow:
+    inset 6px 6px 12px rgba(0,0,0,.35),
+    inset -6px -6px 12px rgba(255,255,255,.04),
+    0 1px 0 rgba(255,255,255,.08);
 }
-input:focus,select:focus{border-color:#0EA5A6;box-shadow:0 0 0 2px var(--focus-ring)}
+input:focus,select:focus{border-color:#0EA5A6;box-shadow:0 0 0 3px var(--focus-ring)}
 input[disabled]{opacity:.6;cursor:not-allowed}
 /* подсветка ошибки даты */
 .input-error{border-color:var(--danger)!important;box-shadow:0 0 0 2px rgba(239,68,68,.35)!important}
 
-.cta{height:48px;padding:0 20px;border-radius:12px;border:none;font-weight:600;cursor:pointer;
-     background-image:linear-gradient(135deg,#22D3EE 0%,#14B8A6 100%);color:#07121F;box-shadow:0 6px 16px rgba(0,0,0,.25)}
+.cta{
+  height:50px;padding:0 26px;border-radius:999px;border:0;cursor:pointer;
+  font-weight:800;letter-spacing:.2px;
+  color:#061821;
+  background-image:linear-gradient(135deg,#22D3EE 0%, #14B8A6 30%, #60A5FA 65%, #A78BFA 100%);
+  box-shadow:
+    0 14px 28px rgba(8, 19, 33, .6),
+    0 6px 12px rgba(20, 184, 166, .28),
+    inset 0 1px 0 rgba(255,255,255,.22);
+  transition:transform .12s ease, box-shadow .12s ease, filter .12s ease;
+}
+.cta:hover{ transform:translateY(-1px); filter:saturate(1.05); box-shadow:
+    0 20px 36px rgba(8, 19, 33, .66),
+    0 10px 18px rgba(20, 184, 166, .32),
+    inset 0 1px 0 rgba(255,255,255,.26); }
+.cta:active{ transform:translateY(0); box-shadow:
+    0 10px 18px rgba(8, 19, 33, .58),
+    0 4px 10px rgba(20, 184, 166, .28),
+    inset 0 3px 10px rgba(0,0,0,.25); }
 footer{margin:24px 0 8px;color:var(--text-low);text-align:center;font-size:13px}
-.rec{background:#0e1524;border:1px solid #1f2a3c;border-radius:12px;padding:14px}
+.rec{
+  background:linear-gradient(180deg,#0F1A2B 0%, #0D1727 100%);
+  border:1px solid rgba(255,255,255,.06);
+  border-radius:14px;
+  padding:14px;
+  box-shadow: inset 0 1px 0 rgba(255,255,255,.03);
+}
 .rec h3{margin:0 0 8px;font-size:18px}
 
 /* плашка-комментарий у даты */
@@ -69,7 +165,7 @@ footer{margin:24px 0 8px;color:var(--text-low);text-align:center;font-size:13px}
   cursor:pointer;user-select:none;transition:all .15s ease-out;box-shadow:0 6px 16px rgba(0,0,0,.25);
 }
 .pill-switch:hover{ border-color:#4C78A8 }
-.pill-switch:focus-visible{ outline:none; box-shadow:0 0 0 2px var(--focus-ring),0 0 0 6px rgba(11,18,32,.9) }
+.pill-switch:focus-visible{ outline:none; box-shadow:0 0 0 3px var(--focus-ring),0 0 0 6px rgba(11,18,32,.9) }
 .pill-switch .dot{
   position:relative;width:22px;height:22px;border-radius:999px;background:transparent;
   border:3px solid #7AA2FF;box-shadow:0 0 0 1px #2a405e;transition:transform .15s ease-out, background .15s, border-color .15s;
@@ -82,17 +178,56 @@ footer{margin:24px 0 8px;color:var(--text-low);text-align:center;font-size:13px}
 .pill-switch[aria-pressed="true"] .dot{background:#fff;border-color:#fff;box-shadow:0 0 0 1px rgba(0,0,0,.25) inset;transform:translateX(2px)}
 
 /* Кнопка-колокольчик */
-.bell{display:inline-flex;align-items:center;gap:10px;padding:10px 12px;border-radius:12px;border:1px solid #315072;
-  background:linear-gradient(180deg,#132034,#0e1626);color:#EAF2FF;font-weight:800;cursor:pointer;transition:all .15s ease-out;}
+.bell{
+  display:inline-flex;align-items:center;gap:8px;
+  height:42px; padding:0 14px;
+  border-radius:999px;border:1px solid rgba(255,255,255,.08);
+  background:linear-gradient(180deg,#132034 0%,#0E1626 100%);
+  color:#EAF2FF;font-weight:800;cursor:pointer;
+  box-shadow: 8px 10px 18px rgba(0,0,0,.35), -4px -4px 10px rgba(255,255,255,.05);
+  transition:all .15s ease-out;
+}
 .bell svg{width:18px;height:18px;stroke:currentColor}
 .bell:hover{ border-color:#4C78A8 }
-.bell[data-on="1"]{border-color:#60A5FA;background:linear-gradient(135deg,#1D4ED8,#3B82F6);color:#E6F0FF}
+.bell[data-on="1"]{border-color:#60A5FA;background:linear-gradient(135deg,#1D4ED8 0%, #3B82F6 50%, #60A5FA 100%);color:#E6F0FF; box-shadow: 2px 6px 16px rgba(96,165,250,.35), -2px -2px 12px rgba(255,255,255,.08), inset 1px 1px 6px rgba(0,0,0,.2);}
 .bell[data-on="1"] svg{ color:#E6F0FF }
 
 /* служебные */
 .tip{font-size:13px;color:var(--text-low);margin-top:6px}
 .motto{font-size:14px;color:#c4d6ff;margin:6px 0 10px;font-style:italic}
-</style></head>
+
+/* тонкий «noise», как на референсном фоне, чтобы убрать бэндинг */
+body::before{
+  content:""; position:fixed; inset:0; pointer-events:none; opacity:.06;
+  background-image:url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><filter id='n'><feTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='1' stitchTiles='stitch'/></filter><rect width='100%' height='100%' filter='url(%23n)'/></svg>");
+  mix-blend-mode:overlay;
+}
+</style>
+  <!-- /* THEME_REDIRECT_INSERTED */ -->
+  <script>
+    (function() {
+      var CURRENT = "dark";
+      var COUNTERPART = "./plan-light.html";
+      function go(target){ var qs = location.search || ""; location.replace(target + qs); }
+      function ready(fn){ if(document.readyState !== 'loading') fn(); else document.addEventListener('DOMContentLoaded', fn); }
+      ready(function(){
+        try{ AppState.applyTheme(CURRENT); }catch(_){
+          document.documentElement.dataset.theme = CURRENT;
+        }
+        document.documentElement.dataset.theme = CURRENT;
+        document.querySelectorAll('[data-role="theme-switch"]').forEach(function(sw){
+          sw.setAttribute('aria-pressed', CURRENT === 'light' ? 'true' : 'false');
+          sw.addEventListener('click', function(e){
+            e.preventDefault();
+            try{ AppState.applyTheme(CURRENT === 'light' ? 'dark' : 'light'); }catch(_){}
+            go(COUNTERPART);
+          });
+        });
+      });
+    })();
+  </script>
+
+</head>
 <body>
 <div class="wrap">
   <h1>Roaccutane Tracker</h1>

@@ -2,6 +2,33 @@
 <html lang="ru">
 <head>
   <meta charset="utf-8" />
+
+<script src="js/app-state.js"></script>
+<script>
+  // Инициализация всех переключателей темы на странице
+  document.addEventListener('DOMContentLoaded', () => {
+    const settings = AppState.get('settings') || {};
+    const theme = (settings.theme === 'light') ? 'light' : 'dark';
+    document.documentElement.dataset.theme = theme;
+
+    // найдём все тумблеры с data-role="theme-switch"
+    document.querySelectorAll('[data-role="theme-switch"]').forEach(sw => {
+      const isLight = (document.documentElement.dataset.theme === 'light');
+      sw.setAttribute('aria-pressed', isLight ? 'true' : 'false');
+
+      sw.addEventListener('click', () => {
+        const cur = document.documentElement.dataset.theme === 'light' ? 'light' : 'dark';
+        const next = (cur === 'light') ? 'dark' : 'light';
+        AppState.applyTheme(next);                  // сохраняем и ставим data-theme
+        // визуально обновим все тумблеры на странице
+        document.querySelectorAll('[data-role="theme-switch"]')
+          .forEach(x => x.setAttribute('aria-pressed', next === 'light' ? 'true' : 'false'));
+      });
+    });
+  });
+</script>
+
+
   <!-- ГЕЙТ: без согласия показываем предупреждения -->
   <script>
   (function(){
@@ -20,6 +47,16 @@
   <title>Roaccutane Tracker </title>
   <script src="https://telegram.org/js/telegram-web-app.js"></script>
   <script>window.API_BASE = window.API_BASE || '';</script>
+
+<link rel="stylesheet" href="css/ui-tokens.css">
+<script>
+  try{
+    const s = JSON.parse(localStorage.getItem('rt.settings')||'{}');
+    document.documentElement.dataset.theme = s?.theme || 'dark';
+  }catch(e){ document.documentElement.dataset.theme = 'dark'; }
+</script>
+
+
   <style>
     :root{
       --bg:#0B1220; --surface:#0E1726; --card:#121C2E; --border:#1F2A3C;
@@ -29,15 +66,41 @@
     }
     *{box-sizing:border-box}
     html,body{height:100%}
-    body{margin:0;background:var(--bg);color:var(--text-high);
-         font-family:ui-sans-serif,system-ui,-apple-system,Segoe UI,Roboto,Inter,Manrope,Helvetica,Arial;
-         font-size:16px;line-height:1.5}
+    body{
+  margin:0;color:var(--text-high);
+  font-family:ui-sans-serif,system-ui,-apple-system,Segoe UI,Roboto,Inter,Manrope,Helvetica,Arial;
+  font-size:16px;line-height:1.5;
+  background:
+    radial-gradient(1100px 1400px at 8% -10%, rgba(32, 196, 181, .18) 0%, rgba(11,18,32,0) 55%),
+    radial-gradient(1200px 1000px at 100% 0%, rgba(96, 165, 250, .16) 0%, rgba(11,18,32,0) 60%),
+    radial-gradient(1000px 1200px at 90% 100%, rgba(126, 71, 196, .16) 0%, rgba(11,18,32,0) 60%),
+    linear-gradient(180deg, #0B1220 0%, #0E1726 100%);
+  background-attachment:fixed,fixed,fixed,fixed;
+}
     .wrap{max-width:900px;margin:0 auto;padding:24px 24px 40px}
     h1{font-size:28px;line-height:34px;margin:0 0 16px;font-weight:600}
-    .card{position:relative;background:var(--card);border:1px solid var(--border);border-radius:16px;
-          padding:20px;box-shadow:0 8px 24px rgba(0,0,0,.35);overflow:hidden;transform:scale(.95);opacity:0;animation:pop .12s ease-out forwards}
+    .card{
+  position:relative;
+  background:
+    radial-gradient(120% 160% at 15% 0%, rgba(20,184,166,.10) 0%, rgba(18,28,46,0) 60%),
+    linear-gradient(180deg, #142034 0%, #0F1A2B 55%, #0D1727 100%);
+  border:1px solid rgba(255,255,255,.06);
+  border-radius:20px;
+  padding:26px;
+  box-shadow:
+    12px 18px 36px rgba(0,0,0,.65),
+    -6px -6px 14px rgba(255,255,255,.06),
+    inset 0 1px 0 rgba(255,255,255,.03);
+  overflow:hidden;
+  transform:translateY(2px) scale(.985);
+  opacity:1; animation:pop .18s ease-out both;
+}
     @keyframes pop {to{transform:scale(1);opacity:1}}
-    .glow{position:absolute;inset:0;pointer-events:none;background:radial-gradient(120% 120% at 10% 0%, rgba(20,184,166,.18) 0%, rgba(18,28,46,0) 50%)}
+    .glow{position:absolute;inset:0;pointer-events:none;
+  background:
+    radial-gradient(80% 120% at 12% 0%, rgba(20,184,166,.14) 0%, rgba(18,28,46,0) 60%),
+    radial-gradient(65% 90% at 100% 0%, rgba(96,165,250,.10) 0%, rgba(18,28,46,0) 65%);
+}
     .title{display:flex;align-items:center;gap:12px;margin-bottom:12px}
     .title h2{font-size:22px;line-height:28px;margin:0;font-weight:600}
     .row{display:flex;flex-wrap:wrap;gap:12px;align-items:center}
@@ -49,16 +112,38 @@
     .field{display:flex;flex-direction:column;gap:6px}
     .inline{display:flex;gap:12px;flex-wrap:wrap}
     input[type="number"],input[type="date"],input[type="text"],select{
-      background:var(--surface);border:1px solid var(--border);color:var(--text-high);
-      border-radius:12px;padding:10px 12px;font-size:16px;line-height:24px; font-variant-numeric: tabular-nums;
-      outline: none;
-    }
+  background:linear-gradient(180deg,#101A2C 0%, #0E1726 100%);
+  border:1px solid rgba(255,255,255,.06);
+  color:var(--text-high);
+  border-radius:14px;
+  padding:12px 14px;
+  font-size:16px; line-height:24px; outline:none;
+  box-shadow:
+    inset 6px 6px 12px rgba(0,0,0,.35),
+    inset -6px -6px 12px rgba(255,255,255,.04),
+    0 1px 0 rgba(255,255,255,.08);
+}
     input:focus,select:focus,textarea:focus{border-color:var(--primary-700);box-shadow:0 0 0 2px var(--focus-ring)}
     .chips{display:flex;gap:16px;flex-wrap:wrap}
     .checklist{display:grid;grid-template-columns:repeat(auto-fit,minmax(230px,1fr));gap:10px;margin-top:4px}
-    .cta{height:48px;padding:0 20px;border-radius:12px;border:none;font-weight:600;cursor:pointer;
-         background-image:linear-gradient(135deg,#22D3EE 0%, #14B8A6 100%); color:#07121F;
-         box-shadow:0 6px 16px rgba(0,0,0,.25)}
+    .cta{
+  height:50px;padding:0 26px;border-radius:999px;border:0;cursor:pointer;
+  font-weight:800;letter-spacing:.2px;color:#061821;
+  background-image:linear-gradient(135deg,#22D3EE 0%, #14B8A6 30%, #60A5FA 65%, #A78BFA 100%);
+  box-shadow:
+    0 14px 28px rgba(8, 19, 33, .6),
+    0 6px 12px rgba(20, 184, 166, .28),
+    inset 0 1px 0 rgba(255,255,255,.22);
+  transition:transform .12s ease, box-shadow .12s ease, filter .12s ease;
+}
+.cta:hover{ transform:translateY(-1px); filter:saturate(1.05); box-shadow:
+    0 20px 36px rgba(8, 19, 33, .66),
+    0 10px 18px rgba(20, 184, 166, .32),
+    inset 0 1px 0 rgba(255,255,255,.26); }
+.cta:active{ transform:translateY(0); box-shadow:
+    0 10px 18px rgba(8, 19, 33, .58),
+    0 4px 10px rgba(20, 184, 166, .28),
+    inset 0 3px 10px rgba(0,0,0,.25); }
     .cta:disabled{opacity:.5;background-image:none;background:#1F2A3C;cursor:not-allowed;color:#AEB6C8}
     footer{margin:24px 0 8px;color:var(--text-low);text-align:center;font-size:13px}
     .badge{display:inline-flex;align-items:center;gap:6px;padding:4px 10px;border-radius:999px;font-size:12px;
@@ -69,7 +154,70 @@
     .back{display:inline-flex;align-items:center;gap:8px;padding:8px 12px;border-radius:10px;border:1px solid var(--border);background:var(--surface);color:var(--text-high);cursor:pointer}
     .back:hover{border-color:#2a3a52}
 
-  </style>
+  
+/* dark neo controls */
+input[type="checkbox"], input[type="radio"]{
+  -webkit-appearance:none; appearance:none;
+  inline-size:22px; block-size:22px; border-radius:50%;
+  background: linear-gradient(180deg,#121E34 0%,#0F192B 100%);
+  border:1px solid rgba(255,255,255,.08);
+  box-shadow: 3px 4px 10px rgba(0,0,0,.35), -3px -3px 10px rgba(255,255,255,.06);
+  display:inline-grid; place-items:center; position:relative;
+  transition: transform .12s ease, box-shadow .12s ease, background .2s ease, border-color .2s ease;
+}
+input[type="checkbox"]:hover, input[type="radio"]:hover{
+  box-shadow: 6px 8px 16px rgba(0,0,0,.38), -6px -6px 16px rgba(255,255,255,.07);
+}
+input[type="checkbox"]::after{
+  content:""; width:10px; height:6px; border:2px solid transparent;
+  border-right-color:#0D1727; border-bottom-color:#0D1727; transform:rotate(45deg) scale(0);
+  transition: transform .18s ease;
+}
+input[type="radio"]::after{
+  content:""; width:10px; height:10px; border-radius:50%; background:#EAF1FF;
+  box-shadow:0 0 0 4px rgba(255,255,255,.08); transform:scale(0); transition:transform .18s ease;
+}
+input[type="checkbox"]:checked{
+  background-image:linear-gradient(135deg,#22D3EE 0%, #14B8A6 60%, #60A5FA 100%);
+  border-color: rgba(96,165,250,.55);
+  box-shadow: 2px 4px 10px rgba(96,165,250,.35), -2px -2px 8px rgba(255,255,255,.08), inset 2px 2px 6px rgba(0,0,0,.35);
+}
+input[type="checkbox"]:checked::after{ transform:rotate(45deg) scale(1); border-right-color:#fff; border-bottom-color:#fff; }
+input[type="radio"]:checked{
+  background-image:linear-gradient(135deg,#22D3EE 0%, #14B8A6 60%, #60A5FA 100%);
+  border-color: rgba(96,165,250,.55);
+  box-shadow: 2px 4px 10px rgba(96,165,250,.35), -2px -2px 8px rgba(255,255,255,.08), inset 2px 2px 6px rgba(0,0,0,.35);
+}
+input[type="radio"]:checked::after{ transform:scale(1); }
+
+/* subtle noise to avoid banding */
+body::before{
+  content:""; position:fixed; inset:0; pointer-events:none; opacity:.06;
+  background-image:url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><filter id='n'><feTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='1' stitchTiles='stitch'/></filter><rect width='100%' height='100%' filter='url(%23n)'/></svg>");
+  mix-blend-mode:overlay;
+}
+</style>
+
+
+  <!-- /* THEME_REDIRECT_INSERTED */ -->
+  <script>
+    (function() {
+      var CURRENT="dark", COUNTERPART="./profile-light.html";
+      function go(t){ var qs=location.search||""; location.replace(t+qs); }
+      function ready(f){ if(document.readyState!=="loading") f(); else document.addEventListener('DOMContentLoaded', f); }
+      ready(function(){ 
+        try{ AppState.applyTheme(CURRENT); }catch(_){
+          document.documentElement.dataset.theme=CURRENT;
+        }
+        document.documentElement.dataset.theme=CURRENT;
+        document.querySelectorAll('[data-role="theme-switch"]').forEach(function(sw){
+          sw.setAttribute('aria-pressed', CURRENT==='light'?'true':'false');
+          sw.addEventListener('click', function(e){ e.preventDefault(); try{ AppState.applyTheme(CURRENT==='light'?'dark':'light'); }catch(_){}; go(COUNTERPART); });
+        });
+      });
+    })();
+  </script>
+
 </head>
 <body>
   <div class="wrap">

@@ -1,0 +1,290 @@
+/* Roaccutane Tracker — Unified Neumorphic Theme
+   - Depth similar to the provided reference (soft outer shadows + inner highlight)
+   - Light palette = existing plan/profile/warnings *light*
+   - Dark palette  = existing plan/profile/warnings *dark* (aurora)
+   - Works drop‑in with current markup: .card, .cta, .badge, .bell, .toggle-neo, .pill-switch, etc.
+   - Include AFTER page styles for consistent override, or replace page <style> with this.
+*/
+
+:root{
+  --radius-lg: 20px;
+  --radius-md: 14px;
+  --radius-sm: 12px;
+
+  --gap: 12px;
+
+  /* Accent ramp (kept from app) */
+  --accent-teal: #14B8A6;
+  --accent-teal-300:#5EEAD4;
+  --accent-blue: #60A5FA;
+  --accent-indigo:#4F46E5;
+  --accent-violet:#A78BFA;
+
+  /* Feedback */
+  --danger:#EF4444;
+  --warning:#F59E0B;
+  --info:#2563EB;
+}
+
+/* ======================  LIGHT THEME  ====================== */
+html[data-theme="light"]{
+  --bg:#F9FBFF;
+  --surface:#FFFFFF;
+  --text-high:#0B1220;
+  --text-mid:#354562;
+  --text-low:#6B778C;
+  --border: rgba(10,16,28,.08);
+  --ring-shadow: rgba(17, 24, 39, .10);
+  --neo-dark: rgba(26, 31, 44, .10);    /* outer shadow */
+  --neo-light: rgba(255, 255, 255, .9); /* top highlight */
+}
+html[data-theme="light"] body{
+  background:
+    radial-gradient(1200px 900px at 0% 0%, rgba(255, 214, 186, .55) 0%, rgba(255, 214, 186, 0) 70%),
+    radial-gradient(1400px 1000px at 100% 0%, rgba(220, 206, 255, .55) 0%, rgba(220, 206, 255, 0) 72%),
+    radial-gradient(1200px 900px at 100% 100%, rgba(186, 243, 210, .45) 0%, rgba(186, 243, 210, 0) 72%),
+    linear-gradient(180deg, #FAFEFF 0%, #FFF7F3 48%, #F8F1FF 100%);
+  background-attachment:fixed,fixed,fixed,fixed;
+}
+html[data-theme="light"] body::before{
+  content:""; position:fixed; inset:0; pointer-events:none;
+  background-image:url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><filter id='n'><feTurbulence type='fractalNoise' baseFrequency='0.75' numOctaves='2' stitchTiles='stitch'/></filter><rect width='100%' height='100%' filter='url(%23n)' opacity='0.06'/></svg>");
+  opacity:.04; mix-blend-mode:overlay;
+}
+
+/* ======================  DARK THEME  ======================= */
+html[data-theme="dark"]{
+  --bg:#0B1220;
+  --surface:#0E1726;
+  --text-high:#F3F7FF;
+  --text-mid:#C7D2FE;
+  --text-low:#93A3BF;
+  --border: rgba(255,255,255,.08);
+  --ring-shadow: rgba(0,0,0,.55);
+  --neo-dark: rgba(0,0,0,.65);
+  --neo-light: rgba(255,255,255,.06);
+}
+html[data-theme="dark"] body{
+  background:
+    radial-gradient(1100px 1400px at 8% -10%, rgba(32, 196, 181, .18) 0%, rgba(11,18,32,0) 55%),
+    radial-gradient(1200px 1000px at 100% 0%, rgba(96, 165, 250, .16) 0%, rgba(11,18,32,0) 60%),
+    radial-gradient(1000px 1200px at 90% 100%, rgba(126, 71, 196, .16) 0%, rgba(11,18,32,0) 60%),
+    linear-gradient(180deg, #0B1220 0%, #0E1726 100%);
+  background-attachment:fixed,fixed,fixed,fixed;
+}
+html[data-theme="dark"] body::before{
+  content:""; position:fixed; inset:0; pointer-events:none; opacity:.06;
+  background-image:url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><filter id='n'><feTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='1' stitchTiles='stitch'/></filter><rect width='100%' height='100%' filter='url(%23n)'/></svg>");
+  mix-blend-mode:overlay;
+}
+
+/* ======================  COMPONENTS  ======================= */
+
+/* Card — depth like the reference */
+:where(.card,.neo-card){
+  position:relative;
+  border-radius:var(--radius-lg);
+  padding:26px;
+  border:1px solid var(--border);
+  background:
+    radial-gradient(120% 160% at 15% 0%, color-mix(in oklab, var(--accent-teal) 18%, transparent) 0%, transparent 60%),
+    color-mix(in oklab, var(--surface) 98%, transparent 2%);
+  box-shadow:
+    12px 18px 36px var(--neo-dark),
+    -6px -6px 14px var(--neo-light),
+    inset 0 1px 0 color-mix(in oklab, #fff 6%, transparent);
+  overflow:hidden;
+  opacity:1; /* do not rely on animation */
+  animation:pop .18s ease-out both;
+}
+@keyframes pop{ from{transform:translateY(2px) scale(.985); opacity:.98} to{transform:none; opacity:1} }
+
+/* Soft ambient tint on cards */
+:where(.card,.neo-card) .glow{position:absolute; inset:0; pointer-events:none;
+  background:
+    radial-gradient(80% 120% at 12% 0%, color-mix(in oklab, var(--accent-teal) 16%, transparent) 0%, transparent 60%),
+    radial-gradient(65% 90% at 100% 0%, color-mix(in oklab, var(--accent-blue) 12%, transparent) 0%, transparent 65%);
+}
+
+/* Inputs (text/number/date/time/select) — neomorphic inset */
+:where(.card,.neo-card) input[type="number"],
+:where(.card,.neo-card) input[type="date"],
+:where(.card,.neo-card) input[type="time"],
+:where(.card,.neo-card) input[type="text"],
+:where(.card,.neo-card) select{
+  display:block; width:100%;
+  background:linear-gradient(180deg, color-mix(in oklab, var(--surface) 94%, #fff 6%) 0%,
+                                      color-mix(in oklab, var(--surface) 100%, #000 0%) 100%);
+  border:1px solid var(--border);
+  color:var(--text-high);
+  border-radius:var(--radius-md);
+  padding:12px 14px;
+  font-size:16px; line-height:24px; outline:none;
+  box-shadow:
+    inset 6px 6px 12px color-mix(in oklab, #000 35%, transparent),
+    inset -6px -6px 12px color-mix(in oklab, #fff 8%, transparent),
+    0 1px 0 color-mix(in oklab, #fff 8%, transparent);
+}
+:where(.card,.neo-card) input:focus,
+:where(.card,.neo-card) select:focus{
+  border-color:color-mix(in oklab, var(--accent-blue) 55%, var(--border));
+  box-shadow:0 0 0 3px color-mix(in oklab, var(--accent-teal-300) 60%, transparent);
+}
+
+/* Pill CTA — gradient + depth */
+.cta{
+  height:50px; padding:0 26px; border-radius:999px; border:0; cursor:pointer;
+  font-weight:800; letter-spacing:.2px;
+  color:#061821;
+  background-image:linear-gradient(135deg, var(--accent-teal-300) 0%, var(--accent-teal) 30%, var(--accent-blue) 65%, var(--accent-violet) 100%);
+  box-shadow:
+    0 14px 28px color-mix(in oklab, #081321 60%, transparent),
+    0 6px 12px color-mix(in oklab, var(--accent-teal) 28%, transparent),
+    inset 0 1px 0 color-mix(in oklab, #fff 22%, transparent);
+  transition:transform .12s ease, box-shadow .12s ease, filter .12s ease;
+}
+.cta:hover{ transform:translateY(-1px); filter:saturate(1.05); box-shadow:
+    0 20px 36px color-mix(in oklab, #081321 66%, transparent),
+    0 10px 18px color-mix(in oklab, var(--accent-teal) 32%, transparent),
+    inset 0 1px 0 color-mix(in oklab, #fff 26%, transparent); }
+.cta:active{ transform:translateY(0); box-shadow:
+    0 10px 18px color-mix(in oklab, #081321 58%, transparent),
+    0 4px 10px color-mix(in oklab, var(--accent-teal) 28%, transparent),
+    inset 0 3px 10px rgba(0,0,0,.25); }
+.cta:disabled{opacity:.6; filter:grayscale(.1); cursor:not-allowed}
+
+/* Back / secondary pill */
+.back{
+  display:inline-flex;align-items:center;gap:8px;
+  padding:10px 14px;border-radius:14px;border:0;cursor:pointer;
+  color:var(--text-high);
+  background:linear-gradient(180deg, color-mix(in oklab, var(--surface) 100%, #fff 0%) 0%, color-mix(in oklab, var(--surface) 94%, #000 6%) 100%);
+  box-shadow: 6px 6px 14px var(--neo-dark), -6px -6px 14px var(--neo-light);
+  transition:transform .12s ease, box-shadow .12s ease;
+}
+.back:hover{ transform:translateY(-1px); box-shadow:10px 10px 22px var(--neo-dark), -10px -10px 22px var(--neo-light); }
+
+/* Bell button (notification opt-in) */
+.bell{
+  display:inline-flex;align-items:center;gap:8px;
+  height:42px; padding:0 14px;border-radius:999px;border:1px solid var(--border);
+  background:linear-gradient(180deg, color-mix(in oklab, var(--surface) 100%, #fff 0%) 0%, color-mix(in oklab, var(--surface) 92%, #000 8%) 100%);
+  color:var(--text-mid);font-weight:800;cursor:pointer;
+  box-shadow: 6px 6px 14px var(--neo-dark), -6px -6px 14px var(--neo-light);
+  transition:all .15s ease-out;
+}
+.bell svg{width:18px;height:18px;stroke:currentColor}
+.bell[data-on="1"]{
+  border-color: color-mix(in oklab, var(--accent-blue) 55%, var(--border));
+  background-image:linear-gradient(135deg, #1D4ED8 0%, #3B82F6 50%, #60A5FA 100%);
+  color:#E6F0FF;
+  box-shadow: 2px 6px 16px color-mix(in oklab, var(--accent-blue) 35%, transparent), -2px -2px 12px color-mix(in oklab, #fff 8%, transparent), inset 1px 1px 6px rgba(0,0,0,.1);
+}
+
+/* Toggle — .toggle-neo input (used in warnings & settings) */
+.toggle-neo{ --h: 28px; --w: 54px; display:inline-block }
+.toggle-neo input{
+  -webkit-appearance:none; appearance:none;
+  width:var(--w); height:var(--h); border-radius:999px; cursor:pointer;
+  background:linear-gradient(180deg, color-mix(in oklab, var(--surface) 100%, #fff 0%) 0%, color-mix(in oklab, var(--surface) 92%, #000 8%) 100%);
+  border:1px solid var(--border);
+  box-shadow: 6px 6px 14px var(--neo-dark), -6px -6px 14px var(--neo-light);
+  position:relative; transition: all .18s ease; display:inline-block;
+}
+.toggle-neo input::before{
+  content:""; position:absolute; top:50%; left:4px; transform:translateY(-50%);
+  width:calc(var(--h) - 8px); height:calc(var(--h) - 8px); border-radius:50%;
+  background:linear-gradient(180deg, #FFFFFF 0%, color-mix(in oklab, #FFFFFF 80%, #E6ECFF 20%) 100%);
+  box-shadow: 4px 6px 10px color-mix(in oklab, #000 18%, transparent), -4px -4px 10px color-mix(in oklab, #fff 95%, transparent);
+  transition: left .18s ease, box-shadow .18s ease;
+}
+.toggle-neo input:checked{
+  background-image:linear-gradient(135deg, var(--accent-teal-300) 0%, var(--accent-blue) 55%, var(--accent-violet) 100%);
+  border-color: color-mix(in oklab, var(--accent-blue) 55%, var(--border));
+  box-shadow: 2px 6px 16px color-mix(in oklab, var(--accent-blue) 35%, transparent), -2px -2px 12px color-mix(in oklab, #fff 95%, transparent), inset 1px 1px 6px rgba(0,0,0,.1);
+}
+.toggle-neo input:checked::before{ left:calc(var(--w) - var(--h) + 4px) }
+.toggle-neo[data-size="sm"]{ --h: 24px; --w: 46px; }
+
+/* Round 3D checkboxes & radios */
+.checklist label{ gap:10px }
+.inline label{ gap:10px }
+input[type="checkbox"],input[type="radio"]{
+  -webkit-appearance:none; appearance:none;
+  inline-size:22px; block-size:22px; border-radius:50%;
+  background: linear-gradient(180deg, color-mix(in oklab, var(--surface) 100%, #fff 0%) 0%,
+                                      color-mix(in oklab, var(--surface) 92%, #000 8%) 100%);
+  border:1px solid var(--border);
+  box-shadow: 3px 4px 10px var(--neo-dark), -3px -3px 10px var(--neo-light);
+  display:inline-grid; place-items:center; position:relative;
+  transition: transform .12s ease, box-shadow .12s ease, background .2s ease, border-color .2s ease;
+}
+input[type="checkbox"]:hover, input[type="radio"]:hover{
+  box-shadow: 6px 8px 16px var(--neo-dark), -6px -6px 16px var(--neo-light);
+}
+input[type="checkbox"]::after{
+  content:""; width:10px; height:6px; border:2px solid transparent;
+  border-right-color:#fff; border-bottom-color:#fff;
+  transform:rotate(45deg) scale(0); transition: transform .18s ease;
+}
+input[type="radio"]::after{
+  content:""; width:10px; height:10px; border-radius:50%; background:#FFFFFF;
+  box-shadow: 0 0 0 4px rgba(255,255,255,.4); transform: scale(0); transition: transform .18s ease;
+}
+input[type="checkbox"]:checked,
+input[type="radio"]:checked{
+  background-image:linear-gradient(135deg, var(--accent-teal-300) 0%, var(--accent-blue) 55%, var(--accent-violet) 100%);
+  border-color: color-mix(in oklab, var(--accent-blue) 55%, var(--border));
+  box-shadow:
+    2px 4px 10px color-mix(in oklab, var(--accent-blue) 35%, transparent),
+    -2px -2px 8px color-mix(in oklab, #fff 90%, transparent),
+    inset 2px 2px 6px rgba(0,0,0,.12);
+}
+input[type="checkbox"]:checked::after{ transform:rotate(45deg) scale(1); }
+input[type="radio"]:checked::after{ transform: scale(1); }
+
+/* Pills / switches used in Plan */
+.pill-switch{
+  display:inline-flex;align-items:center;gap:12px; user-select:none; cursor:pointer;
+  padding:10px 14px;border-radius:999px;border:1px solid var(--border);
+  background:linear-gradient(180deg, color-mix(in oklab, var(--surface) 100%, #fff 0%) 0%, color-mix(in oklab, var(--surface) 92%, #000 8%) 100%);
+  color:var(--text-mid); font-weight:800; letter-spacing:.2px;
+  box-shadow: 6px 6px 14px var(--neo-dark), -6px -6px 14px var(--neo-light);
+  transition:all .15s ease-out;
+}
+.pill-switch .dot{
+  width:22px;height:22px;border-radius:999px;background:linear-gradient(180deg,#FFFFFF 0%, color-mix(in oklab,#FFFFFF 80%, #E6ECFF 20%) 100%);
+  border:1px solid var(--border);
+  box-shadow: 3px 4px 10px color-mix(in oklab, #000 18%, transparent), -3px -3px 10px color-mix(in oklab, #fff 95%, transparent);
+  transition:transform .15s ease, box-shadow .15s ease;
+}
+.pill-switch[aria-pressed="true"]{
+  background-image:linear-gradient(135deg, var(--accent-teal-300) 0%, var(--accent-blue) 55%, var(--accent-violet) 100%);
+  color:#052021; border-color: color-mix(in oklab, var(--accent-blue) 55%, var(--border));
+  box-shadow: 2px 6px 16px color-mix(in oklab, var(--accent-blue) 35%, transparent), -2px -2px 12px color-mix(in oklab, #fff 95%, transparent), inset 1px 1px 6px rgba(0,0,0,.1);
+}
+.pill-switch[aria-pressed="true"] .dot{
+  background:#FFFFFF; border-color:#FFFFFF; transform:translateX(2px);
+  box-shadow: inset 0 0 0 1px rgba(0,0,0,.12);
+}
+
+/* Recommended dose panel / list rows */
+.rec{ background:linear-gradient(180deg, color-mix(in oklab, var(--surface) 98%, #fff 2%) 0%, color-mix(in oklab, var(--surface) 96%, #000 4%) 100%);
+      border:1px solid var(--border); border-radius:var(--radius-md); padding:14px;
+      box-shadow: inset 0 1px 0 color-mix(in oklab, #fff 6%, transparent); }
+
+.row{ display:flex; gap:12px; padding:12px;
+      background:linear-gradient(180deg, color-mix(in oklab, var(--surface) 98%, #fff 2%) 0%, color-mix(in oklab, var(--surface) 94%, #000 6%) 100%);
+      border-top:1px solid var(--border); }
+
+/* Badge */
+.badge{
+  display:inline-flex;align-items:center;gap:8px;padding:6px 10px;border-radius:999px;
+  border:1px solid color-mix(in oklab, #FFDCCB 90%, var(--border));
+  color:var(--text-low);
+  background:linear-gradient(180deg, color-mix(in oklab,#FFF7F2 80%, var(--surface)) 0%, var(--surface) 70%);
+  box-shadow: inset 2px 2px 6px color-mix(in oklab, #fff 90%, transparent), inset -2px -2px 6px rgba(0,0,0,.04);
+}
+.badge.info{ border-color: color-mix(in oklab, #93C5FD 70%, var(--border)); color: color-mix(in oklab, var(--info) 70%, var(--text-low)); }
+.badge.warning{ border-color: color-mix(in oklab, #FBBF24 70%, var(--border)); color: color-mix(in oklab, var(--warning) 70%, var(--text-low)); }
+.badge.danger{ border-color: color-mix(in oklab, #FCA5A5 70%, var(--border)); color: #EF4444; }

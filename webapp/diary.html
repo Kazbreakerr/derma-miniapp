@@ -4,6 +4,74 @@
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1" />
 <title>Дневник — запись дня</title>
+
+
+
+<script src="js/app-state.js"></script>
+<script>
+  // Инициализация всех переключателей темы на странице
+  document.addEventListener('DOMContentLoaded', () => {
+    const settings = AppState.get('settings') || {};
+    const theme = (settings.theme === 'light') ? 'light' : 'dark';
+    document.documentElement.dataset.theme = theme;
+
+    // найдём все тумблеры с data-role="theme-switch"
+    document.querySelectorAll('[data-role="theme-switch"]').forEach(sw => {
+      const isLight = (document.documentElement.dataset.theme === 'light');
+      sw.setAttribute('aria-pressed', isLight ? 'true' : 'false');
+
+      sw.addEventListener('click', () => {
+        const cur = document.documentElement.dataset.theme === 'light' ? 'light' : 'dark';
+        const next = (cur === 'light') ? 'dark' : 'light';
+        AppState.applyTheme(next);                  // сохраняем и ставим data-theme
+        // визуально обновим все тумблеры на странице
+        document.querySelectorAll('[data-role="theme-switch"]')
+          .forEach(x => x.setAttribute('aria-pressed', next === 'light' ? 'true' : 'false'));
+      });
+    });
+  });
+</script>
+
+
+<script>
+  // Инициализация всех переключателей темы на странице
+  document.addEventListener('DOMContentLoaded', () => {
+    const settings = AppState.get('settings') || {};
+    const theme = (settings.theme === 'light') ? 'light' : 'dark';
+    document.documentElement.dataset.theme = theme;
+
+    // найдём все тумблеры с data-role="theme-switch"
+    document.querySelectorAll('[data-role="theme-switch"]').forEach(sw => {
+      const isLight = (document.documentElement.dataset.theme === 'light');
+      sw.setAttribute('aria-pressed', isLight ? 'true' : 'false');
+
+      sw.addEventListener('click', () => {
+        const cur = document.documentElement.dataset.theme === 'light' ? 'light' : 'dark';
+        const next = (cur === 'light') ? 'dark' : 'light';
+        AppState.applyTheme(next);                  // сохраняем и ставим data-theme
+        // визуально обновим все тумблеры на странице
+        document.querySelectorAll('[data-role="theme-switch"]')
+          .forEach(x => x.setAttribute('aria-pressed', next === 'light' ? 'true' : 'false'));
+      });
+    });
+  });
+</script>
+
+<script>
+  try{
+    const s = JSON.parse(localStorage.getItem('rt.settings')||'{}');
+    document.documentElement.dataset.theme = s?.theme || 'dark';
+  }catch(e){ document.documentElement.dataset.theme = 'dark'; }
+</script>
+
+<link rel="stylesheet" href="css/ui-tokens.css">
+<script>
+  try{
+    const s = JSON.parse(localStorage.getItem('rt.settings')||'{}');
+    document.documentElement.dataset.theme = s?.theme || 'dark';
+  }catch(e){ document.documentElement.dataset.theme = 'dark'; }
+</script>
+
 <style>
   :root{
     --bgA:#0B1220;
@@ -536,14 +604,7 @@ function updateColorsByValence(v){
     moodStageEl.style.setProperty('--mood-bg', `url('${BG_URLS[idx]}')`);
     moodStageEl.style.setProperty('--bg-blur', '4px'); // усилили блюр
   }
-  // Определяем «слабое» устройство и целевой FPS
-const LOWQ = window.matchMedia('(max-width: 640px)').matches ||
-             (navigator.hardwareConcurrency && navigator.hardwareConcurrency <= 4) ||
-             window.matchMedia('(prefers-reduced-motion: reduce)').matches;
-const TARGET_FPS = LOWQ ? 30 : 60;
 
-// Таймеры для троттлинга кадров
-let lastMs = 0, tAcc = 0;
 
   // передаём настроение в капсулу
   window.setPillMood01(v/100);
@@ -747,5 +808,8 @@ document.getElementById('exportJSON').addEventListener('click',()=>{
   loadIntoUI(d);
 })();
 </script>
+
+
+
 </body>
 </html>

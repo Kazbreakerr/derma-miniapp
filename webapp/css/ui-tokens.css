@@ -1,0 +1,103 @@
+/* ===== UI TOKENS (общие переменные темы) ===== */
+
+/* по умолчанию тёмная (и когда [data-theme="dark"]) */
+:root,
+:root[data-theme="dark"]{
+  /* базовые цвета */
+  --bg:            #0d1820;
+  --surface:       #101c26;
+  --surface-2:     #0f1a22;
+  --text:          #eef6fb;
+  --text-muted:    #a8c1cf;
+  --border:        rgba(255,255,255,0.08);
+
+  /* акценты */
+  --accent:        #19d06a;
+  --accent-2:      #2de1b0;
+  --danger:        #ff5757;
+  --warning:       #ffc94a;
+  --success:       #18d37e;
+
+  /* эффекты/тени */
+  --shadow:        0 10px 30px rgba(0,0,0,.35);
+  --ring:          0 0 0 6px rgba(25,208,106,.12);
+
+  /* градиенты (если где-то нужны) */
+  --grad-accent:   linear-gradient(135deg,#19d06a 0%,#2de1b0 100%);
+  --grad-danger:   linear-gradient(135deg,#ff3d3d 0%,#ff7a7a 100%);
+}
+
+/* светлая тема */
+:root[data-theme="light"]{
+  --bg:            #f5fbff;
+  --surface:       #ffffff;
+  --surface-2:     #f0f6fb;
+  --text:          #0f2731;
+  --text-muted:    #4f6875;
+  --border:        rgba(0,0,0,0.08);
+
+  --accent:        #15b865;
+  --accent-2:      #22d39f;
+  --danger:        #e84848;
+  --warning:       #d99a00;
+  --success:       #15b56f;
+
+  --shadow:        0 12px 28px rgba(0,0,0,.12);
+  --ring:          0 0 0 6px rgba(21,184,101,.16);
+
+  --grad-accent:   linear-gradient(135deg,#15b865 0%,#22d39f 100%);
+  --grad-danger:   linear-gradient(135deg,#e84848 0%,#ff7a7a 100%);
+}
+
+/* базовые применения токенов (не ломают существующие стили) */
+body{
+  color:var(--text);
+  background:var(--bg);
+}
+.card, .panel, .surface{
+  background:var(--surface);
+  border:1px solid var(--border);
+  box-shadow:var(--shadow);
+  border-radius:16px;
+}
+
+/* ===== Компактный тумблер (22px высота, 16px бегунок) ===== */
+.rt-switch{
+  --h:22px;               /* высота */
+  --w:42px;               /* ширина трека */
+  --kn:16px;              /* диаметр бегунка */
+  position:relative;
+  display:inline-block;
+  width:var(--w);
+  height:var(--h);
+  border-radius:999px;
+  border:1px solid var(--border);
+  background:linear-gradient(180deg, rgba(255,255,255,.06), rgba(255,255,255,.02));
+  box-shadow: inset 0 0 0 1px rgba(255,255,255,.03);
+  transition:background .25s ease, border-color .25s ease;
+}
+.rt-switch[aria-pressed="true"]{
+  background: var(--grad-accent);
+  border-color: transparent;
+}
+.rt-switch__knob{
+  position:absolute;
+  top:50%; left:3px;
+  width:var(--kn); height:var(--kn);
+  transform:translateY(-50%);
+  border-radius:50%;
+  background: radial-gradient(120% 120% at 30% 25%, #fff, #f5f7fa 45%, #eaeef3 100%);
+  box-shadow: 0 6px 14px rgba(0,0,0,.25), inset 0 0 0 1px rgba(0,0,0,.12);
+  transition: left .22s cubic-bezier(.22,.8,.25,1), box-shadow .2s;
+}
+.rt-switch[aria-pressed="true"] .rt-switch__knob{
+  left: calc(var(--w) - var(--kn) - 3px);
+  box-shadow: 0 6px 14px rgba(0,0,0,.25), inset 0 0 0 1px rgba(0,0,0,.12), 0 0 0 6px rgba(25,208,106,.15);
+}
+.rt-switch:focus-visible{ outline:none; box-shadow: var(--ring); }
+/* Активный пункт нижней навигации */
+.bottom-nav .nav-link.active{
+  color: var(--text);
+  font-weight: 700;
+  text-shadow: 0 0 12px rgba(255,255,255,.15);
+}
