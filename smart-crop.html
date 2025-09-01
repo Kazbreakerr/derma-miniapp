@@ -1,0 +1,132 @@
+<!doctype html>
+<meta charset="utf-8">
+<title>Smart PNG Crop</title>
+<style>
+  body{font:14px/1.4 system-ui, -apple-system, Segoe UI, Roboto, Arial; background:#0f1820; color:#eaf3f9; display:grid; place-items:center; min-height:100vh; margin:0}
+  .box{background:#0f1a22;border:1px solid rgba(255,255,255,.08);border-radius:14px; padding:20px; box-shadow:0 10px 30px rgba(0,0,0,.35); width:min(720px,92vw)}
+  .drop{display:flex; gap:12px; align-items:center; justify-content:center; padding:18px; border:1px dashed rgba(255,255,255,.25); border-radius:12px; background:#0e1921}
+  .drop.drag{background:#0c2532}
+  button{background:linear-gradient(135deg,#19d06a,#2de1b0); border:none; color:#062018; font-weight:700; padding:10px 14px; border-radius:10px; cursor:pointer}
+  small{opacity:.75}
+</style>
+<div class="box">
+  <h2 style="margin:0 0 12px">Обрезка PNG по периметру</h2>
+  <p style="margin:.2rem 0 .8rem"><small>Перетащи PNG/JPG сюда или выбери файл. Скрипт уберёт однотонные/прозрачные поля; мягкая тень и скругления сохранятся.</small></p>
+  <div class="drop" id="drop">
+    <input type="file" id="file" accept="image/*">
+    <button id="demoBtn" type="button" title="Попробовать на примере">Показать пример</button>
+  </div>
+  <div id="result" style="margin-top:14px; display:none">
+    <p style="margin:.4rem 0">Готово. <a id="dl" download="cropped.png">Скачать PNG</a></p>
+    <canvas id="out" style="max-width:100%; border-radius:12px; display:block"></canvas>
+  </div>
+</div>
+<script>
+const file = document.getElementById('file');
+const drop = document.getElementById('drop');
+const out  = document.getElementById('out');
+const dl   = document.getElementById('dl');
+const box  = document.getElementById('result');
+
+function loadImg(src){
+  return new Promise((res,rej)=>{
+    const img = new Image();
+    img.onload = ()=>res(img);
+    img.onerror = rej;
+    img.src = src;
+  });
+}
+
+// проверка "почти одинакового" цвета
+function same(a,b,thr=6){
+  return Math.abs(a[0]-b[0])<=thr && Math.abs(a[1]-b[1])<=thr && Math.abs(a[2]-b[2])<=thr && Math.abs(a[3]-b[3])<=thr;
+}
+function get(px,x,y,w){ const i=(y*w+x)*4; return [px[i],px[i+1],px[i+2],px[i+3]]; }
+
+function smartCrop(img){
+  const t = document.createElement('canvas');
+  t.width = img.naturalWidth; t.height = img.naturalHeight;
+  const c = t.getContext('2d');
+  c.drawImage(img,0,0);
+
+  const {width:w, height:h} = t;
+  const data = c.getImageData(0,0,w,h).data;
+
+  // 1) если есть прозрачность — режем по альфе
+  let hasAlpha = false;
+  for(let i=3;i<data.length;i+=4){ if(data[i] < 255){ hasAlpha = true; break; } }
+
+  let top=0, bottom=h-1, left=0, right=w-1;
+
+  if(hasAlpha){
+    const TH = 3; // пропускать почти прозрачное
+    while (top<h && rowEmpty(top)) top++;
+    while (bottom>=0 && rowEmpty(bottom)) bottom--;
+    while (left<w && colEmpty(left)) left++;
+    while (right>=0 && colEmpty(right)) right--;
+
+    function rowEmpty(y){
+      for(let x=0;x<w;x++){ if(get(data,x,y,w)[3] > TH) return false; }
+      return true;
+    }
+    function colEmpty(x){
+      for(let y=0;y<h;y++){ if(get(data,x,y,w)[3] > TH) return false; }
+      return true;
+    }
+  } else {
+    // 2) иначе считаем фон однотонным (цвет угла)
+    const bg = get(data,0,0,w);
+    // двигаем границы пока линия "почти вся" фоновая
+    while (top<h && lineMostly(top, true)) top++;
+    while (bottom>=0 && lineMostly(bottom, true)) bottom--;
+    while (left<w && lineMostly(left, false)) left++;
+    while (right>=0 && lineMostly(right, false)) right--;
+
+    function lineMostly(k, isRow){
+      let sameCnt = 0, total = isRow ? w : h;
+      const lim = Math.max(0.94*total, total-4); // допускаем пару не фоновых пикселей
+      if(isRow){
+        for(let x=0;x<w;x++) if(same(get(data,x,k,w), bg)) sameCnt++;
+      }else{
+        for(let y=0;y<h;y++) if(same(get(data,k,y,w), bg)) sameCnt++;
+      }
+      return sameCnt >= lim;
+    }
+  }
+
+  const cw = Math.max(1, right-left+1);
+  const ch = Math.max(1, bottom-top+1);
+  out.width = cw; out.height = ch;
+  out.getContext('2d').drawImage(img, left, top, cw, ch, 0, 0, cw, ch);
+  dl.href = out.toDataURL('image/png');
+  box.style.display = 'block';
+}
+
+async function handleFile(f){
+  const src = await new Promise(r=>{
+    const fr = new FileReader();
+    fr.onload = e => r(e.target.result);
+    fr.readAsDataURL(f);
+  });
+  const img = await loadImg(src);
+  smartCrop(img);
+}
+
+file.addEventListener('change', e=>{
+  if(e.target.files && e.target.files[0]) handleFile(e.target.files[0]);
+});
+
+['dragenter','dragover'].forEach(ev=>drop.addEventListener(ev, e=>{e.preventDefault(); drop.classList.add('drag');}));
+['dragleave','drop'].forEach(ev=>drop.addEventListener(ev, e=>{e.preventDefault(); drop.classList.remove('drag');}));
+drop.addEventListener('drop', e=>{
+  const f = e.dataTransfer.files && e.dataTransfer.files[0];
+  if(f) handleFile(f);
+});
+
+// демо (если хочешь протестить без файла) — берём скрин из буфера браузера
+document.getElementById('demoBtn').addEventListener('click', async ()=>{
+  const demo = 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAoAAAAKCAYAAACNMs+9AAA...'; // заглушка, можно удалить
+  const img = await loadImg(demo);
+  smartCrop(img);
+});
+</script>
