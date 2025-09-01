@@ -1,569 +1,294 @@
 <!doctype html>
-<html lang="ру">
+<html lang="ru">
 <head>
-  <meta charset="utf-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
-  <title>Roaccutane Tracker — Добро пожаловать</title>
-  <script src="https://telegram.org/js/telegram-web-app.js"></script>
-  <style>
-    :root{
-      --bg:#0B1220; --card:#0F1A2B; --border:#19263A;
-      --text-h:#F3F7FF; --text-m:#C7D2FE;
-      --accent-from:#22D3EE; --accent-to:#14B8A6;
-    }
-    *{box-sizing:border-box}
-    body{
-      margin:0; color:var(--text-h);
-      background:
-        radial-gradient(120% 80% at 10% -10%, rgba(20,184,166,.14), transparent 60%),
-        radial-gradient(110% 80% at 90% 0%, rgba(96,165,250,.14), transparent 60%),
-        var(--bg);
-      font-family: ui-sans-serif, system-ui, -apple-system, Segoe UI, Inter, Manrope, Roboto, Helvetica, Arial;
-      min-height:100dvh; display:grid; place-items:center;
-    }
-    .shell{
-      width:min(1180px,96vw);
-      background:var(--card);
-      border:1px solid var(--border);
-      border-radius:28px;
-      box-shadow:0 30px 80px rgba(0,0,0,.5);
-      position:relative;
-      padding:32px 40px 88px;
-      min-height:62vh;
-    }
-    h1{ margin:0; font-size:56px; line-height:1.12; font-weight:900; letter-spacing:.2px }
-    .lead{ margin:12px 0 0; font-size:20px; color:var(--text-m) }
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Roaccutane Tracker — Добро пожаловать</title>
 
-    /* строка-подсказка над карточками */
-   .prompt{
-  margin:24px auto 10px; text-align:center; max-width:880px;
-  color:#E6F3FF; font-size:20px; font-weight:800; letter-spacing:.2px;
-  text-shadow:0 1px 0 rgba(0,0,0,.35);
-}
-.prompt .badge{
-  display:inline-block; margin-top:6px; padding:6px 12px;
-  border-radius:999px; border:1px solid var(--border);
-  background:rgba(255,255,255,.06);
-  color:var(--text-m); font-size:13px; font-weight:900; text-transform:uppercase;
-  letter-spacing:.6px;
+<style>
+/* ===================== THEME VARS ===================== */
+:root{
+  /* Dark */
+  --bg-0: #0b1620;
+  --bg-1: #0f1f2b;
+  --bg-grad: radial-gradient(1200px 700px at 70% -10%, #0e2a39 0%, transparent 55%),
+             radial-gradient(1200px 700px at -10% 110%, #112a2a 0%, transparent 55%),
+             linear-gradient(180deg, #0b1620, #0a1520);
+  --card: #0f1d27;
+  --ink: #dce7f2;
+  --muted: #99b3c7;
+  --ring1: #31e3e3;
+  --ring2: #20d2a5;
+
+  --glass: rgba(255,255,255,.06);
+  --edge: rgba(0,0,0,.55);
+
+  --radius-outer: 22px;
+  --radius-inner: 14px;
+
+  /* Buttons gradient */
+  --btnA:#62e9ff; --btnB:#45d3ff; --btnC:#1dd1a1;
+
+  /* Neumorph shadow recipe */
+  --shadow-up: -6px -12px 18px rgba(255,255,255,.06);
+  --shadow-dn:  8px 14px 24px rgba(0,0,0,.45);
+  --inset-up: inset 6px 6px 12px rgba(0,0,0,.45);
+  --inset-dn: inset -6px -6px 12px rgba(255,255,255,.05);
 }
 
-    /* ====== ВЫБОР РОЛИ ====== */
-    .cards{
-      display:flex; gap:28px; justify-content:center; align-items:stretch;
-      flex-wrap:wrap; margin-top:8px;
-    }
-    .role{
-  position:relative; width:min(420px,42vw); max-width:420px; min-width:300px;
-  border:1px solid var(--border); border-radius:24px; padding:18px;
-  overflow:visible; /* ← позволяем свечению не обрезаться */
-  background:linear-gradient(180deg,rgba(255,255,255,.02),rgba(255,255,255,0));
-  transition:transform .25s ease,border-color .25s ease,box-shadow .25s ease;
-  animation:role-breathe 3.2s ease-in-out infinite;
+/* Optional light toggle (кнопка «Светлая тема») */
+body[data-theme="light"]{
+  --bg-0:#eef3f7; --bg-1:#f7fbff;
+  --bg-grad: radial-gradient(1200px 700px at 70% -10%, #ffffff 0%, transparent 55%),
+             radial-gradient(1200px 700px at -10% 110%, #ffffff 0%, transparent 55%),
+             linear-gradient(180deg, #eef3f7, #f5f9ff);
+  --card:#ffffff;
+  --ink:#0d2130; --muted:#4b6476;
+  --glass: rgba(0,0,0,.04);
+  --edge: rgba(0,0,0,.09);
+  --btnA:#c9f5ff; --btnB:#a6eaff; --btnC:#7ce1c1;
 }
-    @keyframes role-breathe{0%,100%{transform:scale(1)}50%{transform:scale(1.02)}}
-    .role:hover{transform:translateY(-2px) scale(1.02)}
 
-    /* изображение полностью заполняет область и выравнивает все карточки по высоте */
-/* уже есть у тебя: .media-btn — контейнер клика. Важно чтобы overflow:hidden и border-radius были на .media-btn */
+*{box-sizing:border-box}
+html,body{height:100%}
+body{
+  margin:0; color:var(--ink); background:var(--bg-0); 
+  background-image:var(--bg-grad); font: 16px/1.45 system-ui, -apple-system, "Segoe UI", Roboto, Ubuntu, "Helvetica Neue", Arial;
+}
+
+/* ===================== LAYOUT ===================== */
+.shell{
+  max-width: 1100px; margin:0 auto; padding:18px 16px 112px;  /* запас снизу под кнопку темы */
+}
+.hero{max-width: 780px; margin: 6px auto; text-align:center;}
+.hero h1{margin:0 0 6px; line-height:1.12; font-size: clamp(26px, 4.4vw, 44px); letter-spacing:.2px}
+.lead-card{
+  display:inline-block; margin:6px auto 8px; padding:10px 14px;
+  color:var(--muted); border-radius:999px;
+  background:var(--glass);
+  box-shadow: var(--inset-up), var(--inset-dn), var(--shadow-dn);
+  backdrop-filter: blur(6px);
+}
+
+.prompt{margin:10px auto 6px; text-align:center;}
+.prompt h2{margin:0; font-size: clamp(16px, 2.9vw, 24px)}
+.badge{
+  display:inline-flex; align-items:center; gap:8px;
+  margin:6px auto 10px; padding:6px 12px; border-radius:999px;
+  color:#cfe9ff; background:rgba(255,255,255,.08); 
+  box-shadow: var(--inset-up), var(--inset-dn);
+  font-weight:700; letter-spacing:.3px;
+}
+
+/* ===================== CARDS ===================== */
+.cards{
+  margin: 8px auto 10px; padding: 0;
+  display:grid; grid-template-columns: repeat(2, minmax(0,1fr));
+  gap:16px; 
+}
+.role{
+  background: linear-gradient(180deg, rgba(255,255,255,.04), rgba(255,255,255,.02));
+  border-radius: var(--radius-outer);
+  box-shadow: var(--shadow-up), var(--shadow-dn);
+  padding:10px; 
+  transition: transform .2s ease, box-shadow .2s ease, filter .3s ease;
+  position:relative; isolation:isolate;
+  animation: breathe 4.6s ease-in-out infinite;
+}
+.role:hover{ transform: translateY(-2px); filter:brightness(1.03) }
+@keyframes breathe{
+  0%,100%{ transform: scale(1) }
+  50%{ transform: scale(1.02) }
+}
 .media-btn{
-  position:relative; display:block; width:100%; aspect-ratio:3/4;
-  border:0; border-radius:25px; padding:0; background:none; cursor:pointer;
-  overflow:hidden; appearance:none; -webkit-appearance:none;
+  position:relative; width:100%; aspect-ratio: 3/4; border:0; padding:0; cursor:pointer;
+  display:block; border-radius: var(--radius-inner);
+  background: #0a1a22 center/cover no-repeat;
+  box-shadow: var(--inset-up), var(--inset-dn);
+  overflow:hidden;
 }
-
-/* видео ведёт себя как ранее img */
-.card-video{
-  width:100%; height:100%; display:block; object-fit:cover;
-  background:#0000; /* прозр. фон под постером */
+/* Постер как фон */
+.media-btn::before{
+  content:""; position:absolute; inset:0; background: var(--poster) center/cover no-repeat;
 }
-
-/* твоя градиентная окантовка — по краю изображения */
+/* Градиентное кольцо при выборе + свечение */
 .role.selected .media-btn::after{
-  content:""; position:absolute; inset:0; border-radius:inherit;
-  padding:5px;
-  background:linear-gradient(135deg,#8AD1FF,#3CC99D 52%,#98FFEA);
-  -webkit-mask:linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0);
-  -webkit-mask-composite:xor; mask-composite:exclude;
+  content:""; position:absolute; inset:-2px; border-radius: inherit;
+  padding:3px; background: linear-gradient(135deg, var(--ring1), var(--ring2));
+  -webkit-mask: 
+    linear-gradient(#000 0 0) content-box, 
+    linear-gradient(#000 0 0);
+  -webkit-mask-composite: xor; mask-composite: exclude;
+  box-shadow: 0 0 24px 6px color-mix(in oklab, var(--ring1) 50%, transparent);
+}
+
+/* Видеослой (если есть файл) */
+.media-btn video{
+  position:absolute; inset:0; width:100%; height:100%; object-fit:cover; display:none;
+}
+.role.playing .media-btn video{ display:block }
+
+/* ===================== ACTIONS ===================== */
+.actions{ margin:12px 0 8px; display:flex; justify-content:center; }
+.start{
+  height:56px; padding:0 28px; min-width: clamp(260px, 42vw, 520px);
+  border-radius: 999px; border:none; cursor:pointer;
+  font-size: clamp(16px, 2.4vw, 22px); font-weight:900; letter-spacing:.2px; color:#06221f;
+  background: linear-gradient(180deg, var(--btnA), var(--btnB) 45%, var(--btnC));
+  box-shadow: 
+    0 18px 30px rgba(0,0,0,.35),
+    inset 0 2px 0 rgba(255,255,255,.35),
+    inset 0 -3px 0 rgba(0,0,0,.35);
+  transition: transform .08s ease, box-shadow .08s ease, filter .12s ease;
+  position:relative; overflow:hidden;
+}
+.start::before{
+  content:""; position:absolute; left:10%; right:10%; top:6px; height:46%;
+  border-radius:inherit; background: linear-gradient(180deg, rgba(255,255,255,.38), transparent 70%);
   pointer-events:none;
 }
-.role.selected .media-btn::before{
-  content:""; position:absolute; inset:-12px; border-radius:inherit;
-  background:radial-gradient(45% 65% at 50% 50%, rgba(152,255,234,.28), transparent 70%);
-  filter:blur(10px); pointer-events:none;
+.start:hover{ filter:brightness(1.03) }
+.start:active{ transform:translateY(1px);
+  box-shadow: 0 14px 24px rgba(0,0,0,.38), inset 0 1px 0 rgba(255,255,255,.25), inset 0 -3px 0 rgba(0,0,0,.4);
 }
 
-
-
-    /* низ: кнопка "Начать" */
-   /* контейнер кнопки — под панелью карт, по центру */
-.actions{
-  display:flex;
-  justify-content:center;
-  margin:28px 0 0;   /* расстояние от панели карт */
-  width:100%;
-}
-
-/* крупная кнопка, в синей гамме — не похожа на "Светлая тема" */
-.start{
-  width:clamp(260px, 40vw, 460px);
-  height:64px;
-  border:none;
-  border-radius:20px;               /* прямоугольные скругления, не «капсула» */
-  cursor:pointer;
-  font-size:20px;
-  font-weight:900;
-  letter-spacing:.2px;
-  color:#0b1020;
-  background:linear-gradient(180deg,#a5fce5 0%, #60faf7 36%, #22d3ee 100%);
-  box-shadow:
-    0 18px 34px rgba(59,130,246,.28),
-    inset 0 3px 0 rgba(255,255,255,.35),
-    inset 0 -4px 0 rgba(0,0,0,.25);
-  transition:transform .08s ease, filter .12s ease, box-shadow .08s ease;
+/* ===================== THEME BUTTON (fixed) ===================== */
+.theme-float{ position:fixed; right:16px; bottom: calc(16px + env(safe-area-inset-bottom)); z-index:50; }
+.theme-float button{
+  height:40px; padding:0 14px; border-radius:999px; border:none; cursor:pointer;
+  background: linear-gradient(180deg, #4ef1e8, #22d3ee 45%, #10b981);
+  color:#06221f; font-weight:900; letter-spacing:.2px;
+  box-shadow: 0 12px 22px rgba(0,0,0,.35), inset 0 2px 0 rgba(255,255,255,.35), inset 0 -3px 0 rgba(0,0,0,.35);
+  transition: transform .08s ease, filter .12s ease;
   position:relative;
 }
-.start::before{
-  content:""; position:absolute; left:10px; right:10px; top:8px; height:48%;
-  border-radius:16px;
-  background:linear-gradient(180deg, rgba(255,255,255,.38), transparent 70%);
-  pointer-events:none;
+.theme-float button::before{
+  content:""; position:absolute; left:8px; right:8px; top:6px; height:46%;
+  background: linear-gradient(180deg, rgba(255,255,255,.38), transparent 70%); border-radius:inherit;
 }
-.start:hover{ filter:brightness(1.03) }
-.start:active{
-  transform:translateY(1px) scale(.99);
-  box-shadow:
-    0 12px 24px rgba(59,130,246,.24),
-    inset 0 2px 0 rgba(255,255,255,.28),
-    inset 0 -3px 0 rgba(0,0,0,.30);
-}
+.theme-float button:active{ transform:translateY(1px) }
 
-/* на узких экранах — почти во всю ширину */
-@media (max-width:560px){
+/* ===================== MOBILE COMPACT ===================== */
+@media (max-width:820px){
+  .shell{ padding:16px 12px 112px; }
+  .cards{ gap:12px; }
+  .role{ padding:8px; border-radius:18px }
+  .media-btn{ border-radius:12px }
   .start{ width:92vw; }
 }
-
-
-    /* кнопка темы (оставляем как было) */
-    .theme-float{ position:absolute; right:24px; bottom:24px }
-.theme-float button{
-  position:relative; height:48px; padding:0 18px; border-radius:999px; border:none;
-  font-weight:900; letter-spacing:.2px; color:#06221f; cursor:pointer;
-  background:linear-gradient(180deg, #4ef1e8 0%, #22d3ee 35%, #10b981 100%);
-  box-shadow:
-    0 14px 28px rgba(16,185,129,.25),   /* падающая тень */
-    inset 0 2px 0 rgba(255,255,255,.35),/* верхний кант */
-    inset 0 -3px 0 rgba(0,0,0,.28);     /* нижний кант */
-  transition:transform .06s ease, filter .12s ease, box-shadow .06s ease;
-}
-.theme-float button::before{
-  content:''; position:absolute; left:8px; right:8px; top:6px; height:50%;
-  border-radius:inherit;
-  background:linear-gradient(180deg, rgba(255,255,255,.38), transparent 70%); /* блик */
-  pointer-events:none;
-}
-.theme-float button:hover{ filter:brightness(1.03) }
-.theme-float button:active{
-  transform:translateY(1px);
-  box-shadow:
-    0 8px 16px rgba(16,185,129,.22),
-    inset 0 1px 0 rgba(255,255,255,.25),
-    inset 0 -2px 0 rgba(0,0,0,.35);
-}
-
-    @media (max-width:960px){ h1{font-size:40px} .shell{padding:32px 40px 140px;}}
-
-/* ===== Мобильная компоновка как на твоём скрине ===== */
-
-/* чуть компактнее контейнер */
-@media (max-width: 720px){
-  .shell{ padding:18px 14px 140px;}
-}
-
-/* 1) Заголовок и лид занимают меньше строк */
-@media (max-width: 720px){
-  h1{
-    /* нацелен на 2–3 строки на ширинах 360–420 px */
-    font-size: clamp(22px, 5.2vw + 2px, 30px);
-    line-height: 1.06;
-    letter-spacing: .1px;
-    margin-bottom: 8px;
-    text-wrap: balance;
-  }
-  .lead{
-    font-size: 15.5px;
-    line-height: 1.32;
-    margin: 6px 0 4px;
-  }
-}
-
-/* 2) Две карточки в один ряд на телефонах */
-@media (max-width: 680px){
-  .cards{
-    display: grid;
-    grid-template-columns: 1fr 1fr;   /* слева / справа */
-    gap: 12px;
-    padding: 10px;
-  }
-  .role{
-    min-width: 0;          /* снимаем блокирующий min-width */
-    width: auto;
-    padding: 8px;
-    border-radius: 16px;
-    box-shadow: 0 8px 18px rgba(0,0,0,.35), inset 0 1px 0 rgba(255,255,255,.04);
-  }
-  .media-btn{ aspect-ratio: 3/4; border-radius: 12px; }
-  .role.selected .media-btn::after{ padding: 3px; }
-  .role.selected .media-btn::before{ inset: -8px; filter: blur(8px); }
-}
-
-/* 3) На очень узких экранах — ещё компактнее */
-@media (max-width: 380px){
-  .cards{ gap: 10px; padding: 8px; }
-  h1{ font-size: clamp(20px, 6.5vw, 26px); }
-  .lead{ font-size: 14.5px; }
-}
-
-/* Фикс: на телефонах ВСЕГДА две карточки рядом */
-@media (max-width: 820px){                       /* брейкпоинт с запасом */
-  .shell{ padding-left:12px; padding-right:12px; }/* пару пикселей вернём из паддингов */
-
-  .cards{
-    display: grid !important;
-    grid-template-columns: repeat(2, minmax(0, 1fr));
-    column-gap: 10px; row-gap: 10px;
-    padding: 8px;
-  }
-
-  .role{
-    min-width: 0 !important;                     /* гасим 300px из базового правила */
-    width: 100% !important;
-    padding: 6px;
-    border-radius: 14px;
-    box-shadow: 0 8px 18px rgba(0,0,0,.34), inset 0 1px 0 rgba(255,255,255,.04);
-  }
-
-  .media-btn{ aspect-ratio: 3/4; border-radius: 12px; }
-  .role.selected .media-btn::after{ padding: 2px; }
-  .role.selected .media-btn::before{ inset:-6px; filter: blur(7px); }
-
-  /* заголовок/лид компактнее, чтобы над картами не «съедать» высоту */
-  h1{ font-size: clamp(22px, 5.5vw, 28px); line-height:1.08; margin-bottom:6px; }
-  .lead{ font-size: 14.5px; line-height:1.3; margin:6px 0 4px; }
-}
-/* Центровка приветственного блока */
-.hero{
-  max-width: 880px;
-  margin: 0 auto 8px;
-  text-align: center;
-}
-
-/* Карточка для описания (лида) с градиентной рамкой */
-.lead-card{
-  position: relative;
-  margin: 12px auto 0;
-  padding: 12px 16px;
-  border-radius: 16px;
-  background: linear-gradient(180deg, rgba(255,255,255,.02), rgba(255,255,255,0));
-  border: 1px solid var(--border);
-  box-shadow:
-    inset 0 1px 0 rgba(255,255,255,.04),
-    0 10px 30px rgba(0,0,0,.26);
-}
-.lead-card::after{
-  content:"";
-  position:absolute; inset:0; border-radius:inherit; padding:1px;
-  background: linear-gradient(135deg, rgba(138,209,255,.6), rgba(60,201,157,.6) 52%, rgba(152,255,234,.6));
-  -webkit-mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0);
-  -webkit-mask-composite: xor; mask-composite: exclude;
-  pointer-events:none;
-}
-
-/* Текст лида компактнее и ровнее по межстрочным */
-.lead{
-  margin: 0;
-  color: var(--text-m);
-  font-size: clamp(14px, 1.9vw, 18px);
-  line-height: 1.4;
-  text-wrap: balance;
-}
-
-/* На телефонах — чуть компактнее отступы; кнопка строго по центру */
-@media (max-width: 720px){
-  .hero{ margin-bottom: 6px; }
-  .lead-card{ padding: 10px 12px; }
-  .actions{
-    position: static;
-    margin: 16px auto 0;
-    justify-content: center;
-    width: 100%;
-  }
-  .start{ width: 88vw; } /* широкая, но не на всю */
-}
-
-/* аккуратнее в тёмной теме: более глубокая заливка и мягкая тень */
-.start{
-  width: clamp(280px, 42vw, 480px);
-  height: 62px;
-  border-radius: 18px;
-  background:
-    linear-gradient(180deg, #7ee8f4 0%, #45c7f6 48%, #22d3ee 100%);
-  color: #06121a;
-  box-shadow:
-    0 18px 36px rgba(26,84,128,.32),
-    inset 0 3px 0 rgba(255,255,255,.35),
-    inset 0 -4px 0 rgba(0,0,0,.25);
-}
-.start::before{
-  content:"";
-  position:absolute; left:10px; right:10px; top:7px; height:46%;
-  border-radius:14px;
-  background:linear-gradient(180deg, rgba(255,255,255,.38), transparent 70%);
-  pointer-events:none;
-}
-.start:hover{ filter:brightness(1.03) }
-.start:active{
-  transform: translateY(1px) scale(.99);
-  box-shadow:
-    0 12px 24px rgba(26,84,128,.28),
-    inset 0 2px 0 rgba(255,255,255,.28),
-    inset 0 -3px 0 rgba(0,0,0,.30);
-}
-
-/* Кнопка темы закреплена у низа экрана, с учётом safe-area */
-.theme-float{
-  position: fixed;                 /* было absolute */
-  right: 16px;
-  bottom: calc(16px + env(safe-area-inset-bottom));
-  z-index: 50;                     /* поверх фона, но не мешает контенту */
-}
-
-.theme-float button{
-  height: 40px;
-  padding: 0 14px;
-  font-size: 14px;
-  border: none;
-  border-radius: 999px;
-  font-weight: 900;
-  letter-spacing: .2px;
-  color:#06221f;
-  background: linear-gradient(180deg, #4ef1e8 0%, #22d3ee 35%, #10b981 100%);
-  box-shadow:
-    0 10px 20px rgba(16,185,129,.22),
-    inset 0 2px 0 rgba(255,255,255,.30),
-    inset 0 -2px 0 rgba(0,0,0,.30);
-  transition: transform .06s ease, filter .12s ease, box-shadow .06s ease;
-}
-.theme-float button::before{
-  content:''; position:absolute; left:8px; right:8px; top:5px; height:48%;
-  border-radius:inherit;
-  background:linear-gradient(180deg, rgba(255,255,255,.38), transparent 70%);
-  pointer-events:none;
-}
-.theme-float button:hover{ filter:brightness(1.03) }
-.theme-float button:active{
-  transform:translateY(1px);
-  box-shadow:
-    0 8px 16px rgba(16,185,129,.20),
-    inset 0 1px 0 rgba(255,255,255,.25),
-    inset 0 -2px 0 rgba(0,0,0,.35);
-}
-
-/* ===== компактный вертикальный ритм (убираем пустоты) ===== */
-:root{
-  --gap-0: 0px;
-  --gap-1: 6px;
-  --gap-2: 10px;
-  --gap-3: 14px;
-}
-
-/* общий контейнер – поменьше внешние поля */
-.shell{
-  padding: 18px 16px 112px; /* низ оставляем под кнопку "Светлая тема" */
-}
-
-/* убираем большие браузерные отступы у заголовков/абзацев внутри страницы */
-.shell h1, .shell h2, .shell p { margin-block: 0; }
-
-/* шапка */
-.hero{ max-width: 760px; margin: var(--gap-1) auto; text-align: center; }
-.hero h1{ line-height: 1.12; margin-bottom: var(--gap-2); }
-
-/* описание в карточке под заголовком */
-.lead-card{ margin: var(--gap-1) auto; padding: 8px 12px; }
-
-/* вопрос и бейдж */
-.role-title{ margin: var(--gap-3) 0 var(--gap-1); text-align:center; }
-.role-badge{ margin: var(--gap-1) auto var(--gap-2); }
-
-/* карточки */
-.cards{
-  margin: var(--gap-2) auto var(--gap-2);
-  gap: 12px;
-}
-.role{ padding: 8px; border-radius: 14px; }
-.media-btn{ border-radius: 12px; }
-
-/* "Начать" – сразу под карточками, по центру */
-.actions{
-  margin: var(--gap-2) 0 var(--gap-1);
-  display: flex; justify-content: center;
-}
-.actions .start{ width: clamp(260px, 42vw, 520px); height: 56px; }
-
-/* на смартфоне: две карточки в ряд и ещё плотнее отступы */
-@media (max-width: 820px){
-  .cards{
-    display: grid !important;
-    grid-template-columns: repeat(2, minmax(0, 1fr));
-    gap: 10px; padding: 0;
-    max-width: 780px;
-  }
-  .shell{ padding-bottom: 112px; }
-  .hero{ margin: var(--gap-1) auto; }
-  .lead-card{ margin: var(--gap-1) auto; padding: 8px 10px; }
-  .role-title{ margin: var(--gap-2) 0 var(--gap-1); }
-  .role-badge{ margin: var(--gap-1) auto; }
-  .actions{ margin: var(--gap-2) 0 var(--gap-1); }
-  .actions .start{ width: 92vw; height: 54px; }
-}
-
-/* кнопка "Светлая тема" фиксирована у низа и не перекрывает контент */
-.theme-float{
-  position: fixed; right: 16px;
-  bottom: calc(16px + env(safe-area-inset-bottom));
-  z-index: 50;
-}
-.theme-float button{ height: 40px; padding: 0 14px; font-size: 14px; }
-
-
-  </style>
+</style>
 </head>
 <body>
- <div class="hero">
-  <h1>Добро пожаловать в Roaccutane Tracker</h1>
+  <main class="shell">
+    <!-- HERO -->
+    <section class="hero">
+      <h1>Добро пожаловать<br>в Roaccutane Tracker</h1>
+      <div class="lead-card">Поможем аккуратно пройти курс: фиксируйте дозы, следите за прогрессом и не пропускайте приём.</div>
+    </section>
 
-  <div class="lead-card">
-    <p class="lead">
-      Поможем аккуратно пройти курс: фиксируйте дозы, следите за прогрессом и не пропускайте приём.
-    </p>
-  </div>
-</div>
+    <!-- PROMPT -->
+    <section class="prompt">
+      <h2>Вы используете приложение от лица пациента или врача?</h2>
+      <div class="badge">ВЫБЕРИТЕ РОЛЬ</div>
+    </section>
 
-    <div class="prompt">
-  <strong>Вы используете приложение от лица пациента или врача?</strong><br>
-  <span class="badge">Выберите роль</span>
+    <!-- CARDS -->
+    <section class="cards" id="roles">
+      <!-- ВРАЧ -->
+      <article class="role" data-role="doctor">
+        <!-- Поменяй пути на свои: data-poster и (по желанию) data-video -->
+        <a class="media-btn" data-poster="doctor-card.png" data-video="doctor-card.mp4" aria-label="Врач-куратор" title="Врач-куратор"></a>
+      </article>
 
-  
-</div>
-    <div class="cards" role="radiogroup" aria-label="Выбор роли">
-  <!-- Врач -->
-<article class="role" data-role="doctor" role="radio" aria-checked="false" tabindex="0">
-  <button class="media-btn" data-role="doctor"
-          aria-label="Выбрать: Врач"
-          style="--poster:url('./doctor-card.png')">
-    <video class="card-video"
-           playsinline muted loop preload="metadata"
-           poster="./doctor-card.png">
-      <source src="./doctor-card.mp4" type="video/mp4">
-    </video>
-  </button>
-</article>
+      <!-- ПАЦИЕНТ -->
+      <article class="role" data-role="patient">
+        <a class="media-btn" data-poster="patient-card.png" data-video="patient-card.mp4" aria-label="Пациент" title="Пациент"></a>
+      </article>
+    </section>
 
-<!-- Пациент -->
-<article class="role" data-role="patient" role="radio" aria-checked="true" tabindex="0">
-  <button class="media-btn" data-role="patient"
-          aria-label="Выбрать: Пациент"
-          style="--poster:url('./patient-card.png')">
-    <video class="card-video"
-           playsinline muted loop preload="metadata"
-           poster="./patient-card.png">
-      <source src="./patient-card.mp4" type="video/mp4">
-    </video>
-  </button>
-</article>
-
-<div class="actions">
+    <!-- START -->
+    <div class="actions">
       <button class="start" id="startBtn">Начать</button>
     </div>
+  </main>
 
+  <!-- THEME SWITCH -->
+  <div class="theme-float">
+    <button id="themeToggle">🌤 Светлая тема</button>
+  </div>
 
-    <div class="theme-float"><button id="themeToggle">🌤 Светлая тема</button></div>
-  </section>
+<script>
+/* ========= utils ========= */
+const q = sel => document.querySelector(sel);
+const qa = sel => Array.from(document.querySelectorAll(sel));
 
-  <script>
-  const qs = location.search || '';
-  let role = localStorage.getItem('rt_role') || 'patient';
+/* ========= cards setup ========= */
+const rolesWrap = q('#roles');
+let selected = null;
 
-  function paintRole(){
-    document.querySelectorAll('.role').forEach(el=>{
-      const on = el.dataset.role === role;
-      el.classList.toggle('selected', on);
-      el.setAttribute('aria-checked', on ? 'true' : 'false');
-    });
-    try{ localStorage.setItem('rt_role', role); }catch(_){}
-  }
-  paintRole();
+// Build media inside each card
+qa('.role').forEach(card => {
+  const btn = card.querySelector('.media-btn');
+  const poster = btn.getAttribute('data-poster');
+  const videoSrc = btn.getAttribute('data-video');
 
-  // Запустить видео у выбранной карточки, остальные остановить
-  function playFor(role){
-    const prefersReduced = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
-    document.querySelectorAll('.card-video').forEach(v=>{
-      const isThis = v.closest('.role')?.dataset.role === role;
-      if(isThis && !prefersReduced){
-        // подтягиваем данные только при необходимости
-        try{ v.preload = 'auto'; }catch(_){}
-        v.muted = true; // для надёжного автозапуска
-        const p = v.play();
-        if (p && p.catch) p.catch(()=>{}); // игнорируем блокировки
-      } else {
-        v.pause();
-        try{ v.currentTime = 0; }catch(_){}
-        // вернуть постер
-        v.load(); // сбрасывает на poster (работает с preload=none/metadata)
-      }
-    });
+  // poster as CSS variable for ::before
+  btn.style.setProperty('--poster', `url("${poster}")`);
+
+  if (videoSrc) {
+    const v = document.createElement('video');
+    v.src = videoSrc; v.muted = true; v.loop = true; v.playsInline = true; v.preload = 'none';
+    btn.appendChild(v);
   }
 
-  // Клик только по изображению (кнопке)
-  document.querySelector('.cards').addEventListener('click',(e)=>{
-    const btn = e.target.closest('.media-btn');
-    if(!btn) return;
-    role = btn.dataset.role;            // выбираем роль
-    paintRole();                        // визуально подсвечиваем
-    playFor(role);                      // запускаем видео только у выбранной
-  });
+  // click selects
+  card.addEventListener('click', () => selectRole(card));
+});
 
-  // Клавиатура на картинке
-  document.querySelectorAll('.media-btn').forEach(b=>{
-    b.addEventListener('keydown',(e)=>{
-      if(e.key==='Enter'||e.key===' '){ e.preventDefault(); b.click(); }
-    });
+function selectRole(card){
+  if (selected === card) return;
+  qa('.role').forEach(c=>{
+    c.classList.remove('selected','playing');
+    // pause videos
+    const v = c.querySelector('video'); if (v){ v.pause(); v.currentTime = 0; }
   });
+  selected = card;
+  selected.classList.add('selected');
 
-  // Переход по кнопке "Начать"
-  document.getElementById('startBtn')?.addEventListener('click', ()=>{
-    if(role==='doctor'){
-      const next = (localStorage.getItem('rt_doctor_done')==='1')
-        ? 'doctor-cabinet-mint-rose.html'
-        : 'doctor-onboarding-mint-rose.html';
-      location.replace('./'+next+qs);
-    }else{
-      const next = (localStorage.getItem('rt_patient_done')==='1')
-        ? 'main-dark.html'
-        : 'profile-dark.html';
-      location.replace('./'+next+qs);
-    }
-  });
-
-  // (опционально) предпросмотр на десктопе: hover запускает, но при уходе — стоп
-  if (matchMedia('(pointer:fine)').matches) {
-    document.querySelectorAll('.media-btn').forEach(btn=>{
-      const v = btn.querySelector('.card-video');
-      btn.addEventListener('mouseenter', ()=>{ if(v && btn.dataset.role!==role){ v.muted=true; v.play().catch(()=>{}); }});
-      btn.addEventListener('mouseleave', ()=>{ if(v && btn.dataset.role!==role){ v.pause(); v.currentTime=0; v.load(); }});
-    });
+  // try play video if exists
+  const v = selected.querySelector('video');
+  if (v){
+    v.play().then(()=> selected.classList.add('playing')).catch(()=>{/* ignore */});
   }
+
+  localStorage.setItem('rt_role', selected.dataset.role);
+}
+
+// restore last role
+const last = localStorage.getItem('rt_role');
+if (last){
+  const c = q(`.role[data-role="${last}"]`);
+  if (c) selectRole(c);
+}
+
+/* ========= start routing ========= */
+q('#startBtn').addEventListener('click', () => {
+  const role = (selected && selected.dataset.role) || localStorage.getItem('rt_role') || 'patient';
+
+  if (role === 'doctor'){
+    const done = localStorage.getItem('rt_doctor_done') === '1';
+    location.href = done ? 'doctor-cabinet-mint-rose.html' : 'doctor-onboarding-mint-rose.html';
+  } else {
+    const done = localStorage.getItem('rt_patient_done') === '1';
+    location.href = done ? 'main-dark.html' : 'profile-dark.html';
+  }
+});
+
+/* ========= theme toggle ========= */
+q('#themeToggle').addEventListener('click', () => {
+  // Переходим на отдельную светлую страницу
+  location.href = 'welcome-rt-light.html';
+});
 </script>
 
 </body>

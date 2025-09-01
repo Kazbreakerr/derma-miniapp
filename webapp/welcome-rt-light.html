@@ -1,203 +1,236 @@
 <!doctype html>
 <html lang="ru">
 <head>
-  <meta charset="utf-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
-  <title>Roaccutane Tracker — Добро пожаловать (Light)</title>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Roaccutane Tracker — Добро пожаловать (светлая)</title>
+<meta name="theme-color" content="#f7fafc">
 
-  <script src="js/app-state.js"></script>
-  <script>
-    document.addEventListener('DOMContentLoaded', () => {
-      const settings = AppState.get('settings') || {};
-      const theme = (settings.theme === 'light') ? 'light' : 'dark';
-      document.documentElement.dataset.theme = theme;
+<!-- для совместимости с переключателем из myprofile -->
+<link id="theme-css" rel="stylesheet" href="css/welcome-rt-light.css">
+<link rel="stylesheet" href="css/welcome-rt.css">
 
-      document.querySelectorAll('[data-role="theme-switch"]').forEach(sw => {
-        const isLight = (document.documentElement.dataset.theme === 'light');
-        sw.setAttribute('aria-pressed', isLight ? 'true' : 'false');
-        sw.addEventListener('click', () => {
-          const cur = document.documentElement.dataset.theme === 'light' ? 'light' : 'dark';
-          const next = (cur === 'light') ? 'dark' : 'light';
-          AppState.applyTheme(next);
-          document.querySelectorAll('[data-role="theme-switch"]')
-            .forEach(x => x.setAttribute('aria-pressed', next === 'light' ? 'true' : 'false'));
-        });
-      });
-    });
-  </script>
+<style>
+/* ====== Светлая тема (персик-лаванда, неоморфизм) ====== */
+:root{
+  --bg-0:#f7fafc;
+  --ink:#0c2233;
+  --muted:#41596a;
 
-  <script src="https://telegram.org/js/telegram-web-app.js"></script>
+  --bg-grad:
+    radial-gradient(1200px 800px at 10% -10%, rgba(255,214,194,.55) 0%, transparent 55%),
+    radial-gradient(1100px 700px at 90% 0%, rgba(216,200,255,.45) 0%, transparent 55%),
+    radial-gradient(1200px 800px at -10% 110%, rgba(152,255,234,.45) 0%, transparent 55%),
+    linear-gradient(180deg, #fbfefe 0%, #f3f8fb 100%);
 
-  <link rel="stylesheet" href="css/ui-tokens.css">
-  <script>
-    try{
-      const s = JSON.parse(localStorage.getItem('rt.settings')||'{}');
-      document.documentElement.dataset.theme = s?.theme || 'dark';
-    }catch(e){ document.documentElement.dataset.theme = 'dark'; }
-  </script>
+  --card:#ffffff;
+  --ink-dim:#405b6b;
 
-  <style>
-    :root{
-      --bg:#F8FAFB; --card:#FFFFFF; --border:#E6EAF0;
-      --text-high:#0F172A; --text-mid:#334155; --text-low:#64748B;
-      --primary:#14B8A6;
-    }
-    *{box-sizing:border-box}
-    body{
-      margin:0; color:var(--text-high);
-      background:
-        radial-gradient(60% 50% at 0% 0%, rgba(34,197,94,.22), transparent 60%),
-        radial-gradient(70% 60% at 100% 100%, rgba(236,72,153,.22), transparent 60%),
-        linear-gradient(135deg, #E8F9E9 0%, #FFF6F9 100%);
-      font-family:ui-sans-serif,system-ui,-apple-system,Segoe UI,Roboto,Inter,Manrope,Helvetica,Arial;
-      min-height:100dvh; display:grid; place-items:center;
-    }
-    .wrap{width:min(1100px,94vw); padding:24px}
-    .card{position:relative; overflow:hidden; background:var(--card); border:1px solid var(--border); border-radius:24px; padding:28px 28px 22px; box-shadow:0 10px 30px rgba(2,6,23,.05), 0 2px 8px rgba(2,6,23,.04);}
-    .glow{position:absolute; inset:0; pointer-events:none;
-      background:
-        radial-gradient(120% 80% at 10% -10%, rgba(34,197,94,.12), transparent 50%),
-        radial-gradient(120% 80% at 110% 110%, rgba(236,72,153,.12), transparent 50%);}
-    .row{display:grid; grid-template-columns:180px 1fr; gap:24px; align-items:start}
-    .stage{position:relative; width:180px; height:180px; border-radius:18px; border:1px solid var(--border); background:linear-gradient(160deg,#FFFFFF,#F4F7FB); display:grid; place-items:center}
-    .pill{width:96px; height:40px}
-    .ring{position:absolute; width:132px; height:132px; border-radius:999px; border:3px solid rgba(34,197,94,.28); animation:r 2.8s ease-out infinite}
-    @keyframes r{0%{transform:scale(.85);opacity:.8}80%{transform:scale(1.15);opacity:.08}100%{opacity:0}}
-    h1{margin:0 0 6px; font-weight:800; font-size:40px; letter-spacing:.2px}
-    p.lead{margin:10px 0 14px; color:var(--text-mid); font-size:20px}
-    .question{color:var(--text-mid); font-size:18px; margin:10px 0 10px; display:flex; align-items:center; gap:18px; flex-wrap:wrap;}
-    .vline{width:2px; height:36px; border-radius:2px; background:#E6EAF0; opacity:.7;}
-    .role-options{display:flex; gap:28px; align-items:center; flex-wrap:wrap;}
-    .radio{ position:relative; display:inline-flex; align-items:center; gap:10px; padding:10px 14px; border-radius:12px;
-             border:1px solid var(--border); background:transparent; color:var(--text-mid); cursor:pointer; user-select:none; }
-    .radio input{ position:absolute; inset:0; opacity:0; }
-    .radio .dot{ width:14px; height:14px; border-radius:999px; border:2px solid var(--text-mid); display:inline-block; position:relative; }
-    .radio input:checked ~ .dot{ border-color:transparent; }
-    .radio input:checked ~ .dot::after{ content:''; position:absolute; inset:-2px; border-radius:999px; background:linear-gradient(135deg,#22c55e,#06b6d4,#8b5cf6); }
-    .radio input:checked ~ .txt{ color:var(--text-high); font-weight:800; }
-    .radio:hover{ border-color:var(--text-mid); }
-    .footer{display:flex; align-items:center; gap:12px; margin-top:16px; flex-wrap:wrap;}
-    .start{appearance:none; border:none; background:linear-gradient(90deg, #22C55E 0%, #EC4899 100%); color:#fff; font-weight:800; padding:12px 18px; border-radius:14px; box-shadow:0 10px 20px rgba(34,197,94,.18), 0 10px 22px rgba(236,72,153,.12); cursor:pointer;}
-    .theme{margin-left:auto} .theme button{height:46px; padding:0 18px; border-radius:14px; font-weight:800; background-image: linear-gradient(135deg,#0ea5a6 0%, #0f172a 100%); color:#fff; border:1px solid transparent;}
-    @media (max-width:820px){
-      h1{font-size:28px}
-      .row{grid-template-columns:150px 1fr}
-      .stage{width:150px;height:150px}
-    }
-    @media (max-width:560px){
-      .row{grid-template-columns:1fr; gap:16px}
-      .stage{width:120px;height:120px; justify-self:start}
-      h1{font-size:26px}
-      p.lead{font-size:16px}
-      .footer .start, .theme button{width:100%}
-      .theme{margin-left:0; width:100%}
-    }
-  </style>
+  --shadow-up: -8px -8px 16px rgba(255,255,255,.9);
+  --shadow-dn:  12px 16px 28px rgba(13,33,51,.10);
+  --inset-up: inset 6px 6px 10px rgba(13,33,51,.06);
+  --inset-dn: inset -6px -6px 10px rgba(255,255,255,.8);
+
+  --ring1:#ffb7a0;   /* peach */
+  --ring2:#9bead9;   /* mint  */
+  --ring3:#c9b6ff;   /* lavender */
+
+  --btnA:#d9f8ff; --btnB:#bff0ff; --btnC:#a2e9d6;
+
+  --radius-outer: 22px;
+  --radius-inner: 14px;
+}
+
+*{box-sizing:border-box}
+html,body{height:100%}
+body{
+  margin:0;
+  color:var(--ink);
+  background:var(--bg-0);
+  background-image:var(--bg-grad);
+  font:16px/1.45 system-ui,-apple-system,"Segoe UI",Roboto,"Helvetica Neue",Arial;
+}
+
+/* ====== Компоновка ====== */
+.shell{max-width:1100px;margin:0 auto;padding:16px 14px 120px}
+.hero{max-width:820px;margin:2px auto 10px;text-align:center}
+.hero h1{margin:0 0 8px;font-size:clamp(26px,4.5vw,44px);line-height:1.12}
+.lead-card{
+  display:inline-block;margin:4px auto 8px;padding:10px 14px;
+  color:var(--muted);border-radius:999px;
+  background:linear-gradient(180deg,rgba(255,255,255,.8),rgba(255,255,255,.65));
+  box-shadow:var(--inset-up),var(--inset-dn),var(--shadow-dn);
+  backdrop-filter:blur(6px);
+}
+.prompt{margin:10px auto 8px;text-align:center}
+.prompt h2{margin:0;font-size:clamp(16px,2.9vw,24px)}
+.badge{
+  display:inline-flex;align-items:center;gap:8px;margin:8px auto 12px;
+  padding:6px 12px;border-radius:999px;color:var(--ink-dim);
+  background:rgba(255,255,255,.85);box-shadow:var(--inset-up),var(--inset-dn);
+  font-weight:800;letter-spacing:.3px;
+}
+
+/* ====== Карточки ====== */
+.cards{margin:6px auto 12px;display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:14px}
+.role{
+  background:var(--card);border-radius:var(--radius-outer);
+  box-shadow:var(--shadow-up),var(--shadow-dn);
+  padding:10px;position:relative;isolation:isolate;
+  transition:transform .18s ease,box-shadow .18s ease,filter .18s ease;
+  animation:breathe 4.6s ease-in-out infinite;
+}
+.role:hover{transform:translateY(-2px);filter:brightness(1.02)}
+@keyframes breathe{0%,100%{transform:scale(1)}50%{transform:scale(1.02)}}
+
+.media-btn{
+  position:relative;width:100%;aspect-ratio:3/4;border:0;padding:0;cursor:pointer;
+  display:block;border-radius:var(--radius-inner);overflow:hidden;
+  background:#fff center/cover no-repeat;box-shadow:var(--inset-up),var(--inset-dn);
+}
+.media-btn::before{content:"";position:absolute;inset:0;background:var(--poster) center/cover no-repeat}
+
+/* === УТОЛЩЁННОЕ, БОЛЕЕ ЯРКОЕ СВЕЧЕНИЕ ВЫБОРА === */
+.role.selected .media-btn::after{
+  content:"";position:absolute;inset:-10px;border-radius:inherit;padding:12px;
+  background:conic-gradient(from 20deg,var(--ring1),var(--ring2),var(--ring3),var(--ring1));
+  -webkit-mask:linear-gradient(#000 0 0) content-box,linear-gradient(#000 0 0);
+  -webkit-mask-composite:xor;mask-composite:exclude;
+  box-shadow:
+    0 0 42px 14px color-mix(in oklab,var(--ring2) 55%, transparent),
+    0 0 64px 22px color-mix(in oklab,var(--ring3) 50%, transparent);
+  filter:saturate(1.15) brightness(1.08);
+}
+/* внешняя аура вокруг всей карточки */
+.role.selected::after{
+  content:"";position:absolute;inset:-6px;border-radius:calc(var(--radius-outer) + 6px);
+  pointer-events:none;
+  box-shadow:0 18px 48px rgba(122,110,255,.25), 0 0 90px rgba(157,255,232,.25);
+  z-index:0;
+}
+
+/* Видео */
+.media-btn video{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;display:none}
+.role.playing .media-btn video{display:block}
+
+/* ====== Кнопки ====== */
+.actions{display:flex;justify-content:center;margin:6px 0 8px}
+.start{
+  height:58px;padding:0 28px;min-width:clamp(240px,48vw,520px);
+  border-radius:999px;border:none;cursor:pointer;
+  font-size:clamp(16px,2.5vw,22px);font-weight:900;letter-spacing:.2px;color:#08332a;
+  background:linear-gradient(180deg,var(--btnA),var(--btnB) 45%,var(--btnC));
+  box-shadow:0 22px 36px rgba(13,33,51,.18), inset 0 2px 0 rgba(255,255,255,.65), inset 0 -3px 0 rgba(13,33,51,.1);
+  transition:transform .08s ease,box-shadow .08s ease,filter .12s ease; position:relative; overflow:hidden;
+}
+.start::before{content:"";position:absolute;left:10%;right:10%;top:6px;height:46%;border-radius:inherit;background:linear-gradient(180deg,rgba(255,255,255,.45),transparent 70%)}
+.start:hover{filter:brightness(1.03)} .start:active{transform:translateY(1px)}
+
+/* Кнопка «Тёмная тема» (фиксированная) */
+.theme-switch{
+  position:fixed; right: max(12px, env(safe-area-inset-right)); bottom:max(12px, env(safe-area-inset-bottom));
+  z-index:50;
+}
+.theme-btn{
+  display:inline-flex;align-items:center;gap:10px;padding:10px 16px;border-radius:999px;border:none;cursor:pointer;
+  color:#0b2a22; font-weight:800;
+  background:linear-gradient(180deg,#bfefff,#a7e4ff 45%, #9fe0d1);
+  box-shadow:0 10px 20px rgba(13,33,51,.18), inset 0 1px 0 rgba(255,255,255,.7);
+}
+.theme-btn:active{transform:translateY(1px)}
+.theme-btn .dot{width:8px;height:8px;border-radius:50%;background:#0bb;box-shadow:0 0 6px #0bb}
+
+@media (max-width:820px){
+  .shell{padding:14px 10px 110px}
+  .cards{gap:10px}
+  .role{padding:8px;border-radius:18px}
+  .media-btn{border-radius:12px}
+  .start{width:92vw}
+}
+</style>
 </head>
 <body>
-  <div class="wrap">
-    <div class="card">
-      <div class="glow"></div>
-
-      <div class="row">
-        <div class="stage">
-          <div class="ring"></div>
-          <svg class="pill" viewBox="0 0 200 86" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
-            <defs><clipPath id="capsule"><rect x="0" y="0" rx="43" ry="43" width="200" height="86"/></clipPath></defs>
-            <g clip-path="url(#capsule)">
-              <rect x="0" y="0" width="100" height="86" fill="#ffffff"/>
-              <rect x="100" y="0" width="100" height="86" fill="#f472b6"/>
-              <rect x="94" y="0" width="12" height="86" fill="#FFFFFF" opacity=".45"/>
-            </g>
-            <rect x="0" y="0" rx="43" ry="43" width="200" height="86" fill="none" stroke="rgba(15,23,42,.15)" stroke-width="2"/>
-          </svg>
-        </div>
-
-        <div>
-          <h1>Добро пожаловать в Roaccutane Tracker</h1>
-          <p class="lead">Лёгкая версия: светлая тема с зелёно-розовым градиентом. Фиксируйте дозы, следите за прогрессом и не пропускайте приём.</p>
-
-          <div class="question">
-            <span>Вы используете приложение от лица <b>пациента</b> или <b>врача</b>?</span>
-            <span class="vline" aria-hidden="true"></span>
-            <div class="role-options" role="radiogroup" aria-label="Выбор роли">
-              <label class="radio">
-                <input type="radio" name="role" id="roleDoctor" value="doctor">
-                <span class="dot"></span>
-                <span class="txt">🩺 <b>Врач</b></span>
-              </label>
-              <label class="radio">
-                <input type="radio" name="role" id="rolePatient" value="patient">
-                <span class="dot"></span>
-                <span class="txt">🙂 <b>Пациент</b></span>
-              </label>
-            </div>
-          </div>
-
-          <div class="footer">
-            <button id="startBtn" class="start">Начать</button>
-            <div class="theme"><button id="themeToggle">🌙 <b>Тёмная тема</b></button></div>
-          </div>
-        </div>
+  <main class="shell">
+    <section class="hero">
+      <h1>Добро пожаловать<br>в Roaccutane Tracker</h1>
+      <div class="lead-card">
+        Поможем аккуратно пройти курс: фиксируйте дозы, следите за прогрессом и не пропускайте приём.
       </div>
+    </section>
+
+    <section class="prompt">
+      <h2>Вы используете приложение от лица пациента или врача?</h2>
+      <div class="badge">ВЫБЕРИТЕ РОЛЬ</div>
+    </section>
+
+    <section class="cards" id="roles">
+      <article class="role" data-role="doctor">
+        <a class="media-btn" data-poster="doctor-card-light.png" data-video="doctor-card-light.mp4" aria-label="Врач-куратор" title="Врач-куратор"></a>
+      </article>
+      <article class="role" data-role="patient">
+        <a class="media-btn" data-poster="patient-card-light.png" data-video="patient-card-light.mp4" aria-label="Пациент" title="Пациент"></a>
+      </article>
+    </section>
+
+    <div class="actions">
+      <button class="start" id="startBtn">Начать</button>
     </div>
+  </main>
+
+  <!-- Переключатель темы -->
+  <div class="theme-switch">
+    <button class="theme-btn" id="toDark"><span class="dot"></span>🌘Тёмная тема </button>
   </div>
 
-  <script>
-    const tg = window.Telegram?.WebApp || null;
-    tg?.ready?.(); tg?.expand?.();
+<script>
+const q  = s => document.querySelector(s);
+const qa = s => Array.from(document.querySelectorAll(s));
 
-    // На всякий — удаляем любую кнопку «Закрыть», если она пришла из окружения/шаблона
-    document.addEventListener('DOMContentLoaded', () => {
-      document.querySelectorAll('button, a, [role="button"]').forEach(el => {
-        if (el.textContent && el.textContent.trim() === 'Закрыть') el.remove();
-      });
-    });
+let selected = null;
 
-    (function(){
-      const saved = localStorage.getItem('rt_role') || 'patient';
-      const doc = document.getElementById('roleDoctor');
-      const pat = document.getElementById('rolePatient');
-      if(saved === 'doctor') doc.checked = true; else pat.checked = true;
-      document.documentElement.setAttribute('data-role', saved);
-      document.querySelectorAll('input[name="role"]').forEach(el=>{
-        el.addEventListener('change', () => {
-          const role = document.querySelector('input[name="role"]:checked')?.value || 'patient';
-          try{ localStorage.setItem('rt_role', role); }catch(_ ){}
-          document.documentElement.setAttribute('data-role', role);
-          tg?.HapticFeedback?.impactOccurred?.('light');
-        });
-      });
-    })();
+/* карточки: постер + видео, выбор, автоплей */
+qa('.role').forEach(card=>{
+  const btn = card.querySelector('.media-btn');
+  btn.style.setProperty('--poster', `url("${btn.dataset.poster}")`);
+  const src = btn.dataset.video;
+  if (src){
+    const v = document.createElement('video');
+    v.src = src; v.muted = true; v.loop = true; v.playsInline = true; v.preload = 'none';
+    btn.appendChild(v);
+  }
+  card.addEventListener('click', ()=>selectRole(card));
+});
 
-    document.getElementById('startBtn').addEventListener('click', () => {
-      const role =
-        document.querySelector('input[name="role"]:checked')?.value
-        || (document.getElementById('roleSwitch')?.checked ? 'patient' : 'doctor')
-        || localStorage.getItem('derma_role')
-        || localStorage.getItem('rt_role')
-        || 'patient';
+function selectRole(card){
+  if (selected === card) return;
+  qa('.role').forEach(c=>{
+    c.classList.remove('selected','playing');
+    const v = c.querySelector('video'); if (v){ v.pause(); v.currentTime = 0; }
+  });
+  selected = card; selected.classList.add('selected');
+  const v = selected.querySelector('video');
+  if (v){ v.play().then(()=>selected.classList.add('playing')).catch(()=>{}); }
+  localStorage.setItem('rt_role', selected.dataset.role);
+}
 
-      const next = (role === 'doctor')
-        ? (localStorage.getItem('rt_doctor_done') === '1'
-            ? './doctor-cabinet-mint-rose.html'
-            : './doctor-onboarding-mint-rose.html')
-        : (localStorage.getItem('rt_patient_done') === '1'
-            ? './main-dark.html'
-            : './profile-dark.html');
+/* восстановление выбора */
+const last = localStorage.getItem('rt_role');
+if (last){ const c = q(`.role[data-role="${last}"]`); if (c) selectRole(c); }
 
-      location.replace(next);
-    }, { once: true });
+/* маршрутизация */
+q('#startBtn').addEventListener('click', ()=>{
+  const role = (selected && selected.dataset.role) || localStorage.getItem('rt_role') || 'patient';
+  if (role === 'doctor'){
+    const done = localStorage.getItem('rt_doctor_done') === '1';
+    location.href = done ? 'doctor-cabinet-mint-rose.html' : 'doctor-onboarding-mint-rose.html';
+  }else{
+    const done = localStorage.getItem('rt_patient_done') === '1';
+    location.href = done ? 'main-dark.html' : 'profile-dark.html';
+  }
+});
 
-    (function(){
-      const btn = document.getElementById('themeToggle');
-      if(!btn) return;
-      const qs = location.search || '';
-      btn.addEventListener('click', ()=> {
-        try{ localStorage.setItem('rt_theme','dark'); }catch(_ ){}
-        location.replace('./welcome-rt.html'+ qs);
-      });
-    })();
-  </script>
+/* кнопка «Тёмная тема» — открываем тёмную страницу */
+q('#toDark').addEventListener('click', ()=>{ location.href = 'welcome-rt.html'; });
+</script>
 </body>
 </html>
