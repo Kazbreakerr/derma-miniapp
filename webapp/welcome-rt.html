@@ -172,6 +172,58 @@
 }
 
     @media (max-width:960px){ h1{font-size:40px} .shell{padding:24px 20px 88px} }
+
+/* === Мобильная компоновка заголовка и карточек === */
+@media (max-width: 560px){
+  /* короче заголовок и лид: меньше строк */
+  h1{
+    font-size: clamp(28px, 6.2vw + 4px, 36px); /* заметно меньше на телефонах */
+    line-height: 1.08;
+    letter-spacing: .1px;
+    text-wrap: balance; /* где поддерживается — равномерные переносы */
+  }
+  .lead{
+    font-size: 16px;
+    line-height: 1.35;
+    margin-top: 10px;
+  }
+
+  /* две карточки в одну строку */
+  .cards{
+    display: grid;
+    grid-template-columns: 1fr 1fr; /* слева/справа */
+    gap: 14px;
+    padding: 12px;
+  }
+  /* убираем жесткие min-width, чтобы влезли две */
+  .role{
+    min-width: 0;
+    width: auto;
+    padding: 10px;
+    border-radius: 18px;
+    box-shadow: 0 8px 18px rgba(0,0,0,.35), inset 0 1px 0 rgba(255,255,255,.04);
+  }
+  .media-btn{
+    aspect-ratio: 3/4;
+    border-radius: 14px;
+  }
+  .role.selected .media-btn::after{ padding: 3px }   /* чуть тоньше рамка на узких */
+  .role.selected .media-btn::before{ inset: -8px; filter: blur(8px) }
+
+  /* кнопка "Начать" по центру и шире, но не на всю */
+  .actions{ margin-top: 18px }
+  .start{ width: 88vw; height: 56px; border-radius: 18px; font-size: 18px }
+}
+
+/* компактная настройка для совсем узких экранов */
+@media (max-width: 380px){
+  h1{ font-size: clamp(26px, 7.5vw, 32px) }
+  .lead{ font-size: 15px }
+  .cards{ gap: 10px; padding: 8px }
+  .start{ width: 92vw }
+}
+
+    
   </style>
 </head>
 <body>
