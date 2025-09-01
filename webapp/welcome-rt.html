@@ -224,6 +224,35 @@
   .lead{ font-size: 14.5px; }
 }
 
+/* Фикс: на телефонах ВСЕГДА две карточки рядом */
+@media (max-width: 820px){                       /* брейкпоинт с запасом */
+  .shell{ padding-left:12px; padding-right:12px; }/* пару пикселей вернём из паддингов */
+
+  .cards{
+    display: grid !important;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    column-gap: 10px; row-gap: 10px;
+    padding: 8px;
+  }
+
+  .role{
+    min-width: 0 !important;                     /* гасим 300px из базового правила */
+    width: 100% !important;
+    padding: 6px;
+    border-radius: 14px;
+    box-shadow: 0 8px 18px rgba(0,0,0,.34), inset 0 1px 0 rgba(255,255,255,.04);
+  }
+
+  .media-btn{ aspect-ratio: 3/4; border-radius: 12px; }
+  .role.selected .media-btn::after{ padding: 2px; }
+  .role.selected .media-btn::before{ inset:-6px; filter: blur(7px); }
+
+  /* заголовок/лид компактнее, чтобы над картами не «съедать» высоту */
+  h1{ font-size: clamp(22px, 5.5vw, 28px); line-height:1.08; margin-bottom:6px; }
+  .lead{ font-size: 14.5px; line-height:1.3; margin:6px 0 4px; }
+}
+
+
   </style>
 </head>
 <body>
