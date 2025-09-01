@@ -3,39 +3,32 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
-  <title>Roaccutane Tracker — Анализы (Dark Neumorphism)</title>
-  <meta name="color-scheme" content="dark">
+  <title>Roaccutane Tracker — Анализы (Light)</title>
+  <meta name="color-scheme" content="light">
   <script src="https://telegram.org/js/telegram-web-app.js"></script>
   <style>
-    /* ================= DARK NEUMORPHISM TOKENS ================= */
+    /* ===== Light / Neumorphism Tokens ===== */
     :root{
-      --bg: #0b0f16;
-      --bg-grad:
-        radial-gradient(1100px 620px at 12% -10%, rgba(255, 119, 156, .14) 0%, rgba(255, 119, 156, .06) 36%, transparent 60%),
-        radial-gradient(950px 680px at 88% 92%, rgba(56, 189, 248, .16) 0%, rgba(56, 189, 248, .08) 35%, transparent 60%),
-        radial-gradient(1200px 900px at 42% 30%, rgba(250, 204, 21, .10) 0%, rgba(250, 204, 21, .04) 35%, transparent 62%),
-        linear-gradient(#0b0f16,#0b0f16);
-      --text: #e8edf7;
-      --muted: #9aa4b2;
-      --primary: #8ab4ff;
-      --accent: #36d6a8;
-      --warn: #f7b93e;
+      --bg: #f4f7fb;
+      --bg-grad: radial-gradient(1200px 600px at 15% -10%, #ffd1a5 0%, #ffe6cc 30%, transparent 60%),
+                 radial-gradient(1000px 700px at 90% 90%, #c5f2ff 0%, #e3f7ff 35%, transparent 60%),
+                 radial-gradient(1200px 900px at 40% 30%, #ffd7e1 0%, #ffe8ef 35%, transparent 60%),
+                 linear-gradient(#f6f9ff,#f6f9ff);
+      --text: #0f1115;
+      --muted: #6b7280;
+      --primary: #6b9cff;
+      --accent: #77e0c2;
+      --warn: #f59e0b;
       --danger: #ef4444;
-
-      --card: #0f1522;
-      --card-2: #0d121c;
-      --border: #1f2a3a;
-
+      --card: #f7f9ff;
+      --card-2: #f3f6fd;
+      --border: #e6ebf5;
       --radius: 18px;
-
-      /* soft light (top-left) and deep shade (bottom-right) */
-      --shadow-up: -8px -8px 18px rgba(255,255,255,.04);
-      --shadow-down: 8px 8px 22px rgba(0,0,0,.55);
-
-      --shadow-inset-a: inset 6px 6px 12px rgba(0,0,0,.55);
-      --shadow-inset-b: inset -6px -6px 12px rgba(255,255,255,.035);
-
-      --shadow-float: 20px 28px 50px rgba(0,0,0,.6);
+      --shadow-up: -8px -8px 18px #ffffff;
+      --shadow-down: 8px 8px 18px rgba(183, 195, 214, .65);
+      --shadow-inset-a: inset 4px 4px 8px rgba(183,195,214,.45);
+      --shadow-inset-b: inset -6px -6px 10px #ffffff;
+      --shadow-float: 12px 18px 30px rgba(180, 196, 219, .35);
     }
     html,body{height:100%}
     body{
@@ -47,7 +40,7 @@
       display:flex; flex-direction:column;
     }
 
-    /* ===== Header ===== */
+    /* ===== App header (simple) ===== */
     header{
       position: sticky; top: 0; z-index: 5;
       padding: 14px 16px;
@@ -91,7 +84,7 @@
       .field{ grid-template-columns: 1fr; }
     }
     .name{font-weight:700; letter-spacing:.2px}
-    .unit{opacity:.75; font-size:12px; margin-left:6px}
+    .unit{opacity:.7; font-size:12px; margin-left:6px}
     .range{color:var(--muted); font-size:13px; white-space:nowrap}
 
     .field input{
@@ -99,42 +92,40 @@
       padding:12px 14px;
       border-radius:12px;
       border: 1px solid var(--border);
-      background: #0c111b;
+      background: var(--card);
+      box-shadow: var(--shadow-inset-a), var(--shadow-inset-b);
       color: var(--text);
       outline: none;
-      box-shadow: var(--shadow-inset-a), var(--shadow-inset-b);
       transition: box-shadow .2s ease, border-color .2s ease;
     }
     .field input:focus{
-      border-color: color-mix(in oklab, var(--primary) 55%, #1a2230);
-      box-shadow: inset 0 0 0 2px color-mix(in oklab, var(--primary) 30%, #0b0f16), var(--shadow-inset-a), var(--shadow-inset-b);
+      border-color: color-mix(in oklab, var(--primary) 55%, white);
+      box-shadow: inset 0 0 0 2px color-mix(in oklab, var(--primary) 25%, white), var(--shadow-inset-a), var(--shadow-inset-b);
     }
 
     .chip{
       display:inline-flex; align-items:center; gap:6px;
       font-size:12px; font-weight:800; letter-spacing:.2px;
       padding:8px 12px; border-radius:999px;
-      border: 1px solid var(--border);
-      background: #0d1622;
-      color:#b7c5dd;
+      border: 1px solid var(--border); background: #ffffffb3;
       box-shadow: var(--shadow-up), var(--shadow-down);
     }
-    .chip.ok{ color:#38d39f; background:#0e1b16 }
-    .chip.warn{ color:#f7b93e; background:#1f1a0b }
-    .chip.bad{ color:#ef6a6a; background:#1f0f12 }
+    .chip.ok{ color:#0f9d58; background: #eafff2 }
+    .chip.warn{ color:#b76b00; background:#fff6e5 }
+    .chip.bad{ color:#d33434; background:#ffecec }
 
     .toolbar{display:flex; align-items:center; gap:10px; flex-wrap:wrap}
     .btn{
       appearance:none; border:1px solid var(--border);
-      background: linear-gradient(180deg, #0f1624, #111a2a);
+      background: linear-gradient(180deg, #ffffff, #f2f6ff);
       color: var(--text); border-radius:14px; padding:12px 16px;
       cursor:pointer; font-weight:800; letter-spacing:.2px;
       box-shadow: var(--shadow-up), var(--shadow-down);
     }
     .btn.primary{
-      background: linear-gradient(180deg, #28c2a0, #20b394 60%, #17a585 100%);
-      border: none; color:#001a14;
-      text-shadow: 0 1px 0 rgba(255,255,255,.25);
+      background: linear-gradient(180deg, #b7e9ff, #bfe9ff 20%, #9fe0ff 60%, #86d1ff 100%);
+      border: none; color:#053e60;
+      text-shadow: 0 1px 0 rgba(255,255,255,.6);
     }
     .btn:active{ transform: translateY(1px) }
 
@@ -142,15 +133,15 @@
       display:inline-grid; grid-auto-flow:column; gap:0;
       border-radius:14px; overflow:hidden; border:1px solid var(--border);
       box-shadow: var(--shadow-up), var(--shadow-down);
-      background: #0c121d;
+      background: var(--card);
     }
     .seg button{
       padding:10px 14px; border:0; background:transparent; color:var(--text);
       font-weight:700; cursor:pointer;
     }
     .seg button.active{
-      background: linear-gradient(180deg, #15243a, #101a2a);
-      color:#a7c7ff;
+      background: linear-gradient(180deg, #e7f0ff, #f9fbff);
+      color:#1f3b87;
       box-shadow: var(--shadow-inset-a), var(--shadow-inset-b);
     }
 
@@ -165,26 +156,25 @@
       background: var(--card-2); box-shadow: var(--shadow-up), var(--shadow-down);
     }
     .thumbs{ display:grid; grid-template-columns: repeat(auto-fill, minmax(140px, 1fr)); gap:12px }
-    .thumb{ position:relative; border-radius:14px; overflow:hidden; background:#0b121d; border:1px solid var(--border);
+    .thumb{ position:relative; border-radius:14px; overflow:hidden; background:#eef3ff; border:1px solid var(--border);
             box-shadow: var(--shadow-up), var(--shadow-down); aspect-ratio:1/1 }
     .thumb img{ width:100%; height:100%; object-fit:cover; display:block }
     .thumb .del,.thumb .open{
       position:absolute; left:8px; right:8px;
-      background: #0e1626d0; color:#e9eef7; border:none;
+      background: #ffffffd9; color:#0f1115; border:none;
       border-radius:12px; padding:6px 10px; font-size:12px; cursor:pointer;
       box-shadow: var(--shadow-up), var(--shadow-down);
-      backdrop-filter: blur(4px);
     }
     .thumb .del{ bottom:8px }
     .thumb .open{ top:8px }
 
-    /* Viewer */
-    .viewer{ position:fixed; inset:0; background: rgba(3,6,12,.92);
+    /* Fullscreen viewer (hidden by default via inline style) */
+    .viewer{ position:fixed; inset:0; background: rgba(250,252,255,.95);
              display:flex; align-items:center; justify-content:center; z-index:9999 }
     .viewer img{ max-width:95vw; max-height:90vh; display:block; border-radius:12px;
                  box-shadow: var(--shadow-float) }
     .viewer .close{ position:absolute; top:16px; right:16px; border:0; cursor:pointer;
-      background: #0f1624; color:#e9eef7; padding:10px 14px; border-radius:12px;
+      background: #ffffff; color:#0f1115; padding:10px 14px; border-radius:12px;
       box-shadow: var(--shadow-up), var(--shadow-down) }
 
     /* Reports */
@@ -193,20 +183,20 @@
     .rep-toggle{ width:100%; background:transparent; color:var(--text); border:0; text-align:left; padding:14px 16px; display:flex; align-items:center; justify-content:space-between; gap:10px; cursor:pointer }
     .rep-title{ font-weight:800 }
     .rep-meta{ display:flex; gap:8px; align-items:center }
-    .badge{ font-size:11px; padding:6px 10px; border-radius:999px; border:1px solid var(--border); background:#0f1624; color:#b7c5dd; box-shadow: var(--shadow-up), var(--shadow-down) }
-    .badge.bad{ color:#ef6a6a; background:#1f0f12 }
-    .badge.warn{ color:#f7b93e; background:#1f1a0b }
-    .chev{ transition: transform .2s ease; opacity:.65 }
+    .badge{ font-size:11px; padding:6px 10px; border-radius:999px; border:1px solid var(--border); background:#fff; box-shadow: var(--shadow-up), var(--shadow-down) }
+    .badge.bad{ color:#d33434; background:#ffecec }
+    .badge.warn{ color:#b76b00; background:#fff6e5 }
+    .chev{ transition: transform .2s ease; opacity:.6 }
     .rep-item.open .chev{ transform: rotate(90deg) }
     .rep-panel{ overflow:hidden; max-height:0; transition:max-height .25s ease; padding:0 16px }
     .rep-item.open .rep-panel{ padding: 0 16px 14px; }
-    .rep-body{ font-size:13.5px; color:#aeb8c7 }
-    .rep-table{ width:100%; border-collapse:collapse; margin-top:8px; font-size:13.5px; background:#0c121d; border-radius:12px; overflow:hidden; box-shadow: var(--shadow-up), var(--shadow-down) }
+    .rep-body{ font-size:13.5px; color:#4b5563 }
+    .rep-table{ width:100%; border-collapse:collapse; margin-top:8px; font-size:13.5px; background:#fff; border-radius:12px; overflow:hidden; box-shadow: var(--shadow-up), var(--shadow-down) }
     .rep-table th, .rep-table td{ padding:8px 10px; border-bottom:1px dashed var(--border); text-align:left }
-    .rep-table th{ color:#92a0b5; font-weight:700 }
+    .rep-table th{ color:#6b7280; font-weight:700 }
     .rep-actions{ display:flex; gap:10px; margin-top:12px }
 
-    /* Bottom onboarding/nav */
+    /* Bottom nav (light) */
     .bottom-nav{
       position: fixed; left: 0; right: 0; bottom: 0;
       background: var(--card);
@@ -216,10 +206,10 @@
       z-index: 2000;
       box-shadow: var(--shadow-up), var(--shadow-down);
     }
-    .tab{ display:flex; flex-direction:column; align-items:center; gap:6px; min-width: 56px; padding: 8px 12px; border-radius: 14px; color: #b0bacb; text-decoration:none; font-size:12px; font-weight:700 }
-    .tab svg{ width:22px; height:22px; opacity:.95; stroke:#b0bacb }
-    .tab.active{ background: #0c121d; color: #9ec5ff; box-shadow: var(--shadow-inset-a), var(--shadow-inset-b) }
-    .tab.active svg{ stroke:#9ec5ff }
+    .tab{ display:flex; flex-direction:column; align-items:center; gap:6px; min-width: 56px; padding: 8px 12px; border-radius: 14px; color: #6b7280; text-decoration:none; font-size:12px; font-weight:700 }
+    .tab svg{ width:22px; height:22px; opacity:.9; stroke:#6b7280 }
+    .tab.active{ background: #ffffff; color: #1f3b87; box-shadow: var(--shadow-inset-a), var(--shadow-inset-b) }
+    .tab.active svg{ stroke:#1f3b87 }
     .tab:active{ transform: translateY(1px) }
     .bottom-spacer{ height: calc(74px + env(safe-area-inset-bottom)); }
 
@@ -353,7 +343,7 @@
       <div class="thumbs" id="thumbs" style="margin-top:12px"></div>
     </div>
 
-    <!-- Fullscreen Viewer -->
+    <!-- Viewer hidden by default -->
     <div class="viewer" id="viewer" style="display:none" aria-hidden="true">
       <button class="close" id="viewerClose" style="display:none">Закрыть</button>
       <img id="viewerImg" alt="Фото анализа" style="display:none" />
@@ -368,7 +358,7 @@
     <div class="bottom-spacer"></div>
   </div>
 
-  <!-- Bottom onboarding/nav -->
+  <!-- Bottom nav -->
   <nav class="bottom-nav">
     <a class="tab" id="navHome" href="main-dark.html">
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round">
@@ -411,7 +401,7 @@
 (function(){
   const pageRoot = document.getElementById('pageRoot');
 
-  // Refs
+  // --- DOM refs
   const sexSeg = document.getElementById('sexSeg');
   const updatedLbl = document.getElementById('updatedLbl');
   const fileInput = document.getElementById('fileInput');
@@ -423,7 +413,7 @@
   const reportsList = document.getElementById('reportsList');
   const saveReportBtn = document.getElementById('saveReportBtn');
 
-  // State
+  // --- State (persist in localStorage)
   let sex = (localStorage.getItem('labs.sex') || 'female');
   let values = JSON.parse(localStorage.getItem('labs.values') || '{}');
   let photos = JSON.parse(localStorage.getItem('labs.photos') || '[]');
@@ -490,7 +480,7 @@
     });
   }
 
-  // Load saved values
+  // Preload saved values
   document.querySelectorAll('.field').forEach(box=>{
     const key = box.getAttribute('data-key');
     const input = box.querySelector('input');
@@ -501,7 +491,7 @@
     });
   });
 
-  // Save / clear
+  // Save values
   document.getElementById('saveBtn').addEventListener('click', ()=>{
     const out = {};
     document.querySelectorAll('.field').forEach(box=>{
@@ -515,6 +505,7 @@
     const ts = new Date();
     updatedLbl.textContent = 'Сохранено: ' + ts.toLocaleString();
   });
+  // Clear
   document.getElementById('clearBtn').addEventListener('click', ()=>{
     document.querySelectorAll('.field input').forEach(i=> i.value='');
     values = {};
@@ -819,7 +810,7 @@
     fileInput.value = '';
   });
 
-  // Fade+slide navigation
+  // Fade+slide navigation (для главной и профиля)
   function navigateWithFx(url){
     pageRoot.classList.add('exit');
     const done = ()=> window.location.href = url;

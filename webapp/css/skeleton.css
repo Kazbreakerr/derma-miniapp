@@ -1,0 +1,65 @@
+/* ============ Skeleton (зелёный shimmer) ============ */
+:root{
+  --sk-base: rgba(255,255,255,.06);
+  --sk-deco: rgba(255,255,255,.12);
+  --sk-shimmer-1: #19d06a;
+  --sk-shimmer-2: #2de1b0;
+  --sk-radius: 14px;
+}
+html[data-theme="light"]{
+  --sk-base: rgba(0,0,0,.06);
+  --sk-deco: rgba(0,0,0,.08);
+}
+
+/* каркас */
+.skeleton{
+  position: relative;
+  overflow: hidden;
+  background:
+    linear-gradient(180deg, var(--sk-base), transparent 60%) padding-box,
+    linear-gradient(0deg, var(--sk-deco), transparent 40%) border-box;
+  border: 1px solid var(--sk-deco);
+  border-radius: var(--sk-radius);
+  user-select: none;
+}
+.skeleton::after{
+  content:"";
+  position:absolute; inset:0;
+  background: linear-gradient(100deg,
+      transparent 20%,
+      rgba(25,208,106,.25) 40%,
+      rgba(45,225,176,.25) 60%,
+      transparent 80%);
+  transform: translateX(-100%);
+  animation: sk-shimmer 1.2s infinite;
+  pointer-events:none;
+}
+@keyframes sk-shimmer{
+  to{ transform: translateX(100%); }
+}
+
+/* удобные варианты */
+.skeleton--panel{ aspect-ratio: var(--sk-ratio, 16/9); }
+.skeleton--rect{ aspect-ratio: var(--sk-ratio, 4/3); }
+.skeleton--avatar{ width:64px; height:64px; border-radius:50%; }
+.skeleton--line{ height:12px; border-radius:8px; }
+
+/* когда загрузились – скрываем эффект */
+.skeleton.is-done::after{ display:none; }
+.skeleton.is-done{ background: transparent; border-color: transparent; }
+
+/* Плавное появление контента */
+.lazy, .lazy-bg{
+  opacity: 0;
+  filter: blur(1px) saturate(.9);
+  transition: opacity .35s ease, filter .35s ease;
+}
+.lazy.is-loaded, .lazy-bg.is-loaded{
+  opacity: 1; filter: none;
+}
+
+/* Небольшая бережность к motion */
+@media (prefers-reduced-motion: reduce){
+  .skeleton::after{ animation: none; }
+  .lazy, .lazy-bg{ transition: opacity .25s ease; }
+}

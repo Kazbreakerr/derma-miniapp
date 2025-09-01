@@ -477,4 +477,76 @@ location.replace('./main-dark.html' + qs);
 });
 </script>
 
+<script>
+/* === helpers (общие) === */
+const RT_KEY = 'rt';
+function loadRt() {
+  try { return JSON.parse(localStorage.getItem(RT_KEY)) || {}; }
+  catch { return {}; }
+}
+function saveRt(rt) {
+  localStorage.setItem(RT_KEY, JSON.stringify(rt));
+}
+
+/* === обработчик "Сохранить план" === */
+function onSavePlan() {
+  const time = (document.querySelector('#plan-remind-time')?.value || '09:00').slice(0,5);
+  const enabled = !!document.querySelector('#plan-remind-enabled')?.checked;
+
+  const rt = loadRt();
+  rt.reminders = Array.isArray(rt.reminders) ? rt.reminders : [];
+
+  // запись / обновление записи с id:'main'
+  const idx = rt.reminders.findIndex(r => r && r.id === 'main');
+  const rec = { id: 'main', time, enabled };
+  if (idx >= 0) rt.reminders[idx] = rec; else rt.reminders.push(rec);
+
+  // (необязательно) бэкомпат с очень старым кодом:
+  rt.remindAt = time;
+  rt.remindEnabled = enabled;
+
+  saveRt(rt);
+
+  // StorageEvent срабатывает только в других вкладках.
+  // Чтобы main обновился даже в той же веб-вью, шлём своё событие.
+  window.dispatchEvent(new CustomEvent('rt:changed', { detail: { key: RT_KEY, rt }}));
+}
+
+// ====== Привязка к UI на Плане ======
+// Ожидаем, что у вас есть:
+//   input[type="time"] с id="rem-time"
+//   checkbox/toggle с id="rem-enabled"
+//   (необязательно) кнопка сохранения плана с id="save-plan"
+const $time = document.getElementById('rem-time');
+const $enabled = document.getElementById('rem-enabled');
+const $save = document.getElementById('save-plan');
+
+// Подтянуть текущее состояние (если уже было сохранено)
+(function initReminderFields() {
+  const rt = rtLoad();
+  const cur = (rt.reminders || []).find(r => r.id === 'main');
+  if (cur) {
+    if ($time)    $time.value = cur.time || '';
+    if ($enabled) $enabled.checked = !!cur.enabled;
+  }
+})();
+
+// Универсальная функция сохранения из полей
+function saveMainReminderFromFields() {
+  if (!$time || !$enabled) return;
+  const time = ($time.value || '').slice(0,5); // "HH:MM"
+  const enabled = !!$enabled.checked;
+  upsertReminder({ id: 'main', time, enabled });
+  // (необязательно) показать пользователю рез-т
+  if (window.Telegram?.WebApp?.HapticFeedback) {
+    Telegram.WebApp.HapticFeedback.impactOccurred('light');
+  }
+}
+
+// Сохраняем при изменениях и/или при клике на "Сохранить план"
+$time   && $time.addEventListener('change', saveMainReminderFromFields);
+$enabled&& $enabled.addEventListener('change', saveMainReminderFromFields);
+$save   && $save.addEventListener('click',  saveMainReminderFromFields);
+</script>
+
 </body></html>
