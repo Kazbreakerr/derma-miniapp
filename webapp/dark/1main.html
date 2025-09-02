@@ -1178,7 +1178,7 @@ function applyDiaryToMain(d){
 
 // ловим изменения дневника из calendar.html (в другом табе/странице)
 window.addEventListener('storage', (e)=>{
-    if (e.key === 'rt.diary.v1' || e.key === 'rt.diary.v2' || e.key === 'rt.diary.bump'){
+    if (e.key === 'rt.diary.v1' || e.key === 'rt.diary.bump'){
       const d = diaryGet();
       applyDiaryToMain(d);
       try{ renderCalPreview(); }catch(_){}
@@ -1503,15 +1503,14 @@ function renderCalPreview(){
     map.set(k, (map.get(k)||0) + Number(x.mg||x.mg_taken||0));
   });
   try{
-    const diary = JSON.parse(localStorage.getItem('rt.diary.v1')||'{}');
-    Object.keys(diary).forEach(k=>{
-      const v = diary[k] || {};
-      if (v.miss === true){ map.set(k, 0); return; } // пропуск
-      const mg = Number(v.dose ?? v.mg ?? 0);
-      if (mg > 0){ map.set(k, mg); }                  // дневник перекрывает DOSES
-    });
-  }catch(_){}
-
+  const diary = JSON.parse(localStorage.getItem('rt.diary.v1')||'{}');
+  Object.keys(diary).forEach(k=>{
+    const v = diary[k] || {};
+    if (v.miss === true){ map.set(k, 0); return; }             // пропуск
+    const mg = Number(v.dose ?? v.mg ?? 0);
+    if (mg > 0){ map.set(k, mg); }                             // дневник перекрывает DOSES
+  });
+}catch(_){}
   // Базовая дата = понедельник нужной недели
   const base = new Date(); base.setHours(0,0,0,0);
   base.setDate(base.getDate() + calOffset);
@@ -1520,8 +1519,6 @@ function renderCalPreview(){
   base.setDate(base.getDate() + toMonday);
 
   const currentIso = (document.getElementById('date')?.value||'').slice(0,10);
-  const dAll = diaryGet();
-
   for(let i=0;i<7;i++){
     const d = new Date(base); d.setDate(base.getDate()+i);
     const y  = d.getFullYear();
@@ -1530,23 +1527,9 @@ function renderCalPreview(){
     const iso = `${y}-${m}-${dd}`;
     const mg = map.get(iso) || 0;
 
-    const rec  = dAll?.[iso] || {};
-    const moodIdx = moodIndexFromDiary(rec, iso);
-
     const cell = document.createElement('div');
     cell.className = 'day' + (iso === todayISO() ? ' today' : '') + (iso === currentIso ? ' selected' : '');
     cell.setAttribute('data-iso', iso);
-
-    if (rec.miss === true && mg === 0){
-      cell.classList.add('miss');
-      cell.style.setProperty('--glowC','rgba(244,63,94,.55)'); // красный для пропуска
-    } else if (moodIdx > 0){
-      cell.classList.add('mood-'+moodIdx);
-      cell.style.setProperty('--glowC', moodGlowColor(moodIdx));
-    } else {
-      cell.style.removeProperty('--glowC');
-    }
-
     cell.innerHTML = `
       <div class="day-num">${Number(dd)}</div>
       <div class="marks">
@@ -1563,6 +1546,7 @@ function renderCalPreview(){
     box.appendChild(cell);
   }
 }
+
 (function wireCalNav(){
       const wrap = document.getElementById('calWrap');
       const prev = document.getElementById('calPrev');

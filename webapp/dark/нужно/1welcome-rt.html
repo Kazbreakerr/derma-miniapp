@@ -4,14 +4,6 @@
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1" />
 <title>Roaccutane Tracker — Добро пожаловать</title>
-<script>
-// Убираем ?next/&after из URL, чтобы ничего не прыгало мимо welcome
-(function(){
-  const sp = new URLSearchParams(location.search);
-  if (sp.has('next') || sp.has('after')){ sp.delete('next'); sp.delete('after'); const qs=sp.toString(); history.replaceState(null,'', location.pathname + (qs?('?'+qs):'')); }
-})();
-</script>
-
 
 <style>
 /* ===================== THEME VARS ===================== */
@@ -185,8 +177,8 @@ body{
   .start{ width:92vw; }
 }
 </style>
-<script src="js/folder-router.js"></script>
-<script src="js/gates.js"></script>
+<script src="/js/folder-router.js"></script>
+<script src="/js/gates.js"></script>
 </head>
 <body>
   <main class="shell">
@@ -293,48 +285,34 @@ if (last){
     const h={'Content-Type':'application/json'}; if(initData) h['X-Telegram-InitData']=initData;
     return fetch(url,{...opts,headers:h});
   }
-
   let me=null, plan=null;
   try{ const r=await api('/api/me');   if(r.ok) me  = await r.json(); }catch(_){}
   try{ const r=await api('/api/plan'); if(r.ok) plan= await r.json(); }catch(_){}
+  const btn=document.getElementById('go-next');
+ /* ——— welcome → дальше по 4 сценариям ——— */
+btn?.addEventListener('click', ()=>{
+  const qs   = location.search || '';
+  const role = (localStorage.getItem('rt_role') || 'patient').toLowerCase();
 
-    const btn = document.getElementById('go-next');
+  if (role === 'doctor') {
+    // 2) Врач: первый раз → онбординг; повторно → кабинет
+    const done = localStorage.getItem('rt_doctor_done') === '1'
+              || !!JSON.parse(localStorage.getItem('doctorOnboardingDone')||'null');
+    location.href = done ? './doctor-cabinet-mint-rose.html' + qs
+                         : './doctor-onboarding-mint-rose.html' + qs;
+    return;
+  }
 
-  btn?.addEventListener('click', (e)=>{
-    try { e.preventDefault(); } catch(_){}
-    const qs = location.search || '';
-    const sp = new URLSearchParams(qs);
-    const tgInit = window.Telegram?.WebApp?.initDataUnsafe?.user?.id;
-    const uid = sp.get('tg') || tgInit || '1002'; // тот же dev tg, что и для API
-    const role = (localStorage.getItem('rt_role') || 'patient').toLowerCase();
+  // 1) Пациент: первый раз → warnings → profile → plan → main; повторно — welcome → main
+  const consented = localStorage.getItem('derma_consent')==='1' || !!me?.accepted_terms_at;
+  const hasWeight = Number(me?.weight_kg) > 0;
+  const hasPlan   = !!plan?.start_date;
 
-    // ===== Врач =====
-    if (role === 'doctor') {
-      const onbDone = uid
-        ? (localStorage.getItem(`dermaApp:${uid}:doctor_done`) === '1')
-        : (localStorage.getItem('rt_doctor_done') === '1' || localStorage.getItem('doctorOnboardingDone') === '1');
-
-      location.href = (onbDone ? './doctor-cabinet-mint-rose.html'
-                               : './doctor-onboarding-mint-rose.html') + qs;
-      return;
-    }
-
-    // ===== Пациент =====
-    const consentLS = uid
-      ? localStorage.getItem(`dermaApp:${uid}:consentAccepted`)
-      : localStorage.getItem('derma_consent');
-
-    const consented = !!me?.accepted_terms_at || (consentLS === '1');
-    const hasWeight = Number(me?.weight_kg) > 0;
-    const hasPlan   = !!plan?.start_date;
-
-    const next = !consented ? './warnings.html'
-               : !hasWeight ? './profile.html'
-               : !hasPlan   ? './plan.html'
-               :              './main.html';
-
-    location.href = next + qs;
-  }, { capture:true }); // ВАЖНО: capture, чтобы наш код сработал раньше чужих
+  if (!consented)      location.href = './warnings.html' + qs;
+  else if (!hasWeight) location.href = './profile.html'  + qs;
+  else if (!hasPlan)   location.href = './plan.html'     + qs;
+  else                 location.href = './main.html'     + qs;
+});
 })();
 </script>
 <!-- ======= theme toggle ======= -->
@@ -349,6 +327,26 @@ if (last){
     location.href = './welcome-rt-light.html' + qs;
   });
 })();
+</script>
+<script>
+  // Инициализация автоссылок data-page (если используешь)
+  F.initLinks();
+
+  // Переход дальше по онбордингу
+  document.getElementById('go-next')?.addEventListener('click', async (e)=>{
+  e.preventDefault();
+  const init = window.Telegram?.WebApp?.initData || '';
+  try{
+    const r = await fetch('/api/state/next/welcome' + (location.search||''), {
+      headers: init ? { 'X-Telegram-InitData': init } : {}
+    });
+    const { page } = await r.json();
+    location.href = page + (location.search||'');
+  }catch(_){
+    // Фолбэк на всякий случай
+    location.href = '/dark/main.html' + (location.search||'');
+  }
+});
 </script>
 
 </body>

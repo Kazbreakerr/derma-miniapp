@@ -208,24 +208,50 @@
     .rep-table th{ color:#92a0b5; font-weight:700 }
     .rep-actions{ display:flex; gap:10px; margin-top:12px }
 
-    /* Bottom onboarding/nav */
+    
+/* Bottom onboarding/nav */
     .bottom-nav{
       position: fixed; left: 0; right: 0; bottom: 0;
+      z-index: 2000;
+      padding: 12px max(env(safe-area-inset-left),14px) calc(12px + env(safe-area-inset-bottom)) max(env(safe-area-inset-right),14px);
+      display: grid;
+      grid-template-columns: repeat(5, 1fr);
+      gap: 10px;
       background: var(--card);
       border-top: 1px solid var(--border);
-      display:flex; justify-content: space-around; align-items: center;
-      padding: 10px max(env(safe-area-inset-left),14px) calc(10px + env(safe-area-inset-bottom)) max(env(safe-area-inset-right),14px);
-      z-index: 2000;
       box-shadow: var(--shadow-up), var(--shadow-down);
+      backdrop-filter: saturate(120%) blur(6px);
     }
-    .tab{ display:flex; flex-direction:column; align-items:center; gap:6px; min-width: 56px; padding: 8px 12px; border-radius: 14px; color: #b0bacb; text-decoration:none; font-size:12px; font-weight:700 }
-    .tab svg{ width:22px; height:22px; opacity:.95; stroke:#b0bacb }
-    .tab.active{ background: #0c121d; color: #9ec5ff; box-shadow: var(--shadow-inset-a), var(--shadow-inset-b) }
-    .tab.active svg{ stroke:#9ec5ff }
+    .tab{
+      display:flex; flex-direction:column; align-items:center; justify-content:center; gap:6px;
+      height: 64px;
+      padding: 8px 10px;
+      text-decoration:none;
+      border-radius: 18px;
+      border: 1px solid var(--border);
+      background: linear-gradient(180deg, #101928, #0c121d);
+      color:#b7c5dd;
+      font-size:12.5px; font-weight:800; letter-spacing:.2px;
+      box-shadow: var(--shadow-up), var(--shadow-down);
+      user-select:none;
+    }
+    .tab svg{ width:22px; height:22px; opacity:.95; stroke:#c6d2e8 }
+    .tab span{ line-height:1; }
     .tab:active{ transform: translateY(1px) }
-    .bottom-spacer{ height: calc(74px + env(safe-area-inset-bottom)); }
+    .tab.active{
+      background: linear-gradient(180deg, #111d30, #0c131f);
+      color: #dbe7ff;
+      box-shadow: var(--shadow-inset-a), var(--shadow-inset-b), var(--shadow-up), var(--shadow-down);
+    }
+    .tab.active svg{ stroke: #9ec5ff }
+    .tab.active span::after{
+      content:""; display:block; height:2px; border-radius:2px; background:#9ec5ff;
+      opacity:.9; margin-top:4px; width: 100%;
+    }
+    .bottom-spacer{ height: calc(86px + env(safe-area-inset-bottom)); }
 
     /* Page fade for navigation */
+
     .page{ opacity: 0; transform: translateY(8px); animation: fadeSlideIn .28s ease forwards; }
     @keyframes fadeSlideIn { to { opacity:1; transform: translateY(0); } }
     .page.exit{ opacity: 0; transform: translateY(8px); transition: opacity .28s ease, transform .28s ease; }
@@ -371,15 +397,16 @@
   </div>
 
   <!-- Bottom onboarding/nav -->
-  <nav class="bottom-nav">
-    <a class="tab" id="navHome" href="main-dark.html">
+  
+<nav class="bottom-nav">
+    <a class="tab" id="navHome" href="main.html">
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round">
         <path d="M3 11.5L12 4l9 7.5"></path>
         <path d="M5 10.5V20a1 1 0 0 0 1 1h4v-6h4v6h4a1 1 0 0 0 1-1v-9.5"></path>
       </svg>
       <span>Главная</span>
     </a>
-    <a class="tab" id="navCalendar" href="#">
+    <a class="tab" id="navCalendar" href="calendar.html">
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round">
         <rect x="3" y="4" width="18" height="18" rx="2"></rect>
         <path d="M16 2v4M8 2v4M3 10h18"></path>
@@ -393,14 +420,15 @@
       </svg>
       <span>Профиль</span>
     </a>
-    <a class="tab" id="navDiary" href="#">
+    <a class="tab" id="navDiary" href="diary.html">
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round">
-        <rect x="3" y="5" width="14" height="12" rx="2"></rect>
-        <path d="M8 13l2.5-2.5L14 14l2-2 3 3"></path>
+        <rect x="3" y="5" width="18" height="14" rx="2"></rect>
+        <circle cx="9" cy="11" r="1.5"></circle>
+        <path d="M21 19l-5-5-3 3-2-2-4 4"></path>
       </svg>
       <span>Фотодневник</span>
     </a>
-    <a class="tab active" id="navLabs" href="#">
+    <a class="tab active" id="navLabs" href="labs.html">
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round">
         <path d="M6 2h12"></path>
         <path d="M9 2v4l-5 8a6 6 0 0 0 6 8h4a6 6 0 0 0 6-8l-5-8V2"></path>
@@ -408,6 +436,7 @@
       <span>Анализы</span>
     </a>
   </nav>
+
 
 <script>
 (function(){
@@ -832,8 +861,12 @@
     pageRoot.style.opacity = '0';
     pageRoot.style.transform = 'translateY(8px)';
   }
-  document.getElementById('navHome').addEventListener('click', (e)=>{ e.preventDefault(); navigateWithFx('main-dark.html'); });
-  document.getElementById('navProfile').addEventListener('click', (e)=>{ e.preventDefault(); navigateWithFx('myprofile.html'); });
+  
+document.getElementById('navHome').addEventListener('click', (e)=>{ e.preventDefault(); navigateWithFx('main.html'); });
+document.getElementById('navCalendar').addEventListener('click', (e)=>{ e.preventDefault(); navigateWithFx('calendar.html'); });
+document.getElementById('navDiary').addEventListener('click', (e)=>{ e.preventDefault(); navigateWithFx('diary.html'); });
+document.getElementById('navProfile').addEventListener('click', (e)=>{ e.preventDefault(); navigateWithFx('myprofile.html'); });
+ navigateWithFx('myprofile.html'); });
 
   try{ Telegram.WebApp.ready(); Telegram.WebApp.expand(); }catch(_){}
 })();

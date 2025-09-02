@@ -172,6 +172,105 @@ async function userIdByTg(tgId) {
 
 // ====== open routes ======
 app.get('/api/health', (_, res) => res.json({ ok: true }));
+// === STATE FLOW ENDPOINTS (first-run routing) ================================
+
+/**
+ * Определяем, врач ли пользователь, и пройден ли его онбординг.
+ * isDoctor: true, если users.is_doctor = true ИЛИ уже есть doctor_code/profile.
+ * onbDone: true, если есть doctor_code (active) ИЛИ doctor_profile.
+ */
+async function decideDoctorState(uid) {
+  await pool.query('SET search_path = derma, public');
+  const u = await pool.query('SELECT is_doctor FROM derma.users WHERE id=$1', [uid]);
+  let isDoctor = !!u.rows[0]?.is_doctor;
+
+  const code = await pool.query(
+    'SELECT code FROM derma.doctor_codes WHERE doctor_id=$1 AND active',
+    [uid]
+  );
+  const prof = await pool.query(
+    'SELECT 1 FROM derma.doctor_profiles WHERE user_id=$1',
+    [uid]
+  );
+
+  const hasDoctorAssets = !!(code.rows[0]?.code || prof.rows[0]);
+  if (!isDoctor && hasDoctorAssets) isDoctor = true;
+
+  return { isDoctor, onbDone: hasDoctorAssets };
+}
+
+/**
+ * GET /api/state/next/index
+ * Ответ: { page: '/dark/splash-video.html' | '/dark/welcome-rt.html' }
+ * Логика: splash показываем только при самом первом EVER заходе (req.isFreshUser).
+ */
+app.get('/api/state/next/index', tgAuth, async (req, res) => {
+  try {
+       // для тестов: /index.html?forceSplash=1 всегда показывает splash+   if (String(req.query.forceSplash) === '1') {+     return res.json({ ok: true, page: '/dark/splash-video.html' });
+  
+    const firstTime = !!req.isFreshUser;           // ← уже есть в твоём tgAuth
+    const page = firstTime ? '/dark/splash-video.html'
+                           : '/dark/welcome-rt.html';
+    res.json({ ok: true, page });
+  } catch (e) {
+    console.error('NEXT/INDEX ERROR:', e);
+    res.status(500).json({ ok: false, error: e.message });
+  }
+});
+
+/**
+ * GET /api/state/next/welcome
+ * Возвращает, куда идти ПОСЛЕ welcome:
+ *  - пациент (первый раз): warnings → profile → plan → main
+ *  - пациент (повторный): main
+ *  - врач (первый раз): doctor-onboarding → doctor-cabinet
+ *  - врач (повторный): doctor-cabinet
+ *
+ * Ответ: { page: '/dark/....html', role: 'patient'|'doctor' }
+ */
+app.get('/api/state/next/welcome', tgAuth, async (req, res) => {
+  try {
+    await pool.query('SET search_path = derma, public');
+    const uid = await userIdByTg(req.tg || req.tgUser?.id);
+    if (!uid) return res.status(401).json({ ok: false, error: 'unauthorized' });
+
+    const { isDoctor, onbDone } = await decideDoctorState(uid);
+
+    if (isDoctor) {
+      // врач: если онбординг не завершён → на онбординг; иначе → кабинет
+      const page = onbDone
+        ? '/dark/doctor-cabinet-mint-rose.html'
+        : '/dark/doctor-onboarding-mint-rose.html';
+      return res.json({ ok: true, role: 'doctor', page });
+    }
+
+    // пациент: смотрим согласие, профиль, план
+    const u = await pool.query(
+      `SELECT accepted_terms_at, weight_kg
+         FROM derma.users
+        WHERE id = $1`,
+      [uid]
+    );
+    const consented  = !!u.rows[0]?.accepted_terms_at;
+    const hasProfile = u.rows[0]?.weight_kg != null;        // профиль считаем заполненным, если есть вес
+    const p = await pool.query(
+      'SELECT 1 FROM derma.plans WHERE patient_id=$1',
+      [uid]
+    );
+    const hasPlan = !!p.rows[0];
+
+    const page = !consented ? '/dark/warnings.html'
+               : !hasProfile ? '/dark/profile.html'
+               : !hasPlan   ? '/dark/plan.html'
+               :              '/dark/main.html';
+
+    res.json({ ok: true, role: 'patient', page });
+  } catch (e) {
+    console.error('NEXT/WELCOME ERROR:', e);
+    res.status(500).json({ ok: false, error: e.message });
+  }
+});
+
 
 app.get('/api/db-test', async (req, res) => {
   try {
@@ -428,12 +527,11 @@ app.get('/api/me', tgAuth, async (req, res) => {
 
     const { rows } = await pool.query(
       `select id, tg_id, full_name, sex, birth_date, weight_kg, height_cm, tz,
-              accepted_terms_at, allergies, terms_version
+              accepted_terms_at, allergies, terms_version, is_doctor
          from derma.users
         where id = $1`,
       [uid]
     );
-
     const me = rows[0] || {};
     me.fresh_user = !!req.isFreshUser;   // ← значение, выставленное в tgAuth при первой вставке
     return res.json(me);

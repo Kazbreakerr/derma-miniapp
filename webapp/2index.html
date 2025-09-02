@@ -106,71 +106,32 @@
   </div>
 
   <script>
-// ===================== START ROUTER =====================
-(function startRouter(){
-  const isFile = location.protocol === 'file:';
-  const qs = location.search || '';
-  const sp = new URLSearchParams(qs);
+    // 1) Подстроить именно ЛОАДЕР под тему Telegram (только визуал)
+    (function applyScheme(){
+      try{
+        const cs = window.Telegram?.WebApp?.colorScheme;
+        const scheme = (cs === 'light' || cs === 'dark') ? cs : 'dark';
+        document.getElementById('rt-loader')?.setAttribute('data-scheme', scheme);
+        window.Telegram?.WebApp?.onEvent?.('themeChanged', () => {
+          const cs2 = window.Telegram?.WebApp?.colorScheme;
+          document.getElementById('rt-loader')?.setAttribute('data-scheme', (cs2==='light'?'light':'dark'));
+        });
+        window.Telegram?.WebApp?.ready?.();
+      }catch(_){}
+    })();
 
-function lsSeen(){
+   (async function decideStart(){
   try{
-    const ls  = localStorage;
-    const uid = new URLSearchParams(location.search).get('tg')
-             || (window.Telegram?.WebApp?.initDataUnsafe?.user?.id) || '';
-    if (uid){
-      // Если знаем tg — считаем «видел» только по персональному флагу
-      return ls.getItem(`dermaApp:${uid}:splash_seen`) === '1';
-    }
-    // Если tg неизвестен — используем общий флаг
-    return ls.getItem('derma_splash_seen') === '1';
-  }catch(_){}
-  return false;
-}
-  function go(rel){ location.replace(rel + (qs || '')); }
-
-  async function serverDecide(){
-    try{
-      const init = window.Telegram?.WebApp?.initData || '';
-      const r = await fetch('api/state/next/index' + (qs || ''), {
-        // relative URL → работает и на http://host, и под поддиректорией
-        headers: init ? { 'X-Telegram-InitData': init } : {}
-      });
-      if (!r.ok) throw new Error('API ' + r.status);
-      const j = await r.json();
-      const page = (j && j.page) ? j.page : './dark/welcome-rt.html';
-      // Нормализуем в относительный путь
-      const rel = page.startsWith('/dark/') ? ('.' + page) : page;
-      go(rel);
-      return true;
-    }catch(_){
-      return false;
-    }
+    const init = window.Telegram?.WebApp?.initData || '';
+    const r = await fetch('/api/state/next/index' + (location.search||''), {
+      headers: init ? { 'X-Telegram-InitData': init } : {}
+    });
+    const { page } = await r.json();
+    location.replace(page + (location.search||''));
+  }catch(e){
+    location.replace('/dark/welcome-rt.html' + (location.search||''));
   }
-
-  (async function decide(){
-    // 1) Если явно попросили сплэш для тестов
-    if (sp.get('forceSplash') === '1'){
-      go('./dark/splash-video.html?next=welcome-rt.html');
-      return;
-    }
-
-    // 2) Если мы открыты как file:// → нет сервера → используем localStorage
-    if (isFile){
-      if (lsSeen()) go('./dark/welcome-rt.html');
-      else go('./dark/splash-video.html?next=welcome-rt.html');
-      return;
-    }
-
-    // 3) HTTP/HTTPS: пробуем сервер; если не вышло — localStorage
-    const ok = await serverDecide();
-    if (ok) return;
-
-    // Фолбэк без сервера
-    if (lsSeen()) go('./dark/welcome-rt.html');
-    else go('./dark/splash-video.html?next=welcome-rt.html');
-  })();
 })();
-// ===================== END ROUTER =====================
-</script>
+  </script>
 </body>
 </html>

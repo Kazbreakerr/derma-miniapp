@@ -221,16 +221,20 @@ const last = localStorage.getItem('rt_role');
 if (last){ const c = q(`.role[data-role="${last}"]`); if (c) selectRole(c); }
 
 /* маршрутизация */
-q('#startBtn').addEventListener('click', ()=>{
+/* ========= start routing ========= */
+q('#go-next')?.addEventListener('click', () => {
   const role = (selected && selected.dataset.role) || localStorage.getItem('rt_role') || 'patient';
+  const qs = location.search || '';
   if (role === 'doctor'){
     const done = localStorage.getItem('rt_doctor_done') === '1';
     location.href = done ? 'doctor-cabinet-mint-rose.html' : 'doctor-onboarding-mint-rose.html';
-  }else{
+  } else {
     const done = localStorage.getItem('rt_patient_done') === '1';
-    location.href = done ? 'main-dark.html' : 'profile-dark.html';
+    location.href = done ? 'main.html' : 'profile.html';
   }
 });
+
+
 </script>
 <!-- ======= theme toggle (back to dark) ======= -->
 <script src="js/app-state.js"></script>
@@ -240,9 +244,9 @@ q('#startBtn').addEventListener('click', ()=>{
   if (!btn) return;
   var qs = location.search || '';
   btn.addEventListener('click', function () {
-    try { if (window.AppState) AppState.applyTheme('dark'); } catch(e) {}
-    location.href = './welcome-rt.html' + qs;
-  });
+  try { if (window.AppState) AppState.applyTheme('light'); } catch(e) {}
+  location.href = './welcome-rt.html' + qs; // остаёмся в /light/
+});
 })();
 </script>
 

@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
-  <script src="js/folder-router.js"></script>
+  <script src="/js/folder-router.js"></script>
   <title>Roaccutane Tracker — Приветствие</title>
   <script src="https://telegram.org/js/telegram-web-app.js"></script>
 
@@ -134,7 +134,7 @@
         if (uid) localStorage.setItem(`dermaApp:${uid}:splash_seen`, '1');
         else     localStorage.setItem('derma_splash_seen','1');
       }catch(_){}
-      location.replace(next + tail);
+      location.replace('/dark/welcome-rt.html' + location.search)
     }
     v.addEventListener('ended', ()=>{ if(!done){ done = true; proceed(); }});
     skip?.addEventListener('click', ()=>{ if(!done){ done = true; proceed(); }});

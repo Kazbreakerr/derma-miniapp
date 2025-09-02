@@ -694,6 +694,7 @@ body.light .tab.active{ color:#0d1220; background: linear-gradient(180deg, rgba(
   .rings-rail{ filter:drop-shadow(0 12px 24px rgba(0,0,0,.40)) }
   .flip-card .face{ border:1px solid rgba(255,255,255,.20) }
   .chip:hover{ border-color:#22D3EE; box-shadow:0 0 0 2px rgba(34,211,238,.20) inset }
+
 </style>
 </head>
 <body>
@@ -926,7 +927,7 @@ body.light .tab.active{ color:#0d1220; background: linear-gradient(180deg, rgba(
   
   <!-- Bottom tabbar identical to myprofile.html -->
   <nav class="tabbar">
-    <a class="tab active" href="main-dark.html" data-vt-link>
+    <a class="tab active" href="main.html" data-vt-link>
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 11l9-7 9 7"/><path d="M5 12v7a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2v-7"/><path d="M9 21v-6h6v6"/></svg>
       <small>Главная</small>
     </a>
@@ -1553,7 +1554,7 @@ const isoLocal = (d) => {
 
 
     document.getElementById('resetBtn').addEventListener('click', ()=>{
-      location.href = './reset-dark.html' + (location.search||'');
+      location.href = './reset.html' + (location.search||'');
     });
     loadAll().then(()=>{ try{ window.renderReminder && window.renderReminder(); }catch(_){ } });
     document.querySelectorAll('#doseSeg button').forEach(b=> b.addEventListener('click', ()=> setDoseMode(b.dataset.mode) ));

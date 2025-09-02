@@ -312,6 +312,219 @@
   .fade-slide-leave{ animation:fadeSlideOut .28s ease both }
   @keyframes fadeSlideIn{ from{ opacity:0; transform:translateY(8px) } to{ opacity:1; transform:none } }
   @keyframes fadeSlideOut{ from{ opacity:1; transform:none } to{ opacity:0; transform:translateY(-8px) } }
+
+/* ===== Bottom Nav ===== */
+.navbar{
+  position: fixed;
+  left: 0; right: 0; bottom: 0;
+  padding: max(8px, env(safe-area-inset-bottom));
+  padding-top: 10px;
+  background: linear-gradient(180deg, rgba(6,16,24,.0), rgba(6,16,24,.38) 30%, rgba(6,16,24,.72));
+  backdrop-filter: blur(10px);
+  z-index: 40;
+}
+.navbar .dock{
+  display: grid;
+  grid-template-columns: repeat(5, 1fr);
+  gap: 16px;
+  max-width: 1000px;
+  margin: 0 auto;
+  padding: 0 16px;
+}
+.nav-item{
+  --surface: rgba(18,28,38,.6);
+  --stroke: rgba(255,255,255,.1);
+  display:flex; align-items:center; justify-content:center; flex-direction:column;
+  height:64px; border-radius:18px;
+  background: radial-gradient(120% 120% at 50% -20%, rgba(255,255,255,.10), transparent 60%),
+              linear-gradient(180deg, rgba(255,255,255,.05), rgba(0,0,0,.08));
+  box-shadow:
+    inset 0 1px 0 var(--stroke),
+    0 8px 20px rgba(0,0,0,.28);
+  color:#d7e2ea; text-decoration:none; font-weight:600; font-size:14px;
+  position:relative;
+  transition: transform .06s ease, background .2s ease, box-shadow .2s ease;
+}
+.nav-item:active{ transform: translateY(1px) scale(.995); }
+.nav-item .ico{ width:22px; height:22px; opacity:.9; margin-bottom:6px; }
+.nav-item.active{
+  background: radial-gradient(120% 130% at 50% -20%, rgba(255,255,255,.16), transparent 58%),
+              linear-gradient(180deg, rgba(255,255,255,.08), rgba(0,0,0,.06));
+  box-shadow:
+    inset 0 1px 0 rgba(255,255,255,.22),
+    0 10px 26px rgba(0,0,0,.36),
+    0 0 0 1px rgba(255,255,255,.06) inset;
+}
+.nav-item .underline{
+  position:absolute; bottom:10px; left:50%; transform: translateX(-50%);
+  width:48px; height:4px; border-radius:999px;
+  background: rgba(255,255,255,.22);
+  opacity:0; transition:opacity .2s ease;
+}
+.nav-item.active .underline{ opacity:1; }
+/* page bottom spacer so content not hidden behind nav */
+.page-bottom-spacer{ height: 84px; }
+@media (min-width: 1100px){
+  .navbar .dock{ max-width: 860px; }
+}
+.mood-stage .mood-video{
+  position:absolute; inset:0;
+  width:100%; height:100%;
+  object-fit:cover;
+  filter:saturate(.95) brightness(1.02);
+  z-index:1;            /* ниже UI, выше ::before */
+}
+
+
+</style>
+
+<!-- Neumorph seamless patch: ONLY CSS, no HTML/JS changes -->
+<style id="neumorph-patch">
+/* === 1) Seamless page background (no seams on color changes) === */
+html,body{ height:100% }
+body{
+  background: var(--bgB);
+  position: relative;
+  transition: background .45s ease, background-color .45s ease;
+}
+body::before{
+  content:"";
+  position:fixed; inset:-30vmax; z-index:-1; pointer-events:none;
+  background:
+    radial-gradient(120vmax 80vmax at -15% -10%, color-mix(in oklab, var(--bgA), transparent 0%), transparent 60%),
+    radial-gradient(120vmax 80vmax at 110%   0%, color-mix(in oklab, var(--bgB), transparent 0%), transparent 62%),
+    linear-gradient(180deg, var(--bgA), var(--bgB));
+  filter:saturate(1.04);
+}
+
+/* === 2) Cards / panels — neumorphic look === */
+.card{
+  position:relative;
+  background: linear-gradient(180deg,
+              color-mix(in oklab, var(--bgA), #fff 6%),
+              color-mix(in oklab, var(--bgB), #000 6%));
+  border:0;
+  border-radius:var(--radius);
+  padding:16px; margin:16px 0;
+  box-shadow:
+    12px 14px 28px rgba(0,0,0,.55),
+   -10px -10px 20px rgba(255,255,255,.03),
+    inset 0  1px 0 rgba(255,255,255,.08),
+    inset 0 -10px 28px rgba(0,0,0,.28);
+}
+.card::before{
+  content:""; position:absolute; inset:0; border-radius:inherit; pointer-events:none;
+  background: radial-gradient(140% 160% at 12% -10%, rgba(255,255,255,.08), transparent 45%);
+  mix-blend-mode:soft-light;
+}
+
+/* === 3) Capsule stage (same skin, no seams) === */
+.mood-stage{
+  position:relative; height:360px; border-radius:22px; overflow:hidden;
+  border:0;
+  background: linear-gradient(180deg,
+              color-mix(in oklab, var(--bgA), #fff 6%),
+              color-mix(in oklab, var(--bgB), #000 6%));
+  box-shadow:
+    12px 14px 26px rgba(0,0,0,.52),
+   -10px -10px 18px rgba(255,255,255,.03),
+    inset 0  1px 0 rgba(255,255,255,.06),
+    inset 0 -10px 26px rgba(0,0,0,.26);
+}
+.mood-stage::before{
+  content:""; position:absolute; inset:0; z-index:0; pointer-events:none;
+  background-image: var(--mood-bg, none);
+  background-size:cover; background-position:center;
+  filter: blur(10px) saturate(.95) brightness(1.02);
+  transform: scale(1.06);
+}
+.mood-stage::after{
+  content:""; position:absolute; inset:0; border-radius:inherit; pointer-events:none; z-index:1;
+  box-shadow: inset 0 24px 60px rgba(0,0,0,.25), inset 0 -24px 60px rgba(0,0,0,.28);
+}
+.mood-stage #pillCanvas{ position:absolute; inset:0; width:100%; height:100%; z-index:2; }
+.mood-stage .mood-video{ position:absolute; inset:0; width:100%; height:100%; object-fit:cover; z-index:2; }
+
+/* === 4) Mood slider — neumorph === */
+.bar{
+  --x:.5;
+  position:relative; height:36px; padding:0 14px; border-radius:999px; cursor:pointer;
+  background: linear-gradient(180deg, rgba(255,255,255,.06), rgba(255,255,255,.03));
+  box-shadow:
+    8px 10px 20px rgba(0,0,0,.32),
+   -6px -6px 12px rgba(255,255,255,.02),
+    inset 0 1px 0 rgba(255,255,255,.06),
+    inset 0 -10px 20px rgba(0,0,0,.22);
+  border:0;
+  user-select:none; -webkit-user-select:none; touch-action:none;
+}
+.bar .rail{
+  position:absolute; left:14px; right:14px; top:50%; height:6px; transform:translateY(-50%);
+  background:rgba(255,255,255,.08); border-radius:999px;
+  box-shadow: inset 0 0 0 1px rgba(255,255,255,.10);
+}
+.bar::before{
+  content:""; position:absolute; left:14px; right:14px; top:50%; height:6px; transform:translateY(-50%);
+  background:linear-gradient(90deg, var(--trackA), var(--trackB));
+  border-radius:999px;
+  mask:linear-gradient(90deg,#000 calc(var(--x)*100%), transparent 0);
+  -webkit-mask:linear-gradient(90deg,#000 calc(var(--x)*100%), transparent 0);
+}
+.bar .knob{
+  position:absolute; top:50%; width:28px; height:28px; border-radius:50%;
+  transform:translate(-50%,-50%); left: calc(14px + var(--x) * (100% - 28px));
+  background: radial-gradient(120% 120% at 30% 25%, #fff, #f3f6f9 40%, #e9eef3 100%);
+  box-shadow: 0 8px 18px rgba(0,0,0,.28), inset 0 0 0 1px rgba(0,0,0,.10);
+}
+
+/* === 5) Side-effects list & controls === */
+.se-item{
+  display:grid; grid-template-columns:minmax(0,1fr) auto; align-items:center; gap:12px;
+  padding:12px 14px; border-radius:14px; border:0;
+  background: linear-gradient(180deg,#101b2d,#0b1524);
+  box-shadow: 8px 10px 20px rgba(0,0,0,.35), -6px -6px 12px rgba(255,255,255,.02), inset 0 1px 0 rgba(255,255,255,.06);
+}
+.se-item input[type="range"]{-webkit-appearance:none; width:100%; height:8px; border-radius:999px;
+  background:linear-gradient(90deg,#475569,#94a3b8)}
+.se-item input[type="range"]::-webkit-slider-thumb{-webkit-appearance:none; width:20px; height:20px; border-radius:50%;
+  background:#fff; border:2px solid #0003; box-shadow:0 3px 8px rgba(0,0,0,.3)}
+.se-badge{min-width:28px; text-align:center; padding:6px 8px; border-radius:10px;
+  background:#0b1728; border:1px solid rgba(255,255,255,.08)}
+
+/* === 6) Uploaders & Compare === */
+.drop{
+  position:relative; min-height:180px; border:0; border-radius:14px; overflow:hidden;
+  display:grid; place-items:center;
+  background: linear-gradient(180deg,#101b2d,#0b1524);
+  box-shadow: 8px 10px 20px rgba(0,0,0,.35), -6px -6px 12px rgba(255,255,255,.02), inset 0 1px 0 rgba(255,255,255,.06);
+}
+.compare{
+  position:relative; width:100%; max-width:760px; margin:8px auto 0; overflow:hidden; border:0; border-radius:14px;
+  background: linear-gradient(180deg,#101b2d,#0b1524);
+  box-shadow: 8px 10px 20px rgba(0,0,0,.35), -6px -6px 12px rgba(255,255,255,.02), inset 0 1px 0 rgba(255,255,255,.06);
+}
+.compare .handle{ width:2px; background:#fff; opacity:.9 }
+.compare .knob{ width:38px; height:38px; background:#fff; color:#111; border-radius:50%;
+  box-shadow:0 8px 18px rgba(0,0,0,.35) }
+
+/* === 7) Header & nav arrows === */
+header{
+  position:sticky; top:0; z-index:20;
+  background: linear-gradient(180deg,
+              color-mix(in oklab, var(--bgA), transparent 20%),
+              color-mix(in oklab, var(--bgB), transparent 20%));
+  border-bottom:0;
+  backdrop-filter: blur(8px);
+}
+.nav-arrow{
+  appearance:none; border:0;
+  background: linear-gradient(180deg,#0f172a,#0b1120);
+  color:var(--text);
+  width:56px; height:56px; border-radius:16px; cursor:pointer;
+  display:grid; place-items:center;
+  box-shadow: 10px 12px 22px rgba(0,0,0,.36), -8px -8px 16px rgba(255,255,255,.02), inset 0 1px 0 rgba(255,255,255,.05);
+  transition: transform .08s ease, filter .2s ease;
+}
 </style>
 </head>
 <body>
@@ -342,7 +555,16 @@
     <h2>Оценка самочувствия</h2>
     <div class="mood">
       <div class="mood-stage">
-        <canvas id="pillCanvas"></canvas>
+        <div class="mood-stage">
+  <!-- Видео-фон квадратика -->
+  <video id="moodVideo" class="mood-video"
+         autoplay muted loop playsinline preload="auto"
+         poster="img/neutral-frame.jpg"></video>
+
+  <!-- Оставим canvas как запасной вариант (по умолчанию скрыт) -->
+  <canvas id="pillCanvas" hidden></canvas>
+</div>
+
       </div>
       <div class="mood-ctrl">
         <div class="state-label" id="stateLabel">Нейтрально</div>
@@ -382,6 +604,12 @@
       <button class="btn btn-danger btn-sm" id="removeBody">Удалить тело</button>
       <button class="btn btn-primary" id="saveAll">Сохранить запись</button>
     </div>
+<!-- Baseline selector -->
+<div class="actions-row" id="baselineRow" style="margin-top:6px; align-items:center; gap:8px">
+  <span class="chip">Базовый день:</span>
+  <select id="baselineSelect" class="date-input" style="padding:8px 10px; height:auto"></select>
+  <button class="btn btn-secondary btn-sm" id="saveBaseline">Сделать базовым</button>
+</div>
 
     <div class="compare" id="compareWrap" hidden>
       <img id="imgStart" alt="День 1">
@@ -451,6 +679,35 @@ const bar=document.getElementById('moodBar'); const knob=document.getElementById
 const canvas = document.getElementById('pillCanvas');
 const ctx = canvas.getContext('2d');
 
+// ====== ВИДЕО вместо анимации капсулы ======
+const USE_MOOD_VIDEO = false;                      // ← выключить анимацию, включить видео
+const videoEl = document.getElementById('moodVideo');
+
+if (USE_MOOD_VIDEO && videoEl){
+  // Укажи путь к ролику (лучше без пробелов): media/capsule-spin.mp4
+  const src = encodeURI('media/Капсула вращается.mp4'); // или 'media/capsule-spin.mp4'
+  videoEl.src = src;
+
+  // Скрываем canvas-анимацию и запускаем видео
+  canvas.hidden = true;
+  videoEl.hidden = false;
+
+  // iOS/мобильные: надёжный автозапуск
+  const tryPlay = ()=> videoEl.play().catch(()=>{});
+  videoEl.addEventListener('canplay', tryPlay, { once:true });
+  document.addEventListener('visibilitychange', ()=>{ if(!document.hidden) tryPlay(); });
+
+  // Уважение системной настройки "уменьшить движение"
+  if (window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches){
+    videoEl.pause();
+  }
+} else {
+  // Оставляем прежнюю анимацию
+  canvas.hidden = false;
+  // ВАЖНО: старт рендера капсулы только если мы НЕ на видео
+  requestAnimationFrame(frame);
+}
+
 // Фоновые изображения для 7 состояний (по порядку: очень плохо → отлично)
 const BG_URLS = [
   'img/bg-very-bad.png',
@@ -463,7 +720,7 @@ const BG_URLS = [
 ];
 
 // --- анимация как раньше ---
-const rotationPeriod=10, breathAmp=0.04, breathPeriod=1.6, morphSpeed=0.7, morphAmpBase=0.06;
+const rotationPeriod=20, breathAmp=0.03, breathPeriod=1.6, morphSpeed=1.7, morphAmpBase=0.06;
 
 // --- управление «самочувствием»: 0..100 ---
 let valence=50;                  // 0..100
@@ -503,6 +760,7 @@ function mixHex(h1,h2,t,a=1){ const A=hexToRgb(h1),B=hexToRgb(h2);
 
 // Палитра капсулы: 0 — тёпло/«плохо», 1 — холодно/«отлично»
 function palette(m){
+  const PILL_TINT_STRENGTH = 9.6;
   const warm1='#e96a5a', warm2='#ffb36b';
   const mid1 ='#19d06a', mid2 ='#66e08f';
   const cool1='#00d2ff', cool2='#38f9d7';
@@ -570,6 +828,83 @@ function glint(cx,cy,rx,ry,color='rgba(255,255,255,.9)',a=1){
   ctx.beginPath(); ctx.ellipse(cx,cy,rx,ry,0,0,Math.PI*2); ctx.fill();
   ctx.globalAlpha=1; ctx.globalCompositeOperation='source-over';
 }
+// ==== depth helpers ====
+function innerAOStroke(ctx,W,H,R,alpha=0.22){
+  // мягкая внутренняя тень по контуру — усиливает толщину стенки
+  ctx.save();
+  ctx.globalCompositeOperation = 'multiply';
+  ctx.lineWidth = Math.min(W,H)*0.08;
+  const g = ctx.createRadialGradient(0,0, Math.min(W,H)*0.36, 0,0, Math.min(W,H)*0.52);
+  g.addColorStop(0,'rgba(0,0,0,0)');
+  g.addColorStop(1,`rgba(0,0,0,${alpha})`);
+  pathCapsule(ctx, W, H, R);
+  ctx.strokeStyle = g;
+  ctx.stroke();
+  ctx.restore();
+}
+
+function outerRimGlow(ctx,W,H,R,intensity=0.55){
+  // внешнее свечение по краю — даёт ощущение «стекла»
+  ctx.save();
+  ctx.globalCompositeOperation='screen';
+  ctx.shadowColor = `rgba(255,255,255,${intensity})`;
+  ctx.shadowBlur  = Math.min(W,H)*0.09;
+  ctx.lineWidth   = Math.min(W,H)/18;
+  pathCapsule(ctx,W,H,R);
+  ctx.strokeStyle = 'rgba(255,255,255,.03)';
+  ctx.stroke();
+  ctx.restore();
+}
+
+// обновлённый блик с «блумом»
+function glintBloom(ctx,x,y,w,h,color='white',alpha=.6,angle=0){
+  ctx.save();
+  ctx.translate(x,y); ctx.rotate(angle);
+  ctx.globalCompositeOperation='screen';
+
+  // центральный блик
+  ctx.globalAlpha = alpha;
+  ctx.beginPath(); ctx.ellipse(0,0,w,h,0,0,Math.PI*2);
+  ctx.fillStyle = color; ctx.fill();
+
+  // мягкое свечение вокруг
+  ctx.globalAlpha = alpha*0.45;
+  ctx.filter='blur(6px)';
+  ctx.beginPath(); ctx.ellipse(0,0,w*1.35,h*1.35,0,0,Math.PI*2); ctx.fill();
+  ctx.filter='none';
+
+  ctx.restore();
+}
+
+// === helpers for glass + liquid ===
+function fresnelEdge(t, bias=.06, pow=3){ return bias + (1-bias) * Math.pow(1-Math.abs(t), pow); }
+
+// нормализованные пузырьки в локальных координатах капсулы (x,y в -0.5..0.5)
+const BUBBLE_COUNT = 70;
+let bubbles = Array.from({length:BUBBLE_COUNT}, () => ({
+  x: (Math.random()-0.5)*0.82,
+  seed: Math.random(),
+  speed: 0.08 + Math.random()*0.12,    // чем больше — тем быстрее всплывают
+  r: 0.006 + Math.random()*0.016
+}));
+function drawBubbles(ctx, W, H, t){
+  ctx.save();
+  ctx.globalCompositeOperation = 'screen';
+  for(const b of bubbles){
+    // y бежит снизу вверх по циклу
+    const y = 0.44 - ((t*b.speed + b.seed) % 1.0) * 0.88;
+    const x = b.x + Math.sin(t*0.9 + b.seed*20)*0.02; // легкий дрейф
+    const cx = x*W, cy = y*H;
+    const r = b.r * Math.min(W,H);
+    const g = ctx.createRadialGradient(cx,cy,0, cx,cy,r);
+    g.addColorStop(0,'rgba(255,255,255,.35)');
+    g.addColorStop(0.6,'rgba(255,255,255,.08)');
+    g.addColorStop(1,'rgba(255,255,255,0)');
+    ctx.fillStyle = g;
+    ctx.beginPath(); ctx.ellipse(cx,cy, r*1.15, r*0.9, (b.seed*6.28), 0, Math.PI*2); ctx.fill();
+  }
+  ctx.restore();
+}
 
 // Текст пояснения
 function textFromV(v){ const s=(v-50)/50;
@@ -634,10 +969,18 @@ function frame(nowMs){
   const morphAmp = morphAmpBase * (0.7 + 0.6*Math.abs(moodVis-0.5));
   const morph=Math.sin(t*morphSpeed);
 
-  const baseW=W0*0.60, baseH=H0*0.34;
+ // Ручки:
+const PILL_SCALE   = 0.55;  // < 1 — капсула меньше; > 1 — больше
+const PILL_THICK   = 1.23;  // > 1 — капсула толще (выше относительно длины)
+
+// Базовые размеры:
+const baseW = W0 * 0.60 * PILL_SCALE;
+const baseH = H0 * 0.34 * PILL_SCALE * PILL_THICK;
+
   const W=baseW*(1 + morphAmp*0.52*morph) * (1 - 0.05*(moodVis-0.5));
   const H=baseH*(1 - morphAmp*0.34*morph) * (1 + 0.05*(moodVis-0.5));
-  const R=Math.min(W,H)/2*(0.86 + 0.10*Math.sin(t*morphSpeed*1.7));
+  const PILL_ROUND = 0.99; // было 0.86 — больше = более округлые торцы
+const R = Math.min(W,H)/2 * (PILL_ROUND + 0.08*Math.sin(t*morphSpeed*1.7));
   const pal=palette(moodVis);
 
   /* тень и рисование пилюли — без изменений (опущено тут для краткости),
@@ -670,7 +1013,7 @@ function frame(nowMs){
   base.addColorStop(0.0,pal.baseDark); base.addColorStop(0.45,pal.baseMid); base.addColorStop(1.0,'#070b14');
   ctx.fillStyle=base; ctx.fillRect(-W,-H,W*2,H*2);
 
-  glossyBand(-W*0.9,-H*0.2,  W*0.7,H*0.15, pal.tintA, pal.tintB, .45);
+  glossyBand(-W*0.9,-H*0.2,  W*0.7,H*0.15, pal.tintA, pal.tintB, .95);
   glossyBand(-W*0.2,-H*0.85, W*0.2,H*0.75, mixHex('#ffd070','#a0d8ff',moodVis,.20), mixHex('#90e0ff','#70ffd8',moodVis,.22), .38);
 
   ctx.save(); ctx.rotate(-(rot + 0.5));
@@ -686,8 +1029,9 @@ function frame(nowMs){
   ctx.globalCompositeOperation='screen'; ctx.globalAlpha=0.06; ctx.drawImage(speckleTex, -W,-H, W*2,H*2);
   ctx.globalAlpha=1; ctx.globalCompositeOperation='source-over';
 
-  glint(W*0.26,-H*0.26, W*0.20,H*0.18, pal.glintA, .55);
-  glint(-W*0.30, H*0.26, W*0.16,H*0.14, pal.glintB, .40);
+  glintBloom(ctx,  W*0.26, -H*0.26,  W*0.20, H*0.18, pal.glintA, .62,  0.10);
+glintBloom(ctx, -W*0.30,  H*0.26,  W*0.16, H*0.14, pal.glintB, .48, -0.08);
+
 
   const rimAO=ctx.createLinearGradient(-W/2,0, W/2,0);
   rimAO.addColorStop(0.0,'rgba(0,0,0,0.16)'); rimAO.addColorStop(0.5,'rgba(0,0,0,0)');
@@ -709,6 +1053,7 @@ function frame(nowMs){
   ctx.lineWidth=Math.max(1.4, Math.min(W,H)/50); ctx.strokeStyle=seam;
   ctx.beginPath(); ctx.ellipse(0,0, rx,ry, 0,0,Math.PI*2); ctx.stroke();
 
+  
   ctx.restore(); // clip
   ctx.restore(); // transform
 
@@ -720,6 +1065,7 @@ function frame(nowMs){
   refl.addColorStop(0,'rgba(255,255,255,.10)'); refl.addColorStop(1,'rgba(255,255,255,0)');
   ctx.fillStyle=refl; ctx.filter='blur(2.5px)'; ctx.fillRect(-W,-H,W*2,H*2);
   ctx.filter='none'; ctx.restore();
+  
 
   requestAnimationFrame(frame);
 }
@@ -765,14 +1111,118 @@ const faceThumb=document.getElementById('faceThumb'); const bodyThumb=document.g
 const removeFace=document.getElementById('removeFace'), removeBody=document.getElementById('removeBody');
 const compareWrap=document.getElementById('compareWrap'); const imgStart=document.getElementById('imgStart'); const imgCurrent=document.getElementById('imgCurrent'); const topWrap=document.getElementById('topWrap');
 const compareRange=document.getElementById('compareRange');
+// --- Базовый день для сравнения (persist в localStorage) ---
+const baselineRow = document.getElementById('baselineRow');
+const baselineSelect = document.getElementById('baselineSelect');
+const saveBaselineBtn = document.getElementById('saveBaseline');
+
+// все даты, где вообще есть фото лица (отсортированы по возрастанию)
+function listFaceDates(db){
+  return Object.values(db.entries)
+    .filter(e => e?.photos?.face)
+    .map(e => e.date)
+    .sort();
+}
+function firstFaceDate(db){
+  const arr = listFaceDates(db);
+  return arr.length ? arr[0] : null;
+}
+function setBaseline(dateISO){
+  const db = loadDB();
+  if (!dateISO) return;
+  db.baseline = dateISO;
+  saveDB(db);
+  rebuildBaselineSelect();
+  refreshCompare();
+}
+function rebuildBaselineSelect(){
+  const db = loadDB();
+  const dates = listFaceDates(db);
+
+  if (!dates.length){
+    baselineRow.hidden = true;
+    return;
+  }
+  baselineRow.hidden = false;
+
+  baselineSelect.innerHTML = '';
+
+  // Опция «Первый день с фото»
+  const first = firstFaceDate(db);
+  if (first){
+    const optFirst = document.createElement('option');
+    optFirst.value = first;
+    optFirst.textContent = `Первый день — ${first}`;
+    baselineSelect.appendChild(optFirst);
+  }
+
+  // Остальные даты
+  dates.forEach(d => {
+    const opt = document.createElement('option');
+    opt.value = d;
+    opt.textContent = d;
+    baselineSelect.appendChild(opt);
+  });
+
+  // Текущий baseline или fallback на первый день с фото
+  const current = (db.baseline && dates.includes(db.baseline)) ? db.baseline : (first || '');
+  if (current){
+    db.baseline = current; saveDB(db);
+    baselineSelect.value = current;
+  }
+}
+saveBaselineBtn.addEventListener('click', () => setBaseline(baselineSelect.value));
 function readImageFile(file,max=1600,quality=0.85){ return new Promise((res,rej)=>{ const R=new FileReader(); R.onload=()=>{ const img=new Image(); img.onload=()=>{ const sc=Math.min(1,max/Math.max(img.width,img.height)); const w=Math.round(img.width*sc), h=Math.round(img.height*sc); const c=document.createElement('canvas'); c.width=w;c.height=h; c.getContext('2d').drawImage(img,0,0,w,h); res(c.toDataURL('image/jpeg',quality)); }; img.onerror=rej; img.src=R.result; }; R.onerror=rej; R.readAsDataURL(file); }); }
-async function onPick(input,key,thumb){ const f=input.files&&input.files[0]; if(!f)return; const url=await readImageFile(f); const d=datePicker.value||todayISO(); const e=getEntry(d); e.photos[key]=url; putEntry(e); thumb.src=url; thumb.hidden=false; refreshCompare(); }
+async function onPick(input,key,thumb){ const f=input.files&&input.files[0]; if(!f)return; const url=await readImageFile(f); const d=datePicker.value||todayISO(); const e=getEntry(d); e.photos[key]=url; putEntry(e); thumb.src = url; 
+thumb.hidden = false; 
+rebuildBaselineSelect(); 
+refreshCompare();}
 faceInput.addEventListener('change',()=>onPick(faceInput,'face',faceThumb)); bodyInput.addEventListener('change',()=>onPick(bodyInput,'body',bodyThumb));
-removeFace.addEventListener('click',()=>{ const d=datePicker.value||todayISO(); const e=getEntry(d); e.photos.face=null; putEntry(e); faceThumb.hidden=true; faceThumb.src=''; refreshCompare(); });
+removeFace.addEventListener('click', ()=>{
+  const d = datePicker.value || todayISO();
+  const e = getEntry(d);
+  e.photos.face = null; 
+  putEntry(e);
+  faceThumb.hidden = true; 
+  faceThumb.src = '';
+  rebuildBaselineSelect();
+  refreshCompare();
+});
 removeBody.addEventListener('click',()=>{ const d=datePicker.value||todayISO(); const e=getEntry(d); e.photos.body=null; putEntry(e); bodyThumb.hidden=true; bodyThumb.src=''; });
 function setSplit(p){ p=Math.max(0,Math.min(100,p)); const w=compareWrap.getBoundingClientRect().width; const cut=w*p/100; topWrap.style.clipPath=`inset(0 ${Math.max(0,w-cut)}px 0 0)`; document.querySelector('.compare .handle').style.left=p+'%'; document.querySelector('.compare .knob').style.left=p+'%'; }
 compareRange.addEventListener('input', e=> setSplit(+e.target.value));
-function refreshCompare(){ const db=loadDB(); const curDate=datePicker.value||todayISO(); const e=getEntry(curDate); if(!db.baseline||!db.entries[db.baseline]||!db.entries[db.baseline].photos.face||!e.photos.face){ compareWrap.hidden=true; return; } imgStart.src=db.entries[db.baseline].photos.face; imgCurrent.src=e.photos.face; compareWrap.hidden=false; setSplit(50); }
+function refreshCompare(){
+  const db = loadDB();
+  const curDate = datePicker.value || todayISO();
+  const current = getEntry(curDate);
+
+  // гарантируем валидный baseline
+  let base = db.baseline;
+  const first = firstFaceDate(db);
+  if (!base || !db.entries[base]?.photos?.face){
+    base = first || null;
+    db.baseline = base; saveDB(db);
+  }
+
+  // условия показа
+  if (!base || !db.entries[base]?.photos?.face || !current.photos?.face){
+    compareWrap.hidden = true;
+    return;
+  }
+
+  // подмена картинок
+  imgStart.src   = db.entries[base].photos.face;
+  imgCurrent.src = current.photos.face;
+
+  // подписи
+  const startLabel = document.querySelector('.compare .label.start');
+  const currLabel  = document.querySelector('.compare .label.current');
+  startLabel.textContent = (base === first) ? `Первый день — ${base}` : `База — ${base}`;
+  currLabel.textContent  = (curDate === todayISO()) ? 'Сегодня' : curDate;
+
+  compareWrap.hidden = false;
+  setSplit(50);
+}
 
 /* ===== Notes ===== */
 const notesEl=document.getElementById('notes');
@@ -795,7 +1245,8 @@ function loadIntoUI(dateISO){
   if(entry.photos.face){ faceThumb.src=entry.photos.face; faceThumb.hidden=false; } else { faceThumb.hidden=true; }
   if(entry.photos.body){ bodyThumb.src=entry.photos.body; bodyThumb.hidden=false; } else { bodyThumb.hidden=true; }
   notesEl.value = entry.notes || '';
-  refreshCompare();
+rebuildBaselineSelect();
+refreshCompare();
 }
 confirmMood.addEventListener('click',()=>{
   const date=datePicker.value||todayISO(); const entry=getEntry(date);
@@ -818,12 +1269,34 @@ document.getElementById('exportJSON').addEventListener('click',()=>{
   if(!db.baseline){ const en=getEntry(d); putEntry(en); }
 
   updateDayChip(d);
-  applyValence(getEntry(d).wellness ?? 50, true);
-  loadIntoUI(d);
+applyValence(getEntry(d).wellness ?? 50, true);
+rebuildBaselineSelect();
+loadIntoUI(d);
 })();
 </script>
 
 <script src="js/lazy-img.js" defer></script>
+
+
+<div class="page-bottom-spacer"></div>
+<nav class="navbar" role="navigation" aria-label="Нижняя навигация">
+  <div class="dock">
+    <a class="nav-item" href="main.html"><svg class="ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M4 10.5l8-6 8 6"/><path d="M6 10v8a1 1 0 001 1h4v-6h2v6h4a1 1 0 001-1v-8"/></svg><span>Главная</span></a>
+    <a class="nav-item" href="calendar.html"><svg class="ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="3" y="5" width="18" height="16" rx="3"/><path d="M16 3v4M8 3v4M3 11h18"/></svg><span>Календарь</span></a>
+    <a class="nav-item" href="myprofile.html"><svg class="ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="12" cy="8" r="4"/><path d="M4 21a8 8 0 0116 0"/></svg><span>Профиль</span><i class="underline"></i></a>
+    <a class="nav-item active" href="diary.html"><svg class="ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="3" y="5" width="18" height="14" rx="3"/><path d="M8 12l3 3 4-5 4 6"/><circle cx="8" cy="9" r="1.2"/></svg><span>Фотодневник</span><i class="underline"></i></a>
+    <a class="nav-item" href="labs.html"><svg class="ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M9 3v6L4 18a4 4 0 003.6 6h8.8A4 4 0 0020 18l-5-9V3"/><path d="M9 9h6"/></svg><span>Анализы</span></a>
+  </div>
+</nav>
+<script>
+(function(){
+  var here = (location.pathname.split('/').pop()||'').toLowerCase();
+  document.querySelectorAll('.nav-item').forEach(function(a){
+    var href = (a.getAttribute('href')||'').toLowerCase();
+    if(here && href.endsWith(here)) a.classList.add('active');
+  });
+})();
+</script>
 
 </body>
 </html>

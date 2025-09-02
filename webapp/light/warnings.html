@@ -308,10 +308,10 @@
       const theme = document.documentElement.dataset.theme || 'light';
       const nextMapLight = { welcome:'welcome-rt.html', profile:'profile-light.html', plan:'plan-light.html', main:'main-light.html' };
       const nextMapDark  = { welcome:'welcome-rt.html', profile:'profile-dark.html',  plan:'plan-dark.html',  main:'main-dark.html'  };
-      const map = (theme === 'dark') ? nextMapDark : nextMapLight;
-      const key = (localStorage.getItem('derma_next') || 'profile').trim();
-      try { localStorage.removeItem('derma_next'); } catch(_) {}
-      location.replace('./' + (map[key] || (theme==='dark'?'profile-dark.html':'profile-light.html')) + qs);
+      const map = { welcome:'welcome-rt.html', profile:'profile.html', plan:'plan.html', main:'main.html' };
+const key = (localStorage.getItem('derma_next') || 'profile').trim();
+try { localStorage.removeItem('derma_next'); } catch(_) {}
+location.replace('./' + (map[key] || 'profile.html') + qs);
     }, { once:true });
   </script>
   <!-- у своей кнопки добавь id -->

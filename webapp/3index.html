@@ -112,20 +112,16 @@
   const qs = location.search || '';
   const sp = new URLSearchParams(qs);
 
-function lsSeen(){
-  try{
-    const ls  = localStorage;
-    const uid = new URLSearchParams(location.search).get('tg')
-             || (window.Telegram?.WebApp?.initDataUnsafe?.user?.id) || '';
-    if (uid){
-      // Если знаем tg — считаем «видел» только по персональному флагу
-      return ls.getItem(`dermaApp:${uid}:splash_seen`) === '1';
-    }
-    // Если tg неизвестен — используем общий флаг
-    return ls.getItem('derma_splash_seen') === '1';
-  }catch(_){}
-  return false;
-}
+  function lsSeen(){
+    try{
+      const ls = localStorage;
+      const uid = sp.get('tg') || (window.Telegram?.WebApp?.initDataUnsafe?.user?.id) || '';
+      if (uid && ls.getItem(`dermaApp:${uid}:splash_seen`) === '1') return true;
+      if (ls.getItem('derma_splash_seen') === '1') return true;
+    }catch(_){}
+    return false;
+  }
+
   function go(rel){ location.replace(rel + (qs || '')); }
 
   async function serverDecide(){

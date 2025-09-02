@@ -133,8 +133,8 @@ body::before{
       });
     })();
   </script>
-<script src="js/folder-router.js"></script>
-<script src="js/gates.js"></script>
+<script src="/js/folder-router.js"></script>
+<script src="/js/gates.js"></script>
 </head>
 <body>
   <div class="container">
@@ -327,7 +327,16 @@ body::before{
 }, { once: true });
 
 </script>
+<!-- у своей кнопки добавь id -->
+<button id="agree-derma">Согласен</button>
 
-
+<script>
+  F.initLinks();
+  document.getElementById('agree-derma')?.addEventListener('click', () => {
+    const c = Gates.consent(); c.derma = true;
+    localStorage.setItem('rt.consent', JSON.stringify(c));
+    location.href = F.href('profile.html');
+  });
+</script>
 </body>
 </html>

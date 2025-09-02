@@ -520,9 +520,7 @@ if (!(hasNs || hasOld)) {
         }catch(_){}
         const qs = location.search || '';
         /* Переходим на главную в соответствии с активной темой */
-        const theme = document.documentElement.dataset.theme || 'light';
-        const next = (theme === 'dark') ? 'main-dark.html' : 'main-light.html';
-        location.replace('./' + next + qs);
+        location.replace('./main.html' + qs);
       }catch(e){ msg.textContent='Ошибка сети'; }
     });
   </script>

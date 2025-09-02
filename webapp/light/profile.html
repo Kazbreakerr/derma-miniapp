@@ -624,9 +624,7 @@ if (!(hasNs || hasOld)) {
         try{ localStorage.setItem('derma_next','plan'); }catch(_){}
         const qs = location.search || '';
         // Переход на соответствующую план-страницу по текущей теме
-        const theme = document.documentElement.dataset.theme || 'light';
-        const nextPage = (theme === 'dark') ? 'plan-dark.html' : 'plan-light.html';
-        setTimeout(()=>location.replace('./' + nextPage + qs), 200);
+        setTimeout(()=>location.replace('./plan.html' + qs), 200);
       }catch(_){ msg.textContent='Ошибка сети'; }
     }, { once:true });  // защита от двойного клика
 
