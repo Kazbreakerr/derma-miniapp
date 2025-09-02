@@ -579,7 +579,7 @@ document.documentElement.dataset.theme = cur;
 
 #cardCalendar .day::after{
   content:"";
-  position:absolute; inset:-6px;
+  position:absolute; inset:-6px;               /* шире и ярче, как в calendar */
   border-radius:inherit;
   background: radial-gradient(120% 90% at 50% 20%,
               var(--glowC, transparent) 0 45%, transparent 60%);
@@ -1129,15 +1129,7 @@ function moodIndexFromDiary(rec, iso){
 
 // цвет свечения по индексу (совпадает с CSS)
 function moodGlowColor(idx){
-  switch(idx){
-    case 1: return 'hsla(350,76%,46%,.62)'; // очень плохо — красный
-    case 2: return 'hsla(24,85%,47%,.58)';  // плохо — тёмно-оранжевый
-    case 3: return 'hsla(37,92%,74%,.38)';  // ниже нормы — бежевый
-    case 4: return 'hsla(200,86%,93%,.45)'; // нейтрально — светло-голубой
-    case 5: return 'hsla(155,98%,55%,.52)'; // хорошо — мятный
-    case 6: return 'hsla(215,85%,60%,.60)'; // отлично — космически-синий
-    default: return 'transparent';
-  }
+  return [,'rgba(56,189,248,.45)','rgba(34,197,94,.50)','rgba(163,230,53,.55)','rgba(200,204,21,.60)','rgba(200,204,21,.70)'][idx] || 'transparent';
 }
 
 // добавить mg к дате в дневнике (или создать)
