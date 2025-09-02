@@ -1,0 +1,347 @@
+<!doctype html>
+<html lang="ru">
+<head>
+  <meta charset="utf-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1"/>
+  <title>Календарь — Roaccutane Tracker</title>
+  <style>
+    :root{
+      --bg: #f8fbff; --bg-2:#ffffff;
+      --surface: rgba(255,255,255,.75);
+      --text:#0e1b2a; --muted:#6a7993;
+      --accent:#ffd4f0; --accent-2:#bfe9ff;
+      --shadow-strong: 24px 28px 60px rgba(14,27,42,.08);
+      --shadow-soft: 6px 8px 16px rgba(14,27,42,.06), -6px -6px 14px rgba(255,255,255,.9);
+      --grid-gap: 10px; --radius-xl:22px; --radius-lg:16px;
+    }
+    body{
+      margin:0;
+      font-family: Inter, ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial, 'Apple Color Emoji','Segoe UI Emoji';
+      color:var(--text);
+      background:
+        radial-gradient(900px 700px at -10% -10%, rgba(255, 204, 170,.45), transparent 60%),
+        radial-gradient(900px 700px at 110% 110%, rgba(203, 196, 255,.45), transparent 55%),
+        linear-gradient(180deg, var(--bg) 0%, var(--bg-2) 100%);
+      min-height:100vh;
+      padding: clamp(14px, 2vw, 24px);
+      padding-bottom: max(88px, calc(64px + env(safe-area-inset-bottom)));
+      box-sizing: border-box;
+    }
+    .app-title{ font-size: clamp(20px, 4vw, 36px); font-weight: 800; letter-spacing:.3px; margin: 4px 0 18px; }
+    .calendar-card{
+      position:relative; backdrop-filter: blur(16px); -webkit-backdrop-filter: blur(16px);
+      background: var(--surface); border-radius: var(--radius-xl);
+      box-shadow: var(--shadow-strong); padding: 16px; overflow:hidden;
+    }
+    .header{ display:flex; align-items:center; justify-content: space-between; gap:12px; padding: 6px 4px 12px; }
+    .month-nav{ display:flex; align-items:center; gap:8px; }
+    .nav-btn{
+      appearance:none; border:0; border-radius: 14px; width:40px; height:40px; display:grid; place-items:center;
+      color:var(--text); background: rgba(14,27,42,.06); box-shadow: var(--shadow-soft); cursor:pointer;
+      transition: transform .12s ease, background .2s ease;
+    }
+    .nav-btn:active{ transform: translateY(1px) scale(.98); }
+    .month-label{ font-weight:800; font-size: clamp(16px, 2.8vw, 22px); letter-spacing:.3px; }
+
+    .weekday-row, .grid{ display:grid; grid-template-columns: repeat(7, 1fr); gap: var(--grid-gap); }
+    .weekday{ text-align:center; color: var(--muted); font-size: 12px; letter-spacing:.6px; user-select:none; }
+
+    .day{
+      position:relative; border-radius: 16px; min-height: 84px; padding: 8px;
+      background:
+        radial-gradient(120px 60px at 10% 0%, rgba(14,27,42,.04), transparent 60%),
+        linear-gradient(180deg, rgba(14,27,42,.04), rgba(14,27,42,.02));
+      box-shadow: var(--shadow-soft);
+      transition: transform .18s ease, box-shadow .18s ease, background .18s ease;
+      overflow:hidden; cursor:pointer; touch-action: manipulation;
+    }
+    .day:hover{ background:
+      radial-gradient(120px 60px at 10% 0%, rgba(14,27,42,.06), transparent 60%),
+      linear-gradient(180deg, rgba(14,27,42,.06), rgba(14,27,42,.03)); }
+    .day:active{ transform: translateY(1px); }
+    .day.muted{ opacity:.55; }
+    .day.today{ box-shadow: 0 0 0 2px rgba(14,27,42,.12), 0 8px 24px rgba(191,233,255,.35), var(--shadow-soft); }
+    .day-num{ font-weight: 900; font-size: 14px; color: #0e1b2a; opacity:.95; }
+
+    .marks{ position:absolute; left:8px; right:8px; bottom:8px; display:flex; align-items:center; justify-content: space-between; gap:6px; pointer-events:none; }
+    .dose{ display:flex; align-items:center; gap:4px; font-size: 12px; color: var(--text); opacity:.92; padding: 2px 6px; border-radius: 999px; background: rgba(14,27,42,.06); }
+    .capsule{ width:16px; height:10px; border-radius:10px; background: linear-gradient(90deg,#fff 0 50%, #ff93a3 50% 100%); box-shadow: inset 0 0 0 1px rgba(0,0,0,.06); }
+    .mood{ font-size: 16px; }
+
+    .sheet{
+      position: fixed; left:0; right:0; bottom:0; background: var(--surface); color: var(--text);
+      border-radius: 22px 22px 0 0; box-shadow: 0 -8px 24px rgba(14,27,42,.12);
+      transform: translateY(110%); transition: transform .35s cubic-bezier(.2,.7,.2,1);
+      padding: 14px 16px calc(22px + env(safe-area-inset-bottom)); backdrop-filter: blur(16px); -webkit-backdrop-filter: blur(16px); z-index: 40;
+    }
+    .sheet.active{ transform: translateY(0); }
+    .drag-handle{ width: 46px; height: 5px; border-radius: 12px; background: rgba(14,27,42,.15); margin: 6px auto 10px; }
+    .sheet-head{ display:flex; align-items:center; justify-content: space-between; gap:8px; margin-bottom: 8px; }
+    .sheet-title{ font-weight:800; }
+    .pill{ border:0; cursor:pointer; border-radius: 999px; padding:10px 14px; background: linear-gradient(90deg, var(--accent-2), var(--accent)); color:#06131d; font-weight:800; box-shadow: inset 0 0 0 1px rgba(255,255,255,.8), 0 10px 18px rgba(203,196,255,.35); transition: transform .12s ease; }
+    .pill:active{ transform: translateY(1px); }
+    .sheet-row{ display:flex; gap:10px; align-items:center; margin:10px 0; }
+    .badge{ padding:6px 10px; border-radius: 12px; background: rgba(14,27,42,.06); }
+    .right{ margin-left:auto; }
+    .day.pressing{ box-shadow: inset 0 6px 18px rgba(14,27,42,.12), inset 0 -6px 12px rgba(255,255,255,.6); }
+
+    @media (max-width: 520px){ .day{ min-height: 66px; } .calendar-card{ padding: 12px; } }
+
+    
+    /* --- STATS PILL (compact summary) --- */
+    .stats-pill{
+      display:flex; align-items:center; gap:8px; flex-wrap:wrap;
+      margin: 2px 4px 12px; padding:8px 10px;
+      border-radius:14px;
+      background: rgba(255,255,255,.06);
+      border: 1px solid rgba(255,255,255,.08);
+      box-shadow: inset 0 1px 0 rgba(255,255,255,.06);
+      font-size: 13px; line-height: 1.2;
+    }
+    .stats-pill .dot{ opacity:.5; }
+    .stats-pill b{ font-weight:800; }
+    .stats-pill .mini-bar{
+      flex: 1 1 140px; height:6px; border-radius:999px;
+      background: linear-gradient(90deg, rgba(255,90,90,.25), rgba(255,196,0,.25), rgba(60,235,170,.25));
+      overflow:hidden; position:relative;
+      border: 1px solid rgba(255,255,255,.08);
+    }
+    .stats-pill .mini-bar > span{
+      position:absolute; left:0; top:0; bottom:0; width:0%;
+      background: linear-gradient(90deg,#16dba0,#49a6ff);
+      border-radius:inherit; transition: width .35s ease;
+    }
+    /* Light theme override */
+    body[data-theme="light"] .stats-pill{
+      background: rgba(14,27,42,.06);
+      border-color: rgba(14,27,42,.08);
+      box-shadow: inset 0 1px 0 rgba(255,255,255,.6);
+    }
+    body[data-theme="light"] .stats-pill .mini-bar{
+      border-color: rgba(14,27,42,.08);
+      background: linear-gradient(90deg, rgba(255,120,120,.20), rgba(255,196,0,.20), rgba(40,210,150,.20));
+    }
+    
+    /* TABBAR */
+    .tabbar{ position: fixed; left:0; right:0; bottom:0; padding: 10px 12px calc(10px + env(safe-area-inset-bottom)); background: transparent; z-index: 50; pointer-events:none; }
+    .tabbar-inner{ max-width: 1100px; margin: 0 auto; display:grid; grid-template-columns:repeat(5,1fr); gap:10px; align-items:center; pointer-events:auto; }
+    .tab{ display:flex; flex-direction:column; align-items:center; justify-content:center; gap:6px; padding:10px 8px; min-height:56px; border-radius:16px; text-decoration:none; font-size:12px; font-weight:700; color:#5e6b82; background: rgba(14,27,42,.04); box-shadow: var(--shadow-soft); transition: transform .12s ease, box-shadow .2s ease, background .2s ease, color .2s ease; }
+    .tab svg{ width:22px; height:22px; }
+    .tab:active{ transform: translateY(1px); }
+    .tab.active{ background: linear-gradient(180deg, #ffffff, #f6f8fb); box-shadow: 8px 10px 20px rgba(14,27,42,.12), -6px -6px 14px rgba(255,255,255,.9); color:#0e1b2a; }
+  </style>
+</head>
+<body data-theme="light">
+  <div class="app-title">Календарь</div>
+
+  <div class="calendar-card" id="card">
+    <div class="header">
+      <div class="month-nav">
+        <button class="nav-btn" id="prev" aria-label="Предыдущий месяц">◀</button>
+        <div class="month-label" id="monthLabel"></div>
+        <button class="nav-btn" id="next" aria-label="Следующий месяц">▶</button>
+      </div>
+      <button class="pill" id="todayBtn">Сегодня</button>
+    </div>
+    <div class="stats-pill" id="statsPill" aria-live="polite">
+      <span>💊 <b id="statMg">0 мг</b></span>
+      <span class="dot">•</span>
+      <span>⏰ пропусков <b id="statMiss">0</b></span>
+      <span class="dot">•</span>
+      <span>соблюдение <b id="statAdh">0%</b></span>
+      <div class="mini-bar" role="progressbar" aria-valuemin="0" aria-valuemax="100">
+        <span id="statBar"></span>
+      </div>
+    </div>
+    <div class="weekday-row" id="weekdayRow"></div>
+    <div class="grid" id="grid"></div>
+  </div>
+
+  <div class="sheet" id="sheet" role="dialog" aria-modal="true" aria-hidden="true">
+    <div class="drag-handle"></div>
+    <div class="sheet-head">
+      <div class="sheet-title" id="sheetTitle">Данные за день</div>
+      <button class="pill right" id="openDiary">Открыть дневник</button>
+    </div>
+    <div id="sheetBody"></div>
+  </div>
+
+  <!-- Bottom navigation -->
+  <nav class="tabbar" role="navigation" aria-label="Главная навигация">
+    <div class="tabbar-inner">
+      <a class="tab" href="welcome-rt-light.html" aria-label="Главная">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M3 10.5 12 3l9 7.5v9a1 1 0 0 1-1 1h-5v-6H9v6H4a1 1 0 0 1-1-1v-9z" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"/></svg>
+        <span>Главная</span>
+      </a>
+      <a class="tab active" href="calendar-light.html" aria-current="page" aria-label="Календарь">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><rect x="3" y="4" width="18" height="18" rx="3" stroke-width="1.7"/><path d="M16 2v4M8 2v4M3 10h18" stroke-width="1.7" stroke-linecap="round"/></svg>
+        <span>Календарь</span>
+      </a>
+      <a class="tab" href="profile.html" aria-label="Профиль">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><circle cx="12" cy="8" r="4" stroke-width="1.7"/><path d="M4 21a8 8 0 0 1 16 0" stroke-width="1.7" stroke-linecap="round"/></svg>
+        <span>Профиль</span>
+      </a>
+      <a class="tab" href="photodiary.html" aria-label="Фотодневник">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><rect x="3" y="5" width="18" height="14" rx="3" stroke-width="1.7"/><path d="M9 10l2 2 3-3 4 5H6l3-4z" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"/></svg>
+        <span>Фотодневник</span>
+      </a>
+      <a class="tab" href="labs.html" aria-label="Анализы">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M9 3v6l-5 8a3 3 0 0 0 2.6 4.5h10.8A3 3 0 0 0 20 17l-5-8V3" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"/></svg>
+        <span>Анализы</span>
+      </a>
+    </div>
+  </nav>
+
+<script>
+(function(){
+  const $ = (s, r=document) => r.querySelector(s);
+  const monthLabel = $("#monthLabel");
+  const grid = $("#grid");
+  const weekdayRow = $("#weekdayRow");
+  const sheet = $("#sheet");
+  const sheetTitle = $("#sheetTitle");
+  const sheetBody = $("#sheetBody");
+  const openDiaryBtn = $("#openDiary");
+  const statsPill = $("#statsPill");
+  const statMg = $("#statMg");
+  const statMiss = $("#statMiss");
+  const statAdh = $("#statAdh");
+  const statBar = $("#statBar");
+
+  const WEEKDAYS = ['Пн','Вт','Ср','Чт','Пт','Сб','Вс'];
+  const MONTHS = ['Январь','Февраль','Март','Апрель','Май','Июнь','Июль','Август','Сентябрь','Октябрь','Ноябрь','Декабрь'];
+
+  let current = new Date(); current.setDate(1);
+  weekdayRow.innerHTML = WEEKDAYS.map(d => `<div class="weekday">${d}</div>`).join('');
+
+  const pad = n => String(n).padStart(2,'0');
+  const iso = d => `${d.getFullYear()}-${pad(d.getMonth()+1)}-${pad(d.getDate())}`;
+  const getDiary = () => { try{ return JSON.parse(localStorage.getItem('rt.diary.v1')||'{}'); } catch(e){ return {}; } };
+  function moodEmoji(v){
+    if(v == null) return '—';
+    if(v <= -3) return '😵‍💫';
+    if(v == -2) return '😖';
+    if(v == -1) return '🙁';
+    if(v == 0) return '😐';
+    if(v == 1) return '🙂';
+    if(v == 2) return '😀';
+    return '🤩';
+  }
+
+  function monthStats(year, month){
+  // читаем дневник из localStorage
+  const diary = getDiary();
+  let mg = 0, taken = 0, miss = 0;
+  const days = new Date(year, month+1, 0).getDate();
+  const pad = n => String(n).padStart(2,'0');
+  for (let d=1; d<=days; d++){
+    const id = `${year}-${pad(month+1)}-${pad(d)}`;
+    const rec = diary[id];
+    if (!rec) continue;
+    const dose = Number(rec.dose ?? rec.mg ?? 0);
+    const missed = (rec.miss === true) || (rec.taken === false);
+    if (missed) { miss++; continue; }
+    if (dose > 0){ mg += dose; taken++; }
+  }
+  const denom = taken + miss;
+  const adherence = denom ? Math.round((taken/denom)*100) : 0;
+  return {mg, miss, adherence};
+}
+
+function render(){
+  const year = current.getFullYear();
+  const month = current.getMonth();
+
+  monthLabel.textContent = MONTHS[month] + ' ' + year;
+
+  /* update stats pill */
+  const st = monthStats(year, month);
+  if(statMg) statMg.textContent = st.mg + ' мг';
+  if(statMiss) statMiss.textContent = st.miss;
+  if(statAdh) statAdh.textContent = st.adherence + '%';
+  if(statBar){ statBar.style.width = st.adherence + '%'; statBar.setAttribute('aria-valuenow', st.adherence); }
+
+  grid.innerHTML = '';
+  const first = new Date(year, month, 1);
+  const startIdx = (first.getDay() + 6) % 7; // Пн=0
+  const daysInMonth = new Date(year, month+1, 0).getDate();
+
+  const todayIso = iso(new Date());
+
+  for (let day = 1; day <= daysInMonth; day++) {
+    const date = new Date(year, month, day);
+    const id = iso(date);
+    const isToday = id === todayIso;
+
+    const data = (getDiary()[id]) || null;
+    const dose = data && (data.dose || data.mg);
+    const mood = data && data.mood;
+
+    const cell = document.createElement('div');
+    cell.className = 'day' + (isToday ? ' today' : '');
+    cell.setAttribute('data-date', id);
+
+    // выровнять первый день под правильный день недели
+    if (day === 1) cell.style.gridColumnStart = String(startIdx + 1);
+
+    cell.innerHTML = `
+      <div class="day-num">${day}</div>
+      <div class="marks">
+        <div class="dose" style="${dose ? '' : 'opacity:.0;'}">
+          <span class="capsule" aria-hidden="true"></span>
+          <span>${dose ? dose : ''}</span><span>${dose ? 'мг' : ''}</span>
+        </div>
+        <div class="mood">${moodEmoji(mood)}</div>
+      </div>
+    `;
+
+    // короткий тап → снизу «краткая инфа», долгий тап → дневник
+    let pressTimer = null, longPressed = false;
+    cell.addEventListener('pointerdown', ()=>{
+      longPressed = false;
+      cell.classList.add('pressing');
+      pressTimer = setTimeout(()=>{ longPressed = true; goDiary(id); }, 480);
+    });
+    const clear = ()=>{ cell.classList.remove('pressing'); clearTimeout(pressTimer); };
+    cell.addEventListener('pointerleave', clear);
+    cell.addEventListener('pointercancel', clear);
+    cell.addEventListener('pointerup', ()=>{
+      clear();
+      if (!longPressed) openSheet(id, data);
+    });
+
+    grid.appendChild(cell);
+  }
+}
+
+
+  function openSheet(id, data){
+    const d = data || getDiary()[id] || null;
+    sheetTitle.textContent = new Date(id).toLocaleDateString('ru-RU', { day:'2-digit', month:'long', year:'numeric' });
+    const mood = d ? moodEmoji(d.mood) : '—';
+    const dose = d && (d.dose || d.mg) ? (d.dose || d.mg) + ' мг' : '—';
+    const notes = d && d.note ? d.note : 'Записей нет. Нажмите и удерживайте день, чтобы открыть дневник.';
+    sheetBody.innerHTML = `
+      <div class="sheet-row"><div class="badge">Самочувствие:</div> <div style="font-size:22px">${mood}</div></div>
+      <div class="sheet-row"><div class="badge">Доза:</div> <strong>${dose}</strong></div>
+      <div class="sheet-row"><div class="badge">Комментарий:</div> <div>${notes}</div></div>
+    `;
+    openDiaryBtn.onclick = ()=> goDiary(id);
+    sheet.classList.add('active'); sheet.setAttribute('aria-hidden', 'false');
+    const closer = ev => { if(ev.target === sheet) closeSheet(); };
+    sheet.addEventListener('click', closer, { once:true });
+  }
+  const closeSheet = ()=>{ sheet.classList.remove('active'); sheet.setAttribute('aria-hidden','true'); };
+  const goDiary = id => { try{ window.location.href = `diary.html?date=${id}`; } catch(e){ alert('Откройте дневник для ' + id); } };
+
+  document.getElementById('prev').onclick = ()=>{ current.setMonth(current.getMonth()-1); render(); };
+  document.getElementById('next').onclick = ()=>{ current.setMonth(current.getMonth()+1); render(); };
+  document.getElementById('todayBtn').onclick = ()=>{ const now = new Date(); current = new Date(now.getFullYear(), now.getMonth(), 1); render(); };
+  window.addEventListener('keydown', (e)=>{ if(e.key === 'Escape') closeSheet(); });
+  window.addEventListener('storage', (e)=>{ if(e.key === 'rt.diary.v1'){ render(); } });
+
+  render();
+})();
+</script>
+</body>
+</html>

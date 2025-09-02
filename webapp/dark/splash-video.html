@@ -3,6 +3,7 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+  <script src="/js/folder-router.js"></script>
   <title>Roaccutane Tracker — Приветствие</title>
   <script src="https://telegram.org/js/telegram-web-app.js"></script>
 
@@ -10,8 +11,8 @@
 <script>
   try{
     const s = JSON.parse(localStorage.getItem('rt.settings')||'{}');
-    document.documentElement.dataset.theme = s?.theme || 'dark';
-  }catch(e){ document.documentElement.dataset.theme = 'dark'; }
+    document.documentElement.dataset.theme = s?.theme || localStorage.getItem('rt_theme') || 'light';
+  }catch(e){ document.documentElement.dataset.theme = localStorage.getItem('rt_theme') || 'light'; }
 </script>
 
   <style>
@@ -70,31 +71,6 @@
     <button id="skip" class="btn-skip" type="button">Пропустить</button>
     <div class="progress" aria-hidden="true"><div id="bar" class="bar"></div></div>
   </div>
-
-<script src=
-<script>
-  // Инициализация всех переключателей темы на странице
-  document.addEventListener('DOMContentLoaded', () => {
-    const settings = AppState.get('settings') || {};
-    const theme = (settings.theme === 'light') ? 'light' : 'dark';
-    document.documentElement.dataset.theme = theme;
-
-    // найдём все тумблеры с data-role="theme-switch"
-    document.querySelectorAll('[data-role="theme-switch"]').forEach(sw => {
-      const isLight = (document.documentElement.dataset.theme === 'light');
-      sw.setAttribute('aria-pressed', isLight ? 'true' : 'false');
-
-      sw.addEventListener('click', () => {
-        const cur = document.documentElement.dataset.theme === 'light' ? 'light' : 'dark';
-        const next = (cur === 'light') ? 'dark' : 'light';
-        AppState.applyTheme(next);                  // сохраняем и ставим data-theme
-        // визуально обновим все тумблеры на странице
-        document.querySelectorAll('[data-role="theme-switch"]')
-          .forEach(x => x.setAttribute('aria-pressed', next === 'light' ? 'true' : 'false'));
-      });
-    });
-  });
-</script>
 
 
   <script>
@@ -169,5 +145,9 @@
     setTimeout(()=>{ if(!started){ v.muted = true; v.play().catch(()=>{}); } }, 250);
   })();
   </script>
+  <script>
+  const next = new URLSearchParams(location.search).get('next') || 'welcome-rt.html';
+  location.replace(F.nextUrl(next));
+</script>
 </body>
 </html>

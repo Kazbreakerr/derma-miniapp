@@ -1,0 +1,335 @@
+<!doctype html>
+<html lang="ru">
+<head>
+
+  <script>
+  /* Ставим data-theme до загрузки CSS. По умолчанию — light */
+  (function(){
+    let theme = 'light';
+    try{
+      const s = JSON.parse(localStorage.getItem('rt.settings')||'{}');
+      theme = s.theme || localStorage.getItem('rt_theme') || 'light';
+    }catch(e){}
+    document.documentElement.dataset.theme = theme;
+  })();
+</script>
+
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Roaccutane Tracker — загрузка</title>
+
+<script src="js/app-state.js"></script>
+<script>
+  // Инициализация всех переключателей темы на странице
+  document.addEventListener('DOMContentLoaded', () => {
+    const settings = (window.AppState?.get('settings')) || {};
+    const cur  = document.documentElement.dataset.theme || 'light';
+    const theme = (settings.theme === 'light' || settings.theme === 'dark') ? settings.theme : cur;
+    document.documentElement.dataset.theme = theme;
+
+    document.querySelectorAll('[data-role="theme-switch"]').forEach(sw => {
+      sw.setAttribute('aria-pressed', theme === 'light' ? 'true' : 'false');
+      sw.addEventListener('click', () => {
+        const next = (document.documentElement.dataset.theme === 'light') ? 'dark' : 'light';
+        window.AppState?.applyTheme?.(next);
+        document.documentElement.dataset.theme = next;
+        document.querySelectorAll('[data-role="theme-switch"]')
+          .forEach(x => x.setAttribute('aria-pressed', next === 'light' ? 'true' : 'false'));
+      });
+    });
+  });
+</script>
+
+  <!-- Telegram SDK -->
+  <script src="https://telegram.org/js/telegram-web-app.js"></script>
+
+  <script>
+(function(){
+  const box = () => document.getElementById('rt-loader');
+  function applyScheme(){
+const cs = window.Telegram?.WebApp?.colorScheme;
+const themeDefault = document.documentElement.dataset.theme
+                  || (JSON.parse(localStorage.getItem('rt.settings')||'{}').theme)
+                  || localStorage.getItem('rt_theme')
+                  || 'light';
+const scheme = (cs === 'light' || cs === 'dark') ? cs : themeDefault;
+    const el = box();
+    if (el) el.setAttribute('data-scheme', scheme);
+  }
+  try { window.Telegram?.WebApp?.ready(); } catch(e){}
+  document.addEventListener('DOMContentLoaded', applyScheme);
+  window.Telegram?.WebApp?.onEvent?.('themeChanged', applyScheme);
+})();
+</script>
+
+  <!-- 1) Перехват /api/* — прокинуть initData в заголовок и в URL (fallback) -->
+  <script>
+  (function patchFetchForTelegram(){
+    const origFetch = window.fetch;
+    window.fetch = function(input, init) {
+      let url = (typeof input === 'string') ? input : (input && input.url) || String(input || '');
+      init = init || {};
+
+      if (url.startsWith('/api/')) {
+        const initData = window.Telegram?.WebApp?.initData || '';
+        const headers = new Headers(init.headers || {});
+        if (initData) headers.set('X-Telegram-InitData', initData);
+
+        const u = new URL(url, location.origin);
+        if (initData) u.searchParams.set('tgWebAppData', initData);
+        u.searchParams.set('v', Date.now());
+
+        return origFetch(u.toString(), { ...init, headers, credentials:'include' });
+      }
+      return origFetch(input, init);
+    };
+  })();
+  </script>
+
+  <!-- 2) Глобальный helper window.api -->
+  <script>
+  window.api = function api(path, opts){
+    opts = opts || {};
+    const base     = String(window.API_BASE || '').replace(/\/$/,'');
+    const initData = window.Telegram?.WebApp?.initData || '';
+    const devTg    = new URLSearchParams(location.search).get('tg'); // только вне Telegram
+
+    const headers = Object.assign({'Content-Type':'application/json'}, opts.headers || {});
+    if (initData) headers['X-Telegram-InitData'] = initData;
+
+    let url = base + path;
+    if (!initData && devTg) url += (url.includes('?')?'&':'?') + 'tg=' + encodeURIComponent(devTg);
+    url += (url.includes('?')?'&':'?') + 'v=' + Date.now();
+    if (initData) url += '&tgWebAppData=' + encodeURIComponent(initData);
+
+    return fetch(url, { ...opts, headers, credentials:'include' });
+  };
+  </script>
+
+  <!-- 3) ЕДИНЫЙ РОУТЕР v3: splash один раз, учитываем derma_next -->
+  <script>
+  (function(){
+    const qs = location.search || '';
+    const sp = new URLSearchParams(qs);
+    const tgId = sp.get('tg') || (window.Telegram?.WebApp?.initDataUnsafe?.user?.id || '');
+     // >>> ДОБАВЬ ЭТО <<<
+    const THEME = (() => {
+      try{
+        const s = JSON.parse(localStorage.getItem('rt.settings')||'{}');
+        return s.theme || localStorage.getItem('rt_theme') || 'light';
+      }catch(e){ return localStorage.getItem('rt_theme') || 'light'; }
+    })();
+    const PAGES = {
+  welcome: (THEME === 'light') ? './welcome-rt-light.html' : './welcome-rt.html',
+  profile: (THEME === 'light') ? './profile-light.html'    : './profile-dark.html',
+  plan:    (THEME === 'light') ? './plan-light.html'       : './plan-dark.html',
+  main:    './main-dark.html' // пока нет main-light — оставляем так
+};
+// маппер nextStage
+const m = { profile: PAGES.profile, plan: PAGES.plan, main: PAGES.main };
+</script>
+    const WELCOME = (THEME === 'light') ? './welcome-rt-light.html' : './welcome-rt.html';
+
+    // reset=/index.html?tg=1002&reset=1 — очистка LS
+    if (sp.get('reset') === '1') {
+      try {
+        localStorage.removeItem('derma_consent');
+        localStorage.removeItem('derma_next');
+        localStorage.removeItem('derma_splash_seen');
+        localStorage.removeItem('rt_theme');
+localStorage.removeItem('rt.settings');
+        if (tgId) {
+          localStorage.removeItem(`dermaApp:${tgId}:consentAccepted`);
+          localStorage.removeItem(`dermaApp:${tgId}:splash_seen`);
+        }
+      } catch(_) {}
+      sp.delete('reset');
+    }
+
+    // Если явно задан следующий шаг — идём туда (минуем splash, чтобы не было циклов)
+    const nextStage = (localStorage.getItem('derma_next') || '').trim();
+    if (nextStage) {
+      try { localStorage.removeItem('derma_next'); } catch(_) {}
+      const tail = sp.toString() ? ('?' + sp.toString()) : '';
+      const m = {
+  profile: (THEME === 'light') ? 'profile-light.html' : 'profile-dark.html',
+  plan:    (THEME === 'light') ? 'plan-light.html'    : 'plan-dark.html',
+  main:    'main-dark.html' // (если будет main-light — поменяешь тут)
+};
+      if (m[nextStage]) { location.replace('./' + m[nextStage] + tail); return; }
+     if (nextStage === 'welcome') { location.replace(WELCOME + tail); return; }
+    }
+
+    function goToSplash(nextPage){
+      sp.set('next', nextPage);
+      location.replace('./splash-video.html?' + sp.toString());
+    }
+
+    // 1) без согласия – после splasha идём на welcome
+    const hasConsent =
+      (localStorage.getItem('derma_consent') === '1') ||
+      (tgId && localStorage.getItem(`dermaApp:${tgId}:consentAccepted`) === '1');
+
+    if (!hasConsent) {
+      return goToSplash(WELCOME);
+
+    }
+    // если роль = doctor — маршрут всегда через welcome ветку врача
+const role = localStorage.getItem('rt_role') || '';
+if (role === 'doctor') {
+ return goToSplash(WELCOME);
+}
+
+    // 2) иначе решаем по API: profile → plan → main
+    (async () => {
+    try {
+      const meR = await window.api('/api/me');
+      const me  = meR.ok ? await meR.json() : null;
+
+      if (me && (me.fresh_user || me.is_fresh_user)) {
+        try {
+          localStorage.removeItem('derma_consent');
+          localStorage.removeItem('derma_next');
+          if (tgId) {
+            localStorage.removeItem(`dermaApp:${tgId}:consentAccepted`);
+            localStorage.removeItem(`dermaApp:${tgId}:splash_seen`);
+            localStorage.removeItem('rt_patient_done');
+            localStorage.removeItem('rt_doctor_done');
+            localStorage.removeItem('rt_role');
+            localStorage.removeItem('rt_seen_warnings');
+          }
+        } catch(_) {}
+        return goToSplash(WELCOME);
+      }
+
+      const hasWeight = !!(me && Number(me.weight_kg ?? me.weight) > 0);
+      if (!hasWeight) return goToSplash(WELCOME);
+
+      const planR = await window.api('/api/plan');
+      const plan  = planR.ok ? await planR.json() : null;
+      const hasPlan = !!(plan && (plan.id || plan.start_date || plan.capsule_mg));
+
+      // БЫЛО: goToSplash(hasPlan ? './main-dark.html' : './plan-dark.html');
+      // СТАЛО: второй и более заход пациента → через welcome
+      if (hasPlan) {
+        return goToSplash(WELCOME);
+      }
+      return goToSplash((THEME === 'light') ? './plan-light.html' : './plan-dark.html');
+    } catch (_){
+      return goToSplash(WELCOME);
+    }
+  })();
+  })();
+  </script>
+
+
+  <style>
+  /* ===== СКОП ТОЛЬКО ДЛЯ ЛОАДЕРА ===== */
+  #rt-loader{
+    /* DARK токены */
+    --bg:#0B1220; --card:#101a2a; --border:#1F2A3C;
+    --text:#E8F0FF; --muted:#9fb3d6;
+    --accentA:#60A5FA; --accentB:#14B8A6;
+    --glowA: rgba(96,165,250,.18);
+    --glowB: rgba(20,184,166,.18);
+    --card-grad-from:#0e1726; --card-grad-to:#0c1422;
+    --ring: rgba(94,234,212,.35);
+    --track: rgba(255,255,255,.12);
+    --stroke: rgba(255,255,255,.65);
+
+    position:fixed; inset:0; z-index:9999;
+    display:grid; place-items:center;
+    padding: env(safe-area-inset-top) env(safe-area-inset-right)
+             env(safe-area-inset-bottom) env(safe-area-inset-left);
+    min-height:100dvh; min-height:100svh;
+    background:
+      radial-gradient(100% 60% at 20% 0%, var(--glowB), transparent 60%),
+      radial-gradient(100% 60% at 80% 10%, var(--glowA), transparent 60%),
+      var(--bg);
+    color:var(--text);
+    font-family: ui-sans-serif,system-ui,-apple-system,Segoe UI,Inter,Roboto,Manrope,Helvetica,Arial;
+  }
+  /* LIGHT — персик + лаванда */
+  #rt-loader[data-scheme="light"]{
+    --bg:#FFF9FD; --card:#FFFFFF; --border:#F0E7FF;
+    --text:#1f2937; --muted:#6b7280;
+    --accentA:#C4A1FF; --accentB:#FFB199;
+    --glowA: rgba(196,161,255,.22);
+    --glowB: rgba(255,177,153,.25);
+    --card-grad-from:#FFFFFF; --card-grad-to:#F7F3FF;
+    --ring: rgba(196,161,255,.35);
+    --track: rgba(0,0,0,.10);
+    --stroke: rgba(0,0,0,.35);
+  }
+
+  #rt-loader .box{
+    width:min(680px,92vw);
+    background:linear-gradient(180deg,var(--card-grad-from),var(--card-grad-to));
+    border:1px solid var(--border);
+    border-radius:20px;
+    padding: clamp(16px,3.2vw,24px) clamp(14px,3vw,22px);
+    box-shadow:0 18px 48px rgba(0,0,0,.35);
+    position:relative; overflow:hidden;
+  }
+  #rt-loader .glow{position:absolute; inset:0; pointer-events:none;
+    background:
+      radial-gradient(120% 80% at 10% 0%, var(--glowB), transparent 55%),
+      radial-gradient(120% 80% at 90% 20%, var(--glowA), transparent 65%)}
+  #rt-loader .row{display:flex; align-items:center; gap:clamp(12px,3vw,16px)}
+  #rt-loader h1{margin:0 0 6px; font-weight:800; letter-spacing:.2px;
+     font-size:clamp(20px,6vw,28px); line-height:1.1}
+  #rt-loader p{margin:0; color:var(--muted); font-size:clamp(13px,3.6vw,16px)}
+
+  #rt-loader .stage{
+    width:clamp(44px,10vw,54px); height:clamp(44px,10vw,54px);
+    border-radius:14px; display:grid; place-items:center;
+    background:linear-gradient(160deg,var(--card-grad-from),var(--card-grad-to));
+    border:1px solid var(--border); position:relative
+  }
+  #rt-loader .pill{ width:clamp(36px,8.5vw,44px); height:clamp(16px,3.6vw,20px); animation:bob 1.2s ease-in-out infinite }
+  #rt-loader .pill .l{ fill:#fff } #rt-loader .pill .r{ fill: var(--accentB) }
+  @keyframes bob{0%,100%{transform:translateY(0)}50%{transform:translateY(-5px)}}
+
+  #rt-loader .ring{ position:absolute; width:clamp(50px,12vw,64px); height:clamp(50px,12vw,64px);
+    border-radius:999px; pointer-events:none; border:3px solid var(--ring);
+    animation:ripple 1.6s ease-out infinite }
+  @keyframes ripple{0%{transform:scale(.8);opacity:.8}80%{transform:scale(1.12);opacity:.08}100%{opacity:0}}
+
+  #rt-loader .bar-wrap{ height:3px; background:var(--track); border-radius:999px; margin-top:12px; overflow:hidden }
+  #rt-loader .bar{ height:100%; width:30%; background:linear-gradient(90deg,var(--accentA),var(--accentB)); animation:flow 1.6s ease-in-out infinite }
+  @keyframes flow{0%{transform:translateX(-100%)}100%{transform:translateX(300%)}}
+
+  @media (max-width:360px), (max-height:540px){ #rt-loader .box{ border-radius:16px } }
+  @media (prefers-reduced-motion:reduce){ #rt-loader .pill, #rt-loader .ring, #rt-loader .bar{ animation:none } }
+</style>
+
+</head>
+<body>
+
+  <div id="rt-loader" data-scheme="light">
+    <div class="box" role="status" aria-live="polite">
+    <div class="glow"></div>
+    <div class="row">
+      <div class="stage" aria-hidden="true">
+        <div class="ring"></div>
+        <svg class="pill" viewBox="0 0 200 86" xmlns="http://www.w3.org/2000/svg">
+          <defs><clipPath id="c"><rect x="0" y="0" rx="43" ry="43" width="200" height="86"/></clipPath></defs>
+          <g clip-path="url(#c)">
+            <rect class="l" x="0" y="0" width="100" height="86"/>
+            <rect class="r" x="100" y="0" width="100" height="86"/>
+            <rect x="94" y="0" width="12" height="86" fill="#0E1726" opacity=".45"/>
+          </g>
+          <rect x="0" y="0" rx="43" ry="43" width="200" height="86" fill="none"
+                stroke="rgba(255,255,255,.65)" stroke-width="2"/>
+        </svg>
+      </div>
+      <div style="flex:1; min-width:220px">
+        <h1>Roaccutane Tracker</h1>
+        <p>Загружаю и перенаправляю…</p>
+        <div class="bar-wrap"><div class="bar"></div></div>
+      </div>
+    </div>
+       </div> <!-- /.box -->
+  </div> <!-- /#rt-loader -->
+</body>
+</html>

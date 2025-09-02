@@ -3,15 +3,17 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <link rel="stylesheet" href="css/ui-tokens.css">
+<script>document.documentElement.dataset.theme='dark';</script> 
   <title>Derma Mini-App — Обнуление данных</title>
 
 <script src="js/app-state.js"></script>
 <script>
   // Инициализация всех переключателей темы на странице
   document.addEventListener('DOMContentLoaded', () => {
-    const settings = AppState.get('settings') || {};
-    const theme = (settings.theme === 'light') ? 'light' : 'dark';
-    document.documentElement.dataset.theme = theme;
+    const settings = (window.AppState?.get('settings')) || {};
+const cur = document.documentElement.dataset.theme || 'dark';
+document.documentElement.dataset.theme = cur;
 
     // найдём все тумблеры с data-role="theme-switch"
     document.querySelectorAll('[data-role="theme-switch"]').forEach(sw => {
@@ -34,13 +36,7 @@
   <script src="https://telegram.org/js/telegram-web-app.js"></script>
   <script>window.API_BASE = window.API_BASE || '';</script>
 
-<link rel="stylesheet" href="css/ui-tokens.css">
-<script>
-  try{
-    const s = JSON.parse(localStorage.getItem('rt.settings')||'{}');
-    document.documentElement.dataset.theme = s?.theme || 'dark';
-  }catch(e){ document.documentElement.dataset.theme = 'dark'; }
-</script>
+
 
   <style>
     *{box-sizing:border-box}

@@ -1,0 +1,878 @@
+<!doctype html>
+<html lang="ru">
+<head>
+  <meta charset="utf-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1"/>
+  <title>Календарь — Roaccutane Tracker</title>
+  <style>
+    :root{
+      --bg: #0c1824;
+      --bg-2: #0f2231;
+      --surface: rgba(18,33,48,0.8);
+      --text: #e8f3ff;
+      --muted: #99b4c7;
+      --accent: #42e3b8;
+      --accent-2: #5aa7ff;
+      --danger: #ff7b6b;
+      --good: #2ee59d;
+      --shadow-strong: 24px 28px 60px rgba(0,0,0,.45);
+      --shadow-soft: 10px 12px 22px rgba(0,0,0,.35), -8px -8px 18px rgba(255,255,255,0.03);
+      --glow: 0 0 0 2px rgba(255,255,255,.06), inset 0 0 0 1px rgba(255,255,255,.05);
+      --grid-gap: 10px;
+      --radius-xl: 22px;
+      --radius-lg: 16px;
+    }
+    /* === SELECTED & TODAY === */
+:root{
+  /* высота нижней навигации (таббара) + safe area */
+  --tabbar-h: calc(64px + env(safe-area-inset-bottom));
+  /* цвет кольца выбранных дней */
+  --selected-ring: rgba(90,167,255,.95);
+}
+
+.day.selected{
+  outline: 2px solid var(--selected-ring);
+  outline-offset: -2px;
+  box-shadow:
+    0 10px 28px rgba(90,167,255,.30),
+    inset 0 1px 0 rgba(255,255,255,.06);
+}
+
+.day.today{
+  /* отдельный стиль «сегодня» — мягкий светящийся ободок */
+  box-shadow:
+    0 0 0 2px rgba(255,255,255,.16),
+    0 8px 24px rgba(66,227,184,.25),
+    inset 0 1px 0 rgba(255,255,255,.06);
+}
+
+/* доступность: клавиатурная навигация подсвечивает тоже заметно */
+.day:focus-visible{
+  outline: 2px solid var(--selected-ring);
+  outline-offset: -2px;
+}
+
+    /* base */
+    body{
+      margin:0;
+      font-family: Inter, ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial, 'Apple Color Emoji','Segoe UI Emoji';
+      color:var(--text);
+      background: radial-gradient(1200px 600px at -10% -10%, rgba(66, 227, 184, .12), transparent 60%),
+                  radial-gradient(1000px 700px at 120% 120%, rgba(90, 167, 255,.14), transparent 55%),
+                  linear-gradient(180deg, var(--bg) 0%, var(--bg-2) 100%);
+      min-height:100vh;
+      padding: clamp(14px, 2vw, 24px);
+      padding-bottom: max(88px, calc(64px + env(safe-area-inset-bottom))); /* место под таббар */
+      box-sizing: border-box;
+    }
+    .app-title{
+      font-size: clamp(20px, 4vw, 36px);
+      font-weight: 800;
+      letter-spacing:.3px;
+      margin: 4px 0 18px;
+      text-shadow: 0 1px 0 rgba(0,0,0,.2);
+    }
+    .calendar-card{
+      position:relative;
+      backdrop-filter: blur(16px);
+      -webkit-backdrop-filter: blur(16px);
+      background: var(--surface);
+      border-radius: var(--radius-xl);
+      box-shadow: var(--shadow-strong), var(--glow);
+      padding: 16px;
+      overflow:hidden;
+    }
+    .header{
+      display:flex;
+      align-items:center;
+      justify-content: space-between;
+      gap:12px;
+      padding: 6px 4px 12px;
+    }
+    .month-nav{
+      display:flex;
+      align-items:center;
+      gap:8px;
+    }
+    .nav-btn{
+      appearance:none;
+      border:0;
+      border-radius: 14px;
+      width:40px; height:40px;
+      display:grid; place-items:center;
+      color:var(--text);
+      background: rgba(255,255,255,.05);
+      box-shadow: var(--shadow-soft);
+      cursor:pointer;
+      transition: transform .12s ease, background .2s ease;
+    }
+    .nav-btn:active{ transform: translateY(1px) scale(.98); }
+    .month-label{
+      font-weight:800;
+      font-size: clamp(16px, 2.8vw, 22px);
+      letter-spacing:.3px;
+    }
+    .weekday-row, .grid{
+      display:grid;
+      grid-template-columns: repeat(7, 1fr);
+      gap: var(--grid-gap);
+    }
+    .weekday{
+      text-align:center;
+      color: var(--muted);
+      font-size: 12px;
+      letter-spacing:.6px;
+      user-select:none;
+    }
+    /* day cell */
+    .day{
+      position:relative;
+      border-radius: 16px;
+      min-height: 84px;
+      padding: 8px;
+      background:
+        radial-gradient(120px 60px at 10% 0%, rgba(255,255,255,.04), transparent 60%),
+        linear-gradient(180deg, rgba(255,255,255,.04), rgba(255,255,255,.02));
+      box-shadow: var(--shadow-soft);
+      transition: transform .18s ease, box-shadow .18s ease, background .18s ease;
+      overflow:hidden;
+      cursor:pointer;
+      touch-action: manipulation;
+    }
+    .day:hover{ background:
+      radial-gradient(120px 60px at 10% 0%, rgba(255,255,255,.06), transparent 60%),
+      linear-gradient(180deg, rgba(255,255,255,.06), rgba(255,255,255,.03)); }
+    .day:active{ transform: translateY(1px); }
+    .day.muted{ opacity:.55; }
+    .day.today{
+      box-shadow: 0 0 0 2px rgba(255,255,255,.16), 0 8px 24px rgba(66,227,184,.25), var(--shadow-soft);
+    }
+    .day-num{
+      font-weight: 800;
+      font-size: 14px;
+      color: #ffffff;
+      text-shadow: 0 1px 2px rgba(0,0,0,.5);
+      opacity:.95;
+    }
+    /* HEATMAP GLOW (вместо сплошной заливки) */
+.day{
+  position: relative;
+  isolation: isolate;          /* свой стек слоёв, чтобы ::after ушёл под контент */
+}
+
+.day::after{
+  content:"";
+  position:absolute;
+  inset:-6px;                  /* чуть шире ячейки для мягкого края */
+  border-radius:inherit;
+  background: radial-gradient(120% 90% at 50% 20%,
+              var(--glowC, transparent) 0 45%, transparent 60%);
+  filter: blur(14px) saturate(1.05);
+  mix-blend-mode: screen;      /* светится, не забивает фон */
+  opacity: 1;
+  z-index: 0;                  /* под контентом */
+  pointer-events:none;
+}
+
+/* контент поверх свечения */
+.day .day-num{ position: relative; z-index: 2; }
+.day .marks{ z-index: 2; }     /* без position */
+
+/* метки в ячейке — ВСЕГДА снизу слева, с правой границей для дыхания */
+.marks{
+  position:absolute;
+  left:8px;
+  right:8px;               /* было right:auto; */
+  bottom:8px;
+  display:flex;
+  align-items:center;
+  justify-content:flex-start;
+  gap:8px;
+  width:auto;              /* было max-content */
+  z-index:2;
+}
+
+/* смайлик не расширяет капсулу — уезжает вправо */
+.mood{ margin-left:auto; opacity:.7; }
+
+/* бейдж дозы + иконка-капсула */
+.dose{
+  display:inline-flex; align-items:center; gap:8px;
+  padding:6px 10px; border-radius:14px;
+  background: rgba(255,255,255,.06);
+  border: 1px solid rgba(255,255,255,.08);
+  box-shadow: inset 0 1px 0 rgba(255,255,255,.12);
+  font-weight:800; font-size:12px; line-height:1;
+}
+/* капсулу показываем только если реально «выпил» */
+.dose .capsule{ display:none; }
+.dose.taken .capsule{ display:inline-block; }
+
+/* капсула как на референсе */
+.dose .capsule{
+  position:relative;
+  width:20px; height:12px; border-radius:999px;
+  background: linear-gradient(90deg, #ffffff 0 50%, #14b8a6 0 100%);
+  border:1px solid rgba(0,0,0,.28);
+  box-shadow:
+    inset 0 1px 0 rgba(255,255,255,.90),
+    inset 0 -1px 0 rgba(0,0,0,.25),
+    0 1.5px 2.5px rgba(0,0,0,.35);
+}
+.dose .capsule::after{
+  content:"";
+  position:absolute; left:50%; top:1px; bottom:1px; width:1px; transform:translateX(-.5px);
+  background: linear-gradient(180deg, rgba(255,255,255,.65), rgba(0,0,0,.35));
+  box-shadow: inset 0 0 0 1px rgba(0,0,0,.12);
+}
+.dose .capsule::before{
+  content:"";
+  position:absolute; left:10%; top:10%; width:40%; height:45%; border-radius:999px;
+  background: radial-gradient(70% 70% at 30% 30%, rgba(255,255,255,.9), rgba(255,255,255,0));
+  filter: blur(.3px);
+}
+/* звёзды для "Отлично" */
+.day::before{
+  content:""; position:absolute; inset:-6px; border-radius:inherit;
+  opacity:0; pointer-events:none; z-index:1; mix-blend-mode:screen;
+  /* несколько «слоёв» звёзд */
+  background:
+    radial-gradient(2px 2px at 15% 28%, rgba(255,255,255,.9) 0 60%, transparent 62%),
+    radial-gradient(1.4px 1.4px at 42% 18%, rgba(255,255,255,.8) 0 60%, transparent 62%),
+    radial-gradient(1.6px 1.6px at 68% 52%, rgba(255,255,255,.8) 0 60%, transparent 62%),
+    radial-gradient(1.0px 1.0px at 78% 36%, rgba(255,255,255,.7) 0 60%, transparent 62%),
+    radial-gradient(0.8px 0.8px at 30% 70%, rgba(255,255,255,.65) 0 60%, transparent 62%);
+  transition: opacity .2s ease;
+}
+.day.mood-6::before{ opacity:.9; } /* показываем звёзды только на "Отлично" */
+
+
+
+    /* bottom sheet */
+    .sheet{
+      position: fixed; left:0; right:0; bottom: var(--tabbar-h);
+      background: var(--surface); color: var(--text);
+      border-radius: 22px 22px 0 0;
+      box-shadow: 0 -8px 24px rgba(0,0,0,.45);
+      transform: translateY(110%);
+      transition: transform .35s cubic-bezier(.2,.7,.2,1);
+      padding: 14px 16px calc(22px + env(safe-area-inset-bottom));
+      backdrop-filter: blur(16px);
+      -webkit-backdrop-filter: blur(16px);
+      z-index: 40;
+    }
+    .sheet.active{ transform: translateY(0); }
+    .drag-handle{ width: 46px; height: 5px; border-radius: 12px; background: rgba(255,255,255,.2); margin: 6px auto 10px; }
+    .sheet-head{ display:flex; align-items:center; justify-content: space-between; gap:8px; margin-bottom: 8px; }
+    .sheet-title{ font-weight:800; }
+    .pill{
+      border:0; cursor:pointer; border-radius: 999px; padding:10px 14px;
+      background: linear-gradient(90deg, var(--accent-2), var(--accent));
+      color:#06131d; font-weight:800;
+      box-shadow: inset 0 0 0 1px rgba(255,255,255,.35), 0 10px 18px rgba(66,227,184,.25);
+      transition: transform .12s ease;
+    }
+    .pill:active{ transform: translateY(1px); }
+    .sheet-row{ display:flex; gap:10px; align-items:center; margin:10px 0; }
+    .badge{ padding:6px 10px; border-radius: 12px; background: rgba(255,255,255,.06); }
+    .right{ margin-left:auto; }
+    .day.pressing{ box-shadow: inset 0 6px 18px rgba(0,0,0,.35), inset 0 -6px 12px rgba(255,255,255,.03); }
+
+    @media (max-width: 520px){
+      .day{ min-height: 66px; }
+      .calendar-card{ padding: 12px; }
+    }
+    /* MOBILE: капсула + доза снизу слева и меньше */
+@media (max-width: 520px){
+  .day{ min-height: 66px; } /* оставляем как у тебя */
+
+  /* строка меток не тянется на всю ширину и не раздвигает контент */
+  .marks{
+    left: 6px;
+    right: auto;              /* важно: убираем растягивание вправо */
+    bottom: 6px;
+    gap: 6px;
+    justify-content: flex-start; /* вместо space-between */
+    width: max-content;       /* ровно по содержимому */
+  }
+
+  /* уменьшаем бейдж дозы */
+  .dose{
+    padding: 4px 8px;
+    font-size: 11px;
+    gap: 6px;
+  }
+  .dose .capsule{
+    width: 16px;
+    height: 10px;
+  }
+
+  /* смайлик самочувствия уводим вправо, чтобы не мешал */
+  .mood{ margin-left: auto; font-size: 12px; opacity: .65; }
+}
+
+/* при очень узких экранах можно скрыть смайлик, если нужно */
+// @media (max-width: 360px){ .mood{ display:none; } }
+
+
+    /* LIGHT palette (оставил для совместимости темы переключателем) */
+    body[data-theme="light"]{
+      --bg: #f8fbff; --bg-2:#ffffff; --surface: rgba(255,255,255,.75); --text:#0e1b2a; --muted:#6a7993;
+      --accent:#ffd4f0; --accent-2:#bfe9ff;
+      background:
+        radial-gradient(900px 700px at -10% -10%, rgba(255, 204, 170,.45), transparent 60%),
+        radial-gradient(900px 700px at 110% 110%, rgba(203, 196, 255,.45), transparent 55%),
+        linear-gradient(180deg, var(--bg) 0%, var(--bg-2) 100%);
+    }
+    body[data-theme="light"] .dose{ background: rgba(14,27,42,.06); }
+    body[data-theme="light"] .nav-btn{ background: rgba(14,27,42,.06); }
+    body[data-theme="light"] .day{ background:
+      radial-gradient(120px 60px at 10% 0%, rgba(14,27,42,.04), transparent 60%),
+      linear-gradient(180deg, rgba(14,27,42,.04), rgba(14,27,42,.02)); }
+    body[data-theme="light"] .day:hover{ background:
+      radial-gradient(120px 60px at 10% 0%, rgba(14,27,42,.06), transparent 60%),
+      linear-gradient(180deg, rgba(14,27,42,.06), rgba(14,27,42,.03)); }
+    body[data-theme="light"] .day-num{ color:#0e1b2a; text-shadow:none; }
+
+    
+    /* --- STATS PILL (compact summary) --- */
+    .stats-pill{
+      display:flex; align-items:center; gap:8px; flex-wrap:wrap;
+      margin: 2px 4px 12px; padding:8px 10px;
+      border-radius:14px;
+      background: rgba(255,255,255,.06);
+      border: 1px solid rgba(255,255,255,.08);
+      box-shadow: inset 0 1px 0 rgba(255,255,255,.06);
+      font-size: 13px; line-height: 1.2;
+    }
+    .stats-pill .dot{ opacity:.5; }
+    .stats-pill b{ font-weight:800; }
+    .stats-pill .mini-bar{
+      flex: 1 1 140px; height:6px; border-radius:999px;
+      background: linear-gradient(90deg, rgba(255,90,90,.25), rgba(255,196,0,.25), rgba(60,235,170,.25));
+      overflow:hidden; position:relative;
+      border: 1px solid rgba(255,255,255,.08);
+    }
+    .stats-pill .mini-bar > span{
+      position:absolute; left:0; top:0; bottom:0; width:0%;
+      background: linear-gradient(90deg,#16dba0,#49a6ff);
+      border-radius:inherit; transition: width .35s ease;
+    }
+    /* Light theme override */
+    body[data-theme="light"] .stats-pill{
+      background: rgba(14,27,42,.06);
+      border-color: rgba(14,27,42,.08);
+      box-shadow: inset 0 1px 0 rgba(255,255,255,.6);
+    }
+    body[data-theme="light"] .stats-pill .mini-bar{
+      border-color: rgba(14,27,42,.08);
+      background: linear-gradient(90deg, rgba(255,120,120,.20), rgba(255,196,0,.20), rgba(40,210,150,.20));
+    }
+    
+    /* --- TABBAR --- */
+    .tabbar{
+      position: fixed; left:0; right:0; bottom:0;
+      padding: 10px 12px calc(10px + env(safe-area-inset-bottom));
+      background: transparent;
+      z-index: 50; pointer-events: none; /* контейнер сквозной */
+    }
+    .tabbar-inner{
+      max-width: 1100px; margin: 0 auto;
+      display: grid; grid-template-columns: repeat(5, 1fr); gap: 10px;
+      align-items: center;
+      pointer-events: auto; /* кликается */
+    }
+    .tab{
+      display:flex; flex-direction:column; align-items:center; justify-content:center; gap:6px;
+      padding: 10px 8px; min-height: 56px;
+      border-radius: 16px;
+      color: var(--muted); text-decoration:none; font-size:12px; font-weight:600;
+      background: rgba(255,255,255,.04);
+      box-shadow: var(--shadow-soft);
+      transition: transform .12s ease, box-shadow .2s ease, background .2s ease, color .2s ease;
+    }
+    .tab svg{ width:22px; height:22px; opacity:.9; }
+    .tab:active{ transform: translateY(1px); }
+    .tab.active{
+      color: var(--text);
+      background:
+        radial-gradient(200px 120px at 50% -40%, rgba(255,255,255,.08), transparent 70%),
+        linear-gradient(180deg, rgba(255,255,255,.10), rgba(255,255,255,.04));
+      box-shadow:
+        inset 0 1px 0 rgba(255,255,255,.15),
+        0 10px 26px rgba(0,0,0,.35),
+        0 0 0 1px rgba(255,255,255,.06);
+    }
+    body[data-theme="light"] .tab{
+      background: rgba(14,27,42,.04);
+      box-shadow: 6px 8px 16px rgba(14,27,42,.06), -6px -6px 14px rgba(255,255,255,.8);
+      color: #5e6b82;
+    }
+    body[data-theme="light"] .tab.active{
+      background: linear-gradient(180deg, #ffffff, #f6f8fb);
+      box-shadow: 8px 10px 20px rgba(14,27,42,.12), -6px -6px 14px rgba(255,255,255,.9);
+      color:#0e1b2a;
+    }
+
+    /* === RANGE SELECT (п.4) === */
+.grid.dragging { user-select: none; }
+.day.in-range {
+  outline: 2px dashed var(--accent, #8bdcff);
+  outline-offset: -4px;
+  border-radius: 14px; /* как у .day */
+}
+.day.in-range .inner { transform: scale(0.98); }
+
+/* === SELECTED & TODAY === */
+.day.selected{
+  outline: 2px solid var(--selected-ring);
+  outline-offset: -2px;
+  box-shadow:
+    0 10px 28px rgba(90,167,255,.30),
+    inset 0 1px 0 rgba(255,255,255,.06);
+}
+
+.day.today{
+  /* мягкая подсветка сегодняшнего дня (если уже есть — можно оставить свой) */
+  box-shadow:
+    0 0 0 2px rgba(255,255,255,.16),
+    0 8px 24px rgba(66,227,184,.25),
+    inset 0 1px 0 rgba(255,255,255,.06);
+}
+
+.day:focus-visible{
+  outline: 2px solid var(--selected-ring);
+  outline-offset: -2px;
+}
+/* === MOBILE FIX: капсула + доза — влево-вниз, компактнее === */
+@media (max-width: 520px){
+  .grid .day .marks{
+    left: 6px;
+    right: auto !important;           /* не растягиваемся до правого края */
+    bottom: 6px;
+    justify-content: flex-start !important;
+    gap: 6px;
+    width: max-content;               /* ширина ровно по содержимому */
+  }
+  .grid .day .dose{
+    padding: 4px 7px;
+    font-size: 11px;
+    gap: 6px;
+  }
+  .grid .day .dose .capsule{          /* чуть меньше капсулу */
+    width: 16px;
+    height: 10px;
+  }
+  .grid .day .mood{                    /* чтобы не мешал дозе */
+    margin-left: 8px;
+    opacity: .6;
+  }
+}
+
+/* при очень узких экранах можно убрать «мг», чтобы точно влезло */
+@media (max-width: 380px){
+  .grid .day .dose span:last-child{ display:none; } /* скрыть "мг" */
+}
+
+  </style>
+</head>
+<body data-theme="dark">
+  <div class="app-title">Календарь</div>
+
+  <div class="calendar-card" id="card">
+    <div class="header">
+      <div class="month-nav">
+        <button class="nav-btn" id="prev" aria-label="Предыдущий месяц">◀</button>
+        <div class="month-label" id="monthLabel"></div>
+        <button class="nav-btn" id="next" aria-label="Следующий месяц">▶</button>
+      </div>
+      <button class="pill" id="todayBtn">Сегодня</button>
+    </div>
+    <div class="stats-pill" id="statsPill" aria-live="polite">
+      <span>💊 <b id="statMg">0 мг</b></span>
+      <span class="dot">•</span>
+      <span>⏰ пропусков <b id="statMiss">0</b></span>
+      <span class="dot">•</span>
+      <span>соблюдение <b id="statAdh">0%</b></span>
+      <div class="mini-bar" role="progressbar" aria-valuemin="0" aria-valuemax="100">
+        <span id="statBar"></span>
+      </div>
+    </div>
+    <div class="weekday-row" id="weekdayRow"></div>
+    <div class="grid" id="grid"></div>
+  </div>
+
+  <div class="sheet" id="sheet" role="dialog" aria-modal="true" aria-hidden="true">
+    <div class="drag-handle"></div>
+    <div class="sheet-head">
+      <div class="sheet-title" id="sheetTitle">Данные за день</div>
+      <button class="pill right" id="openDiary">Открыть дневник</button>
+    </div>
+    <div id="sheetBody"></div>
+  </div>
+
+  <!-- Bottom navigation -->
+  <nav class="tabbar" role="navigation" aria-label="Главная навигация">
+    <div class="tabbar-inner">
+      <a class="tab" href="welcome-rt.html" aria-label="Главная">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M3 10.5 12 3l9 7.5v9a1 1 0 0 1-1 1h-5v-6H9v6H4a1 1 0 0 1-1-1v-9z" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"/></svg>
+        <span>Главная</span>
+      </a>
+      <a class="tab active" href="calendar.html" aria-current="page" aria-label="Календарь">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><rect x="3" y="4" width="18" height="18" rx="3" stroke-width="1.7"/><path d="M16 2v4M8 2v4M3 10h18" stroke-width="1.7" stroke-linecap="round"/></svg>
+        <span>Календарь</span>
+      </a>
+      <a class="tab" href="profile.html" aria-label="Профиль">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><circle cx="12" cy="8" r="4" stroke-width="1.7"/><path d="M4 21a8 8 0 0 1 16 0" stroke-width="1.7" stroke-linecap="round"/></svg>
+        <span>Профиль</span>
+      </a>
+      <a class="tab" href="photodiary.html" aria-label="Фотодневник">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><rect x="3" y="5" width="18" height="14" rx="3" stroke-width="1.7"/><path d="M9 10l2 2 3-3 4 5H6l3-4z" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"/></svg>
+        <span>Фотодневник</span>
+      </a>
+      <a class="tab" href="labs.html" aria-label="Анализы">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M9 3v6l-5 8a3 3 0 0 0 2.6 4.5h10.8A3 3 0 0 0 20 17l-5-8V3" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"/></svg>
+        <span>Анализы</span>
+      </a>
+    </div>
+  </nav>
+
+<script>
+(function(){
+  const $ = (s, r=document) => r.querySelector(s);
+  const monthLabel = $("#monthLabel");
+  const grid = $("#grid");
+  const weekdayRow = $("#weekdayRow");
+  const sheet = $("#sheet");
+  const sheetTitle = $("#sheetTitle");
+  const sheetBody = $("#sheetBody");
+  const openDiaryBtn = $("#openDiary");
+  const statsPill = $("#statsPill");
+  const statMg = $("#statMg");
+  const statMiss = $("#statMiss");
+  const statAdh = $("#statAdh");
+  const statBar = $("#statBar");
+  // === RANGE SELECT (п.4): состояние + утилиты ===
+let drag = { active:false, start:null, over:null, moved:false, x:0, y:0 };
+const DRAG_THRESHOLD = 8; // px
+
+// список дат между двумя YYYY-MM-DD (включительно)
+function idsBetween(a, b) {
+  const pa = a.split('-').map(Number);
+  const pb = b.split('-').map(Number);
+  let d1 = new Date(pa[0], pa[1]-1, pa[2]);
+  let d2 = new Date(pb[0], pb[1]-1, pb[2]);
+  if (d1 > d2) [d1, d2] = [d2, d1];
+  const out = [];
+  for (let d = new Date(d1); d <= d2; d.setDate(d.getDate()+1)) {
+    out.push(
+  `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`
+);
+  }
+  return out;
+}
+
+// подсветка диапазона
+function highlightRange(a, b) {
+  grid.querySelectorAll('.day.in-range').forEach(el => el.classList.remove('in-range'));
+  if (!a || !b) return;
+  for (const id of idsBetween(a, b)) {
+    const el = grid.querySelector(`.day[data-date="${id}"]`);
+    if (el) el.classList.add('in-range');
+  }
+}
+
+// сохранить дневник (тот же ключ, что и в getDiary)
+function saveDiary(d) {
+  localStorage.setItem('rt.diary.v1', JSON.stringify(d));
+}
+
+// завершение drag: массовая установка дозы
+function finalizeRange() {
+  drag.active = false;
+  grid.classList.remove('dragging');
+
+  const cells = [...grid.querySelectorAll('.day.in-range')];
+  grid.querySelectorAll('.day.in-range').forEach(el => el.classList.remove('in-range'));
+  if (cells.length < 2) return; // одиночный тап — по старым правилам
+
+  const ids = cells.map(el => el.dataset.date);
+  const doseStr = prompt(`Установить одинаковую дозу (мг) для ${ids.length} дней:`, '');
+  if (doseStr === null || doseStr.trim() === '') return;
+
+  const dose = Number(doseStr);
+  if (!isFinite(dose)) return;
+
+  const diary = getDiary(); // в твоём файле уже есть getDiary()
+  for (const id of ids) {
+    diary[id] = diary[id] || {};
+    diary[id].dose = Math.max(0, Math.round(dose));
+    diary[id].taken = true;
+    delete diary[id].miss;
+  }
+  saveDiary(diary);
+  if (typeof render === 'function') render(); // перерисовка календаря/heatmap/сводки
+}
+
+  const WEEKDAYS = ['Пн','Вт','Ср','Чт','Пт','Сб','Вс'];
+  const MONTHS = ['Январь','Февраль','Март','Апрель','Май','Июнь','Июль','Август','Сентябрь','Октябрь','Ноябрь','Декабрь'];
+
+  let current = new Date(); current.setDate(1);
+  weekdayRow.innerHTML = WEEKDAYS.map(d => `<div class="weekday">${d}</div>`).join('');
+
+  const pad = n => String(n).padStart(2,'0');
+  const iso = d => `${d.getFullYear()}-${pad(d.getMonth()+1)}-${pad(d.getDate())}`;
+  const getDiary = () => { try{ return JSON.parse(localStorage.getItem('rt.diary.v1')||'{}'); } catch(e){ return {}; } };
+  function moodEmoji(v){
+    if(v == null) return '—';
+    if(v <= -3) return '😵‍💫';
+    if(v == -2) return '😖';
+    if(v == -1) return '🙁';
+    if(v == 0) return '😐';
+    if(v == 1) return '🙂';
+    if(v == 2) return '😀';
+    return '🤩';
+  }
+ // был linear-gradient → стал один цвет для свечения
+function heatColor(dose, maxDose){
+  if (!dose || dose <= 0 || !maxDose) return 'transparent';
+  const t = Math.max(0, Math.min(1, dose / maxDose));   // 0..1
+  // хотим именно ЗЕЛЁНОЕ свечение
+  const hue   = 155;                     // зелёный
+  const sat   = 90+ 10 * t;             // насыщенность
+  const light = 47 + 5  * t;             // яркость
+  const alpha = 0.36 + 0.32 * t;         // сила света
+  return `hsla(${hue},${sat}%,${light}%,${alpha})`;
+}
+function missGlow(){ return 'hsla(0,86%,58%,.60)'; } // сочный красный
+// читаем wellness из дневника v2 (rt.diary.v2) или маппим старый mood (rt.diary.v1)
+function readWellnessV2(id){
+  try{
+    const v = JSON.parse(localStorage.getItem('rt.diary.v2')||'null');
+    if (v && v.entries && v.entries[id] && typeof v.entries[id].wellness === 'number'){
+      return v.entries[id].wellness; // 0..100
+    }
+  }catch(_){}
+  return null;
+}
+// -3..+3  →  0..100
+function normalizeMoodV1(m){
+  if (m==null) return null;
+  const clamped = Math.max(-3, Math.min(3, Number(m)));
+  return Math.round((clamped + 3) * (100/6));
+}
+// 0..100 → индекс 0..6
+function moodIndexFromValence(v){
+  const s=(v-50)/50;
+  if (s<-0.66) return 0;
+  if (s<-0.33) return 1;
+  if (s<-0.06) return 2;
+  if (s< 0.06) return 3;
+  if (s< 0.33) return 4;
+  if (s< 0.66) return 5;
+  return 6;
+}
+// цвет свечения по индексу
+function moodGlow(idx){
+  switch(idx){
+    case 0: return 'hsla(350,76%,46%,.62)'; // бордовый — очень плохо
+    case 1: return 'hsla(24,85%,47%,.58)';  // тёмно-оранжевый — плохо
+    case 2: return 'hsla(37,52%,74%,.38)';  // бежевый — ниже нормы
+    case 3: return 'hsla(200,84%,66%,.28)'; // слабый голубой — нейтрально
+    case 4: return 'hsla(78,72%,52%,.46)';  // желто-зелёный — неплохо
+    case 5: return 'hsla(155,98%,55%,.52)'; // зелёный — хорошо
+    case 6: return 'hsla(215,85%,60%,.60)'; // космически-синий — отлично
+    default: return 'transparent';
+  }
+}
+
+
+  function monthStats(year, month){
+  // читаем дневник из localStorage
+  const diary = getDiary();
+  let mg = 0, taken = 0, miss = 0;
+  const days = new Date(year, month+1, 0).getDate();
+  const pad = n => String(n).padStart(2,'0');
+  for (let d=1; d<=days; d++){
+    const id = `${year}-${pad(month+1)}-${pad(d)}`;
+    const rec = diary[id];
+    if (!rec) continue;
+    const dose = Number(rec.dose ?? rec.mg ?? 0);
+    const missed = (rec.miss === true) || (rec.taken === false);
+    if (missed) { miss++; continue; }
+    if (dose > 0){ mg += dose; taken++; }
+  }
+  const denom = taken + miss;
+  const adherence = denom ? Math.round((taken/denom)*100) : 0;
+  return {mg, miss, adherence};
+}
+
+function render(){
+  const year   = current.getFullYear();
+  const month  = current.getMonth();
+  const daysTotal = new Date(year, month + 1, 0).getDate();
+
+  // Заголовок месяца
+  monthLabel.textContent = MONTHS[month] + ' ' + year;
+
+  // Обновляем сводку
+  const st = monthStats(year, month);
+  statMg.textContent   = st.mg + ' мг';
+  statMiss.textContent = st.miss;
+  statAdh.textContent  = st.adherence + '%';
+  statBar.style.width  = st.adherence + '%';
+  statBar.setAttribute('aria-valuenow', st.adherence);
+
+  // Максимальная доза в месяце — для нормализации heatmap
+  const diaryAll = getDiary();
+  let maxDose = 0;
+  for (let d=1; d<=daysTotal; d++){
+    const id = `${year}-${String(month+1).padStart(2,'0')}-${String(d).padStart(2,'0')}`;
+    const rec = diaryAll[id];
+    const mg  = rec ? Number(rec.dose ?? rec.mg ?? 0) : 0;
+    if (mg > maxDose) maxDose = mg;
+  }
+  if (!maxDose) maxDose = 1; // чтобы не делить на 0
+
+  // Рисуем сетку
+  grid.innerHTML = '';
+  const first    = new Date(year, month, 1);
+  const startCol = (first.getDay() + 6) % 7; // Пн=0
+  const todayIso = iso(new Date());
+
+  for (let day=1; day<=daysTotal; day++){
+    const date    = new Date(year, month, day);
+    const id      = iso(date);
+    const isToday = id === todayIso;
+
+    const data   = diaryAll[id] || null;
+const dose   = data ? Number(data.dose ?? data.mg ?? 0) : 0;
+const taken  = data ? data.taken === true : false;
+const missed = data ? (data.miss === true || data.taken === false) : false;
+const mood   = data ? data.mood : null;
+const wellnessV2 = readWellnessV2(id);                  // 0..100 | null
+const valence    = (wellnessV2 != null) ? wellnessV2    // diary v2
+                                       : normalizeMoodV1(mood); // v1 -> 0..100
+const moodIdx    = (valence != null) ? moodIndexFromValence(valence) : null;
+
+
+const cell = document.createElement('div');
+cell.className = 'day' + (isToday ? ' today' : '') + (missed ? ' missed' : '');
+cell.setAttribute('data-date', id);
+if (day === 1) cell.style.gridColumnStart = String(startCol + 1);
+
+// свечение: пропуск = красный; иначе по самочувствию; если данных нет — по дозе/без свечения
+const glow = missed ? missGlow()
+           : (moodIdx != null ? moodGlow(moodIdx) : 'transparent');
+cell.style.setProperty('--glowC', glow);
+if (moodIdx === 6) cell.classList.add('mood-6'); // звёзды только для «отлично»
+// контент
+const doseClass = `dose${taken ? ' taken' : ''}`;
+cell.innerHTML = `
+  <div class="day-num">${day}</div>
+  <div class="marks">
+    <div class="${doseClass}" style="${dose ? '' : 'opacity:.0;'}">
+      <span class="capsule" aria-hidden="true"></span>
+      <span>${dose ? dose : ''}</span><span>${dose ? 'мг' : ''}</span>
+    </div>
+    <div class="mood">${moodEmoji(mood)}</div>
+  </div>
+`;
+
+
+    // Короткий тап — снизу «краткая инфа», долгий — открыть дневник
+    let pressTimer = null, longPressed = false;
+    cell.addEventListener('pointerdown', ()=>{
+      longPressed = false;
+      cell.classList.add('pressing');
+      pressTimer = setTimeout(()=>{ longPressed = true; goDiary(id); }, 480);
+    });
+    const clear = ()=>{ cell.classList.remove('pressing'); clearTimeout(pressTimer); };
+    cell.addEventListener('pointerleave', clear);
+    cell.addEventListener('pointercancel', clear);
+    cell.addEventListener('pointerup', ()=>{
+  clear();
+  if(!longPressed){
+    grid.querySelectorAll('.day.selected').forEach(el => el.classList.remove('selected'));
+    const cur = grid.querySelector(`.day[data-date="${id}"]`);
+    if (cur) cur.classList.add('selected');
+    openSheet(id, data);
+  }
+});
+
+    grid.appendChild(cell);
+  }
+}
+  function openSheet(id, data){
+    const d = data || getDiary()[id] || null;
+    sheetTitle.textContent = new Date(id).toLocaleDateString('ru-RU', { day:'2-digit', month:'long', year:'numeric' });
+    const mood = d ? moodEmoji(d.mood) : '—';
+    const dose = d && (d.dose || d.mg) ? (d.dose || d.mg) + ' мг' : '—';
+    const notes = d && d.note ? d.note : 'Записей нет. Нажмите и удерживайте день, чтобы открыть дневник.';
+    sheetBody.innerHTML = `
+      <div class="sheet-row"><div class="badge">Самочувствие:</div> <div style="font-size:22px">${mood}</div></div>
+      <div class="sheet-row"><div class="badge">Доза:</div> <strong>${dose}</strong></div>
+      <div class="sheet-row"><div class="badge">Комментарий:</div> <div>${notes}</div></div>
+    `;
+    openDiaryBtn.onclick = ()=> goDiary(id);
+    sheet.classList.add('active'); sheet.setAttribute('aria-hidden', 'false');
+    const closer = ev => { if(ev.target === sheet) closeSheet(); };
+    sheet.addEventListener('click', closer, { once:true });
+  }
+  const closeSheet = ()=>{ sheet.classList.remove('active'); sheet.setAttribute('aria-hidden','true'); };
+  const goDiary = (id) => {
+  try {
+    // запасной канал для дневника
+    sessionStorage.setItem('rt.openDate', id);
+
+    // и query, и hash — чтобы попасть под любой существующий код парсинга
+    const url = new URL('diary.html', location.href);
+    url.searchParams.set('date', id);
+    url.hash = `date=${id}`;
+
+    window.location.href = url.toString();
+  } catch (e) {
+    alert('Откройте дневник для ' + id);
+  }
+};
+
+  document.getElementById('prev').onclick = ()=>{ current.setMonth(current.getMonth()-1); render(); };
+  document.getElementById('next').onclick = ()=>{ current.setMonth(current.getMonth()+1); render(); };
+  document.getElementById('todayBtn').onclick = ()=>{ const now = new Date(); current = new Date(now.getFullYear(), now.getMonth(), 1); render(); };
+  window.addEventListener('keydown', (e)=>{ if(e.key === 'Escape') closeSheet(); });
+  window.addEventListener('storage', (e)=>{ if(e.key === 'rt.diary.v1'){ render(); } });
+
+  // === RANGE SELECT (п.4): делегирование по .day ===
+grid.addEventListener('pointerdown', (e) => {
+  const cell = e.target.closest('.day[data-date]');
+  if (!cell) return;
+  drag.active = true;
+  drag.start = cell.dataset.date;
+  drag.over  = cell.dataset.date;
+  grid.classList.add('dragging');
+  highlightRange(drag.start, drag.over);
+});
+
+grid.addEventListener('pointerover', (e) => {
+  if (!drag.active) return;
+  const cell = e.target.closest('.day[data-date]');
+  if (!cell) return;
+  drag.over = cell.dataset.date;
+  highlightRange(drag.start, drag.over);
+});
+
+const finishDrag = () => {
+  if (!drag.active) return;
+  finalizeRange();
+};
+grid.addEventListener('pointerup', finishDrag);
+grid.addEventListener('pointercancel', finishDrag);
+document.addEventListener('pointerup', finishDrag);
+
+  render();
+})();
+
+
+</script>
+</body>
+</html>

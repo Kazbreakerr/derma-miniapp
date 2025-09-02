@@ -19,7 +19,7 @@
   // Значения по умолчанию — бережные (ничего не ломают)
   const DEFAULTS = {
     [KEYS.settings]: {
-      theme: 'dark',
+      theme: 'light',
       telegram: { chatId: null },
       doctor: { code: null, linked: false },
       consent: { doctorViewDiary: false },
@@ -143,12 +143,24 @@
     });
   }
 
-  // Мини-хелпер темы (без UI — просто запись + дата-атрибут)
-  function applyTheme(theme) {
-    const t = theme === 'light' ? 'light' : 'dark';
-    document.documentElement.dataset.theme = t;
-    patch('settings', { theme: t });
-  }
+ // Мини-хелпер темы
+function applyTheme(theme){
+  document.documentElement.dataset.theme = theme;
+  try {
+    localStorage.setItem('rt_theme', theme);
+    const s = JSON.parse(localStorage.getItem('rt.settings')||'{}');
+    s.theme = theme;
+    localStorage.setItem('rt.settings', JSON.stringify(s));
+  } catch(_) {}
+  window.dispatchEvent(new CustomEvent('rt:theme', { detail: theme }));
+}
+
+// в экспорт:
+window.AppState = {
+  KEYS, get, set, update, patch, subscribe,
+  reminders: { getMain: getMainReminder, setMain: setMainReminder },
+  applyTheme,
+};
 
   // Запуск
   ensureDefaults();

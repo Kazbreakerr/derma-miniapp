@@ -1,7 +1,44 @@
 <!doctype html>
 <html lang="ru">
 <head>
+
+  <script>
+  // мгновенно фиксируем тёмную тему до отрисовки CSS
+  document.documentElement.dataset.theme = 'dark';
+</script>
+<script src="js/app-state.js"></script>
+<script>
+  // и сохраняем её как выбранную пользователем
+  document.addEventListener('DOMContentLoaded', () => AppState.applyTheme('dark'));
+</script>
   <meta charset="utf-8" />
+
+  <script src="js/app-state.js"></script>
+  <script>
+  // Инициализация всех переключателей темы на странице
+  document.addEventListener('DOMContentLoaded', () => {
+    const settings = AppState.get('settings') || {};
+    const theme = (settings.theme === 'light') ? 'light' : 'dark';
+    document.documentElement.dataset.theme = theme;
+
+    // найдём все тумблеры с data-role="theme-switch"
+    document.querySelectorAll('[data-role="theme-switch"]').forEach(sw => {
+      const isLight = (document.documentElement.dataset.theme === 'light');
+      sw.setAttribute('aria-pressed', isLight ? 'true' : 'false');
+
+      sw.addEventListener('click', () => {
+        const cur = document.documentElement.dataset.theme === 'light' ? 'light' : 'dark';
+        const next = (cur === 'light') ? 'dark' : 'light';
+        AppState.applyTheme(next);                  // сохраняем и ставим data-theme
+        // визуально обновим все тумблеры на странице
+        document.querySelectorAll('[data-role="theme-switch"]')
+          .forEach(x => x.setAttribute('aria-pressed', next === 'light' ? 'true' : 'false'));
+      });
+    });
+  });
+</script>
+
+
   <script>try{ if(localStorage.getItem('derma_consent')!=='1'){ location.replace('./warnings.html' + (location.search||'')); } }catch(_){}
 (function hookOpenCalendar(){
   const btn = document.getElementById('openCalendarBtn');
@@ -60,60 +97,7 @@
 </script>
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>Roaccutane Tracker — Главная</title>
-  <script src="https://telegram.org/js/telegram-web-app.js">
-(function hookOpenCalendar(){
-  const btn = document.getElementById('openCalendarBtn');
-  if(!btn) return;
-  btn.addEventListener('click', (e)=>{
-    e.preventDefault();
-    try{ if(typeof go==='function'){ go('/calendar'); return; } }catch(_){}
-    location.assign('/calendar');
-  });
-})();
-
-
-// --- Pill burst animation on Add button ---
-(function setupPillBurst(){
-  const btn = document.getElementById('save');
-  if(!btn) return;
-  function burst(x,y){
-    const rect = btn.getBoundingClientRect();
-    const cx = x ? (x - rect.left) : rect.width/2;
-    const cy = y ? (y - rect.top)  : rect.height/2;
-    // Pill emoji
-    const pill = document.createElement('span');
-    pill.className = 'fx-pill';
-    pill.textContent = '💊';
-    pill.style.left = cx + 'px';
-    pill.style.top  = cy + 'px';
-    btn.appendChild(pill);
-    setTimeout(()=>pill.remove(), 900);
-
-    // Particles
-    const colors = ['#22D3EE','#14B8A6','#5EEAD4','#FDE047','#A7F3D0','#93C5FD'];
-    const N = 10;
-    for(let i=0;i<N;i++){
-      const dot = document.createElement('span');
-      dot.className = 'fx-dot';
-      dot.style.left = cx + 'px';
-      dot.style.top  = cy + 'px';
-      const angle = (Math.PI*2) * (i/N) + (Math.random()*0.6 - 0.3);
-      const r = 22 + Math.random()*16;
-      dot.style.setProperty('--dx',  Math.cos(angle)*r + 'px');
-      dot.style.setProperty('--dy',  Math.sin(angle)*r + 'px');
-      dot.style.width = dot.style.height = (4 + Math.random()*4) + 'px';
-      dot.style.background = colors[i % colors.length];
-      btn.appendChild(dot);
-      setTimeout(()=>dot.remove(), 800);
-    }
-  }
-  btn.addEventListener('click', (e)=>{
-    try{ burst(e.clientX, e.clientY); }catch(_){ burst(); }
-  });
-  btn.addEventListener('touchstart', (e)=>{
-    try{ const t = e.touches[0]; if(t) burst(t.clientX, t.clientY); }catch(_){ burst(); }
-  }, {passive:true});
-})();
+ <script src="https://telegram.org/js/telegram-web-app.js"></script>
 
 </script>
   <script>window.API_BASE = window.API_BASE || '';
@@ -172,6 +156,18 @@
 })();
 
 </script>
+
+<link rel="stylesheet" href="css/ui-tokens.css">
+<link rel="stylesheet" href="css/neumorph-ui.css">
+<link rel="stylesheet" href="css/skeleton.css">
+<script>
+  try{
+    const s = JSON.parse(localStorage.getItem('rt.settings')||'{}');
+    document.documentElement.dataset.theme = s?.theme || 'dark';
+  }catch(e){ document.documentElement.dataset.theme = 'dark'; }
+</script>
+
+
   <style>
     :root{
       --bg:#0B1220; --surface:#0E1726; --card:#121C2E; --border:#1F2A3C;
@@ -611,6 +607,102 @@ body.page-exit{
 }
 @keyframes pageIn{to{opacity:1; transform:none}}
 @keyframes pageOut{to{opacity:0; transform:translateY(-8px)}}
+
+/* --- Bottom tabbar (copied from myprofile.html) --- */
+.tabbar{ position:fixed; left:0; right:0; bottom:0; z-index:40; display:grid; grid-template-columns:repeat(5,1fr); gap:6px; padding:8px 12px calc(8px + env(safe-area-inset-bottom)); background:rgba(6,12,19,.78); backdrop-filter: blur(12px); border-top:1px solid rgba(255,255,255,.12) }
+.tab{ display:flex; flex-direction:column; align-items:center; justify-content:center; gap:6px; height:56px; border-radius:14px; color:#a9b0c8 }
+.tab.active{ color:#fff; background:linear-gradient(180deg, rgba(255,255,255,.08), rgba(255,255,255,.02)); border:1px solid rgba(255,255,255,.14) }
+.tab svg{ width:20px; height:20px }
+/* Light theme override for tabbar to match myprofile */
+body.light .tabbar{ background:rgba(255,255,255,.85); border-top:1px solid rgba(0,0,0,.08); }
+body.light .tab.active{ color:#0d1220; background: linear-gradient(180deg, rgba(255,255,255,.85), rgba(255,255,255,.65)); border:1px solid rgba(0,0,0,.12); }
+
+
+/* View Transitions Fade&Slide to match myprofile */
+@keyframes vt-fade-slide-in {
+  from { opacity: 0; transform: translateY(8px) scale(.995); }
+  to   { opacity: 1; transform: translateY(0) scale(1); }
+}
+@keyframes vt-fade-slide-out {
+  from { opacity: 1; transform: translateY(0) scale(1); }
+  to   { opacity: 0; transform: translateY(-8px) scale(.995); }
+}
+::view-transition-old(root){ animation: vt-fade-slide-out .35s ease both; }
+::view-transition-new(root){ animation: vt-fade-slide-in  .35s ease both; }
+
+<!-- === Neumorphic facelift (safe overrides, CSS-only) === -->
+<style id="neumorphic-skin">
+  :root{
+    --nm-surface-1:#0E1626;--nm-surface-2:#0B1220;
+    --nm-border:rgba(255,255,255,.06);
+  }
+  html,body{background:var(--nm-surface-2)}
+  body::before{
+    content:"";position:fixed;inset:-40vh -20vw;z-index:-1;
+    background:
+      radial-gradient(120% 100% at 10% 0%, rgba(20,184,166,.18), rgba(20,184,166,0) 45%),
+      radial-gradient(120% 120% at 110% 10%, rgba(17,131,245,.14), rgba(17,131,245,0) 48%),
+      linear-gradient(180deg,#0E1626 0%,#0C1423 40%,#0B1220 100%);
+    filter:saturate(1.05);
+  }
+  /* Cards */
+  .card{
+    background:
+      radial-gradient(160% 140% at 12% 0%, rgba(255,255,255,.10), rgba(255,255,255,0) 40%),
+      linear-gradient(180deg, var(--nm-surface-1), var(--nm-surface-2));
+    border:1px solid var(--nm-border);
+    box-shadow:10px 14px 28px rgba(0,0,0,.45), inset 0 1px 0 rgba(255,255,255,.04);
+  }
+  .card::before{
+    content:"";position:absolute;inset:0;border-radius:inherit;pointer-events:none;
+    background:linear-gradient(180deg, rgba(255,255,255,.08), rgba(255,255,255,0) 22%);
+    mix-blend-mode:soft-light;
+  }
+  h1,h2{ text-shadow:0 2px 10px rgba(0,0,0,.35); }
+
+  /* Inputs / chips / stepper */
+  input[type="number"],input[type="date"],input[type="time"],
+  .stepper .step,.chip{
+    background:linear-gradient(180deg,#0F1A2B,#0C1625);
+    border:1px solid var(--nm-border);
+    box-shadow:6px 8px 16px rgba(0,0,0,.35), inset 0 1px 0 rgba(255,255,255,.05);
+  }
+  .stepper .step:active{ box-shadow:inset 0 2px 8px rgba(0,0,0,.45) }
+
+  /* CTA */
+  .cta{
+    background-image:linear-gradient(135deg,#22D3EE 0%,#14B8A6 100%);
+    color:#06121F;border:1px solid rgba(255,255,255,.06);
+    box-shadow:0 12px 28px rgba(0,0,0,.35), inset 0 1px 0 rgba(255,255,255,.25);
+  }
+  .cta:active{ transform:translateY(1px) scale(.99) }
+
+  /* Календарь */
+  .day-card{
+    background:linear-gradient(180deg,#0F1828,#0C1524);
+    border:1px solid var(--nm-border);
+    box-shadow:6px 10px 18px rgba(0,0,0,.35), inset 0 1px 0 rgba(255,255,255,.04);
+  }
+  .day-card.today{ outline-color:rgba(94,234,212,.35) }
+  .day-card.selected{ box-shadow:0 0 0 2px rgba(94,234,212,.36) inset, 0 10px 24px rgba(20,184,166,.22) }
+
+  /* Таббар */
+  .tabbar{
+    background:rgba(8,14,23,.7);
+    border-top:1px solid var(--nm-border);
+    box-shadow:0 -8px 18px rgba(0,0,0,.35);
+    backdrop-filter:blur(12px) saturate(1.15);-webkit-backdrop-filter:blur(12px) saturate(1.15);
+  }
+  .tab{ background:linear-gradient(180deg,rgba(255,255,255,.06),rgba(255,255,255,.025)) }
+  .tab.active{ background:linear-gradient(180deg,rgba(255,255,255,.12),rgba(255,255,255,.04)) }
+
+  /* Кольца/ремайндер — аккуратные штрихи */
+  .rings-rail{ filter:drop-shadow(0 12px 24px rgba(0,0,0,.40)) }
+  .flip-card .face{ border:1px solid rgba(255,255,255,.20) }
+  .chip:hover{ border-color:#22D3EE; box-shadow:0 0 0 2px rgba(34,211,238,.20) inset }
+</style>
+
+
 </style>
 </head>
 <body>
@@ -645,10 +737,10 @@ body.page-exit{
   <div class="wrap">
     <h1>Roaccutane Tracker</h1>
 
-    <section class="card clickable" id="cardProfile" aria-label="Профиль">
+    <section class="card clickable" id="profileHeader" aria-label="Профиль">
       <div class="glow"></div>
       <div class="row">
-        <div class="ava" id="ava">ДД</div>
+        <div class="ava" id="ava" data-shared="avatar">ДД</div>
         <div style="flex:1">
           <div id="fullName" data-tg-name style="font-weight:700">—</div>
           <div class="muted">День курса: <span id="courseDay">—</span> · Выпито: <span id="consumedTop">0</span> мг</div>
@@ -840,28 +932,76 @@ body.page-exit{
   </div>
 
   <!-- Нижняя навигация: inline SVG (currentColor) -->
-  <nav class="bottom-nav" role="navigation" aria-label="Нижняя навигация">
-    <a href="/main" data-route="main" class="active" aria-current="page">
-      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 10.5 12 3l9 7.5"/><path d="M5 9.5V21h14V9.5"/><path d="M9 21v-6h6v6"/></svg>
-      <span>Главная</span>
+  
+  <!-- Bottom tabbar identical to myprofile.html -->
+  <nav class="tabbar">
+    <a class="tab active" href="main-dark.html" data-vt-link>
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 11l9-7 9 7"/><path d="M5 12v7a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2v-7"/><path d="M9 21v-6h6v6"/></svg>
+      <small>Главная</small>
     </a>
-    <a href="/calendar" data-route="calendar">
-      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="18" rx="2"/><path d="M16 2v4M8 2v4M3 10h18"/><path d="M8 14h3M8 18h3M14 14h3M14 18h3"/></svg>
-      <span>Календарь</span>
+    <a class="tab" href="calendar.html" data-vt-link>
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="18" rx="3"/><path d="M16 2v4"/><path d="M8 2v4"/><path d="M3 10h18"/></svg>
+      <small>Календарь</small>
     </a>
-    <a href="./myprofile.html" data-route="profile" class="nav-item">
-      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="8" r="4"/><path d="M4 21a8 8 0 0 1 16 0"/></svg>
-      <span>Профиль</span>
+    <a class="tab" href="myprofile.html" data-vt-link>
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
+      <small>Профиль</small>
     </a>
-    <a href="/photos" data-route="photos">
-      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="5" width="18" height="14" rx="2"/><path d="M9 5l2-2h2l2 2"/><circle cx="9" cy="12" r="2"/><path d="M14 12l3 3 3-3"/></svg>
-      <span>Фотодневник</span>
+    <a class="tab" href="photolog.html" data-vt-link>
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="5" width="18" height="14" rx="2"/><circle cx="8.5" cy="12" r="2.5"/><path d="M21 13l-4-4-6 6"/></svg>
+      <small>Фотодневник</small>
     </a>
-    <a href="./labs.html" data-route="labs" class="nav-item">
-      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10 2v6l-6 10a4 4 0 0 0 3.5 6h9a4 4 0 0 0 3.5-6l-6-10V2"/><path d="M4 16h16"/></svg>
-      <span>Анализы</span>
+    <a class="tab" href="labs.html" data-vt-link>
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10 2v5l-5 9a4 4 0 0 0 3.5 6h7a4 4 0 0 0 3.5-6l-5-9V2"/><path d="M8 11h8"/></svg>
+      <small>Анализы</small>
     </a>
-  </nav>
+  
+    <script>
+// Ensure bottom nav -> Profile passes snapshot like header block
+(function attachTabbarProfileRoute(){
+  const tabbar = document.querySelector('nav.tabbar');
+  if(!tabbar) return;
+  tabbar.addEventListener('click', (e)=>{
+    const a = e.target.closest('a.tab[href$="myprofile.html"]');
+    if(!a) return;
+    e.preventDefault();
+    try{
+      // 1) быстрый снэпшот (как на верхнем блоке)
+      const img = document.querySelector('[data-shared="avatar"] img');
+      const snap = {
+        name: (document.getElementById('profileName')?.textContent || '').trim() || (window.USER_NAME || ''),
+        avatarSrc: img?.currentSrc || img?.src || '',
+        weightKg:  Number(window.PROFILE_WEIGHT_KG || localStorage.getItem('rt_weightKG') || 0),
+        goalMgPerKg: Number(window.PROFILE_GOAL_MGKG || localStorage.getItem('rt_goalMgKg') || 135),
+        takenMg:  Number(window.PROFILE_TAKEN_MG || localStorage.getItem('rt_takenMg') || 0),
+        todayMg:  Number(window.PROFILE_TODAY_MG || localStorage.getItem('rt_todayMg') || 0),
+        drug:     String(window.PROFILE_DRUG || localStorage.getItem('rt_drug') || 'Изотретиноин'),
+        startISO: String(window.PROFILE_START_ISO || localStorage.getItem('rt_startISO') || '')
+      };
+      sessionStorage.setItem('share:user', JSON.stringify(snap));
+
+      // 2) payload для перелёта аватарки
+      const host = document.querySelector('[data-shared="avatar"]');
+      if (host) {
+        const r = host.getBoundingClientRect();
+        const payload = {
+          x:r.left, y:r.top, w:r.width, h:r.height,
+          br: getComputedStyle(host).borderRadius,
+          src: snap.avatarSrc, text: (snap.name||'?')[0]?.toUpperCase(),
+          ts: Date.now(), bg:'#0d1623'
+        };
+        sessionStorage.setItem('share:avatar', JSON.stringify(payload));
+      }
+
+      // 3) переход с Fade&Slide
+      const go = ()=>{ location.href = 'myprofile.html#fx=avatar'; };
+      if (document.startViewTransition) document.startViewTransition(go); else go();
+    }catch(_){
+      location.href = 'myprofile.html';
+    }
+  });
+})();
+</script>
 
   <script>
     const tgApp = (window.Telegram && window.Telegram.WebApp) ? window.Telegram.WebApp : null;
@@ -1212,7 +1352,10 @@ const toMonday = (wd === 0 ? -6 : (1 - wd));
 base.setDate(base.getDate() + toMonday);
       for(let i=0;i<7;i++){
         const d = new Date(base); d.setDate(base.getDate()+i);
-        const iso = d.toISOString().slice(0,10);
+        const y  = d.getFullYear();
+const m  = String(d.getMonth()+1).padStart(2,'0');
+const dd = String(d.getDate()).padStart(2,'0');
+const iso = `${y}-${m}-${dd}`;
         const card = document.createElement('div'); card.className='day-card'; card.tabIndex=0; card.setAttribute('data-iso', iso);
         if (iso === todayISO()) card.classList.add('today');
         const mg = map.get(iso);
@@ -1274,6 +1417,11 @@ base.setDate(base.getDate() + toMonday);
       let eta = '—';
       const byDate = {}; DOSES.forEach(x=>{ const k=(normalizeDate(x.date)||'').slice(0,10); byDate[k]=(byDate[k]||0)+Number(x.mg||x.mg_taken||0); });
       const today = todayISO();
+      // Берём ISO без сдвига в UTC (локальная дата устройства)
+const isoLocal = (d) => {
+  const t = new Date(d.getTime() - d.getTimezoneOffset()*60000);
+  return t.toISOString().slice(0,10);
+};
       const sumDays = (n) => {
         let s = 0;
         const [Y,M,D] = today.split('-').map(Number);
@@ -1380,34 +1528,38 @@ base.setDate(base.getDate() + toMonday);
       }
     });
 
-    (function hydrateTgUser(){
-      const tg = window.Telegram?.WebApp;
-      const nameEl = document.querySelector('#tgName, #topName, [data-tg-name]');
-      const avaEl  = document.querySelector('#ava, #topAva, [data-tg-ava]');
-      function setInitials(name){
-        if (!avaEl) return;
-        const initials = (name||'').trim().split(/\s+/).map(s=>s[0]||'').slice(0,2).join('').toUpperCase() || 'U';
-        avaEl.innerHTML = initials;
-      }
-      let u = null; try { u = tg?.initDataUnsafe?.user || null; } catch(_){}
-      if (u && (u.first_name || u.last_name)) {
-        const name = [u.first_name, u.last_name].filter(Boolean).join(' ');
-        if (nameEl) nameEl.textContent = name;
-        if (avaEl) {
-          if (u.photo_url) { const img = new Image(); img.alt=''; img.src=u.photo_url; img.onload=()=>{ avaEl.innerHTML=''; img.style.width='100%'; img.style.height='100%'; img.style.objectFit='cover'; avaEl.appendChild(img); }; img.onerror=()=>setInitials(name); }
-          else { setInitials(name); }
-        }
-      } else {
-        const qs = new URLSearchParams(location.search);
-        const devName  = qs.get('tg_name')  || '';
-        const devPhoto = qs.get('tg_photo') || '';
-        if (devName && nameEl) nameEl.textContent = devName;
-        if (avaEl) {
-          if (devPhoto) { const img = new Image(); img.alt=''; img.src=devPhoto; img.onload=()=>{ avaEl.innerHTML=''; img.style.width='100%'; img.style.height='100%'; img.style.objectFit='cover'; avaEl.appendChild(img); }; img.onerror=()=>setInitials(devName); }
-          else { setInitials(devName); }
-        }
-      }
-    })();
+    (async function hydrateTgUser(){
+  const tg  = window.Telegram?.WebApp;
+  const nameEl = document.querySelector('#tgName, #topName, #fullName, [data-tg-name]');
+  const avaEl  = document.querySelector('#ava, #topAva, [data-tg-ava]');
+
+  function setInitials(target, name){
+    const i = (name||'').trim().split(/\s+/).map(s=>s[0]||'').slice(0,2).join('').toUpperCase() || 'U';
+    if (target) target.textContent = i;
+  }
+  function putPhoto(target, url, fallbackName){
+    if (!target) return setInitials(target, fallbackName);
+    const img = new Image(); img.alt='';
+    img.src = url; img.onload = ()=>{ target.innerHTML=''; img.style.width='100%'; img.style.height='100%'; img.style.objectFit='cover'; target.appendChild(img); };
+    img.onerror = ()=> setInitials(target, fallbackName);
+  }
+
+  let name = '', photo = '';
+  const u = tg?.initDataUnsafe?.user;
+  if (u) { name = [u.first_name,u.last_name].filter(Boolean).join(' '); photo = u.photo_url||''; }
+  if (!name) {
+    const qs = new URLSearchParams(location.search);
+    name  = qs.get('tg_name')  || '';
+    photo = qs.get('tg_photo') || '';
+  }
+  if (!name) {
+    try { const r = await api('/api/me'); if (r.ok) { const me = await r.json(); name = me.full_name || name; } } catch(_){}
+  }
+
+  if (nameEl) nameEl.textContent = name || '—';
+  if (photo) putPhoto(avaEl, photo, name); else setInitials(avaEl, name);
+})();
+
 
     document.getElementById('resetBtn').addEventListener('click', ()=>{
       location.href = './reset-dark.html' + (location.search||'');
@@ -1694,5 +1846,185 @@ document.addEventListener('DOMContentLoaded', ()=>{
 });
 
 </script>
+
+<script>
+// Match myprofile cross-page animation for links with data-vt-link
+document.addEventListener('click', (e)=>{
+  const a = e.target.closest('a[data-vt-link]');
+  if(!a) return;
+  if(e.metaKey||e.ctrlKey||e.shiftKey||e.altKey||a.target==='_blank') return;
+  e.preventDefault();
+  const go = ()=>{ window.location.href = a.getAttribute('href'); };
+  if (document.startViewTransition) {
+    document.startViewTransition(go);
+  } else {
+    go();
+  }
+});
+</script>
+<script>
+(function hookOpenCalendar(){
+  const btn = document.getElementById('openCalendarBtn');
+  if(!btn) return;
+  btn.addEventListener('click', (e)=>{
+    e.preventDefault();
+    try{ if(typeof go==='function'){ go('/calendar'); return; } }catch(_){}
+    location.assign('/calendar');
+  });
+})();
+</script>
+<script>
+(function setupPillBurst(){
+  const btn = document.getElementById('save');
+  if(!btn) return;
+  function burst(x,y){
+    const rect = btn.getBoundingClientRect();
+    const cx = x ? (x - rect.left) : rect.width/2;
+    const cy = y ? (y - rect.top)  : rect.height/2;
+    const pill = document.createElement('span');
+    pill.className = 'fx-pill'; pill.textContent = '💊';
+    pill.style.left = cx + 'px'; pill.style.top = cy + 'px';
+    btn.appendChild(pill); setTimeout(()=>pill.remove(), 900);
+
+    const colors = ['#22D3EE','#14B8A6','#5EEAD4','#FDE047','#A7F3D0','#93C5FD'];
+    for(let i=0;i<10;i++){
+      const dot = document.createElement('span');
+      dot.className = 'fx-dot';
+      dot.style.left = cx + 'px'; dot.style.top = cy + 'px';
+      const angle = (Math.PI*2)*(i/10) + (Math.random()*0.6 - 0.3);
+      const r = 22 + Math.random()*16;
+      dot.style.setProperty('--dx',  Math.cos(angle)*r + 'px');
+      dot.style.setProperty('--dy',  Math.sin(angle)*r + 'px');
+      dot.style.width = dot.style.height = (4 + Math.random()*4) + 'px';
+      dot.style.background = colors[i % colors.length];
+      btn.appendChild(dot); setTimeout(()=>dot.remove(), 800);
+    }
+  }
+  btn.addEventListener('click', (e)=>{ try{ burst(e.clientX, e.clientY); }catch(_){ burst(); }});
+  btn.addEventListener('touchstart', (e)=>{ try{ const t=e.touches[0]; if(t) burst(t.clientX,t.clientY); }catch(_){ burst(); } }, {passive:true});
+})();
+</script>
+
+<script>
+(function(){
+  const header = document.getElementById('profileHeader');
+  if(!header) return;
+
+  header.addEventListener('click', () => {
+    // 1) геометрия «героя»
+    const av = header.querySelector('[data-shared="avatar"]');
+    if (av) {
+      const r = av.getBoundingClientRect();
+      const img = av.querySelector('img');
+      const txt = (av.querySelector('span')?.textContent || '').trim().slice(0,1).toUpperCase();
+      sessionStorage.setItem('share:avatar', JSON.stringify({
+        x: r.left, y: r.top + window.scrollY, w: r.width, h: r.height,
+        br: getComputedStyle(av).borderRadius,
+        src: img?.currentSrc || img?.src || '',
+        text: txt, bg: getComputedStyle(av).backgroundColor,
+        ts: Date.now()
+      }));
+    }
+
+    // 2) СНАПШОТ ДАННЫХ ДЛЯ myprofile (фолбэк, когда нет API)
+    const snap = {
+      name: (document.getElementById('profileName')?.textContent || '').trim()  // ← ваш селектор имени на главной
+            || (window.USER_NAME || ''),
+      avatarSrc: header.querySelector('[data-shared="avatar"] img')?.currentSrc
+                 || header.querySelector('[data-shared="avatar"] img')?.src || '',
+      weightKg:  Number(window.PROFILE_WEIGHT_KG || localStorage.getItem('rt_weightKG') || 0),
+      goalMgPerKg: Number(window.PROFILE_TARGET_MGKG || localStorage.getItem('rt_goalMgKg') || 135),
+      takenMg:  Number(window.PROFILE_TAKEN_MG || localStorage.getItem('rt_takenMg') || 0),
+      todayMg:  Number(window.PROFILE_TODAY_MG || localStorage.getItem('rt_todayMg') || 0),
+      drug:     String(window.PROFILE_DRUG || localStorage.getItem('rt_drug') || 'Изотретиноин'),
+      startISO: String(window.PROFILE_START_ISO || localStorage.getItem('rt_startISO') || '')
+    };
+    sessionStorage.setItem('share:user', JSON.stringify(snap));
+
+    // 3) навигация
+    location.href = 'myprofile.html#fx=avatar';
+  });
+})();
+</script>
+
+<script src="js/lazy-img.js" defer></script>
+
+<script>
+// ====== Reminders: helpers (тот же набор, что и на Плане) ======
+function rtLoad() {
+  try { return JSON.parse(localStorage.getItem('rt')) || {}; }
+  catch (e) { return {}; }
+}
+function getMainReminder() {
+  const rt = rtLoad();
+  return (rt.reminders || []).find(r => r.id === 'main') || null;
+}
+
+// ====== UI-апдейт (необязательно): если есть элемент #rem-summary — покажем там время ======
+function renderMainReminder(rem) {
+  const el = document.getElementById('rem-summary'); // произвольный маленький лейбл, если он есть в вашей верстке
+  if (!el) return;
+  if (!rem || !rem.enabled || !rem.time) {
+    el.textContent = 'Напоминание: выключено';
+  } else {
+    el.textContent = `Напоминание: ежедневно в ${rem.time}`;
+  }
+}
+
+// ====== (опционально) простое локальное расписание через setTimeout + Web Notifications ======
+let _reminderTimer = null;
+function clearReminderTimer() {
+  if (_reminderTimer) { clearTimeout(_reminderTimer); _reminderTimer = null; }
+}
+function scheduleMainReminder(rem) {
+  clearReminderTimer();
+  if (!rem || !rem.enabled || !rem.time) return;
+
+  // Рассчитать следующий запуск "сегодня/завтра" по локальному времени
+  const [hh, mm] = rem.time.split(':').map(n => parseInt(n || '0', 10));
+  const now = new Date();
+  const next = new Date();
+  next.setHours(hh, mm, 0, 0);
+  if (next <= now) next.setDate(next.getDate() + 1);
+
+  const delay = next.getTime() - now.getTime();
+  _reminderTimer = setTimeout(async () => {
+    try {
+      // Запросим разрешение на нотификации при первом запуске
+      if ('Notification' in window) {
+        if (Notification.permission === 'default') {
+          await Notification.requestPermission();
+        }
+        if (Notification.permission === 'granted') {
+          new Notification('Пора принять препарат', {
+            body: 'Отметьте приём в приложении.',
+          });
+        }
+      }
+      // Планируем следующее
+      scheduleMainReminder(rem);
+    } catch (e) {
+      // Мягко игнорируем ошибки нотификаций/разрешений
+    }
+  }, Math.max(1000, delay)); // защитный минимум
+}
+
+// ====== Инициализация при старте ======
+(function boot() {
+  const rem = getMainReminder();
+  renderMainReminder(rem);
+  scheduleMainReminder(rem);
+})();
+
+// ====== Обновление по событию storage (когда План меняет настройки) ======
+window.addEventListener('storage', (e) => {
+  if (e.key === 'rt' || e.key === 'rt:lastRemindersUpdate') {
+    const rem = getMainReminder();
+    renderMainReminder(rem);
+    scheduleMainReminder(rem);
+  }
+});
+</script>
+
 </body>
 </html>

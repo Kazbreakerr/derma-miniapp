@@ -1,25 +1,19 @@
 <!doctype html>
 <html lang="ru">
 <head>
-
-  <script>
-  // мгновенно фиксируем тёмную тему до отрисовки CSS
-  document.documentElement.dataset.theme = 'dark';
-</script>
-<script src="js/app-state.js"></script>
-<script>
-  // и сохраняем её как выбранную пользователем
-  document.addEventListener('DOMContentLoaded', () => AppState.applyTheme('dark'));
-</script>
   <meta charset="utf-8" />
+  <link rel="stylesheet" href="css/ui-tokens.css">
+<script>document.documentElement.dataset.theme='dark';</script>
+<script src="js/app-state.js"></script>
+
 
   <script src="js/app-state.js"></script>
   <script>
   // Инициализация всех переключателей темы на странице
   document.addEventListener('DOMContentLoaded', () => {
-    const settings = AppState.get('settings') || {};
-    const theme = (settings.theme === 'light') ? 'light' : 'dark';
-    document.documentElement.dataset.theme = theme;
+    const settings = (window.AppState?.get('settings')) || {};
+const cur = document.documentElement.dataset.theme || 'dark';
+document.documentElement.dataset.theme = cur;
 
     // найдём все тумблеры с data-role="theme-switch"
     document.querySelectorAll('[data-role="theme-switch"]').forEach(sw => {

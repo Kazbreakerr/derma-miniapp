@@ -5,13 +5,8 @@
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>Roaccutane Tracker — Важные предупреждения (светлая)</title>
 
-  <link rel="stylesheet" href="css/ui-tokens.css">
-  <script>
-    try{
-      const s = JSON.parse(localStorage.getItem('rt.settings')||'{}');
-      document.documentElement.dataset.theme = 'light'; // фикс принудительной светлой темы
-    }catch(e){ document.documentElement.dataset.theme = 'light'; }
-  </script>
+ <link rel="stylesheet" href="css/ui-tokens.css">
+<script>document.documentElement.dataset.theme = 'light';</script>
 
   <style>
     :root{
@@ -167,7 +162,8 @@
       });
     })();
   </script>
-
+<script src="/js/folder-router.js"></script>
+<script src="/js/gates.js"></script>
 </head>
 <body>
   <div class="container">
@@ -318,17 +314,17 @@
       location.replace('./' + (map[key] || (theme==='dark'?'profile-dark.html':'profile-light.html')) + qs);
     }, { once:true });
   </script>
+  <!-- у своей кнопки добавь id -->
+<button id="agree-derma">Согласен</button>
+
+<script>
+  F.initLinks();
+  document.getElementById('agree-derma')?.addEventListener('click', () => {
+    const c = Gates.consent(); c.derma = true;
+    localStorage.setItem('rt.consent', JSON.stringify(c));
+    location.href = F.href('profile.html');
+  });
+</script>
+
 </body>
 </html>
-
-<style>
-html[data-theme="dark"] body{
-  margin:0;color:var(--text-high);
-  font-family:ui-sans-serif,system-ui,-apple-system,Segoe UI,Roboto,Inter,Manrope,Helvetica,Arial;
-  font-size:16px;line-height:1.5;
-  background: radial-gradient(140% 120% at 10% -10%, rgba(20,184,166,.08) 0%, rgba(11,18,32,0) 55%),
-              radial-gradient(120% 120% at 100% 0%, rgba(96,165,250,.08) 0%, rgba(11,18,32,0) 55%),
-              linear-gradient(180deg, #0B1220 0%, #0E1726 100%);
-  background-attachment:fixed;
-}
-</style>

@@ -4,24 +4,29 @@
   <meta charset="utf-8" />
 
   <script src="js/app-state.js"></script>
-  <script>
-    // Инициализация переключателей темы (если присутствуют)
-    document.addEventListener('DOMContentLoaded', () => {
-      // Always start in LIGHT theme on this page (avoid washed-out white-on-white)
-      try { AppState.applyTheme('light'); } catch(_) { document.documentElement.dataset.theme = 'light'; }
-      // Keep any existing switchers working, but they will flip to dark only on user action
-      document.querySelectorAll('[data-role="theme-switch"]').forEach(sw => {
-        sw.setAttribute('aria-pressed','true');
-        sw.addEventListener('click', () => {
-          const next = (document.documentElement.dataset.theme === 'light') ? 'dark' : 'light';
-          AppState.applyTheme(next);
-          document.querySelectorAll('[data-role="theme-switch"]').forEach(x => x.setAttribute('aria-pressed', next==='light'?'true':'false'));
-        });
+<script>
+  document.addEventListener('DOMContentLoaded', () => {
+   const settings = (window.AppState?.get('settings')) || {};
+const cur = document.documentElement.dataset.theme || 'light';
+document.documentElement.dataset.theme = cur;
+
+
+    // тумблеры
+    document.querySelectorAll('[data-role="theme-switch"]').forEach(sw => {
+      const isLight = (document.documentElement.dataset.theme === 'light');
+      sw.setAttribute('aria-pressed', isLight ? 'true' : 'false');
+
+      sw.addEventListener('click', () => {
+        const cur = document.documentElement.dataset.theme === 'light' ? 'light' : 'dark';
+        const next = (cur === 'light') ? 'dark' : 'light';
+        AppState.applyTheme(next); // пишет в rt.settings и rt_theme + ставит data-theme
+        document.querySelectorAll('[data-role="theme-switch"]')
+          .forEach(x => x.setAttribute('aria-pressed', next === 'light' ? 'true' : 'false'));
       });
     });
-      });
-    });
-  </script>
+  });
+</script>
+
 
   <!-- ГЕЙТ: без согласия показываем предупреждения -->
   <script>
@@ -33,7 +38,11 @@
         const uid = String(dev || tg?.initDataUnsafe?.user?.id || '');
         const hasNs  = uid && localStorage.getItem(`dermaApp:${uid}:consentAccepted`) === '1';
         const hasOld = localStorage.getItem('derma_consent') === '1';
-        if (!(hasNs || hasOld)) { location.replace('./warnings.html' + qs); }
+        const t = document.documentElement.dataset.theme || 'light';
+if (!(hasNs || hasOld)) {
+  location.replace((t==='light' ? './warnings-light.html' : './warnings.html') + qs);
+}
+
       }catch(_){}
     })();
   </script>
@@ -44,13 +53,7 @@
   <script>window.API_BASE = window.API_BASE || '';</script>
 
   <link rel="stylesheet" href="css/ui-tokens.css">
-  <script>
-    try{
-      const s = JSON.parse(localStorage.getItem('rt.settings')||'{}');
-      document.documentElement.dataset.theme = 'light';
-    }catch(e){ document.documentElement.dataset.theme = 'light'; }
-  </script>
-
+  <script>document.documentElement.dataset.theme='light';</script>
   <style>
     :root{
       /* значения тёмной темы оставляем, чтобы свитчер мог переключить */
@@ -263,7 +266,17 @@
       });
     })();
   </script>
+<!-- у своей кнопки добавь id -->
+<button id="agree-derma">Согласен</button>
 
+<script>
+  F.initLinks();
+  document.getElementById('agree-derma')?.addEventListener('click', () => {
+    const c = Gates.consent(); c.derma = true;
+    localStorage.setItem('rt.consent', JSON.stringify(c));
+    location.href = F.href('profile.html');
+  });
+</script>
 </head>
 <body>
   <div class="wrap">

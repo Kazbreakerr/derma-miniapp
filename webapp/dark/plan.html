@@ -2,13 +2,12 @@
 
 <script src="js/app-state.js"></script>
 <script>
-  // Инициализация всех переключателей темы на странице
   document.addEventListener('DOMContentLoaded', () => {
-    const settings = AppState.get('settings') || {};
-    const theme = (settings.theme === 'light') ? 'light' : 'dark';
-    document.documentElement.dataset.theme = theme;
+   const settings = (window.AppState?.get('settings')) || {};
+const cur = document.documentElement.dataset.theme || 'dark';
+document.documentElement.dataset.theme = cur;
 
-    // найдём все тумблеры с data-role="theme-switch"
+    // тумблеры
     document.querySelectorAll('[data-role="theme-switch"]').forEach(sw => {
       const isLight = (document.documentElement.dataset.theme === 'light');
       sw.setAttribute('aria-pressed', isLight ? 'true' : 'false');
@@ -16,14 +15,14 @@
       sw.addEventListener('click', () => {
         const cur = document.documentElement.dataset.theme === 'light' ? 'light' : 'dark';
         const next = (cur === 'light') ? 'dark' : 'light';
-        AppState.applyTheme(next);                  // сохраняем и ставим data-theme
-        // визуально обновим все тумблеры на странице
+        AppState.applyTheme(next); // пишет в rt.settings и rt_theme + ставит data-theme
         document.querySelectorAll('[data-role="theme-switch"]')
           .forEach(x => x.setAttribute('aria-pressed', next === 'light' ? 'true' : 'false'));
       });
     });
   });
 </script>
+
 
 
 <script>
@@ -36,7 +35,11 @@
       const uid = String(dev || tg?.initDataUnsafe?.user?.id || '');
       const hasNs  = uid && localStorage.getItem(`dermaApp:${uid}:consentAccepted`) === '1';
       const hasOld = localStorage.getItem('derma_consent') === '1';
-      if (!(hasNs || hasOld)) { location.replace('./warnings.html' + qs); }
+      const t = document.documentElement.dataset.theme || 'light';
+if (!(hasNs || hasOld)) {
+  location.replace((t==='light' ? './warnings-light.html' : './warnings.html') + qs);
+}
+
     }catch(_){}
   })();
 </script>
@@ -46,12 +49,7 @@
 <script>window.API_BASE=window.API_BASE||'';</script>
 
 <link rel="stylesheet" href="css/ui-tokens.css">
-<script>
-  try{
-    const s = JSON.parse(localStorage.getItem('rt.settings')||'{}');
-    document.documentElement.dataset.theme = s?.theme || 'dark';
-  }catch(e){ document.documentElement.dataset.theme = 'dark'; }
-</script>
+<script>document.documentElement.dataset.theme='dark';</script>
 
 <style>
 :root{
@@ -227,6 +225,17 @@ body::before{
     })();
   </script>
 
+<!-- у своей кнопки добавь id -->
+<button id="agree-derma">Согласен</button>
+
+<script>
+  F.initLinks();
+  document.getElementById('agree-derma')?.addEventListener('click', () => {
+    const c = Gates.consent(); c.derma = true;
+    localStorage.setItem('rt.consent', JSON.stringify(c));
+    location.href = F.href('profile.html');
+  });
+</script>
 </head>
 <body>
 <div class="wrap">
@@ -472,7 +481,7 @@ document.getElementById('btnSavePlan').addEventListener('click', async ()=>{
   localStorage.setItem('rt_drug', drugName||drug||'');
   if(start) localStorage.setItem('rt_startISO', start);
 }catch(_){}
-location.replace('./main-dark.html' + qs);
+location.replace('./main.html' + qs);
   }catch(e){ msg.textContent='Ошибка сети'; }
 });
 </script>

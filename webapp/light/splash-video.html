@@ -1,0 +1,153 @@
+<!doctype html>
+<html lang="ru">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+  <script src="/js/folder-router.js"></script>
+  <title>Roaccutane Tracker — Приветствие</title>
+  <script src="https://telegram.org/js/telegram-web-app.js"></script>
+
+<link rel="stylesheet" href="css/ui-tokens.css">
+<script>
+  try{
+    const s = JSON.parse(localStorage.getItem('rt.settings')||'{}');
+    document.documentElement.dataset.theme = s?.theme || localStorage.getItem('rt_theme') || 'light';
+  }catch(e){ document.documentElement.dataset.theme = localStorage.getItem('rt_theme') || 'light'; }
+</script>
+
+  <style>
+    :root{
+      --bg:#000;
+      --text-high:#F3F7FF; --text-mid:#C7D2FE; --primary:#14B8A6;
+      --fit: contain; /* ключ: показываем видео ЦЕЛИКОМ по умолчанию */
+    }
+    *{box-sizing:border-box}
+    html,body{height:100%;margin:0;background:var(--bg);color:var(--text-high);
+      font-family:ui-sans-serif,system-ui,-apple-system,Segoe UI,Inter,Roboto,Manrope,Helvetica,Arial;
+      max-width:100%; overflow:hidden}
+    .stage{position:fixed; inset:0; background:#000; min-height:100dvh; display:grid; place-items:center}
+    /* Видео занимает максимум, сохраняя пропорции, БЕЗ обрезки */
+    #v{
+      display:block;
+      max-width:100vw; max-height:100dvh;
+      width:100vw; height:100dvh;
+      object-fit:var(--fit);
+      object-position:center center;
+      background:#000;
+      transform:translateZ(0);
+    }
+    .overlay{position:absolute; inset:0; pointer-events:none;
+      background:
+        radial-gradient(120% 80% at 10% 0%, rgba(20,184,166,.18), transparent 55%),
+        radial-gradient(120% 80% at 90% 20%, rgba(96,165,250,.18), transparent 65%)}
+    .brand{
+      position:absolute; left:calc(env(safe-area-inset-left,0) + 16px);
+      top:calc(env(safe-area-inset-top,0) + 16px);
+      right:16px; display:flex; align-items:center; gap:10px;
+      font-weight:800; font-size:18px; letter-spacing:.2px; text-shadow:0 2px 12px rgba(0,0,0,.45)
+    }
+    .btn-skip{
+      position:absolute;
+      right:calc(env(safe-area-inset-right,0) + 16px);
+      bottom:calc(env(safe-area-inset-bottom,0) + 16px);
+      appearance:none; border:1px solid rgba(255,255,255,.25);
+      background:rgba(14,23,38,.55); -webkit-backdrop-filter:blur(6px); backdrop-filter:blur(6px);
+      color:#fff; padding:10px 14px; border-radius:12px; cursor:pointer; font-weight:700
+    }
+    .btn-skip:active{transform:translateY(1px)}
+    .progress{position:absolute; left:0; right:0; bottom:0; height:3px; background:rgba(255,255,255,.15)}
+    .bar{height:100%; width:0; background:linear-gradient(90deg,#5EEAD4,#14B8A6)}
+    .sr{position:absolute; left:-9999px}
+  </style>
+</head>
+<body>
+  <div class="stage">
+    <video id="v" autoplay muted playsinline preload="auto" webkit-playsinline>
+      <source src="./media/roacctracker.mp4" type="video/mp4" />
+    </video>
+
+    <div class="overlay"></div>
+    <div class="brand">Roaccutane Tracker</div>
+    <button id="skip" class="btn-skip" type="button">Пропустить</button>
+    <div class="progress" aria-hidden="true"><div id="bar" class="bar"></div></div>
+  </div>
+
+
+  <script>
+  (function(){
+    const tg = window.Telegram?.WebApp || null;
+    tg?.ready?.(); tg?.expand?.();
+
+    const sp   = new URLSearchParams(location.search);
+    const next = sp.get('after') || sp.get('next') || 'warnings.html';
+    sp.delete('after'); sp.delete('next');
+    const tail = sp.toString() ? ('?' + sp.toString()) : '';
+
+    // Режим подгонки: по умолчанию 'contain'. Можно принудить 'cover' параметром ?fit=cover
+    const fit = (new URLSearchParams(location.search).get('fit') || 'contain').toLowerCase();
+    if (fit === 'cover') document.documentElement.style.setProperty('--fit','cover');
+
+    const v    = document.getElementById('v');
+    const skip = document.getElementById('skip');
+    const bar  = document.getElementById('bar');
+
+    // === 1) Быстрее на 50% (визуально бодрее), без влияния на размер ===
+    try { v.playbackRate = 1.5; } catch(_) {}
+
+    // === 2) Сдвиг старта и обрезка конца по времени (не по кадру) ===
+    const START_OFFSET = 0.3;   // сек
+    const END_TRIM     = 0.3;   // сек
+    let done = false;
+
+    function startAtOffset(){
+      try{
+        if (isFinite(v.duration) && v.duration > START_OFFSET) {
+          const onceSeeked = () => { v.removeEventListener('seeked', onceSeeked); v.play().catch(()=>{}); };
+          v.addEventListener('seeked', onceSeeked, {once:true});
+          v.currentTime = START_OFFSET;
+        } else {
+          v.play().catch(()=>{});
+        }
+      }catch(_){ v.play().catch(()=>{}); }
+    }
+    if (v.readyState >= 1) startAtOffset(); else v.addEventListener('loadedmetadata', startAtOffset, {once:true});
+
+    // === 3) Прогресс-бар и ранний финиш ===
+    function tick(){
+      if (isFinite(v.duration) && v.duration > 0) {
+        const effDur = Math.max(0.1, v.duration - END_TRIM);
+        const pct    = Math.min(1, Math.max(0, v.currentTime / effDur));
+        bar.style.width = (pct * 100) + '%';
+
+        if (!done && v.currentTime >= v.duration - END_TRIM - 0.01) {
+          done = true; proceed(); return;
+        }
+      }
+      requestAnimationFrame(tick);
+    }
+    requestAnimationFrame(tick);
+
+    function proceed(){
+      try{
+        const devTg = new URLSearchParams(location.search).get('tg') || '';
+        const uid   = devTg || tg?.initDataUnsafe?.user?.id;
+        if (uid) localStorage.setItem(`dermaApp:${uid}:splash_seen`, '1');
+        else     localStorage.setItem('derma_splash_seen','1');
+      }catch(_){}
+      location.replace(next + tail);
+    }
+    v.addEventListener('ended', ()=>{ if(!done){ done = true; proceed(); }});
+    skip?.addEventListener('click', ()=>{ if(!done){ done = true; proceed(); }});
+
+    // === 4) Подстраховка автоплея (iOS/Telegram) ===
+    let started=false;
+    v.addEventListener('playing', ()=>{ started=true; });
+    setTimeout(()=>{ if(!started){ v.muted = true; v.play().catch(()=>{}); } }, 250);
+  })();
+  </script>
+  <script>
+  const next = new URLSearchParams(location.search).get('next') || 'welcome-rt.html';
+  location.replace(F.nextUrl(next));
+</script>
+</body>
+</html>

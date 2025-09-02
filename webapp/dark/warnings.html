@@ -6,12 +6,7 @@
   <title>Derma Mini‑App — Важные предупреждения</title>
 
 <link rel="stylesheet" href="css/ui-tokens.css">
-<script>
-  try{
-    const s = JSON.parse(localStorage.getItem('rt.settings')||'{}');
-    document.documentElement.dataset.theme = s?.theme || 'dark';
-  }catch(e){ document.documentElement.dataset.theme = 'dark'; }
-</script>
+<script>document.documentElement.dataset.theme = 'dark';</script>
 
   <style>
     :root{
@@ -138,7 +133,8 @@ body::before{
       });
     })();
   </script>
-
+<script src="/js/folder-router.js"></script>
+<script src="/js/gates.js"></script>
 </head>
 <body>
   <div class="container">
@@ -299,16 +295,48 @@ body::before{
     setEnabled(next);
   });
 
-  startBtn.addEventListener('click', () => {
+ startBtn.addEventListener('click', async () => {
+  // 1) локально зафиксировать согласие (как у тебя уже делалось)
   setConsent(true);
   try { localStorage.setItem('rt_seen_warnings','1'); } catch(_) {}
+
+  // 2) сказать серверу "принял"
+  try {
+    const tg = window.Telegram?.WebApp;
+    const initData = tg?.initData || '';
+    const API_BASE = String(window.API_BASE||'').replace(/\/$/,'');
+    const devTg = new URLSearchParams(location.search).get('tg') || '';
+    const url = API_BASE + '/api/me' + (!initData && devTg ? ('?tg='+encodeURIComponent(devTg)) : '');
+    const headers = {'Content-Type':'application/json'};
+    if (initData) headers['X-Telegram-InitData'] = initData;
+    await fetch(url, { method:'POST', headers, body: JSON.stringify({ accepted:true, terms_version:1 }) });
+  } catch(_) {}
+
+  // 3) для обратной совместимости — старые ключи
+  try {
+    const uid = new URLSearchParams(location.search).get('tg') || (window.Telegram?.WebApp?.initDataUnsafe?.user?.id) || '';
+    if (uid) localStorage.setItem(`dermaApp:${uid}:consentAccepted`, '1');
+    localStorage.setItem('derma_consent','1');
+  } catch(_) {}
+
+  // 4) переход в профиль (оставь свой вариант, в зависимости от имени файла)
   const qs = location.search || '';
-  const map = { welcome:'welcome-rt.html', profile:'profile-dark.html', plan:'plan-dark.html', main:'main-dark.html' };
-  const key = (localStorage.getItem('derma_next') || 'profile').trim();
-  try { localStorage.removeItem('derma_next'); } catch(_) {}
-  location.replace('./' + (map[key] || 'profile-dark.html') + qs);
+  location.replace('./profile.html' + qs);
+  // если уже переименовал в папке /dark/ на profile.html — используй:
+  // location.replace('./profile.html' + qs);
 }, { once: true });
 
+</script>
+<!-- у своей кнопки добавь id -->
+<button id="agree-derma">Согласен</button>
+
+<script>
+  F.initLinks();
+  document.getElementById('agree-derma')?.addEventListener('click', () => {
+    const c = Gates.consent(); c.derma = true;
+    localStorage.setItem('rt.consent', JSON.stringify(c));
+    location.href = F.href('profile.html');
+  });
 </script>
 </body>
 </html>

@@ -2,14 +2,14 @@
 <html lang="ru">
 <head>
   <meta charset="utf-8" />
-
-  <script src="js/app-state.js"></script>
-  <script>
+<script src="js/app-state.js"></script>
+<script>
   // Инициализация всех переключателей темы на странице
   document.addEventListener('DOMContentLoaded', () => {
-    const settings = AppState.get('settings') || {};
-    const theme = (settings.theme === 'light') ? 'light' : 'dark';
-    document.documentElement.dataset.theme = theme;
+    const settings = (window.AppState?.get('settings')) || {};
+const cur = document.documentElement.dataset.theme || 'light';
+document.documentElement.dataset.theme = cur;
+
 
     // найдём все тумблеры с data-role="theme-switch"
     document.querySelectorAll('[data-role="theme-switch"]').forEach(sw => {
@@ -31,17 +31,12 @@
 
   <script>try{ if(localStorage.getItem('derma_consent')!=='1'){ location.replace('./warnings.html'); } }catch(_){}</script>
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>Roaccutane Tracker — FAQ</title>
+  <title>Roaccutane Tracker — FAQ (Light)</title>
   <script src="https://telegram.org/js/telegram-web-app.js"></script>
   <script>window.API_BASE = window.API_BASE || '';</script>
 
 <link rel="stylesheet" href="css/ui-tokens.css">
-<script>
-  try{
-    const s = JSON.parse(localStorage.getItem('rt.settings')||'{}');
-    document.documentElement.dataset.theme = s?.theme || 'dark';
-  }catch(e){ document.documentElement.dataset.theme = 'dark'; }
-</script>
+<script>document.documentElement.dataset.theme='light';</script>
 
   <style>
     :root{
@@ -79,15 +74,78 @@
     a{color:var(--text-mid);text-decoration:underline;text-underline-offset:3px}
     footer{margin:24px 0 8px;color:var(--text-low);text-align:center;font-size:13px}
   
-    /* Верхняя кнопка возврата */
-    .topbar{display:flex;align-items:center;gap:12px;flex-wrap:wrap;margin-bottom:12px}
+    /* === Light theme (green + peach) === */
+    :root{
+      --bg:#F8FAFB; --card:#FFFFFF; --border:#E6EAF0;
+      --text-high:#0F172A; --text-mid:#334155; --text-low:#64748B;
+      --primary-700:#0EA5A6;
+    }
+    body{
+      color:var(--text-high);
+      background:
+        radial-gradient(60% 50% at 0% 0%, rgba(34,197,94,.18), transparent 60%),
+        radial-gradient(70% 60% at 100% 100%, rgba(253,178,142,.22), transparent 60%),
+        linear-gradient(135deg, #E8F9E9 0%, #FFF3EC 100%) !important;
+    }
+    .card{ background:var(--card) !important; border:1px solid var(--border) !important; box-shadow: 0 10px 30px rgba(2,6,23,.05), 0 2px 8px rgba(2,6,23,.04) !important; }
+    .muted{ color:var(--text-low) !important }
+    .chip-link{ background:#F1F5F9 !important; border:1px solid var(--border) !important; color:var(--text-high) !important }
+    details{ background:#FBFDFE !important; border:1px solid var(--border) !important }
+    details[open]{ border-color: rgba(14,165,166,.6) !important; box-shadow: 0 0 0 3px rgba(14,165,166,.12) inset !important }
+    .search{ background:#fff !important; border:1px solid var(--border) !important; color:var(--text-high) !important }
+    .nav a{ background:#FFFFFF !important; border:1px solid var(--border) !important; color:var(--text-mid) !important; }
+    .chip{ background:#fff !important; border:1px solid var(--border) !important; color:var(--text-low) !important; }
+    .topbar{display:flex;align-items:center;gap:12px;flex-wrap:wrap;margin:8px 0 12px}
     .back-btn{
       display:inline-flex;align-items:center;gap:8px;padding:8px 12px;border-radius:12px;
-      background:#152235;border:1px solid var(--border);color:var(--text-mid);text-decoration:none;font-weight:600;
-      box-shadow:0 6px 16px rgba(0,0,0,.25);transition:all .15s ease-in-out
+      background:#FFFFFF;border:1px solid var(--border);color:var(--text-mid);text-decoration:none;font-weight:700;
+      box-shadow:0 6px 16px rgba(2,6,23,.04);transition:all .15s ease-in-out
     }
-    .back-btn:hover{border-color:var(--primary-700);color:var(--text-high);transform:translateY(-1px)}
+    .back-btn:hover{border-color: rgba(14,165,166,.6); color:var(--text-high); transform: translateY(-1px)}
     .back-btn svg{width:18px;height:18px;opacity:.9}
+
+  
+    /* Персиковые бейджи (pill) с хорошей читаемостью текста */
+    .pill{
+      background: linear-gradient(180deg, #FFF1EA 0%, #FFE6D7 100%) !important;
+      border: 1px solid #F7C9B0 !important;
+      color: #0F172A !important; /* тёмный текст для контраста */
+    }
+
+  
+    /* Персиковое поле поиска */
+    .search{
+      background: linear-gradient(180deg, #FFF1EA 0%, #FFE6D7 100%) !important;
+      border: 1px solid #F7C9B0 !important;
+      color: #0F172A !important;
+    }
+    .search::placeholder{ color:#475569 !important; opacity:.9 }
+    .search:focus{ border-color: rgba(14,165,166,.6) !important; box-shadow: 0 0 0 3px rgba(14,165,166,.18) }
+
+  
+    /* === Персиковое поле поиска (форсируем стиль высокой специфичностью) === */
+    .card .search,
+    .wrap .search,
+    input.search[type="search"]{
+      -webkit-appearance:none; appearance:none;
+      background: linear-gradient(180deg, #FFF1EA 0%, #FFE6D7 100%) !important;
+      background-clip: padding-box;
+      border: 1px solid #F7C9B0 !important;
+      color: #0F172A !important;
+      caret-color: #0F172A !important;
+      box-shadow: 0 2px 10px rgba(2,6,23,.05) !important;
+    }
+    .card .search::placeholder,
+    .wrap .search::placeholder,
+    input.search[type="search"]::placeholder{ color:#475569 !important; opacity:.95 }
+    .card .search:focus,
+    .wrap .search:focus,
+    input.search[type="search"]:focus{ border-color: rgba(14,165,166,.6) !important; box-shadow: 0 0 0 3px rgba(14,165,166,.18) !important; outline:none }
+    /* Автофилл в браузерах WebKit */
+    input.search[type="search"]:-webkit-autofill{
+      -webkit-box-shadow: 0 0 0 1000px #FFEDE2 inset !important;
+      -webkit-text-fill-color: #0F172A !important;
+    }
 
   </style>
   <style>
@@ -166,7 +224,7 @@
 <body>
   <div class="wrap">
     <div class="topbar">
-      <a class="back-btn" href="./main-dark.html" id="btn-back" aria-label="Назад на главную">
+      <a class="back-btn" href="./main-light.html" id="btn-back" aria-label="Назад на главную">
         <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M15 19l-7-7 7-7" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
         <span>Назад</span>
       </a>
@@ -203,6 +261,7 @@
                 
 
     </div>
+    <h1>Derma Mini‑App</h1>
 
     <section class="card" aria-labelledby="faq-title">
       <div class="glow"></div>
@@ -345,7 +404,7 @@
         <details class="qa" id="app">
           <summary>Как отмечать приём и где смотреть статистику в приложении? <span class="pill">app</span></summary>
           <div class="qa-body">
-            <p>На <a href="./main-dark.html">Главной</a> введите мг и дату, нажмите «Сохранить» или выберите чип дозы. Сводные метрики, процент к 135 мг/кг и ETA — в блоке «Прогресс». Последние отметки и календарь‑превью — ниже.</p>
+            <p>На <a href="./main-light.html">Главной</a> введите мг и дату, нажмите «Сохранить» или выберите чип дозы. Сводные метрики, процент к 135 мг/кг и ETA — в блоке «Прогресс». Последние отметки и календарь‑превью — ниже.</p>
           </div>
         </details>
 
@@ -355,7 +414,7 @@
         <section class="card" aria-label="Навигация">
       <div class="glow"></div>
       <div class="row" style="justify-content:space-between">
-        <a id="to-home" href="./main-dark.html">← На главную</a>
+        <a id="to-home" href="./main-light.html">← На главную</a>
       </div>
     </section>
 
@@ -389,18 +448,7 @@
     window.addEventListener('hashchange', openByHash);
     openByHash();
 
-
-    const back = document.getElementById('btn-back');
-    if (back){
-      back.addEventListener('click', function(ev){
-        ev.preventDefault();
-        try{
-          if (history.length > 1) { history.back(); return; }
-        }catch(_){}
-        location.href = './main-dark.html';
-      });
-    }
-
+const back=document.getElementById('btn-back');if(back){back.addEventListener('click',e=>{e.preventDefault();try{if(history.length>1){history.back();return;}}catch(_){}location.href='./main-light.html';});}
   </script>
 
 <script>
@@ -409,7 +457,7 @@
   if(back){
     back.addEventListener('click', function(e){
       e.stopPropagation();
-      var t = document.documentElement.dataset.theme || 'dark';
+      var t = document.documentElement.dataset.theme || 'light';
       var target = (t === 'dark') ? './main-dark.html' : './main-light.html';
       if (back.getAttribute('href') !== target) back.setAttribute('href', target);
     }, {capture:true});

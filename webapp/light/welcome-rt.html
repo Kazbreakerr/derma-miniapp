@@ -148,6 +148,8 @@ body{
   .start{width:92vw}
 }
 </style>
+<script src="/js/folder-router.js"></script>
+<script src="/js/gates.js"></script>
 </head>
 <body>
   <main class="shell">
@@ -173,15 +175,16 @@ body{
     </section>
 
     <div class="actions">
-      <button class="start" id="startBtn">Начать</button>
+      <button class="start" id="go-next">Начать</button>
     </div>
   </main>
 
   <!-- Переключатель темы -->
   <div class="theme-switch">
-    <button class="theme-btn" id="toDark"><span class="dot"></span>🌘Тёмная тема </button>
-  </div>
-
+  <button class="theme-btn" data-switch-theme>
+    <span class="dot"></span>🌘Тёмная тема
+  </button>
+</div>
 <script>
 const q  = s => document.querySelector(s);
 const qa = s => Array.from(document.querySelectorAll(s));
@@ -228,9 +231,32 @@ q('#startBtn').addEventListener('click', ()=>{
     location.href = done ? 'main-dark.html' : 'profile-dark.html';
   }
 });
-
-/* кнопка «Тёмная тема» — открываем тёмную страницу */
-q('#toDark').addEventListener('click', ()=>{ location.href = 'welcome-rt.html'; });
 </script>
+<!-- ======= theme toggle (back to dark) ======= -->
+<script src="js/app-state.js"></script>
+<script>
+(function () {
+  var btn = document.getElementById('toDark') || document.getElementById('themeToggle');
+  if (!btn) return;
+  var qs = location.search || '';
+  btn.addEventListener('click', function () {
+    try { if (window.AppState) AppState.applyTheme('dark'); } catch(e) {}
+    location.href = './welcome-rt.html' + qs;
+  });
+})();
+</script>
+
+<script>
+  // Инициализация автоссылок data-page (если используешь)
+  F.initLinks();
+
+  // Переход дальше по онбордингу
+  document.getElementById('go-next')?.addEventListener('click', () => {
+    // Запомним выбранную папку для СЛЕДУЮЩИХ запусков
+    localStorage.setItem('rt.lastTheme', F.themeFromPath());
+    location.href = Gates.afterWelcome();
+  });
+</script>
+
 </body>
 </html>

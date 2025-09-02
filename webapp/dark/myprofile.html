@@ -11,9 +11,13 @@
 <script>
   try{
     const s = JSON.parse(localStorage.getItem('rt.settings')||'{}');
-    document.documentElement.dataset.theme = s?.theme || 'dark';
-  }catch(e){ document.documentElement.dataset.theme = 'dark'; }
+    const t = s?.theme || localStorage.getItem('rt_theme') || 'dark';
+    document.documentElement.dataset.theme = t;
+  }catch(e){
+    document.documentElement.dataset.theme = localStorage.getItem('rt_theme') || 'dark';
+  }
 </script>
+
 
   <style>
     :root{

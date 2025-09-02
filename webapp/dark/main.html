@@ -1,25 +1,19 @@
 <!doctype html>
 <html lang="ru">
 <head>
-
-  <script>
-  // мгновенно фиксируем тёмную тему до отрисовки CSS
-  document.documentElement.dataset.theme = 'dark';
-</script>
-<script src="js/app-state.js"></script>
-<script>
-  // и сохраняем её как выбранную пользователем
-  document.addEventListener('DOMContentLoaded', () => AppState.applyTheme('dark'));
-</script>
   <meta charset="utf-8" />
+  <link rel="stylesheet" href="css/ui-tokens.css">
+<script>document.documentElement.dataset.theme='dark';</script>
+<script src="js/app-state.js"></script>
+
 
   <script src="js/app-state.js"></script>
   <script>
   // Инициализация всех переключателей темы на странице
   document.addEventListener('DOMContentLoaded', () => {
-    const settings = AppState.get('settings') || {};
-    const theme = (settings.theme === 'light') ? 'light' : 'dark';
-    document.documentElement.dataset.theme = theme;
+    const settings = (window.AppState?.get('settings')) || {};
+const cur = document.documentElement.dataset.theme || 'dark';
+document.documentElement.dataset.theme = cur;
 
     // найдём все тумблеры с data-role="theme-switch"
     document.querySelectorAll('[data-role="theme-switch"]').forEach(sw => {
@@ -630,7 +624,7 @@ body.light .tab.active{ color:#0d1220; background: linear-gradient(180deg, rgba(
 ::view-transition-old(root){ animation: vt-fade-slide-out .35s ease both; }
 ::view-transition-new(root){ animation: vt-fade-slide-in  .35s ease both; }
 
-<!-- === Neumorphic facelift (safe overrides, CSS-only) === -->
+</style>
 <style id="neumorphic-skin">
   :root{
     --nm-surface-1:#0E1626;--nm-surface-2:#0B1220;
@@ -700,9 +694,6 @@ body.light .tab.active{ color:#0d1220; background: linear-gradient(180deg, rgba(
   .rings-rail{ filter:drop-shadow(0 12px 24px rgba(0,0,0,.40)) }
   .flip-card .face{ border:1px solid rgba(255,255,255,.20) }
   .chip:hover{ border-color:#22D3EE; box-shadow:0 0 0 2px rgba(34,211,238,.20) inset }
-</style>
-
-
 </style>
 </head>
 <body>
@@ -947,7 +938,7 @@ body.light .tab.active{ color:#0d1220; background: linear-gradient(180deg, rgba(
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
       <small>Профиль</small>
     </a>
-    <a class="tab" href="photolog.html" data-vt-link>
+    <a class="tab" href="diary.html" data-vt-link>
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="5" width="18" height="14" rx="2"/><circle cx="8.5" cy="12" r="2.5"/><path d="M21 13l-4-4-6 6"/></svg>
       <small>Фотодневник</small>
     </a>

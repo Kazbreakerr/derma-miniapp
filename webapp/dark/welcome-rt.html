@@ -177,6 +177,8 @@ body{
   .start{ width:92vw; }
 }
 </style>
+<script src="/js/folder-router.js"></script>
+<script src="/js/gates.js"></script>
 </head>
 <body>
   <main class="shell">
@@ -208,14 +210,14 @@ body{
 
     <!-- START -->
     <div class="actions">
-      <button class="start" id="startBtn">Начать</button>
+      <button class="start" id="go-next">Начать</button>
     </div>
   </main>
 
-  <!-- THEME SWITCH -->
-  <div class="theme-float">
-    <button id="themeToggle">🌤 Светлая тема</button>
-  </div>
+ <!-- THEME SWITCH -->
+<div class="theme-float">
+  <button class="theme-btn" data-switch-theme>🌤 Светлая тема</button>
+</div>
 
 <script>
 /* ========= utils ========= */
@@ -271,24 +273,57 @@ if (last){
   if (c) selectRole(c);
 }
 
-/* ========= start routing ========= */
-q('#startBtn').addEventListener('click', () => {
-  const role = (selected && selected.dataset.role) || localStorage.getItem('rt_role') || 'patient';
-
-  if (role === 'doctor'){
-    const done = localStorage.getItem('rt_doctor_done') === '1';
-    location.href = done ? 'doctor-cabinet-mint-rose.html' : 'doctor-onboarding-mint-rose.html';
-  } else {
-    const done = localStorage.getItem('rt_patient_done') === '1';
-    location.href = done ? 'main-dark.html' : 'profile-dark.html';
+/* ========= start routing (DARK only) ========= */
+(async function(){
+  const tg = window.Telegram?.WebApp;
+  const initData = tg?.initData || '';
+  const API_BASE = String(window.API_BASE||'').replace(/\/$/,'');
+  const devTg = new URLSearchParams(location.search).get('tg') || '1002';
+  function api(path,opts={}){
+    let url=/^https?:\/\//i.test(path)?path:(API_BASE+path);
+    if(!initData && devTg) url += (url.includes('?')?'&':'?')+'tg='+encodeURIComponent(devTg);
+    const h={'Content-Type':'application/json'}; if(initData) h['X-Telegram-InitData']=initData;
+    return fetch(url,{...opts,headers:h});
   }
-});
+  let me=null, plan=null;
+  try{ const r=await api('/api/me');   if(r.ok) me  = await r.json(); }catch(_){}
+  try{ const r=await api('/api/plan'); if(r.ok) plan= await r.json(); }catch(_){}
+  const btn=document.getElementById('go-next');
+  btn?.addEventListener('click', ()=>{
+    const qs = location.search || '';
+    const consented = !!me?.accepted_terms_at || localStorage.getItem('derma_consent')==='1';
+    const hasWeight = Number(me?.weight_kg)>0;
+    const hasPlan   = !!plan?.start_date;
+    if (!consented)      location.href = './warnings.html'+qs;
+    else if (!hasWeight) location.href = './profile.html'+qs;
+    else if (!hasPlan)   location.href = './plan.html'+qs;
+    else                 location.href = './main.html'+qs;
+  });
+})();
+</script>
+<!-- ======= theme toggle ======= -->
+<script src="js/app-state.js"></script>
+<script>
+(function () {
+  var btn = document.getElementById('themeToggle');  // id твоей кнопки "Светлая тема"
+  if (!btn) return;
+  var qs = location.search || '';
+  btn.addEventListener('click', function () {
+    try { if (window.AppState) AppState.applyTheme('light'); } catch(e) {}
+    location.href = './welcome-rt-light.html' + qs;
+  });
+})();
+</script>
+<script>
+  // Инициализация автоссылок data-page (если используешь)
+  F.initLinks();
 
-/* ========= theme toggle ========= */
-q('#themeToggle').addEventListener('click', () => {
-  // Переходим на отдельную светлую страницу
-  location.href = 'welcome-rt-light.html';
-});
+  // Переход дальше по онбордингу
+  document.getElementById('go-next')?.addEventListener('click', () => {
+    // Запомним выбранную папку для СЛЕДУЮЩИХ запусков
+    localStorage.setItem('rt.lastTheme', F.themeFromPath());
+    location.href = Gates.afterWelcome();
+  });
 </script>
 
 </body>
