@@ -5,8 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
 <meta name="view-transition" content="same-origin">
 <title>Дневник — запись дня</title>
-<link rel="stylesheet" href="pill-alert.css">
-<script src="pill-alert.js" defer></script>
+
 <script>
 (function(){
   try{
@@ -323,8 +322,7 @@ header::after{
 .compare input[type="range"]{ position:absolute; inset:0; opacity:0 }
 
 
- 
-/* ===== Notes ===== */
+  /* ===== Notes ===== */
   textarea{width:100%; min-height:100px; resize:vertical; background:var(--surface); color:var(--text); border:1px solid var(--border); border-radius:12px; padding:12px}
 
   @media (max-width: 760px){
@@ -337,7 +335,6 @@ header::after{
   }
 
   /* ===== Top day navigation ===== */
-  
   .day-nav{
     display:grid;
     grid-template-columns: 56px minmax(260px, 640px) 56px;
@@ -553,31 +550,6 @@ html::view-transition-new(root){
 /* верхняя строка с заголовком и правой кнопкой */
 .topbar{display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap}
 .topbar .left{display:flex;align-items:center;gap:10px}
-/* Подпись бренда в шапке */
-.brand{
-  font-weight:800;
-  font-size:18px;
-  letter-spacing:.3px;
-  opacity:.95;
-  background: linear-gradient(180deg, rgba(255,255,255,.95), rgba(255,255,255,.78));
-  -webkit-background-clip:text;
-  color: transparent;
-  text-shadow: 0 1px 0 rgba(0,0,0,.25);
-}
-
-/* Крупный заголовок страницы — как в calendar */
-.app-title{
-  font-size: clamp(22px, 4vw, 36px);
-  font-weight:800;
-  letter-spacing:.3px;
-  margin: 6px 0 16px;
-  padding-left: 6px;      /* лёгкий отступ как на «Календарь» */
-  color: #fff;
- text-shadow: 0 1px 0 rgba(0,0,0,.25);
-}
-
-
-
 
 /* кнопка справа — в том же стиле, что "В профиль" */
 .toplink{
@@ -820,12 +792,11 @@ header{
   <div class="wrap">
     <div class="topbar">
   <div class="left">
-  <a href="myprofile.html" style="text-decoration:none;display:inline-flex;align-items:center;gap:8px;padding:10px 12px;border-radius:12px;background:rgba(255,255,255,.06);border:1px solid var(--border);color:#E6EDF3;font-weight:800;">← В профиль</a>
-  <div class="brand">Roaccutane Tracker</div>
-</div>
+    <a href="myprofile.html" style="text-decoration:none;display:inline-flex;align-items:center;gap:8px;padding:10px 12px;border-radius:12px;background:rgba(255,255,255,.06);border:1px solid var(--border);color:#E6EDF3;font-weight:800;">← В профиль</a>
+    <h1>Дневник</h1>
+  </div>
   <a class="toplink" href="calendar.html">В календарь →</a>
 </div>
-    <div class="app-title">Дневник</div><span data-pill-spot></span></div>
     <div class="day-nav">
       <button class="nav-arrow left" id="prevDay" aria-label="Предыдущий день">
         <svg width="18" height="18" viewBox="0 0 24 24" fill="none"><path d="M15 19l-7-7 7-7" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
@@ -1442,9 +1413,7 @@ function applyValence(v, setKnob=true){
     knob.setAttribute('aria-valuenow', Math.round((x-0.5)*200));
   }
   updateColorsByValence(valence);
-  refreshMoodSaveIndicator();
 }
-
 function clientToValence(xClient){
   const rect=bar.getBoundingClientRect(); const left=rect.left+18, right=rect.right-18; const w=right-left;
   return Math.round(clamp((xClient-left)/w,0,1)*100);
@@ -1621,25 +1590,6 @@ window.addEventListener('pointermove', e => {
 window.addEventListener('pointerup', () => dragging = false);
 
 
-
-// === UI helpers for mood save state (persists) ===
-function setMoodSavedUI(saved){
-  try{
-    const btn = document.getElementById('confirmMood');
-    if(!btn) return;
-    btn.textContent = saved ? 'Сохранено ✓' : 'Подтвердить';
-    if(saved) btn.setAttribute('data-saved','1'); else btn.removeAttribute('data-saved');
-  }catch(_){}
-}
-function refreshMoodSaveIndicator(){
-  try{
-    const date = (typeof datePicker!=='undefined' && datePicker && datePicker.value) ? datePicker.value : todayISO();
-    const e = getEntry(date);
-    const same = e && typeof e.wellness==='number' && Math.round(valence) === Math.round(e.wellness);
-    setMoodSavedUI(!!(e && e.wellnessSaved && same));
-  }catch(_){}
-}
-
 /* ===== Notes ===== */
 const notesEl=document.getElementById('notes');
 
@@ -1668,31 +1618,14 @@ function loadIntoUI(dateISO){
   if(entry.photos.body){ bodyThumb.src=entry.photos.body; bodyThumb.hidden=false; } else { bodyThumb.hidden=true; }
   notesEl.value = entry.notes || '';
 
-  setMoodSavedUI(!!entry.wellnessSaved);
-
 refreshCompare();
 }
-
 confirmMood.addEventListener('click',()=>{
-  const date = datePicker.value || todayISO();
-  const entry = getEntry(date);
-  entry.wellness = Math.round(valence);
-  entry.wellnessSaved = true;       // mark as saved to persist UI state
-  putEntry(entry);
-  setMoodSavedUI(true);             // persistently show "Сохранено ✓"
+  const date=datePicker.value||todayISO(); const entry=getEntry(date);
+  entry.wellness = Math.round(valence); putEntry(entry);
+  confirmMood.disabled=true; const old=confirmMood.textContent; confirmMood.textContent='Сохранено ✓'; setTimeout(()=>{confirmMood.disabled=false; confirmMood.textContent=old;},1200);
 });
 const exportBtn = document.getElementById('exportJSON');
-saveAll.addEventListener('click', ()=>{
-  const date = datePicker.value || todayISO();
-  const entry = getEntry(date);
-  entry.notes = (notesEl.value||'').trim();
-  putEntry(entry);
-  try{
-    const old = saveAll.textContent; saveAll.textContent = 'Сохранено ✓';
-    setTimeout(()=>{ saveAll.textContent = old; }, 1200);
-  }catch(_){}
-});
-
 if (exportBtn) exportBtn.addEventListener('click', ()=>{
   const data=localStorage.getItem(KEY) || '{}';
   const a=document.createElement('a'); a.href='data:application/json;charset=utf-8,'+encodeURIComponent(data);

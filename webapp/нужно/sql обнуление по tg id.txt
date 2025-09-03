@@ -1,0 +1,27 @@
+DO $$
+DECLARE
+  v_tg     BIGINT := 1002;   -- ← TG id, поменяй на свой
+  v_old_id BIGINT := 1002;   -- ← старый users.id, если отвязывал tg_id; иначе поставь NULL
+  v_uid    BIGINT;
+BEGIN
+  -- найти текущий user.id по TG (если есть)
+  SELECT id INTO v_uid FROM derma.users WHERE tg_id = v_tg LIMIT 1;
+
+  -- дозы (intakes/dose_logs)
+  IF to_regclass('derma.intakes') IS NOT NULL THEN
+    DELETE FROM derma.intakes WHERE patient_id = v_uid OR patient_id = v_old_id;
+  END IF;
+  IF to_regclass('derma.dose_logs') IS NOT NULL THEN
+    DELETE FROM derma.dose_logs WHERE patient_id = v_uid OR patient_id = v_old_id;
+  END IF;
+
+  -- напоминания (если есть такие таблицы)
+  IF to_regclass('derma.reminders') IS NOT NULL THEN
+    DELETE FROM derma.reminders WHERE patient_id = v_uid OR patient_id = v_old_id;
+  END IF;
+  IF to_regclass('derma.reminders_local') IS NOT NULL THEN
+    DELETE FROM derma.reminders_local WHERE patient_id = v_uid OR patient_id = v_old_id;
+  END IF;
+
+  RAISE NOTICE 'Done: tg=%, uid=%, old_id=%', v_tg, v_uid, v_old_id;
+END $$;

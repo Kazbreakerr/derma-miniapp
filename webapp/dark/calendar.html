@@ -1,6 +1,8 @@
 <!doctype html>
 <html lang="ru">
 <head>
+  <link rel="stylesheet" href="pill-alert.css">
+  <script src="pill-alert.js" defer></script>
   <meta charset="utf-8"/>
   <meta name="viewport" content="width=device-width, initial-scale=1"/>
   <meta name="view-transition" content="same-origin">
@@ -66,6 +68,15 @@
       padding-bottom: max(88px, calc(64px + env(safe-area-inset-bottom))); /* место под таббар */
       box-sizing: border-box;
     }
+    .brand{
+  font-size: clamp(14px, 2.4vw, 18px);
+  font-weight: 800;
+  letter-spacing: .2px;
+  margin: 2px 0 6px;
+  color: var(--text);
+  opacity: .95;
+  text-shadow: 0 1px 0 rgba(0,0,0,.25);
+}
     .app-title{
       font-size: clamp(20px, 4vw, 36px);
       font-weight: 800;
@@ -330,7 +341,7 @@
 }
 
 /* при очень узких экранах можно скрыть смайлик, если нужно */
-// @media (max-width: 360px){ .mood{ display:none; } }
+
 
 
     /* LIGHT palette (оставил для совместимости темы переключателем) */
@@ -523,11 +534,11 @@
 /* === PORTAL (calendar → diary) — плавная и длиннее === */
 :root{
   /* Правишь только эти 5 переменных */
-  --vt-out-ms: 1400ms;      /* старый экран схлопывается */
-  --vt-in-ms:  1500ms;      /* новый экран раскрывается   */
-  --vt-portal-ms: 1600ms;   /* морфинг «двери»            */
-  --vt-ease: cubic-bezier(.25,.8,.25,1); /* плавная ease-in-out */
-  --vt-new-end: 170%;       /* 140–180% — больше = медленнее по краям */
+  --vt-out-ms: 1100ms;      /* старый экран схлопывается */
+  --vt-in-ms:  1200ms;      /* новый экран раскрывается   */
+  --vt-portal-ms: 1300ms;   /* морфинг «двери»            */
+  --vt-ease: cubic-bezier(.22,.61,.36,1); /* плавная ease-in-out */
+  --vt-new-end: 160%;       /* 140–180% — больше = медленнее по краям */
 
   /* не трогаем */
   --portal-x: 50vw; --portal-y: 50vh;
@@ -582,7 +593,9 @@ html::view-transition-new(root){
 </style>
 </head>
 <body data-theme="dark">
-  <div class="app-title">Календарь</div>
+  <div class="brand">Roaccutane Tracker</div>
+
+  <div class="app-title">Календарь<span data-pill-spot></span></div>
 
   <div class="calendar-card" id="card">
     <div class="header">
@@ -620,7 +633,7 @@ html::view-transition-new(root){
   <!-- Bottom navigation -->
   <nav class="tabbar" role="navigation" aria-label="Главная навигация">
     <div class="tabbar-inner">
-      <a class="tab" href="welcome-rt.html" aria-label="Главная">
+      <a class="tab" href="main.html" aria-label="Главная">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M3 10.5 12 3l9 7.5v9a1 1 0 0 1-1 1h-5v-6H9v6H4a1 1 0 0 1-1-1v-9z" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"/></svg>
         <span>Главная</span>
       </a>
@@ -628,11 +641,11 @@ html::view-transition-new(root){
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><rect x="3" y="4" width="18" height="18" rx="3" stroke-width="1.7"/><path d="M16 2v4M8 2v4M3 10h18" stroke-width="1.7" stroke-linecap="round"/></svg>
         <span>Календарь</span>
       </a>
-      <a class="tab" href="profile.html" aria-label="Профиль">
+      <a class="tab" href="myprofile.html" aria-label="Профиль">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><circle cx="12" cy="8" r="4" stroke-width="1.7"/><path d="M4 21a8 8 0 0 1 16 0" stroke-width="1.7" stroke-linecap="round"/></svg>
         <span>Профиль</span>
       </a>
-      <a class="tab" href="photodiary.html" aria-label="Фотодневник">
+      <a class="tab" href="diary.html" aria-label="Фотодневник">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><rect x="3" y="5" width="18" height="14" rx="3" stroke-width="1.7"/><path d="M9 10l2 2 3-3 4 5H6l3-4z" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"/></svg>
         <span>Фотодневник</span>
       </a>
@@ -786,6 +799,36 @@ function moodIndexFromValence(v){
   if (s< 0.66) return 5;
   return 6;
 }
+// === Diary v2 helpers (самочувствие, заметка, побочки) ===
+function loadDiaryV2(){
+  try{
+    const v = JSON.parse(localStorage.getItem('rt.diary.v2')||'null');
+    return (v && v.version===2) ? v : {version:2, entries:{}};
+  }catch(_){ return {version:2, entries:{}}; }
+}
+function textFromV(v){
+  const s=(v-50)/50;
+  if(s<-0.66) return 'Очень плохо';
+  if(s<-0.33) return 'Плохо';
+  if(s<-0.06) return 'Ниже нормы';
+  if(s< 0.06) return 'Нейтрально';
+  if(s< 0.33) return 'Неплохо';
+  if(s< 0.66) return 'Хорошо';
+  return 'Отлично';
+}
+function firstSentenceWithEllipsis(s){
+  if(!s) return '';
+  const t=String(s).trim();
+  const m=t.match(/(.+?[.!?])(\s|$)/);
+  const first=(m?m[1]:t);
+  return first.replace(/\s+$/,'')+'…';
+}
+function sideEffectsCount(entry){
+  const se=(entry&&entry.sideEffects)||{};
+  let n=0; for(const k in se){ if(Number(se[k])>0) n++; }
+  return n;
+}
+
 // цвет свечения по индексу
 function moodGlow(idx){
   switch(idx){
@@ -957,49 +1000,76 @@ cell.addEventListener('click', (e)=>{
 grid.appendChild(cell);
   }
 }
-  
   function openSheet(id, data){
-    const d = data || getDiary()[id] || null;
-    sheetTitle.textContent = new Date(id).toLocaleDateString('ru-RU', { day:'2-digit', month:'long', year:'numeric' });
-    const mood = d ? moodEmoji(d.mood) : '—';
-    const doseText = d && (d.dose || d.mg) ? (d.dose || d.mg) + ' мг' : '—';
-    const notes = d && d.note ? d.note : 'Записей нет. Нажмите и удерживайте день, чтобы открыть дневник.';
-    sheetBody.innerHTML = `
-      <div class="sheet-row"><div class="badge">Самочувствие:</div> <div style="font-size:22px">${mood}</div></div>
-      <div class="sheet-row">
-        <div class="badge">Доза:</div>
-        <strong id="doseVal">${doseText}</strong>
-        <button class="pill right" id="doseEdit" style="padding:8px 12px">Задать</button>
+  const d1 = data || getDiary()[id] || null;        // v1 (для дозы)
+  const db2 = loadDiaryV2();                         // v2
+  const e2  = (db2.entries && db2.entries[id]) || null;
+
+  sheetTitle.textContent = new Date(id).toLocaleDateString('ru-RU',
+    { day:'2-digit', month:'long', year:'numeric' });
+
+  // Валентность -> слово
+  const valence =
+    (e2 && typeof e2.wellness === 'number') ? e2.wellness
+    : (readWellnessV2(id) ?? normalizeMoodV1(d1?.mood));
+  const moodWord = (valence != null) ? textFromV(valence) : '—';
+
+  // Доза
+  const doseText = d1 && (d1.dose || d1.mg) ? (d1.dose || d1.mg) + ' мг' : '—';
+
+  // Комментарий: 1-е предложение из “Заметка дня” + …
+  const noteRaw = (e2 && e2.notes) ? String(e2.notes).trim() : '';
+  const comment = noteRaw ? firstSentenceWithEllipsis(noteRaw)
+                          : 'Записей нет. Нажмите и удерживайте день, чтобы открыть дневник.';
+
+  // Побочки: показываем только если есть (>0)
+  const seCount = sideEffectsCount(e2);
+
+  sheetBody.innerHTML = `
+    <div class="sheet-row">
+      <div class="badge">Самочувствие:</div>
+      <div>
+        <strong>${moodWord}</strong>
+        ${seCount > 0 ? `<span class="muted" style="margin-left:10px">• побочки: ${seCount}</span>` : ''}
       </div>
-      <div class="sheet-row"><div class="badge">Комментарий:</div> <div>${notes}</div></div>
-    `;
-    openDiaryBtn.onclick = ()=> goDiary(id);
-    sheet.classList.add('active'); sheet.setAttribute('aria-hidden', 'false');
-    // Activate scrim and click to close
-    const scrim = document.getElementById('scrim');
-    if (scrim){
-      scrim.classList.add('active'); scrim.setAttribute('aria-hidden','false');
-      scrim.onclick = closeSheet;
-    }
-    // Dose edit button
-    const btn = document.getElementById('doseEdit');
-    if (btn){
-      btn.onclick = ()=>{
-        const cur = d && (d.dose || d.mg) ? Number(d.dose || d.mg) : '';
-        const v = prompt('Введите дозу, мг:', cur);
-        if (v == null) return;
-        const mg = Math.max(0, Math.round(Number(v)));
-        const diary = getDiary();
-        diary[id] = diary[id] || {};
-        diary[id].dose = mg;
-        diary[id].taken = true;
-        delete diary[id].miss;
-        localStorage.setItem('rt.diary.v1', JSON.stringify(diary));
-        render();
-        openSheet(id, diary[id]); // refresh content
-      };
-    }
+    </div>
+
+    <div class="sheet-row">
+      <div class="badge">Доза:</div>
+      <strong id="doseVal">${doseText}</strong>
+      <button class="pill right" id="doseEdit" style="padding:8px 12px">Задать</button>
+    </div>
+
+    <div class="sheet-row">
+      <div class="badge">Комментарий:</div>
+      <div>${comment}</div>
+    </div>
+  `;
+
+  openDiaryBtn.onclick = ()=> goDiary(id);
+  sheet.classList.add('active'); sheet.setAttribute('aria-hidden','false');
+
+  const scrim = document.getElementById('scrim');
+  if (scrim){ scrim.classList.add('active'); scrim.setAttribute('aria-hidden','false'); scrim.onclick = closeSheet; }
+
+  const btn = document.getElementById('doseEdit');
+  if (btn){
+    btn.onclick = ()=>{
+      const cur = d1 && (d1.dose || d1.mg) ? Number(d1.dose || d1.mg) : '';
+      const v = prompt('Введите дозу, мг:', cur);
+      if (v == null) return;
+      const mg = Math.max(0, Math.round(Number(v)));
+      const diary = getDiary();
+      diary[id] = diary[id] || {};
+      diary[id].dose = mg;
+      diary[id].taken = true;
+      delete diary[id].miss;
+      localStorage.setItem('rt.diary.v1', JSON.stringify(diary));
+      render();
+      openSheet(id, diary[id]); // refresh
+    };
   }
+}
 
   
   const closeSheet = ()=>{
@@ -1075,7 +1145,14 @@ grid.appendChild(cell);
     sheet.addEventListener('touchend', end);
   })();
 window.addEventListener('keydown', (e)=>{ if(e.key === 'Escape') closeSheet(); });
-  window.addEventListener('storage', (e)=>{ if(e.key === 'rt.diary.v1'){ render(); } });
+  window.addEventListener('storage', (e)=>{
+ if (e.key === 'rt.diary.v1' || e.key === 'rt.diary.bump' || e.key === 'rt.diary.v2') render();
+
+});
+// на всякий — обновляемся, когда пользователь вернулся на страницу
+window.addEventListener('focus', render);
+document.addEventListener('visibilitychange', ()=>{ if (!document.hidden) render(); });
+
 
   // === RANGE SELECT (п.4): делегирование по .day ===
 grid.addEventListener('pointerdown', (e) => {

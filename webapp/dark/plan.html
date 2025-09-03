@@ -320,19 +320,31 @@ body::before{
 const tgApp=(window.Telegram&&window.Telegram.WebApp)?window.Telegram.WebApp:null;
 tgApp?.ready?.(); tgApp?.expand?.();
 
-const initData=(tgApp&&tgApp.initData)?tgApp.initData:'';
-const API_BASE=String(window.API_BASE||'').replace(/\/$/,'');
-const devTg=new URLSearchParams(location.search).get('tg')||'';
+const initData = tgApp?.initData || '';
+const API_BASE = String(window.API_BASE||'').replace(/\/$/,'');
 
-function api(path,opts={}) {
-  let url=/^https?:\/\//i.test(path)?path:(API_BASE+path);
-  const p=[]; if(!initData&&devTg)p.push('tg='+encodeURIComponent(devTg));
-  p.push('v=plan-2025-08-29');
-  url+=(url.includes('?')?'&':'?')+p.join('&');
-  const h={'Content-Type':'application/json',...(opts.headers||{})};
-  if(initData) h['X-Telegram-InitData']=initData;
-  return fetch(url,{...opts,headers:h});
+// Универсальный dev-режим (как в main/profile)
+const qs = new URLSearchParams(location.search);
+const isTgApp = !!(tgApp && tgApp.initData);
+const isDev   = location.hostname === 'localhost' || qs.has('dev'); // дефолт только в dev
+const DEV_DEFAULT_TG = '1002';
+
+let devTg = qs.get('tg') || localStorage.getItem('rt.dev.tg') || (isDev ? DEV_DEFAULT_TG : '');
+if (devTg) { try { localStorage.setItem('rt.dev.tg', devTg); } catch(_) {} }
+
+function api(path, opts = {}) {
+  let url = /^https?:\/\//i.test(path) ? path : (API_BASE + path);
+  const p = [];
+  if (!isTgApp && devTg) p.push('tg=' + encodeURIComponent(devTg));  // браузер: шлём tg
+  p.push('v=plan-2025-08-29c');
+  url += (url.includes('?') ? '&' : '?') + p.join('&');
+
+  const h = { 'Content-Type':'application/json', ...(opts.headers||{}) };
+  if (isTgApp && initData) h['X-Telegram-InitData'] = initData;      // Telegram: шлём initData
+
+  return fetch(url, { ...opts, headers: h });
 }
+
 
 function storeReminder(on, time){
   try{
@@ -435,7 +447,12 @@ document.getElementById('btnSavePlan').addEventListener('click', async ()=>{
   try{
     const payload = { drug, start_date:start, capsule_mg:undefined };
     const r=await api('/api/plan',{method:'POST', body:JSON.stringify(payload)});
-    if(!r.ok){ msg.textContent='Ошибка '+r.status; return; }
+   if(!r.ok){
+  msg.textContent = (r.status===401)
+    ? 'Ошибка 401 — нет авторизации. Откройте страницу из Telegram или добавьте ?tg=XXXX в адрес.'
+    : ('Ошибка ' + r.status);
+  return;
+}
 
     if(alreadyOn && taken>0){
       msg.textContent='Сохраняю учтённую дозу...'; let seeded=false;

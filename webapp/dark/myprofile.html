@@ -4,10 +4,9 @@
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>Профиль — RoaccutaneTracker</title>
-
-
-  
+  <link rel="stylesheet" href="pill-alert.css">
 <link rel="stylesheet" href="css/ui-tokens.css">
+<script src="pill-alert.js" defer></script>
 <script>
   try{
     const s = JSON.parse(localStorage.getItem('rt.settings')||'{}');
@@ -17,7 +16,6 @@
     document.documentElement.dataset.theme = localStorage.getItem('rt_theme') || 'dark';
   }
 </script>
-
 
   <style>
     :root{
@@ -51,7 +49,32 @@
 
     /* Top bar */
     .topbar{ position:sticky; top:0; z-index:50; display:flex; align-items:center; justify-content:space-between; gap:10px; padding:10px 6px; background:linear-gradient(to bottom, rgba(15,23,34,.9), rgba(15,23,34,.55) 60%, transparent); backdrop-filter: blur(10px); }
-    .title{ font-weight:700; letter-spacing:.2px; font-size:18px; opacity:.9 }
+    .title{ font-weight:700; letter-spacing:.2px; font-size:18px; opacity:.9 }/* Подпись бренда в топбаре */
+.brand{
+  font-weight:800;
+  font-size:18px;
+  letter-spacing:.3px;
+  opacity:.95;
+  background: linear-gradient(180deg, rgba(255,255,255,.95), rgba(255,255,255,.78));
+  -webkit-background-clip:text;
+  color: transparent;
+  text-shadow: 0 1px 0 rgba(0,0,0,.25);
+}
+
+/* Крупный заголовок страницы — как на calendar.html */
+.app-title{
+  font-size: clamp(20px, 4vw, 36px);
+  font-weight:800;
+  letter-spacing:.3px;
+  margin: 6px 0 16px;
+  padding-left: 6px;             /* лёгкий отступ, как на календаре */
+  text-shadow: 0 1px 0 rgba(0,0,0,.2);
+}
+body.light .app-title{
+  color:#0d1220;
+  text-shadow:none;
+}
+
     .iconbtn{ display:inline-flex; align-items:center; justify-content:center; width:42px; height:42px; border-radius:999px; background:linear-gradient(180deg, rgba(255,255,255,.08), rgba(255,255,255,.02)); border:1px solid var(--bd-1); box-shadow:var(--shadow); cursor:pointer }
     .iconbtn.modern{ position:relative; background:linear-gradient(135deg, rgba(35,227,204,.18), rgba(52,137,255,.12)); border:1px solid rgba(255,255,255,.18); }
     .iconbtn.modern:hover{ transform:translateY(-1px) scale(1.02) }
@@ -403,7 +426,7 @@ body.light .diary.is-cta{
 </head>
 <body>
   <div class="topbar">
-    <div class="title">Профиль</div>
+    <div class="brand">Roaccutane Tracker</div>
 <button id="themeToggle" class="theme-toggle small" role="switch" aria-checked="false" aria-label="Переключить тему">
       <span class="scene light">
         <svg viewBox="0 0 260 88" preserveAspectRatio="none" xmlns="http://www.w3.org/2000/svg">
@@ -436,6 +459,7 @@ body.light .diary.is-cta{
   </div>
 
   <main class="container">
+      <div class="app-title">Профиль<span data-pill-spot></span></div>
     <!-- HERO -->
     <section class="card hero" id="hero">
       <div class="hero-head">

@@ -3,6 +3,7 @@
 <head>
   <meta charset="utf-8"/>
   <meta name="viewport" content="width=device-width, initial-scale=1"/>
+  <meta name="view-transition" content="same-origin">
   <title>Календарь — Roaccutane Tracker</title>
   <style>
     :root{
@@ -519,6 +520,65 @@
 @media (max-width: 520px){
   .grid .day .mood{ display:none !important; }
 }
+/* === PORTAL (calendar → diary) — плавная и длиннее === */
+:root{
+  /* Правишь только эти 5 переменных */
+  --vt-out-ms: 1100ms;      /* старый экран схлопывается */
+  --vt-in-ms:  1200ms;      /* новый экран раскрывается   */
+  --vt-portal-ms: 1300ms;   /* морфинг «двери»            */
+  --vt-ease: cubic-bezier(.22,.61,.36,1); /* плавная ease-in-out */
+  --vt-new-end: 160%;       /* 140–180% — больше = медленнее по краям */
+
+  /* не трогаем */
+  --portal-x: 50vw; --portal-y: 50vh;
+}
+
+/* Старый документ — «чёрная дыра» */
+html::view-transition-old(root){
+  animation: vt-out var(--vt-out-ms) var(--vt-ease) both;
+  clip-path: circle(120% at var(--portal-x) var(--portal-y));
+  overflow: clip;
+  will-change: clip-path, filter;
+  filter: brightness(1) contrast(1);
+}
+@keyframes vt-out{
+  0%   { clip-path: circle(120% at var(--portal-x) var(--portal-y)); }
+  100% { clip-path: circle(0%    at var(--portal-x) var(--portal-y)); filter:brightness(.98); }
+}
+
+/* Новый документ — «выныривание» из точки */
+html::view-transition-new(root){
+  animation: vt-in var(--vt-in-ms) var(--vt-ease) both;
+  clip-path: circle(0% at var(--portal-x) var(--portal-y));
+  overflow: clip;
+  will-change: clip-path, opacity, filter;
+  opacity: .98;
+}
+@keyframes vt-in{
+  0%   { clip-path: circle(0% at var(--portal-x) var(--portal-y));   opacity:.96; filter:brightness(.98); }
+  60%  { opacity:1; filter:brightness(1.01); }
+  100% { clip-path: circle(var(--vt-new-end) at var(--portal-x) var(--portal-y)); filter:none; }
+}
+
+/* Морфинг общей «двери» */
+::view-transition-group(portal){
+  animation: portal-warp var(--vt-portal-ms) var(--vt-ease) both;
+  transform-origin: center center;
+  will-change: transform, filter;
+}
+@keyframes portal-warp{
+  0%   { transform: perspective(900px) translateZ(0)    scale(1)    rotate(0);   filter:contrast(1)saturate(1); }
+  40%  { transform: perspective(900px) translateZ(200px) scale(1.10) rotate(6deg); filter:contrast(1.04)saturate(1.06); }
+  100% { transform: perspective(900px) translateZ(620px) scale(26)   rotate(12deg); filter:contrast(1.06)saturate(1.08); }
+}
+
+@media (prefers-reduced-motion: reduce){
+  html::view-transition-old(root),
+  html::view-transition-new(root),
+  ::view-transition-group(portal){ animation:none!important; clip-path:none!important; }
+}
+
+
 </style>
 </head>
 <body data-theme="dark">
@@ -572,7 +632,7 @@
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><circle cx="12" cy="8" r="4" stroke-width="1.7"/><path d="M4 21a8 8 0 0 1 16 0" stroke-width="1.7" stroke-linecap="round"/></svg>
         <span>Профиль</span>
       </a>
-      <a class="tab" href="photodiary.html" aria-label="Фотодневник">
+      <a class="tab" href="diary.html" aria-label="Фотодневник">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><rect x="3" y="5" width="18" height="14" rx="3" stroke-width="1.7"/><path d="M9 10l2 2 3-3 4 5H6l3-4z" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"/></svg>
         <span>Фотодневник</span>
       </a>
@@ -588,6 +648,14 @@
   const $ = (s, r=document) => r.querySelector(s);
   const monthLabel = $("#monthLabel");
   const grid = $("#grid");
+  function setPortalXYFromEvent(ev){
+  const p = (ev && ev.touches && ev.touches[0]) ? ev.touches[0] : ev;
+  const x = Math.round((p?.clientX||0) + window.scrollX);
+  const y = Math.round((p?.clientY||0) + window.scrollY);
+  document.documentElement.style.setProperty('--portal-x', x + 'px');
+  document.documentElement.style.setProperty('--portal-y', y + 'px');
+  try{ sessionStorage.setItem('portalXY', x+','+y); }catch(_){}
+}
   const weekdayRow = $("#weekdayRow");
   const sheet = $("#sheet");
   const sheetTitle = $("#sheetTitle");
@@ -630,11 +698,9 @@ function highlightRange(a, b) {
 
 // сохранить дневник (тот же ключ, что и в getDiary)
 function saveDiary(d) {
-    const s = JSON.stringify(d);
-    localStorage.setItem('rt.diary.v1', s);
-    // "пингуем" вторым ключом, чтобы main точно отреагировал
-    try { localStorage.setItem('rt.diary.bump', String(Date.now())); } catch(_) {}
-  }
+  localStorage.setItem('rt.diary.v1', JSON.stringify(d));
+}
+
 // завершение drag: массовая установка дозы
 function finalizeRange() {
   drag.active = false;
@@ -719,6 +785,43 @@ function moodIndexFromValence(v){
   if (s< 0.33) return 4;
   if (s< 0.66) return 5;
   return 6;
+}
+
+// === Diary v2 helpers (самочувствие, заметка, побочки) ===
+function loadDiaryV2(){
+  try{
+    const v = JSON.parse(localStorage.getItem('rt.diary.v2')||'null');
+    return (v && v.version===2) ? v : {version:2, entries:{}};
+  }catch(_){ return {version:2, entries:{}}; }
+}
+
+// Из дневника (v2) → словесная оценка (те же пороги, что в diary.html)
+function textFromV(v){
+  const s = (v-50)/50;
+  if (s < -0.66) return 'Очень плохо';
+  if (s < -0.33) return 'Плохо';
+  if (s < -0.06) return 'Ниже нормы';
+  if (s <  0.06) return 'Нейтрально';
+  if (s <  0.33) return 'Неплохо';
+  if (s <  0.66) return 'Хорошо';
+  return 'Отлично';
+}
+
+// Первое предложение заметки + многоточие
+function firstSentenceWithEllipsis(s){
+  if(!s) return '';
+  const t = String(s).trim();
+  const m = t.match(/(.+?[.!?])(\s|$)/);
+  const first = (m ? m[1] : t);
+  return first.replace(/\s+$/,'') + '…';
+}
+
+// Сколько побочек выставлено (>0)
+function sideEffectsCount(entry){
+  const se = (entry && entry.sideEffects) || {};
+  let n = 0;
+  for (const k in se){ if (Number(se[k]) > 0) n++; }
+  return n;
 }
 // цвет свечения по индексу
 function moodGlow(idx){
@@ -828,17 +931,35 @@ cell.innerHTML = `
 `;
 
 
-    // Короткий тап — снизу «краткая инфа», долгий — открыть дневник
-    let pressTimer = null, longPressed = false;
-    cell.addEventListener('pointerdown', ()=>{
-      longPressed = false;
-      cell.classList.add('pressing');
-      pressTimer = setTimeout(()=>{ longPressed = true; goDiary(id); }, 480);
-    });
-    const clear = ()=>{ cell.classList.remove('pressing'); clearTimeout(pressTimer); };
-    cell.addEventListener('pointerleave', clear);
-    cell.addEventListener('pointercancel', clear);
-    cell.addEventListener('pointerup', ()=>{
+   // Короткий тап — снизу «краткая инфа», долгий — портал→дневник
+let pressTimer = null, longPressed = false;
+
+cell.addEventListener('pointerdown', (e)=>{
+  longPressed = false;
+  cell.classList.add('pressing');
+
+  // 1) Якорим shared-element и точку портала
+  cell.style.viewTransitionName = 'portal';
+  setPortalXYFromEvent(e);
+
+  // 2) Долгий тап — прыжок в дневник
+  pressTimer = setTimeout(()=>{
+    longPressed = true;
+    goDiary(id);                // навигация (мета view-transition уже включена)
+  }, 480);
+});
+
+const clear = ()=>{
+  cell.classList.remove('pressing');
+  clearTimeout(pressTimer);
+  // если это был короткий тап — очищаем имя группы, чтобы не было ложных переходов
+  if(!longPressed) cell.style.viewTransitionName = '';
+};
+
+cell.addEventListener('pointerleave', clear);
+cell.addEventListener('pointercancel', clear);
+
+cell.addEventListener('pointerup', (e)=>{
   clear();
   if(!longPressed){
     grid.querySelectorAll('.day.selected').forEach(el => el.classList.remove('selected'));
@@ -848,38 +969,92 @@ cell.innerHTML = `
   }
 });
 
-    grid.appendChild(cell);
+// Клик-фолбэк для некоторых мобильных WebView
+cell.addEventListener('click', (e)=>{
+  if (longPressed) return;
+  const sheetEl = document.getElementById('sheet');
+  if (sheetEl && sheetEl.classList.contains('active')) return;
+  grid.querySelectorAll('.day.selected').forEach(el => el.classList.remove('selected'));
+  const cur = grid.querySelector(`.day[data-date="${id}"]`);
+  if (cur) cur.classList.add('selected');
+  openSheet(id, data);
+});
+
+// мобильный надёжный путь: tap → click (если long-press не сработал)
+cell.addEventListener('click', (e)=>{
+  if (longPressed) return; // уже ушли в дневник
+  // если уже открыто — не открываем второй раз (после pointerup)
+  const sheetEl = document.getElementById('sheet');
+  if (sheetEl && sheetEl.classList.contains('active')) return;
+  grid.querySelectorAll('.day.selected').forEach(el => el.classList.remove('selected'));
+  const cur = grid.querySelector(`.day[data-date="${id}"]`);
+  if (cur) cur.classList.add('selected');
+  openSheet(id, data);
+});
+grid.appendChild(cell);
   }
 }
   
+  
   function openSheet(id, data){
-    const d = data || getDiary()[id] || null;
-    sheetTitle.textContent = new Date(id).toLocaleDateString('ru-RU', { day:'2-digit', month:'long', year:'numeric' });
-    const mood = d ? moodEmoji(d.mood) : '—';
-    const doseText = d && (d.dose || d.mg) ? (d.dose || d.mg) + ' мг' : '—';
-    const notes = d && d.note ? d.note : 'Записей нет. Нажмите и удерживайте день, чтобы открыть дневник.';
+    const d1 = data || getDiary()[id] || null;        // v1 (для дозы/флагов)
+    const db2 = loadDiaryV2();                        // v2
+    const e2  = (db2.entries && db2.entries[id]) || null;
+
+    sheetTitle.textContent = new Date(id).toLocaleDateString('ru-RU',
+      { day:'2-digit', month:'long', year:'numeric' });
+
+    // Валентность -> слово как в дневнике
+    const valence =
+      (e2 && typeof e2.wellness === 'number') ? e2.wellness
+      : (readWellnessV2(id) ?? normalizeMoodV1(d1?.mood));   // резерв
+    const moodWord = (valence != null) ? textFromV(valence) : '—';
+
+    // Доза
+    const doseText = d1 && (d1.dose || d1.mg) ? (d1.dose || d1.mg) + ' мг' : '—';
+
+    // Комментарий: первое предложение из "Заметка дня" + многоточие
+    const noteRaw = (e2 && e2.notes) ? String(e2.notes).trim() : '';
+    const comment = noteRaw ? firstSentenceWithEllipsis(noteRaw)
+                            : 'Записей нет. Нажмите и удерживайте день, чтобы открыть дневник.';
+
+    // Побочки: если есть хотя бы одна (>0), показываем счётчик
+    const seCount = sideEffectsCount(e2);
+
     sheetBody.innerHTML = `
-      <div class="sheet-row"><div class="badge">Самочувствие:</div> <div style="font-size:22px">${mood}</div></div>
+      <div class="sheet-row">
+        <div class="badge">Самочувствие:</div>
+        <div>
+          <strong>${moodWord}</strong>
+          ${seCount > 0 ? `<span class="muted" style="margin-left:10px">• побочки: ${seCount}</span>` : ''}
+        </div>
+      </div>
+
       <div class="sheet-row">
         <div class="badge">Доза:</div>
         <strong id="doseVal">${doseText}</strong>
         <button class="pill right" id="doseEdit" style="padding:8px 12px">Задать</button>
       </div>
-      <div class="sheet-row"><div class="badge">Комментарий:</div> <div>${notes}</div></div>
+
+      <div class="sheet-row">
+        <div class="badge">Комментарий:</div>
+        <div>${comment}</div>
+      </div>
     `;
+
     openDiaryBtn.onclick = ()=> goDiary(id);
     sheet.classList.add('active'); sheet.setAttribute('aria-hidden', 'false');
-    // Activate scrim and click to close
+
     const scrim = document.getElementById('scrim');
     if (scrim){
       scrim.classList.add('active'); scrim.setAttribute('aria-hidden','false');
       scrim.onclick = closeSheet;
     }
-    // Dose edit button
+
     const btn = document.getElementById('doseEdit');
     if (btn){
       btn.onclick = ()=>{
-        const cur = d && (d.dose || d.mg) ? Number(d.dose || d.mg) : '';
+        const cur = d1 && (d1.dose || d1.mg) ? Number(d1.dose || d1.mg) : '';
         const v = prompt('Введите дозу, мг:', cur);
         if (v == null) return;
         const mg = Math.max(0, Math.round(Number(v)));
@@ -895,7 +1070,6 @@ cell.innerHTML = `
     }
   }
 
-  
   const closeSheet = ()=>{
     const scrim = document.getElementById('scrim');
     sheet.classList.remove('active'); sheet.setAttribute('aria-hidden','true');
@@ -969,7 +1143,13 @@ cell.innerHTML = `
     sheet.addEventListener('touchend', end);
   })();
 window.addEventListener('keydown', (e)=>{ if(e.key === 'Escape') closeSheet(); });
-  window.addEventListener('storage', (e)=>{ if(e.key === 'rt.diary.v1'){ render(); } });
+  window.addEventListener('storage', (e)=>{
+  if (e.key === 'rt.diary.v1' || e.key === 'rt.diary.bump' || e.key === 'rt.diary.v2') render();
+});
+// на всякий — обновляемся, когда пользователь вернулся на страницу
+window.addEventListener('focus', render);
+document.addEventListener('visibilitychange', ()=>{ if (!document.hidden) render(); });
+
 
   // === RANGE SELECT (п.4): делегирование по .day ===
 grid.addEventListener('pointerdown', (e) => {
@@ -1001,7 +1181,7 @@ document.addEventListener('pointerup', finishDrag);
   render();
 })();
 
-
 </script>
+
 </body>
 </html>

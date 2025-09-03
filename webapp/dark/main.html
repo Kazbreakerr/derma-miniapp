@@ -1,13 +1,20 @@
 <!doctype html>
 <html lang="ru">
 <head>
+  <link rel="stylesheet" href="pill-alert.css">
+  <script src="pill-alert.js" defer></script>
+  <script>
+try{
+  const s = JSON.parse(localStorage.getItem('rt.settings')||'{}');
+  document.documentElement.dataset.theme = s?.theme || 'dark';
+}catch(e){
+  document.documentElement.dataset.theme = 'dark';
+}
+</script>
   <meta charset="utf-8" />
   <link rel="stylesheet" href="css/ui-tokens.css">
-<script>document.documentElement.dataset.theme='dark';</script>
 <script src="js/app-state.js"></script>
 
-
-  <script src="js/app-state.js"></script>
   <script>
   // Инициализация всех переключателей темы на странице
   document.addEventListener('DOMContentLoaded', () => {
@@ -32,10 +39,7 @@ document.documentElement.dataset.theme = cur;
   });
 </script>
 
-
   <script>try{ if(localStorage.getItem('derma_consent')!=='1'){ location.replace('./warnings.html' + (location.search||'')); } }catch(_){}
-
-
 // --- Pill burst animation on Add button ---
 (function setupPillBurst(){
   const btn = document.getElementById('save');
@@ -136,12 +140,6 @@ document.documentElement.dataset.theme = cur;
 <link rel="stylesheet" href="css/ui-tokens.css">
 <link rel="stylesheet" href="css/neumorph-ui.css">
 <link rel="stylesheet" href="css/skeleton.css">
-<script>
-  try{
-    const s = JSON.parse(localStorage.getItem('rt.settings')||'{}');
-    document.documentElement.dataset.theme = s?.theme || 'dark';
-  }catch(e){ document.documentElement.dataset.theme = 'dark'; }
-</script>
 
 
   <style>
@@ -184,7 +182,7 @@ document.documentElement.dataset.theme = cur;
     /* === PROGRESS RINGS LAYOUT (3 кольца) === */
     .rings-rail{position:relative;height:220px;margin:6px 0 0}
     .ring{position:absolute;left:50%;top:50%;transform-origin:center;transition:transform 250ms ease-out, opacity 200ms ease-out}
-    .ring svg{width:170px;height:170px;display:block}
+    .ring svg{width:170px;height:170px;display:block;overflow:visible}
     .ring .pct{position:absolute;left:0;right:0;top:0;bottom:0;display:flex;align-items:center;justify-content:center;font-weight:800;font-size:22px;text-shadow:0 2px 8px rgba(0,0,0,.35)}
     .ring.small svg{width:96px;height:96px}
     .ring.small .pct{font-size:12px;color:var(--muted-ink)}
@@ -207,7 +205,20 @@ document.documentElement.dataset.theme = cur;
   transition: stroke-dashoffset .8s cubic-bezier(.2,.8,.2,1);
   filter: url(#ringGlow);
 }
-.ring svg{ filter: url(#ringInner); } /* объём трека */
+/* === POLISH: более объёмные кольца === */
+.ring svg{
+  filter:
+    drop-shadow(0 12px 24px rgba(0,0,0,.35))
+    drop-shadow(0 2px 6px rgba(255,255,255,.06));
+}
+
+/* Толщина дуг: центральное кольцо толще, боковые тоньше */
+.ring:not(.small) circle.track,
+.ring:not(.small) circle[data-arc]{ stroke-width:22; }
+
+.ring.small circle.track,
+.ring.small circle[data-arc]{ stroke-width:12; }
+/* .ring svg{ filter: url(#ringInner); } */
     
 
     /* === BOTTOM NAV WITH ICONS === */
@@ -216,10 +227,87 @@ document.documentElement.dataset.theme = cur;
     .bottom-nav a.active{opacity:1;color:#E8F0FF;background:#111b2b}
     .bottom-nav svg{width:22px;height:22px;display:block}
 
-    /* segmented control */
-    .seg{display:inline-flex;background:#0E1726;border:1px solid var(--border);border-radius:12px;overflow:hidden}
-    .seg button{padding:8px 12px;border:0;background:transparent;color:var(--text-mid);cursor:pointer;font-weight:700}
-    .seg button.active{background:linear-gradient(135deg,#22D3EE 0%, #14B8A6 100%);color:#07121F}
+    /* === Segmented control — 3D / Neumorph (в твоём стиле) === */
+.seg{
+  display:grid;
+  grid-template-columns:repeat(3,1fr);
+  gap:8px;
+  padding:6px;
+  border-radius:14px;
+  background:linear-gradient(180deg,#0F1A2B,#0C1625);
+  border:1px solid var(--nm-border,rgba(255,255,255,.08));
+  box-shadow:
+    inset 0 1px 0 rgba(255,255,255,.06),
+    inset 0 -1px 0 rgba(0,0,0,.35),
+    6px 8px 16px rgba(0,0,0,.35);
+}
+
+.seg button{
+  appearance:none; border:none; cursor:pointer;
+  min-width:0; height:38px; padding:0 14px;
+  border-radius:12px; font-weight:800; letter-spacing:.2px;
+  color:var(--text-high);
+
+  /* объёмная «плитка» */
+  background:
+    radial-gradient(120% 140% at 25% 0%, rgba(255,255,255,.14), rgba(255,255,255,0) 40%),
+    linear-gradient(180deg,#0F1A2B,#0B1422);
+  border:1px solid var(--nm-border,rgba(255,255,255,.10));
+  box-shadow:
+    6px 8px 16px rgba(0,0,0,.45),
+    -6px -6px 14px rgba(255,255,255,.03),
+    inset 0 1px 0 rgba(255,255,255,.05);
+
+  transition:
+    transform .08s ease,
+    box-shadow .12s ease,
+    filter .15s ease,
+    background .2s ease;
+}
+.seg button:hover{ filter:brightness(1.05); }
+.seg button:active{
+  transform:translateY(1px);
+  box-shadow:inset 0 2px 8px rgba(0,0,0,.45), inset 0 0 0 1px rgba(255,255,255,.04);
+}
+.seg button:focus-visible{
+  outline:none;
+  box-shadow:
+    0 0 0 2px var(--focus-ring,#93C5FD),
+    6px 8px 16px rgba(0,0,0,.45),
+    inset 0 1px 0 rgba(255,255,255,.06);
+}
+
+/* Активная — «нажата» и светится бирюзовым градиентом */
+.seg button.active{
+  color:#06121F;
+  background:
+    radial-gradient(140% 160% at 20% 0%, rgba(255,255,255,.5), rgba(255,255,255,0) 40%),
+    linear-gradient(135deg,#22D3EE 0%, #14B8A6 100%);
+  border-color:transparent;
+  box-shadow:
+    0 10px 24px rgba(20,184,166,.35),
+    inset 0 2px 6px rgba(255,255,255,.35),
+    inset 0 -8px 16px rgba(0,0,0,.28);
+}
+
+/* Светлая тема — мягкая светлая неоморфия */
+body.light .seg{
+  background:linear-gradient(180deg,#f4f7fb,#e9eef6);
+  border-color:rgba(0,0,0,.08);
+  box-shadow:inset 0 1px 0 rgba(255,255,255,.8), 6px 8px 16px rgba(0,0,0,.06);
+}
+body.light .seg button{
+  color:#0d1220;
+  background:
+    radial-gradient(120% 140% at 25% 0%, rgba(255,255,255,.65), rgba(255,255,255,0) 42%),
+    linear-gradient(180deg,#ffffff,#eef2f8);
+  border-color:rgba(0,0,0,.08);
+  box-shadow:
+    6px 8px 14px rgba(0,0,0,.08),
+    -6px -6px 14px rgba(255,255,255,.9),
+    inset 0 1px 0 rgba(255,255,255,.9);
+}
+
 
     /* === CALENDAR PREVIEW (неделя, свайп/стрелки) === */
     .preview-wrap{position:relative;margin-top:10px}
@@ -627,32 +715,47 @@ document.documentElement.dataset.theme = cur;
 }
 
 
-/* === Animal Progress Bar (snail/turtle/hare) === */
+/* === Animal Progress Bar — 3D трек + реалистичные иконки === */
 .animal-wrap{ margin-top:10px }
 .animal-track{
   --w: 0%;
-  position:relative; height:18px; border-radius:999px;
-  background:rgba(255,255,255,.06);
+  position:relative; height:22px; border-radius:999px; overflow:hidden;
+  background: linear-gradient(180deg,#0F1A2B,#0B1422);
   border:1px solid var(--border);
-  box-shadow:inset 0 0 0 1px rgba(255,255,255,.04), 0 6px 12px rgba(0,0,0,.28);
-  overflow:hidden;
+  box-shadow:
+    inset 0 1px 0 rgba(255,255,255,.07),
+    inset 0 -1px 0 rgba(0,0,0,.45),
+    0 10px 22px rgba(0,0,0,.28);
 }
 .animal-fill{
   position:absolute; inset:0 auto 0 0; width:var(--w);
-  background:linear-gradient(90deg,#22D3EE 0%, #14B8A6 100%);
+  background: linear-gradient(90deg,#22D3EE 0%, #14B8A6 100%);
+  box-shadow:
+    0 8px 18px rgba(20,184,166,.35),
+    inset 0 2px 4px rgba(255,255,255,.35),
+    inset 0 -8px 12px rgba(0,0,0,.2);
   transition: width .6s cubic-bezier(.2,.7,.2,1);
 }
-.animal-emoji{
+.animal-fill .spark{
+  position:absolute; right:10px; top:50%; width:46px; height:46px; transform:translateY(-50%);
+  background: radial-gradient(closest-side, rgba(255,255,255,.28), rgba(255,255,255,0) 70%);
+  filter: blur(6px); pointer-events:none; opacity:.7;
+}
+.animal-tip{
   position:absolute; left:var(--w); top:50%; transform:translate(-50%,-50%);
-  font-size:22px; line-height:1;
-  filter: drop-shadow(0 3px 6px rgba(0,0,0,.35));
+  width:20px; height:20px; border-radius:50%;
+  background: radial-gradient(circle at 35% 35%, #fff 0%, #f1f7ff 20%, #9ff1f0 55%, #00c6c2 100%);
+  box-shadow: 0 6px 16px rgba(0,0,0,.35), 0 0 0 3px rgba(255,255,255,.12) inset;
   transition:left .6s cubic-bezier(.2,.7,.2,1);
-  animation: animal-bob 2.2s ease-in-out infinite;
 }
-@keyframes animal-bob{
-  0%,100%{ transform: translate(-50%, -50%) scaleX(-1); }
-  50%    { transform: translate(-50%, -52%) scaleX(-1); }
+.animal-icon{
+  position:absolute; left:var(--w); top:50%; transform:translate(-50%,-58%);
+  width:34px; height:34px; color:#a9b6cb;
+  filter: drop-shadow(0 4px 8px rgba(0,0,0,.35));
+  transition:left .6s cubic-bezier(.2,.7,.2,1);
 }
+.animal-icon use{ color:inherit; }
+
 
 /* === Page Fade&Slide transitions === */
 body.page-enter{
@@ -771,16 +874,18 @@ body.light .tab.active{ color:#0d1220; background: linear-gradient(180deg, rgba(
   <!-- defs для новых колец прогресса -->
 <svg width="0" height="0" style="position:absolute;left:-9999px;top:-9999px" aria-hidden="true" focusable="false">
   <defs>
-    <!-- трек -->
-    <linearGradient id="ringTrackGrad" x1="0" y1="0" x2="1" y2="1">
-      <stop offset="0" stop-color="#1c2636"/>
-      <stop offset="1" stop-color="#0f1726"/>
-    </linearGradient>
-    <!-- активная дуга -->
-    <linearGradient id="ringArcGrad" x1="0" y1="0" x2="1" y2="1">
-      <stop offset="0" stop-color="#13ef8b"/>
-      <stop offset="1" stop-color="#11d1f0"/>
-    </linearGradient>
+  <!-- трек -->
+<linearGradient id="ringTrackGrad" x1="0" y1="0" x2="110" y2="110" gradientUnits="userSpaceOnUse">
+  <stop offset="0" stop-color="#1c2636"/>
+  <stop offset="1" stop-color="#0f1726"/>
+</linearGradient>
+
+<!-- активная дуга -->
+<linearGradient id="ringArcGrad" x1="0" y1="0" x2="110" y2="110" gradientUnits="userSpaceOnUse">
+  <stop offset="0" stop-color="#13ef8b"/>
+  <stop offset="1" stop-color="#11d1f0"/>
+</linearGradient>
+
     <!-- внешнее мягкое свечение -->
     <filter id="ringGlow" x="-40%" y="-40%" width="180%" height="180%">
       <feGaussianBlur in="SourceGraphic" stdDeviation="3" result="b"/>
@@ -794,10 +899,40 @@ body.light .tab.active{ color:#0d1220; background: linear-gradient(180deg, rgba(
         values="0 0 0 0 0  0 0 0 0 0  0 0 0 0 0  0 0 0 .75 0" result="shadow"/>
       <feMerge><feMergeNode in="shadow"/><feMergeNode in="SourceGraphic"/></feMerge>
     </filter>
+    <!-- === Animal icons (snail/turtle/hare) === -->
+<symbol id="ani-snail" viewBox="0 0 64 40">
+  <g fill="currentColor">
+    <circle cx="22" cy="23" r="10"/>
+    <path d="M16 23a6 6 0 1 1 12 0" fill="none" stroke="#cdd6e5" stroke-width="2" stroke-linecap="round"/>
+    <rect x="26" y="19" rx="8" ry="8" width="30" height="14"/>
+    <circle cx="56" cy="24" r="3"/>
+    <path d="M58 20l4 -4M58 20l-4 -4" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+  </g>
+</symbol>
+
+<symbol id="ani-turtle" viewBox="0 0 64 40">
+  <g fill="currentColor">
+    <ellipse cx="30" cy="22" rx="18" ry="12"/>
+    <rect x="46" y="20" width="8" height="5" rx="2.5"/>
+    <circle cx="14" cy="27" r="3"/><circle cx="21" cy="30" r="3"/>
+    <circle cx="39" cy="30" r="3"/><circle cx="46" cy="27" r="3"/>
+    <path d="M18 22h24M22 17l-4 10M42 17l4 10" stroke="#cdd6e5" stroke-width="2" opacity=".45"/>
+  </g>
+</symbol>
+
+<symbol id="ani-hare" viewBox="0 0 64 40">
+  <g fill="currentColor">
+    <ellipse cx="28" cy="26" rx="12" ry="9"/>
+    <circle cx="44" cy="22" r="7"/>
+    <path d="M46 7c5 8 5 10 1 12M38 8c-2 9 0 12 5 14" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round"/>
+    <circle cx="47" cy="21" r="1.3" fill="#0b1220"/>
+  </g>
+</symbol>
+
   </defs>
 </svg>
   <div class="wrap">
-    <h1>Roaccutane Tracker</h1>
+    <h1>Roaccutane Tracker</h1>  <span data-pill-spot></span>
 
     <section class="card clickable" id="profileHeader" aria-label="Профиль">
       <div class="glow"></div>
@@ -830,9 +965,8 @@ body.light .tab.active{ color:#0d1220; background: linear-gradient(180deg, rgba(
       <div class="rings-rail" id="ringsRail" aria-label="Переключатель цели дозы">
         <div class="ring pos-left small" data-mode="min">
           <button type="button" aria-label="Минимальная доза">
-            <svg viewBox="0 0 110 110">
-              <svg viewBox="0 0 110 110">
-  <!-- r=46, толстый штрих 18px -->
+            
+             <svg viewBox="0 0 110 110">
   <circle class="track" cx="55" cy="55" r="46"
           stroke="url(#ringTrackGrad)" stroke-width="18" fill="none"
           filter="url(#ringInner)"/>
@@ -841,6 +975,7 @@ body.light .tab.active{ color:#0d1220; background: linear-gradient(180deg, rgba(
           stroke-linecap="round" stroke-dasharray="289" stroke-dashoffset="289"
           filter="url(#ringGlow)"/>
 </svg>
+
 
             </svg>
             <div class="pct" data-pct></div>
@@ -848,9 +983,8 @@ body.light .tab.active{ color:#0d1220; background: linear-gradient(180deg, rgba(
         </div>
 
         <div class="ring pos-center" data-mode="opt">
-          <svg viewBox="0 0 110 110">
-            <svg viewBox="0 0 110 110">
-  <!-- r=46, толстый штрих 18px -->
+          
+           <svg viewBox="0 0 110 110">
   <circle class="track" cx="55" cy="55" r="46"
           stroke="url(#ringTrackGrad)" stroke-width="18" fill="none"
           filter="url(#ringInner)"/>
@@ -859,6 +993,8 @@ body.light .tab.active{ color:#0d1220; background: linear-gradient(180deg, rgba(
           stroke-linecap="round" stroke-dasharray="289" stroke-dashoffset="289"
           filter="url(#ringGlow)"/>
 </svg>
+
+
 
           </svg>
           <div class="pct" data-pct></div>
@@ -866,9 +1002,8 @@ body.light .tab.active{ color:#0d1220; background: linear-gradient(180deg, rgba(
 
         <div class="ring pos-right small" data-mode="max">
           <button type="button" aria-label="Максимальная доза">
-            <svg viewBox="0 0 110 110">
+           
               <svg viewBox="0 0 110 110">
-  <!-- r=46, толстый штрих 18px -->
   <circle class="track" cx="55" cy="55" r="46"
           stroke="url(#ringTrackGrad)" stroke-width="18" fill="none"
           filter="url(#ringInner)"/>
@@ -877,6 +1012,7 @@ body.light .tab.active{ color:#0d1220; background: linear-gradient(180deg, rgba(
           stroke-linecap="round" stroke-dasharray="289" stroke-dashoffset="289"
           filter="url(#ringGlow)"/>
 </svg>
+
 
             </svg>
             <div class="pct" data-pct></div>
@@ -889,13 +1025,22 @@ body.light .tab.active{ color:#0d1220; background: linear-gradient(180deg, rgba(
         <div id="goalsLine"><b>Цели:</b> 120 / <b>135</b> / 150 мг/кг <span id="goalsByWeight" class="muted"></span></div>
         <div id="animalProgress" class="animal-wrap" aria-label="Прогресс курса">
   <div class="animal-track">
-    <div class="animal-fill"></div>
-    <div class="animal-emoji" id="animalEmoji" aria-hidden="true">🐌</div>
+    <div class="animal-fill"><span class="spark"></span></div>
+    <div class="animal-scale" id="animalScale">
+  <span data-val="120"><i></i><b>120</b></span>
+  <span data-val="135"><i></i><b>135</b></span>
+  <span data-val="150"><i></i><b>150</b></span>
+</div>
+    <svg class="animal-icon" id="animalIcon" viewBox="0 0 64 40" aria-hidden="true">
+      <use id="animalUse" href="#ani-snail"></use>
+    </svg>
+    <div class="animal-tip" aria-hidden="true"></div>
   </div>
   <div class="muted" style="margin-top:6px">
     <span id="animalPct">0%</span> · к цели <span id="animalTargetKg">135</span> мг/кг
   </div>
 </div>
+
         <div id="noWeightHint" class="muted" style="display:none;margin-top:8px">Укажите вес в профиле, чтобы увидеть прогресс по целям.</div>
       </div>
     </section>
@@ -1066,22 +1211,36 @@ body.light .tab.active{ color:#0d1220; background: linear-gradient(180deg, rgba(
 </script>
 
   <script>
-    const tgApp = (window.Telegram && window.Telegram.WebApp) ? window.Telegram.WebApp : null;
-    tgApp?.ready?.(); tgApp?.expand?.();
-    const initUser = tgApp?.initDataUnsafe?.user || null;
-    const initData = tgApp?.initData || '';
+    // Telegram context
+  const tgApp = (window.Telegram && window.Telegram.WebApp) ? window.Telegram.WebApp : null;
+  tgApp?.ready?.(); tgApp?.expand?.();
+  const initUser = tgApp?.initDataUnsafe?.user || null;
+  const initData = tgApp?.initData || '';
 
-    // API helper
-    const API_BASE = String(window.API_BASE||'').replace(/\/$/, '');
-    const devTg = new URLSearchParams(location.search).get('tg') || '1002';
-    function api(path, opts={}) {
-      let url = /^https?:\/\//i.test(path) ? path : (API_BASE + path);
-      const params = []; if (!initData && devTg) params.push('tg='+encodeURIComponent(devTg)); params.push('v=main-2025-08-27b');
-      url += (url.includes('?') ? '&' : '?') + params.join('&');
-      const headers = {'Content-Type':'application/json', ...(opts.headers||{})};
-      if (initData) headers['X-Telegram-InitData'] = initData;
-      return fetch(url, {...opts, headers});
-    }
+  // API helper base
+  const API_BASE = String(window.API_BASE||'').replace(/\/$/, '');
+
+  // Unified dev mode
+  const qs = new URLSearchParams(location.search);
+  const isTgApp = !!(tgApp && tgApp.initData);
+  const isDev   = location.hostname === 'localhost' || qs.has('dev'); // дефолт только в dev
+  const DEV_DEFAULT_TG = '1002';
+
+  let devTg = qs.get('tg') || localStorage.getItem('rt.dev.tg') || (isDev ? DEV_DEFAULT_TG : '');
+  if (devTg) { try { localStorage.setItem('rt.dev.tg', devTg); } catch(_) {} }
+
+  function api(path, opts = {}) {
+    let url = /^https?:\/\//i.test(path) ? path : (API_BASE + path);
+    const params = [];
+    if (!isTgApp && devTg) params.push('tg=' + encodeURIComponent(devTg)); // браузер: шлём tg
+    params.push('v=main-2025-08-27b');
+    url += (url.includes('?') ? '&' : '?') + params.join('&');
+
+    const headers = { 'Content-Type':'application/json', ...(opts.headers||{}) };
+    if (isTgApp && initData) headers['X-Telegram-InitData'] = initData; // в Telegram: initData
+
+    return fetch(url, { ...opts, headers });
+  }
 
     // Utils
     function initials(name){ return (name||'').trim().split(/\s+/).slice(0,2).map(s=>s[0]||'').join('').toUpperCase() || 'U'; }
@@ -1096,6 +1255,35 @@ body.light .tab.active{ color:#0d1220; background: linear-gradient(180deg, rgba(
 function diaryGet(){ try{ return JSON.parse(localStorage.getItem('rt.diary.v1')||'{}'); }catch(_){ return {}; } }
 function diarySave(d){ try{ localStorage.setItem('rt.diary.v1', JSON.stringify(d)); }catch(_){}
 }
+// Полная очистка локального дневника и связанных кэшей
+function wipeLocalDiary(reason = 'manual-reset'){
+  const KEYS = [
+    'rt.diary.v1',     // дозы по дням
+    'rt.diary.v2',     // самочувствие/фото
+    'rt.diary.bump',   // служебный триггер
+    'derma_today_iso',
+    'derma_today_mg'
+  ];
+  try { KEYS.forEach(k => localStorage.removeItem(k)); } catch(_) {}
+
+  // ОБЯЗАТЕЛЬНО: чистим оперативный кэш главной
+  try { window.DOSES = []; } catch(_) {}
+
+  // Перерисовываем всё, что может показывать дозы
+  try { applyDiaryToMain({}); } catch(_) {}
+  try { updateSummary(); } catch(_) {}
+  try { renderCalPreview(); } catch(_) {}
+  try { window.renderReminder && window.renderReminder(); } catch(_) {}
+
+  // «Пинок» для других вкладок/страниц
+  try {
+    localStorage.setItem('rt.diary.bump', String(Date.now()));
+    localStorage.removeItem('rt.diary.bump');
+  } catch(_) {}
+}
+// чтобы было удобно дергать из reset.html/консоли
+window.wipeLocalDiary = wipeLocalDiary;
+
 // === Mood helpers for calendar preview ===
 function _wellnessMap(){
   try{
@@ -1195,24 +1383,13 @@ window.addEventListener('storage', (e)=>{
 
     // Compact labels for segmented control if it overflows
    function updateSegLabels(){
-  const seg = document.getElementById('doseSeg');
-  if(!seg) return;
-  const btns = Array.from(seg.querySelectorAll('button'));
-
-  // если в разметке уже есть data-full — используем её; иначе запоминаем текущий текст
-  btns.forEach(b => { b.dataset.full = b.dataset.full || b.textContent.trim(); });
-
-  const overflow = seg.scrollWidth > seg.clientWidth + 2;
-  btns.forEach(b => {
-    b.textContent = overflow
-      ? (b.dataset.short || b.dataset.full)   // узко — короткие
-      : (b.dataset.full  || b.textContent);   // широко — полные
+  const seg = document.getElementById('doseSeg'); if(!seg) return;
+  seg.querySelectorAll('button').forEach(b=>{
+    b.dataset.full  = b.dataset.full  || b.textContent.trim();
+    b.textContent   = b.dataset.short || b.dataset.full;  // всегда короткие
   });
 }
-updateSegLabels();  // вызываем сразу, без ожидания load
-    new ResizeObserver(()=>updateSegLabels()).observe(document.getElementById('doseSeg'));
-    window.addEventListener('orientationchange', updateSegLabels);
-    window.addEventListener('load', updateSegLabels);
+updateSegLabels();
 
     // Animated slide for calendar
     // Detect touch vs desktop for calendar arrows
@@ -1342,13 +1519,25 @@ const RING_C = 2*Math.PI*RING_R;   // ~289.03
     function setRing(el, pct){
       const arc = el.querySelector('circle[data-arc]');
       const lbl = el.querySelector('[data-pct]');
-      const p = Math.max(0, Math.min(100, Number(pct)||0));
-      if (arc){
-        arc.style.strokeDasharray = String(RING_C);
-        arc.style.strokeDashoffset = String(RING_C*(1-p/100));
-      }
-      if (lbl){ lbl.textContent = fmt2(p) + '%'; }
-    }
+     const p = Math.max(0, Math.min(100, Number(pct)||0));
+if (arc){
+  // базовая длина окружности
+  arc.style.strokeDasharray = String(RING_C);
+
+  // обычный случай
+  let off = RING_C*(1 - p/100);
+
+  // когда почти полный круг — чутка перекрываем, чтобы не было видимого шва
+  if (p >= 99.8){
+    arc.style.strokeLinecap = 'butt';                // убираем «шляпки» в точке стыка
+    arc.style.strokeDasharray = String(RING_C + 0.8); // +0.8px перекрытия
+    off = 0.0001;                                     // микросмещение
+  } else {
+    arc.style.strokeLinecap = 'round';
+  }
+  arc.style.strokeDashoffset = String(off);
+}
+if (lbl){ lbl.textContent = fmt2(p) + '%'; }}
 
     function applyRingPositions(mode, pcts){
       const rail = document.getElementById('ringsRail');
@@ -1651,11 +1840,18 @@ const isoLocal = (d) => {
           if(!wrap) return;
           var p = Math.max(0, Math.min(100, (pcts[DOSE_MODE]||0)));
           var track = wrap.querySelector('.animal-track');
-          var fill = wrap.querySelector('.animal-fill');
-          var emoji = wrap.querySelector('.animal-emoji');
-          if(track){ track.style.setProperty('--w', p + '%'); }
-          if(fill){ fill.style.width = p + '%'; }
-          if(emoji){ emoji.style.left = p + '%'; emoji.textContent = (p<34?'🐌':(p<67?'🐢':'🐇')); }
+var fill  = wrap.querySelector('.animal-fill');
+var icon  = wrap.querySelector('#animalIcon');
+var use   = wrap.querySelector('#animalUse');
+var tip   = wrap.querySelector('.animal-tip');
+
+if(track){ track.style.setProperty('--w', p + '%'); }
+if(fill){  fill.style.width = p + '%'; }
+if(icon){  icon.style.left = p + '%'; }
+if(tip){   tip.style.left  = p + '%'; }
+if(use){
+  use.setAttribute('href', p < 34 ? '#ani-snail' : (p < 67 ? '#ani-turtle' : '#ani-hare'));
+}
           var pctEl = document.getElementById('animalPct'); if(pctEl) pctEl.textContent = fmt2(p) + '%';
           var tEl = document.getElementById('animalTargetKg'); if(tEl) tEl.textContent = targetKg;
         }catch(_){ }
@@ -1688,6 +1884,10 @@ const isoLocal = (d) => {
         PLAN      = planR.ok ? await planR.json() : null;
         DOSES     = doseR.ok ? (await doseR.json()) : [];
         DOSES     = DOSES.map(d => ({ ...d, date: normalizeDate(d.date) }));
+        if (Array.isArray(DOSES) && DOSES.length === 0) {
+  // На сервере пусто → убираем локальный мусор (старые дозы/настроения)
+  wipeLocalDiary('server-empty');
+}
         PROGRESS  = prR.ok   ? await prR.json()   : null;
         window.__intakesLoaded = true;
 
@@ -2293,6 +2493,54 @@ window.addEventListener('storage', (e) => {
   @keyframes pv-shine{to{transform:translate(-50%,-50%) scale(1.08);opacity:0}}
   @keyframes pv-fade{to{opacity:0}}
   .parallax-veil.fade{animation:pv-fade 320ms ease forwards}
+
+  .ring svg{ shape-rendering: geometricPrecision; }
+  :root{
+  --acc1:#22D3EE; --acc2:#14B8A6;
+  --track1:#172235; --track2:#0E1625; /* тёмный трек */
+  --text-hi:#E6F0FF; --text-lo:#93A0B5;
+}
+
+/* Компоновка */
+.progress-visual{display:grid; grid-template-columns: 360px 1fr; gap:28px; align-items:center}
+@media (max-width:900px){ .progress-visual{grid-template-columns:1fr; gap:20px} }
+
+/* ====== 3D DONUTS (SVG генерируется JS) ====== */
+.donuts{display:flex; gap:28px; align-items:center; justify-content:center}
+.donut{width:120px;height:120px; filter:
+  drop-shadow(0 12px 24px rgba(0,0,0,.35))
+  drop-shadow(0 2px 6px rgba(255,255,255,.06));}
+.donut.big{width:220px;height:220px}
+.donut svg{display:block}
+
+/* ====== КУМУЛЯТИВНО — капсула ====== */
+.cum-wrap{display:grid; gap:12px}
+.cum-head{display:flex; gap:16px; align-items:baseline; flex-wrap:wrap}
+.cum-title{font-weight:800; font-size:22px; color:var(--text-hi)}
+.cum-nums{font-size:28px; font-weight:800; color:var(--text-hi)}
+.cum-nums .muted{margin-left:12px; font-weight:600; font-size:15px; color:var(--text-lo)}
+
+.pillbar{
+  position:relative; height:22px; border-radius:999px; overflow:hidden;
+  background: linear-gradient(180deg, #0F1A2B, #0B1422);
+  box-shadow:
+    inset 0 1px 0 rgba(255,255,255,.07),
+    inset 0 -1px 0 rgba(0,0,0,.45),
+    0 10px 24px rgba(0,0,0,.28);
+  border:1px solid rgba(255,255,255,.06);
+}
+.pillbar-fill{
+  position:absolute; inset:0 auto 0 0; width:calc(var(--p,0)*100%);
+  background: linear-gradient(135deg,var(--acc1),var(--acc2));
+  border-radius:999px;
+  box-shadow:
+    0 8px 18px rgba(20,184,166,.35),
+    inset 0 2px 4px rgba(255,255,255,.35),
+    inset 0 -8px 12px rgba(0,0,0,.2);
+  transition: width .6s cubic-bezier(.2,.8,.2,1);
+}
+.pill-scale{display:flex; justify-content:space-between; font-size:12px; color:var(--text-lo); padding:0 2px}
+
 </style>
 
 <script>
@@ -2334,7 +2582,7 @@ document.addEventListener('DOMContentLoaded', ()=>{
   window.parallaxTest = () => playParallax({navigate:false});
 });
 
-<script>
+
 // Haptic for the actual "Добавить" button (#save) — runs on all devices
 (function(){
   const btn = document.getElementById('save');
@@ -2351,8 +2599,103 @@ document.addEventListener('DOMContentLoaded', ()=>{
   btn.addEventListener('click', haptic);
   btn.addEventListener('touchstart', ()=>{ try{ navigator.vibrate && navigator.vibrate(10); }catch(_){} }, {passive:true});
 })();
-</script>
+
 </script>
 
 </body>
 </html>
+<script>
+/* ===== 3D DONUTS (SVG) =====
+   data-value = доля [0..1]. Внутри рисуем трек + прогресс с округлёнными концами,
+   градиентом и внутренней тенью. */
+(function(){
+  const donuts = document.querySelectorAll('.donut');
+  let uid = 0;
+  donuts.forEach(el => {
+    const size = el.classList.contains('big') ? 220 : 120;
+    const thick = el.classList.contains('big') ? 28 : 12;
+    const v = Math.max(0, Math.min(1, parseFloat(el.dataset.value||'0')));
+
+    const r = (size/2) - thick/2 - 2;
+    const C = 2 * Math.PI * r;
+    const dash = C * v, gap = C - dash;
+
+    const id = 'g'+(++uid);
+    el.innerHTML = `
+    <svg width="${size}" height="${size}" viewBox="0 0 ${size} ${size}">
+      <defs>
+        <linearGradient id="${id}-grad" x1="0" y1="0" x2="1" y2="1">
+          <stop offset="0%" stop-color="var(--acc1)"/>
+          <stop offset="100%" stop-color="var(--acc2)"/>
+        </linearGradient>
+        <!-- внутренняя тень/объём -->
+        <filter id="${id}-inner" x="-50%" y="-50%" width="200%" height="200%">
+          <feOffset dy="1" result="off"/>
+          <feGaussianBlur in="off" stdDeviation="1.6" result="blur"/>
+          <feComposite in="SourceGraphic" in2="blur" operator="arithmetic" k2="-1" k3="1" result="inner"/>
+        </filter>
+      </defs>
+
+      <!-- трек -->
+      <circle cx="${size/2}" cy="${size/2}" r="${r}" fill="none"
+        stroke="url(#${id}-trk)" stroke-width="${thick}"
+        stroke="url(#${id}-trk)"/>
+      <defs>
+        <linearGradient id="${id}-trk" x1="0" y1="0" x2="0" y2="1">
+          <stop offset="0%"  stop-color="var(--track1)"/>
+          <stop offset="100%" stop-color="var(--track2)"/>
+        </linearGradient>
+      </defs>
+
+      <!-- прогресс -->
+      <g filter="url(#${id}-inner)">
+        <circle cx="${size/2}" cy="${size/2}" r="${r}" fill="none"
+          stroke="url(#${id}-grad)" stroke-width="${thick}"
+          stroke-linecap="round"
+          stroke-dasharray="${dash} ${gap}" stroke-dashoffset="0"
+          transform="rotate(-90 ${size/2} ${size/2})"/>
+      </g>
+
+      <!-- лёгкий бликовый «блик» сверху -->
+      <circle cx="${size/2}" cy="${size/2}" r="${r}" fill="none"
+        stroke="rgba(255,255,255,.06)" stroke-width="${Math.max(2, thick*0.22)}"
+        stroke-dasharray="${C*0.35} ${C}" transform="rotate(-110 ${size/2} ${size/2})"/>
+      <!-- проценты (для большой) -->
+      ${size>150 ? `<text x="50%" y="50%" text-anchor="middle" dominant-baseline="middle"
+          fill="var(--text-hi)" font-size="36" font-weight="800">${(v*100).toFixed(2).replace('.',',')}%</text>` : ''}
+    </svg>`;
+    // плавное «докручивание»
+    requestAnimationFrame(()=>{
+      el.style.transition='transform .2s ease';
+      el.style.transform='translateZ(0)'; // hint для GPU
+    });
+  });
+})();
+
+/* ===== КУМУЛЯТИВНО (цифры и полоса) =====
+   Вставь сюда реальные значения: cumMg / targetMg. */
+(function(){
+  // Пример (замени на данные из твоего стейта):
+  const cumMg = 4030;
+  const targetMg = 16320;
+
+  const left = Math.max(0, targetMg - cumMg);
+  const p = targetMg ? (cumMg/targetMg) : 0;
+
+  const fmt = n => n.toLocaleString('ru-RU');
+
+  document.getElementById('cumMg').textContent = fmt(cumMg);
+  document.getElementById('targetMg').textContent = fmt(targetMg);
+  document.getElementById('leftMg').textContent = fmt(left);
+  document.querySelector('.pillbar-fill').style.setProperty('--p', p);
+
+  // Заодно обновим центральную надпись большого кольца, если нужно:
+  const big = document.querySelector('.donut.big');
+  if (big) {
+    const txt = big.querySelector('text');
+    if (txt) txt.textContent = (p*100).toFixed(2).replace('.',',') + '%';
+    big.dataset.value = String(p);
+  }
+})();
+</script>
+
