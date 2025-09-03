@@ -3,7 +3,6 @@
 <head>
   <meta charset="utf-8"/>
   <meta name="viewport" content="width=device-width, initial-scale=1"/>
-  <meta name="view-transition" content="same-origin">
   <title>Календарь — Roaccutane Tracker</title>
   <style>
     :root{
@@ -311,11 +310,11 @@
   /* строка меток не тянется на всю ширину и не раздвигает контент */
   .marks{
     left: 6px;
-    right: auto;              /* важно: убираем растягивание вправо */
+    right: 6px;              /* важно: убираем растягивание вправо */
     bottom: 6px;
     gap: 6px;
     justify-content: flex-start; /* вместо space-between */
-    width: max-content;       /* ровно по содержимому */
+    width: auto;       /* ровно по содержимому */
   }
 
   /* уменьшаем бейдж дозы */
@@ -506,79 +505,29 @@
 .grid .day .marks{
   position:absolute;
   left:8px;
-  right:auto !important;
+  right:8px !important;
   bottom:8px;
   display:flex;
   align-items:flex-start;
   justify-content:flex-start !important;
   gap:8px;
-  width:max-content;
+  width:auto;
   z-index:2;
 }
 
+
+@media (max-width: 520px){
+  .grid .day .dose{ font-size: 11px; gap:4px; }
+  .grid .day .dose .capsule{ width:14px; height:9px; }
+  .grid .day .dose .val{ white-space:nowrap; min-width:0; }
+}
+@media (max-width: 360px){
+  .grid .day .dose{ font-size: 10px; }
+}
 /* === Mobile: hide mood emoji to let dose fit === */
 @media (max-width: 520px){
   .grid .day .mood{ display:none !important; }
 }
-/* === PORTAL (calendar → diary) — плавная и длиннее === */
-:root{
-  /* Правишь только эти 5 переменных */
-  --vt-out-ms: 1400ms;      /* старый экран схлопывается */
-  --vt-in-ms:  1500ms;      /* новый экран раскрывается   */
-  --vt-portal-ms: 1600ms;   /* морфинг «двери»            */
-  --vt-ease: cubic-bezier(.25,.8,.25,1); /* плавная ease-in-out */
-  --vt-new-end: 170%;       /* 140–180% — больше = медленнее по краям */
-
-  /* не трогаем */
-  --portal-x: 50vw; --portal-y: 50vh;
-}
-
-/* Старый документ — «чёрная дыра» */
-html::view-transition-old(root){
-  animation: vt-out var(--vt-out-ms) var(--vt-ease) both;
-  clip-path: circle(120% at var(--portal-x) var(--portal-y));
-  overflow: clip;
-  will-change: clip-path, filter;
-  filter: brightness(1) contrast(1);
-}
-@keyframes vt-out{
-  0%   { clip-path: circle(120% at var(--portal-x) var(--portal-y)); }
-  100% { clip-path: circle(0%    at var(--portal-x) var(--portal-y)); filter:brightness(.98); }
-}
-
-/* Новый документ — «выныривание» из точки */
-html::view-transition-new(root){
-  animation: vt-in var(--vt-in-ms) var(--vt-ease) both;
-  clip-path: circle(0% at var(--portal-x) var(--portal-y));
-  overflow: clip;
-  will-change: clip-path, opacity, filter;
-  opacity: .98;
-}
-@keyframes vt-in{
-  0%   { clip-path: circle(0% at var(--portal-x) var(--portal-y));   opacity:.96; filter:brightness(.98); }
-  60%  { opacity:1; filter:brightness(1.01); }
-  100% { clip-path: circle(var(--vt-new-end) at var(--portal-x) var(--portal-y)); filter:none; }
-}
-
-/* Морфинг общей «двери» */
-::view-transition-group(portal){
-  animation: portal-warp var(--vt-portal-ms) var(--vt-ease) both;
-  transform-origin: center center;
-  will-change: transform, filter;
-}
-@keyframes portal-warp{
-  0%   { transform: perspective(900px) translateZ(0)    scale(1)    rotate(0);   filter:contrast(1)saturate(1); }
-  40%  { transform: perspective(900px) translateZ(200px) scale(1.10) rotate(6deg); filter:contrast(1.04)saturate(1.06); }
-  100% { transform: perspective(900px) translateZ(620px) scale(26)   rotate(12deg); filter:contrast(1.06)saturate(1.08); }
-}
-
-@media (prefers-reduced-motion: reduce){
-  html::view-transition-old(root),
-  html::view-transition-new(root),
-  ::view-transition-group(portal){ animation:none!important; clip-path:none!important; }
-}
-
-
 </style>
 </head>
 <body data-theme="dark">
@@ -620,7 +569,7 @@ html::view-transition-new(root){
   <!-- Bottom navigation -->
   <nav class="tabbar" role="navigation" aria-label="Главная навигация">
     <div class="tabbar-inner">
-      <a class="tab" href="welcome-rt.html" aria-label="Главная">
+      <a class="tab" href="main.html" aria-label="Главная">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M3 10.5 12 3l9 7.5v9a1 1 0 0 1-1 1h-5v-6H9v6H4a1 1 0 0 1-1-1v-9z" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"/></svg>
         <span>Главная</span>
       </a>
@@ -628,11 +577,11 @@ html::view-transition-new(root){
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><rect x="3" y="4" width="18" height="18" rx="3" stroke-width="1.7"/><path d="M16 2v4M8 2v4M3 10h18" stroke-width="1.7" stroke-linecap="round"/></svg>
         <span>Календарь</span>
       </a>
-      <a class="tab" href="profile.html" aria-label="Профиль">
+      <a class="tab" href="myprofile.html" aria-label="Профиль">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><circle cx="12" cy="8" r="4" stroke-width="1.7"/><path d="M4 21a8 8 0 0 1 16 0" stroke-width="1.7" stroke-linecap="round"/></svg>
         <span>Профиль</span>
       </a>
-      <a class="tab" href="photodiary.html" aria-label="Фотодневник">
+      <a class="tab" href="diary.html" aria-label="Фотодневник">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><rect x="3" y="5" width="18" height="14" rx="3" stroke-width="1.7"/><path d="M9 10l2 2 3-3 4 5H6l3-4z" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"/></svg>
         <span>Фотодневник</span>
       </a>
@@ -648,14 +597,6 @@ html::view-transition-new(root){
   const $ = (s, r=document) => r.querySelector(s);
   const monthLabel = $("#monthLabel");
   const grid = $("#grid");
-  function setPortalXYFromEvent(ev){
-  const p = (ev && ev.touches && ev.touches[0]) ? ev.touches[0] : ev;
-  const x = Math.round((p?.clientX||0) + window.scrollX);
-  const y = Math.round((p?.clientY||0) + window.scrollY);
-  document.documentElement.style.setProperty('--portal-x', x + 'px');
-  document.documentElement.style.setProperty('--portal-y', y + 'px');
-  try{ sessionStorage.setItem('portalXY', x+','+y); }catch(_){}
-}
   const weekdayRow = $("#weekdayRow");
   const sheet = $("#sheet");
   const sheetTitle = $("#sheetTitle");
@@ -698,9 +639,11 @@ function highlightRange(a, b) {
 
 // сохранить дневник (тот же ключ, что и в getDiary)
 function saveDiary(d) {
-  localStorage.setItem('rt.diary.v1', JSON.stringify(d));
-}
-
+    const s = JSON.stringify(d);
+    localStorage.setItem('rt.diary.v1', s);
+    // "пингуем" вторым ключом, чтобы main точно отреагировал
+    try { localStorage.setItem('rt.diary.bump', String(Date.now())); } catch(_) {}
+  }
 // завершение drag: массовая установка дозы
 function finalizeRange() {
   drag.active = false;
@@ -894,35 +837,17 @@ cell.innerHTML = `
 `;
 
 
-   // Короткий тап — снизу «краткая инфа», долгий — портал→дневник
-let pressTimer = null, longPressed = false;
-
-cell.addEventListener('pointerdown', (e)=>{
-  longPressed = false;
-  cell.classList.add('pressing');
-
-  // 1) Якорим shared-element и точку портала
-  cell.style.viewTransitionName = 'portal';
-  setPortalXYFromEvent(e);
-
-  // 2) Долгий тап — прыжок в дневник
-  pressTimer = setTimeout(()=>{
-    longPressed = true;
-    goDiary(id);                // навигация (мета view-transition уже включена)
-  }, 480);
-});
-
-const clear = ()=>{
-  cell.classList.remove('pressing');
-  clearTimeout(pressTimer);
-  // если это был короткий тап — очищаем имя группы, чтобы не было ложных переходов
-  if(!longPressed) cell.style.viewTransitionName = '';
-};
-
-cell.addEventListener('pointerleave', clear);
-cell.addEventListener('pointercancel', clear);
-
-cell.addEventListener('pointerup', (e)=>{
+    // Короткий тап — снизу «краткая инфа», долгий — открыть дневник
+    let pressTimer = null, longPressed = false;
+    cell.addEventListener('pointerdown', ()=>{
+      longPressed = false;
+      cell.classList.add('pressing');
+      pressTimer = setTimeout(()=>{ longPressed = true; goDiary(id); }, 480);
+    });
+    const clear = ()=>{ cell.classList.remove('pressing'); clearTimeout(pressTimer); };
+    cell.addEventListener('pointerleave', clear);
+    cell.addEventListener('pointercancel', clear);
+    cell.addEventListener('pointerup', ()=>{
   clear();
   if(!longPressed){
     grid.querySelectorAll('.day.selected').forEach(el => el.classList.remove('selected'));
@@ -932,29 +857,7 @@ cell.addEventListener('pointerup', (e)=>{
   }
 });
 
-// Клик-фолбэк для некоторых мобильных WebView
-cell.addEventListener('click', (e)=>{
-  if (longPressed) return;
-  const sheetEl = document.getElementById('sheet');
-  if (sheetEl && sheetEl.classList.contains('active')) return;
-  grid.querySelectorAll('.day.selected').forEach(el => el.classList.remove('selected'));
-  const cur = grid.querySelector(`.day[data-date="${id}"]`);
-  if (cur) cur.classList.add('selected');
-  openSheet(id, data);
-});
-
-// мобильный надёжный путь: tap → click (если long-press не сработал)
-cell.addEventListener('click', (e)=>{
-  if (longPressed) return; // уже ушли в дневник
-  // если уже открыто — не открываем второй раз (после pointerup)
-  const sheetEl = document.getElementById('sheet');
-  if (sheetEl && sheetEl.classList.contains('active')) return;
-  grid.querySelectorAll('.day.selected').forEach(el => el.classList.remove('selected'));
-  const cur = grid.querySelector(`.day[data-date="${id}"]`);
-  if (cur) cur.classList.add('selected');
-  openSheet(id, data);
-});
-grid.appendChild(cell);
+    grid.appendChild(cell);
   }
 }
   
@@ -1107,7 +1010,7 @@ document.addEventListener('pointerup', finishDrag);
   render();
 })();
 
-</script>
 
+</script>
 </body>
 </html>

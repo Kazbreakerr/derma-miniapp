@@ -225,10 +225,6 @@ body::before{
     })();
   </script>
 
-<!-- у своей кнопки добавь id -->
-<button id="agree-derma">Согласен</button>
-
-
 </head>
 <body>
 <div class="wrap">
@@ -473,6 +469,13 @@ document.getElementById('btnSavePlan').addEventListener('click', async ()=>{
   var drugName = sel ? sel.options[sel.selectedIndex].textContent.trim() : (drug||'');
   localStorage.setItem('rt_drug', drugName||drug||'');
   if(start) localStorage.setItem('rt_startISO', start);
+}catch(_){}
+// Именной ключ по tg (чтобы welcome корректно считал hasPlan по конкретному пользователю)
+try{
+  const sp = new URLSearchParams(location.search);
+  const tgInit = window.Telegram?.WebApp?.initDataUnsafe?.user?.id;
+  const uid = sp.get('tg') || tgInit || '';
+  if (uid && start) localStorage.setItem(`dermaApp:${uid}:plan_start`, start);
 }catch(_){}
 location.replace('./main.html' + qs);
   }catch(e){ msg.textContent='Ошибка сети'; }

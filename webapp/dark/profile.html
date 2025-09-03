@@ -400,6 +400,7 @@ body::before{
 
     // ====== Prefill from server ======
     (async function loadMe(){
+  if (new URLSearchParams(location.search).get('fresh') === '1') return; // не префиллим из БД в тестовом режиме
       try{
         const r = await api('/api/me');
         if (!r.ok) return;
@@ -435,6 +436,16 @@ body::before{
       msg.textContent = 'Сохранено';
       try{ localStorage.setItem('derma_next','plan'); }catch(_){}
       const qs = location.search || '';
+      try{
+  const sp = new URLSearchParams(location.search);
+  const tgInit = window.Telegram?.WebApp?.initDataUnsafe?.user?.id;
+  const uid = sp.get('tg') || tgInit || '';
+  if (uid && weight_kg > 0) {
+    localStorage.setItem(`dermaApp:${uid}:weight_kg`, String(weight_kg));
+  }
+  // (необязательная совместимость со старым кодом)
+  if (weight_kg > 0) localStorage.setItem('rt.weight_kg', String(weight_kg));
+}catch(_){}
       setTimeout(()=>location.replace('./plan.html' + qs), 200);
     }catch(_){ msg.textContent='Ошибка сети'; }
   }, { once:true });  // защита от двойного клика

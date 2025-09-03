@@ -3,8 +3,28 @@
 <head>
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+<meta name="view-transition" content="same-origin">
 <title>Дневник — запись дня</title>
 
+<script>
+(function(){
+  try{
+    const xy = sessionStorage.getItem('portalXY');
+    if (xy){
+      const [x,y] = xy.split(',').map(n=>parseInt(n,10));
+      if (!Number.isNaN(x) && !Number.isNaN(y)){
+        document.documentElement.style.setProperty('--portal-x', x+'px');
+        document.documentElement.style.setProperty('--portal-y', y+'px');
+      }
+      sessionStorage.removeItem('portalXY');
+    }
+    document.addEventListener('DOMContentLoaded', ()=>{
+      const t = document.getElementById('diary-portal-target');
+      if (t) t.style.viewTransitionName = 'portal';
+    });
+  }catch(_){}
+})();
+</script>
 
 <script src="js/app-state.js"></script>
 <script>
@@ -391,6 +411,64 @@
   z-index:1;            /* ниже UI, выше ::before */
 }
 
+/* === PORTAL (calendar → diary) — плавная и длиннее === */
+:root{
+  /* Правишь только эти 5 переменных */
+  --vt-out-ms: 1400ms;      /* старый экран схлопывается */
+  --vt-in-ms:  1500ms;      /* новый экран раскрывается   */
+  --vt-portal-ms: 1600ms;   /* морфинг «двери»            */
+  --vt-ease: cubic-bezier(.25.8,.25,1); /* плавная ease-in-out */
+  --vt-new-end: 170%;       /* 140–180% — больше = медленнее по краям */
+
+  /* не трогаем */
+  --portal-x: 50vw; --portal-y: 50vh;
+}
+
+/* Старый документ — «чёрная дыра» */
+html::view-transition-old(root){
+  animation: vt-out var(--vt-out-ms) var(--vt-ease) both;
+  clip-path: circle(120% at var(--portal-x) var(--portal-y));
+  overflow: clip;
+  will-change: clip-path, filter;
+  filter: brightness(1) contrast(1);
+}
+@keyframes vt-out{
+  0%   { clip-path: circle(120% at var(--portal-x) var(--portal-y)); }
+  100% { clip-path: circle(0%    at var(--portal-x) var(--portal-y)); filter:brightness(.98); }
+}
+
+/* Новый документ — «выныривание» из точки */
+html::view-transition-new(root){
+  animation: vt-in var(--vt-in-ms) var(--vt-ease) both;
+  clip-path: circle(0% at var(--portal-x) var(--portal-y));
+  overflow: clip;
+  will-change: clip-path, opacity, filter;
+  opacity: .98;
+}
+@keyframes vt-in{
+  0%   { clip-path: circle(0% at var(--portal-x) var(--portal-y));   opacity:.96; filter:brightness(.98); }
+  60%  { opacity:1; filter:brightness(1.01); }
+  100% { clip-path: circle(var(--vt-new-end) at var(--portal-x) var(--portal-y)); filter:none; }
+}
+
+/* Морфинг общей «двери» */
+::view-transition-group(portal){
+  animation: portal-warp var(--vt-portal-ms) var(--vt-ease) both;
+  transform-origin: center center;
+  will-change: transform, filter;
+}
+@keyframes portal-warp{
+  0%   { transform: perspective(900px) translateZ(0)    scale(1)    rotate(0);   filter:contrast(1)saturate(1); }
+  40%  { transform: perspective(900px) translateZ(200px) scale(1.10) rotate(6deg); filter:contrast(1.04)saturate(1.06); }
+  100% { transform: perspective(900px) translateZ(620px) scale(26)   rotate(12deg); filter:contrast(1.06)saturate(1.08); }
+}
+
+@media (prefers-reduced-motion: reduce){
+  html::view-transition-old(root),
+  html::view-transition-new(root),
+  ::view-transition-group(portal){ animation:none!important; clip-path:none!important; }
+}
+
 
 </style>
 
@@ -554,7 +632,7 @@ header{
       <button class="nav-arrow left" id="prevDay" aria-label="Предыдущий день">
         <svg width="18" height="18" viewBox="0 0 24 24" fill="none"><path d="M15 19l-7-7 7-7" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
       </button>
-      <div class="center-stack">
+      <div class="center-stack" id="diary-portal-target">
         <div class="chip big" id="dayChip">Текущий день: —</div>
         <input id="datePicker" type="date" class="date-input">
       </div>
@@ -986,8 +1064,8 @@ function frame(nowMs){
   const morph=Math.sin(t*morphSpeed);
 
  // Ручки:
-const PILL_SCALE   = 1.05;  // < 1 — капсула меньше; > 1 — больше
-const PILL_THICK   = 1.00;  // > 1 — капсула толще (выше относительно длины)
+const PILL_SCALE   = 1.15;  // < 1 — капсула меньше; > 1 — больше
+const PILL_THICK   = 0.90;  // > 1 — капсула толще (выше относительно длины)
 
 // Базовые размеры:
 const baseW = W0 * 0.60 * PILL_SCALE;
