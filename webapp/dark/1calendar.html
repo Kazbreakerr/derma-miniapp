@@ -192,13 +192,13 @@
 .marks{
   position:absolute;
   left:8px;
-  right:8px;
+  right:8px;               /* было right:auto; */
   bottom:8px;
   display:flex;
   align-items:center;
   justify-content:flex-start;
   gap:8px;
-  width:auto;
+  width:auto;              /* было max-content */
   z-index:2;
 }
 
@@ -320,11 +320,11 @@
   /* строка меток не тянется на всю ширину и не раздвигает контент */
   .marks{
     left: 6px;
-    right: 6px !important;    /* растягиваемся до правого края, чтобы не резалось */
+    right: auto;              /* важно: убираем растягивание вправо */
     bottom: 6px;
-    gap: 4px;
+    gap: 6px;
     justify-content: flex-start; /* вместо space-between */
-    width: auto;               /* вписываемся в ячейку */
+    width: max-content;       /* ровно по содержимому */
   }
 
   /* уменьшаем бейдж дозы */
@@ -339,19 +339,6 @@
 }
 
 /* при очень узких экранах можно скрыть смайлик, если нужно */
-
-/* === FIT CAPSULE & VALUE INSIDE DAY CELLS (phones) === */
-@media (max-width: 520px){
-  .grid .day{ min-height: 62px; padding: 6px; }
-  .grid .day .dose{ font-size: 11px; gap: 4px; }
-  .grid .day .dose .capsule{ width: 14px; height: 9px; }
-}
-@media (max-width: 380px){
-  .grid .day{ min-height: 58px; }
-  .grid .day .dose{ font-size: 10.5px; }
-  .grid .day .dose .capsule{ width: 13px; height: 8px; }
-}
-
 
 
 
@@ -528,13 +515,13 @@
 .grid .day .marks{
   position:absolute;
   left:8px;
-  right:8px !important;
+  right:auto !important;
   bottom:8px;
   display:flex;
-  align-items:flex-end;
+  align-items:flex-start;
   justify-content:flex-start !important;
-  gap:6px;
-  width:auto;
+  gap:8px;
+  width:max-content;
   z-index:2;
 }
 

@@ -1,19 +1,9 @@
 .pill-alert{
-  display:inline-flex; align-items:center;
-  padding:4px 10px; margin-left:10px;
-  border-radius:12px; border:1px solid rgba(255,0,0,.25);
-  background:linear-gradient(180deg, #3b0a0a, #240506);
-  color:#ffd8d8; font-weight:800; text-transform:uppercase;
-  letter-spacing:.4px; line-height:1; white-space:nowrap;
-  box-shadow:0 6px 18px rgba(255,0,0,.12), inset 0 0 8px rgba(255,0,0,.35);
-  animation:hazard 1.15s steps(2, jump-none) infinite;
+  display:inline-flex; align-items:center; justify-content:center;
+  margin-left:10px; padding:2px 8px; border-radius:10px;
+  font-weight:800; font-size:12px; letter-spacing:.2px;
+  color:#fff; background:#ff3b30;                 /* красный */
+  box-shadow:0 0 0 0 rgba(255,59,48,.68);
+  animation: hazard 1.1s steps(2, start) infinite; /* «аварийка» */
 }
-@keyframes hazard{
-  0%  { filter:brightness(1);   text-shadow:0 0 0 rgba(255,90,90,.0);  }
-  50% { filter:brightness(1.25); text-shadow:0 0 10px rgba(255,90,90,.6); }
-  100%{ filter:brightness(1);   text-shadow:0 0 0 rgba(255,90,90,.0);  }
-}
-/* уважение к reduced motion */
-@media (prefers-reduced-motion: reduce){
-  .pill-alert{ animation:none }
-}
+@keyframes hazard { to { opacity:.35; box-shadow:0 0 0 8px rgba(255,59,48,0);} }

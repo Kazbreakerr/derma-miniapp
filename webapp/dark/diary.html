@@ -416,7 +416,7 @@ header::after{
 }
 /* ===== Bottom Nav ===== */
 /* компактнее на узких телефонах */
-@media (max-width: 420px){
+@media (max-width: 400px){
   .navbar{ padding-top:8px; }
   .navbar .dock{ gap:10px; padding:0 10px; }
   .nav-item{
@@ -551,7 +551,20 @@ html::view-transition-new(root){
   ::view-transition-group(portal){ animation:none!important; clip-path:none!important; }
 }
 /* верхняя строка с заголовком и правой кнопкой */
-.topbar{display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap}
+.topbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 6px;
+  padding: 6px 12px;   /* было 16px 18px */
+}
+.app-title {
+  margin: 0;
+  font-size: 20px;     /* было clamp(...) — можно оставить, но уменьшить max */
+}
+header {
+  padding: 4px 0;      /* прижимаем кверху */
+}
 .topbar .left{display:flex;align-items:center;gap:10px}
 /* Подпись бренда в шапке */
 .brand{
@@ -575,9 +588,6 @@ html::view-transition-new(root){
   color: #fff;
  text-shadow: 0 1px 0 rgba(0,0,0,.25);
 }
-
-
-
 
 /* кнопка справа — в том же стиле, что "В профиль" */
 .toplink{
@@ -646,6 +656,11 @@ html::view-transition-new(root){
 @media (max-width:560px){
   .card h2 .date-chip{ font-size:12px; padding:3px 8px; }
 }
+#dayChip{
+  cursor:pointer;
+  user-select:none;
+}
+#datePicker[hidden]{ display:none; }
 </style>
 
 <!-- Neumorph seamless patch: ONLY CSS, no HTML/JS changes -->
@@ -814,26 +829,67 @@ header{
 }
 
 </style>
+<style id="pill-alert-style">
+  .pill-alert{
+    display:inline-flex;align-items:center;justify-content:center;
+    margin-left:10px;padding:2px 8px;border-radius:10px;
+    font-weight:800;font-size:12px;letter-spacing:.2px;
+    color:#fff;background:#ff4242;
+    box-shadow:0 0 0 0 rgba(255,66,66,.65);
+    animation:hazard 1.15s steps(2,start) infinite;
+  }
+  @keyframes hazard{to{opacity:.38;box-shadow:0 0 0 10px rgba(255,66,66,0)}}
+  @media (prefers-reduced-motion:reduce){.pill-alert{animation:none}}
+</style>
+
+<script id="pill-alert-script">
+(function(){
+  function todayISO(){const d=new Date();d.setMinutes(d.getMinutes()-d.getTimezoneOffset());return d.toISOString().slice(0,10);}
+  function getTodayMg(){
+    const iso=todayISO();
+    try{ const tIso=localStorage.getItem('derma_today_iso');
+      if(tIso===iso){ const mg=+localStorage.getItem('derma_today_mg')||0; if(mg>0) return mg; }
+    }catch(_){}
+    try{ const diary=JSON.parse(localStorage.getItem('rt.diary.v1')||'{}'); const rec=diary[iso];
+      if(rec){ if(rec.miss===true||rec.taken===false) return 0; return +(rec.dose ?? rec.mg ?? 0)||0; }
+    }catch(_){}
+    return 0;
+  }
+  function render(){
+    const need=getTodayMg()<=0;
+    document.querySelectorAll('[data-pill-spot]').forEach(spot=>{
+      let b=spot.querySelector('.pill-alert');
+      if(!need){ if(b) b.remove(); return; }
+      if(!b){ b=document.createElement('span'); b.className='pill-alert'; b.textContent='препарат';
+        b.title='Сегодня доза не отмечена'; spot.appendChild(b); }
+    });
+  }
+  window.addEventListener('storage',e=>{
+    if(['rt.diary.v1','derma_today_iso','derma_today_mg'].includes(e.key)) render();
+  });
+  document.addEventListener('visibilitychange',()=>{ if(!document.hidden) render(); });
+  document.addEventListener('DOMContentLoaded',render);
+  window.renderPillAlert = render; // ручной перерендер на всякий
+})();
+</script>
+
 </head>
 <body>
 <header>
   <div class="wrap">
-    <div class="topbar">
-  <div class="left">
-  <a href="myprofile.html" style="text-decoration:none;display:inline-flex;align-items:center;gap:8px;padding:10px 12px;border-radius:12px;background:rgba(255,255,255,.06);border:1px solid var(--border);color:#E6EDF3;font-weight:800;">← В профиль</a>
-  <div class="brand">Roaccutane Tracker</div>
-</div>
-  <a class="toplink" href="calendar.html">В календарь →</a>
-</div>
-    <div class="app-title">Дневник</div><span data-pill-spot></span></div>
+    <div class="wrap topbar">
+    <a href="myprofile.html" class="toplink">← В профиль</a>
+    <div class="app-title">Дневник<span data-pill-spot></span></div>
+    <a href="calendar.html" class="toplink">В календарь →</a>
+  </div>
     <div class="day-nav">
       <button class="nav-arrow left" id="prevDay" aria-label="Предыдущий день">
         <svg width="18" height="18" viewBox="0 0 24 24" fill="none"><path d="M15 19l-7-7 7-7" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
       </button>
       <div class="center-stack" id="diary-portal-target">
-        <div class="chip big" id="dayChip">Текущий день: —</div>
-        <input id="datePicker" type="date" class="date-input">
-      </div>
+  <label for="datePicker" class="chip big" id="dayChip">Сегодня · ср, 03 сентября 2025 г.</label>
+  <input id="datePicker" type="date" class="date-input" hidden>
+</div>
       <button class="nav-arrow right" id="nextDay" aria-label="Следующий день">
         <svg width="18" height="18" viewBox="0 0 24 24" fill="none"><path d="M9 5l7 7-7 7" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
       </button>
@@ -1722,7 +1778,7 @@ function init(){
 <nav class="navbar" role="navigation" aria-label="Нижняя навигация">
   <div class="dock">
     <a class="nav-item" href="main.html"><svg class="ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M4 10.5l8-6 8 6"/><path d="M6 10v8a1 1 0 001 1h4v-6h2v6h4a1 1 0 001-1v-8"/></svg><span>Главная</span></a>
-    <a class="nav-item" href="calendar.html"><svg class="ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="3" y="5" width="18" height="16" rx="3"/><path d="M16 3v4M8 3v4M3 11h18"/></svg><span>Календарь</span></a>
+    <a class="nav-item" href="calendar.html"><svg class="ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="3" y="5" width="18" height="16" rx="3"/><path d="M16 3v4M8 3v4M3 11h18"/></svg><span>Календарь<span data-pill-spot></span></div>
     <a class="nav-item" href="myprofile.html"><svg class="ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="12" cy="8" r="4"/><path d="M4 21a8 8 0 0116 0"/></svg><span>Профиль</span><i class="underline"></i></a>
     <a class="nav-item active" href="diary.html"><svg class="ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="3" y="5" width="18" height="14" rx="3"/><path d="M8 12l3 3 4-5 4 6"/><circle cx="8" cy="9" r="1.2"/></svg><span>Фотодневник</span><i class="underline"></i></a>
     <a class="nav-item" href="labs.html"><svg class="ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M9 3v6L4 18a4 4 0 003.6 6h8.8A4 4 0 0020 18l-5-9V3"/><path d="M9 9h6"/></svg><span>Анализы</span></a>
