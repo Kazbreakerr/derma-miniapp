@@ -2176,10 +2176,24 @@ function getTodayDoseMg(){
       localStorage.setItem('rem_enabled', state.enabled? '1':'0');
       card.classList.toggle('rem-off', !state.enabled);
     });
+    api('/api/reminder', {
+  method: 'POST',
+  body: JSON.stringify({ 
+    enabled: state.enabled,
+    time: state.time 
+  })
+});
     time.addEventListener('change', ()=>{
       state.time = time.value || '09:00';
       localStorage.setItem('rem_time', state.time);
     });
+    api('/api/reminder', {
+  method: 'POST',
+  body: JSON.stringify({ 
+    enabled: state.enabled,
+    time: state.time 
+  })
+});
   }
 
   

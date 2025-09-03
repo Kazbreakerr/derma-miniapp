@@ -3,6 +3,28 @@ require('dotenv').config();
 process.on('uncaughtException', err => console.error('UNCAUGHT', err));
 process.on('unhandledRejection', err => console.error('UNHANDLED', err));
 const { bot, WEBAPP_URL } = require('./bot'); // импорт один раз
+// === Telegram helper (отправка уведомлений)
+function appUrlFor(tgId) {
+  const base = (process.env.WEBAPP_URL || WEBAPP_URL || '').replace(/\/+$/,'');
+  return `${base}/main?tg=${tgId}`;
+}
+
+async function sendReminder(tgId, text) {
+  try {
+    await bot.telegram.sendMessage(tgId, text, {
+      parse_mode: 'HTML',
+      reply_markup: {
+        inline_keyboard: [
+          [{ text: 'Отметить приём 💊', web_app: { url: appUrlFor(tgId) } }],
+          [{ text: 'Открыть в браузере', url: appUrlFor(tgId) }]
+        ]
+      }
+    });
+  } catch (e) {
+    console.error('Ошибка отправки напоминания:', e?.response?.description || e);
+  }
+}
+
 const isPolling = !process.env.WEBAPP_URL;    // локально — polling, на Render — webhook
 const path = require('path');
 const express = require('express');
@@ -20,7 +42,25 @@ app.use(cors({
   origin: true,
   credentials: true,
   allowedHeaders: ['Content-Type', 'X-Telegram-InitData', 'tgwebappdata']
+  
 }));
+
+
+async function sendReminder(chatId, text) {
+  try {
+    await fetch(`${API_URL}/sendMessage`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        chat_id: chatId,
+        text,
+        parse_mode: 'HTML'
+      })
+    });
+  } catch (e) {
+    console.error("Ошибка при отправке напоминания:", e);
+  }
+}
 
 
 
@@ -951,10 +991,24 @@ app.get('/api/doctor/me', tgAuth, async (req, res) => {
 const staticDir = path.join(__dirname, 'webapp');
 app.use(express.static(staticDir));
 app.get('/', (_, res) => res.sendFile(path.join(staticDir, 'index.html')));
+// В памяти: { [tgId]: { enabled: true, time: "09:00", _date, _sentToday, _lastMs } }
+const reminders = Object.create(null);
+
+// Сохранить настройки напоминаний (защищаем через tgAuth)
+app.post('/api/reminder', tgAuth, async (req, res) => {
+  const tgId = req.tg || req.tgUser?.id;
+  if (!tgId) return res.status(401).json({ error: 'unauthorized' });
+
+  const { enabled, time } = req.body || {};
+  reminders[tgId] = { ...(reminders[tgId] || {}), enabled: !!enabled, time: String(time || '').slice(0,5) };
+  console.log('Напоминание сохранено:', tgId, reminders[tgId]);
+  res.json({ ok: true, data: reminders[tgId] });
+});
 
 // ==== START HTTP SERVER ====
 const port = process.env.PORT || 3000;
 const host = process.env.HOST || '0.0.0.0';
+
 app.listen(port, host, () => {
   console.log(`API listening on ${host}:${port}`);
 });
@@ -965,6 +1019,66 @@ app.post('/tg/webhook', (req, res) => {
   catch (e) { console.error('webhook handler error:', e); }
   res.sendStatus(200);
 });
+// === Вспомогательные функции для тайзоны и отметок приёма
+const userTzCache = new Map();
+async function getUserTzByTg(tgId) {
+  if (userTzCache.has(tgId)) return userTzCache.get(tgId);
+  await pool.query('SET search_path = derma, public');
+  const r = await pool.query('SELECT tz FROM derma.users WHERE tg_id=$1::bigint', [Number(tgId)]);
+  const tz = r.rows[0]?.tz || 'Europe/Moscow'; // дефолт, если пользователь ещё не выбрал
+  userTzCache.set(tgId, tz);
+  return tz;
+}
+function nowParts(tz) {
+  const p = new Intl.DateTimeFormat('en-GB', {
+    timeZone: tz, year:'numeric', month:'2-digit', day:'2-digit',
+    hour:'2-digit', minute:'2-digit', hour12:false
+  }).formatToParts(new Date());
+  const get = t => p.find(x=>x.type===t)?.value;
+  const date = `${get('year')}-${get('month')}-${get('day')}`;
+  const time = `${get('hour')}:${get('minute')}`;
+  return { date, time };
+}
+async function hasTakenToday(tgId, tz) {
+  await pool.query('SET search_path = derma, public');
+  const q = await pool.query(
+    `SELECT 1
+       FROM derma.dose_logs dl
+       JOIN derma.users u ON u.id = dl.patient_id
+      WHERE u.tg_id = $1::bigint
+        AND dl.date = (now() AT TIME ZONE $2)::date
+      LIMIT 1`,
+    [Number(tgId), tz]
+  );
+  return !!q.rowCount;
+}
+
+async function checkReminders() {
+  for (const [tgId, cfg] of Object.entries(reminders)) {
+    if (!cfg?.enabled || !cfg.time) continue;
+
+    const tz = await getUserTzByTg(tgId);
+    const { date, time } = nowParts(tz);
+
+    // новый день — сбрасываем дневные флажки
+    if (cfg._date !== date) { cfg._date = date; cfg._sentToday = false; cfg._lastMs = 0; }
+
+    // если приём уже отмечали сегодня — пропускаем
+    if (await hasTakenToday(tgId, tz)) continue;
+
+    const THREE_HOURS = 60 * 1000; // 1 минута для теста
+    const dueFirst  = !cfg._sentToday && time >= cfg.time;                       // первый пинг после заданного времени
+    const dueRepeat =  cfg._sentToday && (!cfg._lastMs || Date.now()-cfg._lastMs >= THREE_HOURS);
+
+    if (dueFirst || dueRepeat) {
+      await sendReminder(tgId, 'Пора принять препарат 💊\nЕсли уже выпили — отметьте приём в трекере.');
+      cfg._sentToday = true;
+      cfg._lastMs = Date.now();
+    }
+  }
+}
+// запускаем проверку раз в минуту
+setInterval(() => { checkReminders().catch(e => console.error('reminders tick error', e)); }, 60 * 1000);
 
 // ==== SET TELEGRAM WEBHOOK ON BOOT ====
 if (!isPolling) {
