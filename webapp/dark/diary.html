@@ -2,9 +2,8 @@
 <html lang="ru">
 <head>
 <meta charset="utf-8" />
-<meta name="viewport" content="width=device-width, initial-scale=1" />
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
 <title>Дневник — запись дня</title>
-
 
 
 <script src="js/app-state.js"></script>
@@ -314,6 +313,23 @@
   @keyframes fadeSlideOut{ from{ opacity:1; transform:none } to{ opacity:0; transform:translateY(-8px) } }
 
 /* ===== Bottom Nav ===== */
+/* компактнее на узких телефонах */
+@media (max-width: 420px){
+  .navbar{ padding-top:8px; }
+  .navbar .dock{ gap:10px; padding:0 10px; }
+  .nav-item{
+    height:56px; border-radius:16px; font-size:12px;
+  }
+  .nav-item .ico{ width:20px; height:20px; margin-bottom:4px; }
+  .nav-item .underline{ width:40px; bottom:8px; }
+}
+@media (max-width: 340px){
+  .nav-item{ height:52px; font-size:11px; }
+  .nav-item .ico{ width:19px; height:19px; }
+}
+
+/* высота проставки равна фактической высоте навбара */
+.page-bottom-spacer{ height: var(--nav-h, 84px); }   /* заменить прежние 84px */
 .navbar{
   position: fixed;
   left: 0; right: 0; bottom: 0;
@@ -970,8 +986,8 @@ function frame(nowMs){
   const morph=Math.sin(t*morphSpeed);
 
  // Ручки:
-const PILL_SCALE   = 0.55;  // < 1 — капсула меньше; > 1 — больше
-const PILL_THICK   = 1.23;  // > 1 — капсула толще (выше относительно длины)
+const PILL_SCALE   = 1.05;  // < 1 — капсула меньше; > 1 — больше
+const PILL_THICK   = 1.00;  // > 1 — капсула толще (выше относительно длины)
 
 // Базовые размеры:
 const baseW = W0 * 0.60 * PILL_SCALE;
@@ -1288,6 +1304,26 @@ loadIntoUI(d);
     <a class="nav-item" href="labs.html"><svg class="ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M9 3v6L4 18a4 4 0 003.6 6h8.8A4 4 0 0020 18l-5-9V3"/><path d="M9 9h6"/></svg><span>Анализы</span></a>
   </div>
 </nav>
+<script>
+(function(){
+  const navEl = document.querySelector('.navbar');
+  const spacer = document.querySelector('.page-bottom-spacer');
+  if(!navEl || !spacer) return;
+
+  function fitBottomSpacer(){
+    const h = Math.ceil(navEl.getBoundingClientRect().height);
+    spacer.style.setProperty('--nav-h', h + 'px');
+  }
+
+  // первый расчёт + отслеживание изменений
+  fitBottomSpacer();
+  window.addEventListener('resize', fitBottomSpacer);
+  window.addEventListener('orientationchange', fitBottomSpacer);
+  if ('ResizeObserver' in window){
+    new ResizeObserver(fitBottomSpacer).observe(navEl);
+  }
+})();
+</script>
 <script>
 (function(){
   var here = (location.pathname.split('/').pop()||'').toLowerCase();

@@ -283,33 +283,40 @@ if (last){
 
 /* ========= start routing (DARK only) ========= */
 (async function(){
-  const tg = window.Telegram?.WebApp;
-  const initData = tg?.initData || '';
-  const API_BASE = String(window.API_BASE||'').replace(/\/$/,'');
-  const devTg = new URLSearchParams(location.search).get('tg') || '1002';
-  function api(path,opts={}){
-    let url=/^https?:\/\//i.test(path)?path:(API_BASE+path);
-    if(!initData && devTg) url += (url.includes('?')?'&':'?')+'tg='+encodeURIComponent(devTg);
-    const h={'Content-Type':'application/json'}; if(initData) h['X-Telegram-InitData']=initData;
-    return fetch(url,{...opts,headers:h});
-  }
+ const tg = window.Telegram?.WebApp;
+const initData = tg?.initData || '';
+const API_BASE = String(window.API_BASE||'').replace(/\/$/,'');
+// берём tg только из URL, если запускаем не в Telegram
+const sp    = new URLSearchParams(location.search);
+const urlTg = sp.get('tg') || ''; 
 
+function api(path,opts={}){
+  let url=/^https?:\/\//i.test(path)?path:(API_BASE+path);
+  if(!initData && urlTg) url += (url.includes('?')?'&':'?')+'tg='+encodeURIComponent(urlTg);
+  const h={'Content-Type':'application/json'}; 
+  if(initData) h['X-Telegram-InitData']=initData;
+  return fetch(url,{...opts,headers:h});
+}
+
+
+  // подгружаем состояние с сервера (если доступен)
   let me=null, plan=null;
   try{ const r=await api('/api/me');   if(r.ok) me  = await r.json(); }catch(_){}
   try{ const r=await api('/api/plan'); if(r.ok) plan= await r.json(); }catch(_){}
 
-    const btn = document.getElementById('go-next');
-
+  const btn = document.getElementById('go-next');
   btn?.addEventListener('click', (e)=>{
     try { e.preventDefault(); } catch(_){}
     const qs = location.search || '';
-    const sp = new URLSearchParams(qs);
-    const tgInit = window.Telegram?.WebApp?.initDataUnsafe?.user?.id;
-    const uid = sp.get('tg') || tgInit || '1002'; // тот же dev tg, что и для API
+const sp = new URLSearchParams(qs);
+const tgInit = window.Telegram?.WebApp?.initDataUnsafe?.user?.id;
+const uid = sp.get('tg') || tgInit || ''; // без дефолта
+
     const role = (localStorage.getItem('rt_role') || 'patient').toLowerCase();
 
     // ===== Врач =====
     if (role === 'doctor') {
+      // именной флаг важнее любых глобальных
       const onbDone = uid
         ? (localStorage.getItem(`dermaApp:${uid}:doctor_done`) === '1')
         : (localStorage.getItem('rt_doctor_done') === '1' || localStorage.getItem('doctorOnboardingDone') === '1');
@@ -320,21 +327,40 @@ if (last){
     }
 
     // ===== Пациент =====
+    // 1) согласие: БД ИЛИ именной LS ИЛИ (на худой случай) глобальный LS
     const consentLS = uid
       ? localStorage.getItem(`dermaApp:${uid}:consentAccepted`)
       : localStorage.getItem('derma_consent');
-
     const consented = !!me?.accepted_terms_at || (consentLS === '1');
-    const hasWeight = Number(me?.weight_kg) > 0;
-    const hasPlan   = !!plan?.start_date;
 
+    // 2) профиль: БД ИЛИ локальный фоллбэк (на случай, если профиль сохранили только в LS)
+    const hasWeightDB = Number(me?.weight_kg) > 0;
+    const weightLS = Number(
+      localStorage.getItem(`dermaApp:${uid}:weight_kg`) ??
+      localStorage.getItem('rt.weight_kg') ??
+      localStorage.getItem('weight_kg') ??
+      0
+    );
+    const hasWeight = hasWeightDB || (weightLS > 0);
+
+    // 3) план: БД ИЛИ локальный фоллбэк (по ключам плана)
+    const hasPlanDB = !!plan?.start_date;
+    const hasPlanLS = !!(
+      localStorage.getItem(`dermaApp:${uid}:plan_start`) ||
+      localStorage.getItem('rt_startISO') ||
+      localStorage.getItem('plan_start') ||
+      localStorage.getItem('rt_plan_done') === '1'
+    );
+    const hasPlan = hasPlanDB || hasPlanLS;
+
+    // финальная развилка
     const next = !consented ? './warnings.html'
                : !hasWeight ? './profile.html'
                : !hasPlan   ? './plan.html'
                :              './main.html';
 
     location.href = next + qs;
-  }, { capture:true }); // ВАЖНО: capture, чтобы наш код сработал раньше чужих
+  }, { capture:true }); // наш обработчик сработает раньше прочих
 })();
 </script>
 <!-- ======= theme toggle ======= -->

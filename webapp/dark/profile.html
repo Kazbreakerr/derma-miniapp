@@ -320,7 +320,7 @@ body::before{
 
     const initData = (tgApp && tgApp.initData) ? tgApp.initData : '';
     const API_BASE = String(window.API_BASE||'').replace(/\/$/, '');
-    const devTg = new URLSearchParams(location.search).get('tg') || '1002';
+    const devTg = new URLSearchParams(location.search).get('tg') || '';
     function api(path, opts={}){
       let url = /^https?:\/\//i.test(path) ? path : (API_BASE + path);
       const params = [];
@@ -331,7 +331,6 @@ body::before{
       if (initData) headers['X-Telegram-InitData'] = initData;
       return fetch(url, { ...opts, headers });
     }
-    <!-- ВСТАВИТЬ ВОТ ЭТО СЮДА -->
   (async function hydrateHeader(){
     const tg = window.Telegram?.WebApp;
     const nameEl = document.getElementById('tgName');

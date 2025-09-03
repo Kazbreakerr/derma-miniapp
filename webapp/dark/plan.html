@@ -228,14 +228,7 @@ body::before{
 <!-- у своей кнопки добавь id -->
 <button id="agree-derma">Согласен</button>
 
-<script>
-  F.initLinks();
-  document.getElementById('agree-derma')?.addEventListener('click', () => {
-    const c = Gates.consent(); c.derma = true;
-    localStorage.setItem('rt.consent', JSON.stringify(c));
-    location.href = F.href('profile.html');
-  });
-</script>
+
 </head>
 <body>
 <div class="wrap">
@@ -333,7 +326,7 @@ tgApp?.ready?.(); tgApp?.expand?.();
 
 const initData=(tgApp&&tgApp.initData)?tgApp.initData:'';
 const API_BASE=String(window.API_BASE||'').replace(/\/$/,'');
-const devTg=new URLSearchParams(location.search).get('tg')||'1002';
+const devTg=new URLSearchParams(location.search).get('tg')||'';
 
 function api(path,opts={}) {
   let url=/^https?:\/\//i.test(path)?path:(API_BASE+path);

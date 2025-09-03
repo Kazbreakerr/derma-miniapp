@@ -310,11 +310,11 @@
   /* строка меток не тянется на всю ширину и не раздвигает контент */
   .marks{
     left: 6px;
-    right: auto;              /* важно: убираем растягивание вправо */
+    right: 6px;              /* важно: убираем растягивание вправо */
     bottom: 6px;
     gap: 6px;
     justify-content: flex-start; /* вместо space-between */
-    width: max-content;       /* ровно по содержимому */
+    width: auto;       /* ровно по содержимому */
   }
 
   /* уменьшаем бейдж дозы */
@@ -505,16 +505,25 @@
 .grid .day .marks{
   position:absolute;
   left:8px;
-  right:auto !important;
+  right:8px !important;
   bottom:8px;
   display:flex;
   align-items:flex-start;
   justify-content:flex-start !important;
   gap:8px;
-  width:max-content;
+  width:auto;
   z-index:2;
 }
 
+
+@media (max-width: 520px){
+  .grid .day .dose{ font-size: 11px; gap:4px; }
+  .grid .day .dose .capsule{ width:14px; height:9px; }
+  .grid .day .dose .val{ white-space:nowrap; min-width:0; }
+}
+@media (max-width: 360px){
+  .grid .day .dose{ font-size: 10px; }
+}
 /* === Mobile: hide mood emoji to let dose fit === */
 @media (max-width: 520px){
   .grid .day .mood{ display:none !important; }

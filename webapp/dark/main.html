@@ -550,21 +550,16 @@ document.documentElement.dataset.theme = cur;
   outline-offset: -2px;
   box-shadow: 0 10px 28px rgba(90,167,255,.30), inset 0 1px 0 rgba(255,255,255,.06);
 }
-#cardCalendar .marks{
-  position:absolute; left:8px; bottom:8px;
-  display:flex; align-items:center; justify-content:flex-start;
-  gap:8px; width:max-content; z-index:2;
-}
-#cardCalendar .dose{
-  display:grid; grid-template-columns:auto auto; grid-template-areas:"cap val" "unit unit";
-  align-items:center; gap:4px 6px; font-weight:800; font-size:12px; line-height:1.1;
-}
+#cardCalendar .marks{position:absolute; left:6px; right:6px; bottom:8px;display:flex; align-items:center; justify-content:flex-start;gap:6px; width:auto; z-index:2;}
+#cardCalendar .dose{display:flex; align-items:center; gap:4px;font-weight:800; font-size:12px; line-height:1.1; min-width:0;}
 #cardCalendar .dose .capsule{
-  position:relative; width:16px; height:10px; border-radius:999px;
+  position:relative; width:14px; height: 9px; border-radius:999px;
   background: linear-gradient(90deg, #ffffff 0 50%, #14b8a6 0 100%);
   border:1px solid rgba(0,0,0,.28);
   box-shadow: inset 0 1px 0 rgba(255,255,255,.90), inset 0 -1px 0 rgba(0,0,0,.25), 0 1.5px 2.5px rgba(0,0,0,.35);
 }
+
+#cardCalendar .dose .val{ white-space:nowrap; min-width:0; font-size:12px; line-height:1; }
 #cardCalendar .dose .capsule::after{
   content:""; position:absolute; left:50%; top:1px; bottom:1px; width:1px; transform:translateX(-.5px);
   background: linear-gradient(180deg, rgba(255,255,255,.65), rgba(0,0,0,.35));
@@ -2338,6 +2333,25 @@ document.addEventListener('DOMContentLoaded', ()=>{
   // Удобная функция для консоли/скриптов: window.parallaxTest()
   window.parallaxTest = () => playParallax({navigate:false});
 });
+
+<script>
+// Haptic for the actual "Добавить" button (#save) — runs on all devices
+(function(){
+  const btn = document.getElementById('save');
+  if(!btn) return;
+  function haptic(){
+    try{
+      if (window.Telegram?.WebApp?.HapticFeedback) {
+        Telegram.WebApp.HapticFeedback.impactOccurred('light');
+      } else if (navigator.vibrate) {
+        navigator.vibrate([12, 24]);
+      }
+    }catch(_){}
+  }
+  btn.addEventListener('click', haptic);
+  btn.addEventListener('touchstart', ()=>{ try{ navigator.vibrate && navigator.vibrate(10); }catch(_){} }, {passive:true});
+})();
+</script>
 </script>
 
 </body>

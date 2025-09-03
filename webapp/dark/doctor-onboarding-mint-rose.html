@@ -306,6 +306,18 @@
     store.set('doctorOnboardingDone', { at: new Date().toISOString() });
     const qs = location.search || '';
     
+    // --- ИМЕННОЙ флаг онбординга для текущего tg ---
+{
+  const sp = new URLSearchParams(location.search);
+  const tgInit = window.Telegram?.WebApp?.initDataUnsafe?.user?.id;
+  const uid = sp.get('tg') || tgInit || '';  // здесь без dev-дефолта
+  try {
+    if (uid) localStorage.setItem(`dermaApp:${uid}:doctor_done`, '1'); // именной
+    localStorage.setItem('rt_doctor_done','1');                        // глобальный (на всякий)
+    localStorage.setItem('rt_role','doctor');
+  } catch(_) {}
+}
+
     location.href = 'doctor-cabinet-mint-rose.html' + qs + '#/doctor/patients';
   });
 </script>

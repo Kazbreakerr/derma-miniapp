@@ -255,6 +255,26 @@
     .page{ opacity: 0; transform: translateY(8px); animation: fadeSlideIn .28s ease forwards; }
     @keyframes fadeSlideIn { to { opacity:1; transform: translateY(0); } }
     .page.exit{ opacity: 0; transform: translateY(8px); transition: opacity .28s ease, transform .28s ease; }
+
+    /* компактная нижняя навигация на узких телефонах */
+@media (max-width: 420px){
+  .bottom-nav{
+    padding: 8px max(env(safe-area-inset-left),10px)
+             calc(8px + env(safe-area-inset-bottom))
+             max(env(safe-area-inset-right),10px);
+    gap: 8px;
+  }
+  .tab{ height: 56px; padding: 6px 8px; border-radius: 16px; font-size: 11.5px; }
+  .tab svg{ width: 20px; height: 20px; }
+}
+/* ещё компактнее для сверхузких */
+@media (max-width: 340px){
+  .tab{ height: 52px; padding: 6px; font-size: 11px; }
+  .tab svg{ width: 19px; height: 19px; }
+}
+/* позволим JS выставлять точную высоту проставки */
+.bottom-spacer{ height: var(--nav-h, calc(86px + env(safe-area-inset-bottom))); }
+
   </style>
 </head>
 <body>
@@ -442,6 +462,17 @@
 (function(){
   const pageRoot = document.getElementById('pageRoot');
 
+  const navEl = document.querySelector('.bottom-nav');
+const spacerEl = document.querySelector('.bottom-spacer');
+function fitBottomSpacer(){
+  if(!navEl || !spacerEl) return;
+  const h = Math.ceil(navEl.getBoundingClientRect().height);
+  spacerEl.style.setProperty('--nav-h', h + 'px');
+}
+fitBottomSpacer();
+window.addEventListener('resize', fitBottomSpacer);
+window.addEventListener('orientationchange', fitBottomSpacer);
+
   // Refs
   const sexSeg = document.getElementById('sexSeg');
   const updatedLbl = document.getElementById('updatedLbl');
@@ -627,6 +658,11 @@
     reports.unshift(rep);
     localStorage.setItem('labs.reports', JSON.stringify(reports));
     renderReports(rep.ts);
+    // проскроллить к новому отчёту
+setTimeout(()=>{
+  const el = document.getElementById('rep-' + rep.ts) || document.querySelector('.rep-item');
+  el?.scrollIntoView({behavior:'smooth', block:'start'});
+}, 0);
     saveReportBtn.textContent = 'Сохранено ✓';
     setTimeout(()=> saveReportBtn.textContent='Сохранить как отчёт', 1200);
   }
@@ -653,6 +689,7 @@
     }
     reports.forEach((rep)=>{
       const item = document.createElement('div');
+      item.id = 'rep-' + rep.ts;
       item.className = 'rep-item';
 
       const btn = document.createElement('button');
@@ -866,8 +903,6 @@ document.getElementById('navHome').addEventListener('click', (e)=>{ e.preventDef
 document.getElementById('navCalendar').addEventListener('click', (e)=>{ e.preventDefault(); navigateWithFx('calendar.html'); });
 document.getElementById('navDiary').addEventListener('click', (e)=>{ e.preventDefault(); navigateWithFx('diary.html'); });
 document.getElementById('navProfile').addEventListener('click', (e)=>{ e.preventDefault(); navigateWithFx('myprofile.html'); });
- navigateWithFx('myprofile.html'); });
-
   try{ Telegram.WebApp.ready(); Telegram.WebApp.expand(); }catch(_){}
 })();
 </script>
