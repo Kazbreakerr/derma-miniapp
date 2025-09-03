@@ -1,17 +1,13 @@
 require('dotenv').config();
 const TelegramBot = require('node-telegram-bot-api');
 
-
-
 const BOT_TOKEN = process.env.BOT_TOKEN;
 const WEBAPP_URL = process.env.WEBAPP_URL || '';
 if (!BOT_TOKEN) throw new Error('BOT_TOKEN is empty');
 
-// БЕЗ polling — дальше работаем через вебхук
-const usePolling = !process.env.WEBAPP_URL;  
-const bot = new TelegramBot(BOT_TOKEN, { polling: false });
+const usePolling = !process.env.WEBAPP_URL;      // локально — polling
+const bot = new TelegramBot(BOT_TOKEN, { polling: usePolling });
 
-// /start — кнопка открытия мини-аппа
 bot.onText(/\/start(?:\s+(.+))?/, (msg, match) => {
   const ref = match && match[1] ? match[1] : '';
   bot.sendMessage(msg.chat.id, 'Откройте Derma Mini-App:', {
@@ -23,7 +19,6 @@ bot.onText(/\/start(?:\s+(.+))?/, (msg, match) => {
   });
 });
 
-// Если фронт шлёт данные через Telegram.WebApp.sendData
 bot.on('web_app_data', (msg) => {
   console.log('web_app_data from', msg.from?.id, msg.web_app_data?.data);
 });

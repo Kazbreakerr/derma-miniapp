@@ -3,7 +3,7 @@ require('dotenv').config();
 process.on('uncaughtException', err => console.error('UNCAUGHT', err));
 process.on('unhandledRejection', err => console.error('UNHANDLED', err));
 const { bot, WEBAPP_URL } = require('./bot'); // импорт один раз
-// === Telegram helper (отправка уведомлений)
+// === Telegram helper (кнопки для отметки приёма)
 function appUrlFor(tgId) {
   const base = (process.env.WEBAPP_URL || WEBAPP_URL || '').replace(/\/+$/,'');
   return `${base}/main?tg=${tgId}`;
@@ -11,7 +11,7 @@ function appUrlFor(tgId) {
 
 async function sendReminder(tgId, text) {
   try {
-    await bot.telegram.sendMessage(tgId, text, {
+    await bot.sendMessage(tgId, text, {
       parse_mode: 'HTML',
       reply_markup: {
         inline_keyboard: [
@@ -21,9 +21,10 @@ async function sendReminder(tgId, text) {
       }
     });
   } catch (e) {
-    console.error('Ошибка отправки напоминания:', e?.response?.description || e);
+    console.error('Ошибка отправки напоминания:', e?.response?.body || e);
   }
 }
+
 
 const isPolling = !process.env.WEBAPP_URL;    // локально — polling, на Render — webhook
 const path = require('path');
@@ -44,23 +45,6 @@ app.use(cors({
   allowedHeaders: ['Content-Type', 'X-Telegram-InitData', 'tgwebappdata']
   
 }));
-
-
-async function sendReminder(chatId, text) {
-  try {
-    await fetch(`${API_URL}/sendMessage`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        chat_id: chatId,
-        text,
-        parse_mode: 'HTML'
-      })
-    });
-  } catch (e) {
-    console.error("Ошибка при отправке напоминания:", e);
-  }
-}
 
 
 
@@ -1003,7 +987,43 @@ app.post('/api/reminder', tgAuth, async (req, res) => {
   reminders[tgId] = { ...(reminders[tgId] || {}), enabled: !!enabled, time: String(time || '').slice(0,5) };
   console.log('Напоминание сохранено:', tgId, reminders[tgId]);
   res.json({ ok: true, data: reminders[tgId] });
+  const userTzCache = new Map();
+
+async function getUserTzByTg(tgId) {
+  if (userTzCache.has(tgId)) return userTzCache.get(tgId);
+  await pool.query('SET search_path = derma, public');
+  const r = await pool.query('SELECT tz FROM derma.users WHERE tg_id=$1::bigint', [Number(tgId)]);
+  const tz = r.rows[0]?.tz || 'Europe/Moscow';
+  userTzCache.set(tgId, tz);
+  return tz;
+}
+
+function nowParts(tz) {
+  const p = new Intl.DateTimeFormat('en-GB', {
+    timeZone: tz, year:'numeric', month:'2-digit', day:'2-digit',
+    hour:'2-digit', minute:'2-digit', hour12:false
+  }).formatToParts(new Date());
+  const get = t => p.find(x=>x.type===t)?.value;
+  const date = `${get('year')}-${get('month')}-${get('day')}`;
+  const time = `${get('hour')}:${get('minute')}`;
+  return { date, time };
+}
+
+async function hasTakenToday(tgId, tz) {
+  await pool.query('SET search_path = derma, public');
+  const q = await pool.query(
+    `SELECT 1
+       FROM derma.dose_logs dl
+       JOIN derma.users u ON u.id = dl.patient_id
+      WHERE u.tg_id = $1::bigint
+        AND dl.date = (now() AT TIME ZONE $2)::date
+      LIMIT 1`,
+    [Number(tgId), tz]
+  );
+  return !!q.rowCount;
+}
 });
+
 
 // ==== START HTTP SERVER ====
 const port = process.env.PORT || 3000;
