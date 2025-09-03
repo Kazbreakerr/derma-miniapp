@@ -195,12 +195,79 @@ html[data-theme="light"] .cancel{
 .lead{ font-size:17px; opacity:.95; margin:10px 0 4px; }
 .extra{ font-size:14px; color:var(--text-low); margin-top:8px; }
 </style>
+<style id="pill-alert-style">
+  .pill-alert{
+    display:inline-flex;align-items:center;justify-content:center;
+    margin-left:10px;padding:2px 8px;border-radius:10px;
+    font-weight:800;font-size:12px;letter-spacing:.2px;
+    color:#fff;background:#ff4242;
+    box-shadow:0 0 0 0 rgba(255,66,66,.65);
+    animation:hazard 1.15s steps(2,start) infinite;
+  }
+  @keyframes hazard{to{opacity:.38;box-shadow:0 0 0 10px rgba(255,66,66,0)}}
+  @media (prefers-reduced-motion:reduce){.pill-alert{animation:none}}
+</style>
 
+<script id="pill-alert-script">
+(function(){
+  function todayISO(){const d=new Date();d.setMinutes(d.getMinutes()-d.getTimezoneOffset());return d.toISOString().slice(0,10);}
+  function getTodayMg(){
+    const iso=todayISO();
+    try{ const tIso=localStorage.getItem('derma_today_iso');
+      if(tIso===iso){ const mg=+localStorage.getItem('derma_today_mg')||0; if(mg>0) return mg; }
+    }catch(_){}
+    try{ const diary=JSON.parse(localStorage.getItem('rt.diary.v1')||'{}'); const rec=diary[iso];
+      if(rec){ if(rec.miss===true||rec.taken===false) return 0; return +(rec.dose ?? rec.mg ?? 0)||0; }
+    }catch(_){}
+    return 0;
+  }
+  function render(){
+    const need=getTodayMg()<=0;
+    document.querySelectorAll('[data-pill-spot]').forEach(spot=>{
+      let b=spot.querySelector('.pill-alert');
+      if(!need){ if(b) b.remove(); return; }
+      if(!b){ b=document.createElement('span'); b.className='pill-alert'; b.textContent='препарат';
+        b.title='Сегодня доза не отмечена'; spot.appendChild(b); }
+    });
+  }
+  window.addEventListener('storage',e=>{
+    if(['rt.diary.v1','derma_today_iso','derma_today_mg'].includes(e.key)) render();
+  });
+  document.addEventListener('visibilitychange',()=>{ if(!document.hidden) render(); });
+  document.addEventListener('DOMContentLoaded',render);
+  window.renderPillAlert = render;
+})();
+</script>
+<style id="reset-compact-patch">
+  .wrap{max-width:560px;padding:16px 16px 24px;}
+  h1{font-size:22px}
+  .card{padding:14px 14px 16px;border-radius:14px}
+  .lead{font-size:15px;margin:6px 0 4px}
+  .list{margin:6px 0}
+  .list li{margin:4px 0}
+  .hint{font-size:13px;margin:10px 0 8px;opacity:.85}
+  .btns{gap:10px;margin-top:12px}
+  #msg{font-size:13px}
+
+  /* компактная кнопка */
+  .hold-btn{height:48px;max-width:420px;font-size:14px}
+  .hold-btn .label{padding:0 6px}
+
+  /* «Подробнее» */
+  details.more{margin-top:6px}
+  details.more summary{
+    cursor:pointer; list-style:none; user-select:none;
+    color:var(--text-low); padding:6px 0; font-size:14px;
+  }
+  details.more[open] summary{ color:var(--text-high) }
+  details.more summary::-webkit-details-marker{display:none}
+  details.more .content{padding-top:4px}
+</style>
 </head>
 <body>
   <div class="wrap">
     <div class="topbar">
-      <h1 style="margin:0">Roaccutane Tracker</h1>
+      <h1 style="margin:0">Roaccutane Tracker<span data-pill-spot></span></h1>
       <button id="themeToggle" class="theme-toggle" role="switch" aria-checked="true" aria-label="Переключить тему">
         <span class="scene light">
           <svg viewBox="0 0 260 88" preserveAspectRatio="none" xmlns="http://www.w3.org/2000/svg">
@@ -232,26 +299,37 @@ html[data-theme="light"] .cancel{
     </div>
 
     <div class="card">
-      <p>Это действие удалит ваши локальные отметки и серверные данные, связанные с прогрессом:</p>
+  <p class="lead">Обнуление данных локально и на сервере:</p>
+  <ul class="list">
+    <li>Журнал приёмов</li>
+    <li>Напоминания</li>
+    <li>Локальные кэши прогресса</li>
+  </ul>
+  <p class="muted" style="margin:6px 0 0">Профиль и план курса сохранятся.</p>
+
+  <details class="more">
+    <summary>Подробнее, что будет очищено</summary>
+    <div class="content">
       <ul class="list">
-        <li>Журнал приёмов (<code>intakes</code>)</li>
-        <li>Настройки напоминаний</li>
-        <li>Локальные кэши прогресса</li>
+        <li>Все отметки о приёмах/дозах на сервере и в памяти устройства.</li>
+        <li>Настройки напоминаний и локальные кэши.</li>
+        <li>Файлы офлайн-версии (service worker и cache) — переустановятся автоматически.</li>
       </ul>
-      <p class="muted">Профиль и план курса останутся.</p><p class="lead">Что именно будет очищено</p><ul class="list"><li>Все отметки о приёмах и дозировках на сервере и в памяти устройства.</li><li>Настройки напоминаний и локальные кэши прогресса.</li><li>Файлы офлайн-версии (сервис-воркер и кеши) — они переустановятся автоматически.</li></ul><div class="extra">Действие необратимо: вернуть удалённые отметки нельзя. Если передумаете — нажмите «Отмена».</div>
-
-      <div class="hint">Удерживайте кнопку ниже, чтобы подтвердить удаление.</div>
-      <button id="holdDelete" class="hold-btn" aria-label="Удерживайте, чтобы удалить данные">
-        <span class="progress" aria-hidden="true"></span>
-        <span class="label">Я понимаю последствия и хочу удалить данные</span>
-      </button>
-
-      <div class="btns">
-        <a class="cancel" id="btnCancel" href="./main.html">Отмена — вернуться на главную</a>
-        <span id="msg" class="muted"></span>
-      </div>
+      <div class="extra">Действие необратимо. Если передумаете — нажмите «Отмена».</div>
     </div>
+  </details>
+
+  <div class="hint">Удерживайте кнопку ниже для подтверждения:</div>
+  <button id="holdDelete" class="hold-btn" aria-label="Удерживайте, чтобы удалить данные">
+    <span class="progress" aria-hidden="true"></span>
+    <span class="label">Удалить данные</span>
+  </button>
+
+  <div class="btns">
+    <a class="cancel" id="btnCancel" href="./main.html">Отмена</a>
+    <span id="msg" class="muted"></span>
   </div>
+</div>
 
   <script>
     const tgApp = (window.Telegram && window.Telegram.WebApp) ? window.Telegram.WebApp : null;

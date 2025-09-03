@@ -1207,6 +1207,38 @@ window.addEventListener('keydown', (e)=>{ if(e.key === 'Escape') closeSheet(); }
 // на всякий — обновляемся, когда пользователь вернулся на страницу
 window.addEventListener('focus', render);
 document.addEventListener('visibilitychange', ()=>{ if (!document.hidden) render(); });
+// === Mobile tap fallback: всегда открывать шит по быстрому тапу ===
+(function(){
+  let tStart = 0, sx = 0, sy = 0, moved = false;
+
+  document.addEventListener('touchstart', (e)=>{
+    const cell = e.target.closest('.day[data-date]');
+    if(!cell) return;
+    const t = e.touches[0];
+    tStart = Date.now(); sx = t.clientX; sy = t.clientY; moved = false;
+  }, {passive:true});
+
+  document.addEventListener('touchmove', (e)=>{
+    if(!tStart) return;
+    const t = e.touches[0]; if(!t) return;
+    if (Math.abs(t.clientX - sx) > 8 || Math.abs(t.clientY - sy) > 8) moved = true;
+  }, {passive:true});
+
+  document.addEventListener('touchend', (e)=>{
+    const cell = e.target.closest('.day[data-date]');
+    if(!cell) return;
+    const dt = Date.now() - tStart; tStart = 0;
+    if (moved || dt > 420) return;               // долгий тап/скролл — игнор
+    if (sheet.classList.contains('active')) return;
+
+    const id = cell.dataset.date;
+    grid.querySelectorAll('.day.selected').forEach(el => el.classList.remove('selected'));
+    cell.classList.add('selected');
+
+    const data = (function(){ try{ return JSON.parse(localStorage.getItem('rt.diary.v1')||'{}'); }catch(_){ return {}; } })()[id] || null;
+    openSheet(id, data);
+  }, {passive:true});
+})();
 
 
   // === RANGE SELECT (п.4): делегирование по .day ===

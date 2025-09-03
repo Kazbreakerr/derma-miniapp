@@ -323,7 +323,28 @@ body.light .seg button{
       .cal-nav.right{right:-6px}
       .cal-nav svg{width:18px;height:18px}
     }
+/* Month label (верх календаря) */
+.cal-month{
+  text-align:center;
+  margin: 2px 0 8px;
+  font-weight:800;
+  letter-spacing:.2px;
+  color: var(--text-mid);
+  pointer-events:none; /* чтобы стрелки-навигации кликаились поверх */
+}
 
+/* Маленький чип с названием месяца на 1-м числе */
+#cardCalendar .month-chip{
+  position:absolute; right:6px; top:6px;
+  padding:2px 6px; border-radius:8px;
+  font-size:11px; font-weight:700;
+  color: var(--text-mid);
+  background: rgba(255,255,255,.06);
+  border: 1px solid rgba(255,255,255,.12);
+  backdrop-filter: blur(2px);
+}
+
+  
     /* FAQ decoration */
     .faq-deco{position:absolute; right:-10px; top:-10px; opacity:.18; width:140px; height:140px; pointer-events:none}
     @media (max-width: 380px){
@@ -1120,6 +1141,7 @@ body.light .tab.active{ color:#0d1220; background: linear-gradient(180deg, rgba(
       <div class="row" style="justify-content:space-between"><h2 style="margin:0">Календарь</h2><a href="calendar.html" class="open-btn" id="openCalendarBtn">Открыть</a></div>
 
       <div class="preview-wrap" id="calWrap">
+        <div id="calMonthLabel" class="cal-month" aria-live="polite"></div>
         <button class="cal-nav left" id="calPrev" aria-label="Назад на неделю" title="Назад">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M15 18l-6-6 6-6"/></svg>
         </button>
@@ -1172,9 +1194,9 @@ body.light .tab.active{ color:#0d1220; background: linear-gradient(180deg, rgba(
       </svg>
       <h2 style="margin-bottom:8px">FAQ</h2>
       <div class="muted" style="margin:-6px 0 10px">Короткие подсказки и советы по курсу.</div>
-      <a ##start" class="chip" style="margin-right:6px">Как начать</a>
-      <a ##dose" class="chip" style="margin-right:6px">Дозировка</a>
-      <a ##missed" class="chip" style="margin-right:6px">Пропуск дозы</a>
+      <a href="faq.html#start"  class="chip" data-vt-link>Как начать</a>
+<a href="faq.html#dose"   class="chip" data-vt-link>Дозировка</a>
+<a href="faq.html#missed" class="chip" data-vt-link>Пропуск дозы</a>
     </section>
 
     <section class="card section" aria-labelledby="reset-title" style="border-color:#3a1f2b;background:linear-gradient(180deg,#141824,#0f1624)">
@@ -1763,7 +1785,25 @@ function renderCalPreview(){
   const wd = base.getDay(); // 0-вс..6-сб
   const toMonday = (wd === 0 ? -6 : (1 - wd));
   base.setDate(base.getDate() + toMonday);
+// Названия месяцев
+const mFull  = ['Январь','Февраль','Март','Апрель','Май','Июнь','Июль','Август','Сентябрь','Октябрь','Ноябрь','Декабрь'];
+const mShort = ['Янв','Фев','Мар','Апр','Май','Июн','Июл','Авг','Сен','Окт','Ноя','Дек'];
 
+// Диапазон текущей отображаемой недели
+const startW = new Date(base);
+const endW = new Date(base); endW.setDate(endW.getDate() + 6);
+
+// Лейбл типа "Сентябрь 2025" или "Авг – Сен 2025" (учтём переход года)
+let label;
+if (startW.getMonth() === endW.getMonth() && startW.getFullYear() === endW.getFullYear()){
+  label = `${mFull[startW.getMonth()]} ${startW.getFullYear()}`;
+} else {
+  const left  = `${mShort[startW.getMonth()]}${startW.getFullYear()!==endW.getFullYear() ? ' '+startW.getFullYear() : ''}`;
+  const right = `${mShort[endW.getMonth()]} ${endW.getFullYear()}`;
+  label = `${left} – ${right}`;
+}
+const ml = document.getElementById('calMonthLabel');
+if (ml) ml.textContent = label;
   const currentIso = (document.getElementById('date')?.value||'').slice(0,10);
   const dAll = diaryGet();
 
@@ -1774,6 +1814,8 @@ function renderCalPreview(){
     const dd = String(d.getDate()).padStart(2,'0');
     const iso = `${y}-${m}-${dd}`;
     const mg = map.get(iso) || 0;
+    const isFirstOfMonth = (d.getDate() === 1);
+const monthChip = isFirstOfMonth ? `<span class="month-chip">${mShort[d.getMonth()]}</span>` : '';
 
     const rec  = dAll?.[iso] || {};
     const moodIdx = moodIndexFromDiary(rec, iso);
@@ -1793,14 +1835,15 @@ function renderCalPreview(){
     }
 
     cell.innerHTML = `
-      <div class="day-num">${Number(dd)}</div>
-      <div class="marks">
-        <div class="dose ${mg ? 'taken' : ''}" style="${mg ? '' : 'opacity:.0;'}">
-          <span class="capsule" aria-hidden="true"></span>
-          <span class="val">${mg ? (fmtInt(mg)) : ''}</span>
-        </div>
-      </div>
-    `;
+  <div class="day-num">${Number(dd)}</div>
+  ${monthChip}
+  <div class="marks">
+    <div class="dose ${mg ? 'taken' : ''}" style="${mg ? '' : 'opacity:.0;'}">
+      <span class="capsule" aria-hidden="true"></span>
+      <span class="val">${mg ? (fmtInt(mg)) : ''}</span>
+    </div>
+  </div>
+`;
     cell.addEventListener('click', ()=>{
       const inp = document.getElementById('date'); if (inp) inp.value = iso;
       renderCalPreview();
@@ -1931,11 +1974,9 @@ if(use){
         ME        = meR.ok   ? await meR.json()   : null;
         PLAN      = planR.ok ? await planR.json() : null;
         DOSES     = doseR.ok ? (await doseR.json()) : [];
-        DOSES     = DOSES.map(d => ({ ...d, date: normalizeDate(d.date) }));
-        if (Array.isArray(DOSES) && DOSES.length === 0) {
-  // На сервере пусто → убираем локальный мусор (старые дозы/настроения)
-  wipeLocalDiary('server-empty');
-}
+        DOSES = DOSES.map(d => ({ ...d, date: normalizeDate(d.date) }));
+// Важно: если сервер/офлайн вернул пусто — ничего не чистим.
+// Локальные данные (rt.diary.v1/v2) считаем источником правды.
         PROGRESS  = prR.ok   ? await prR.json()   : null;
         window.__intakesLoaded = true;
 

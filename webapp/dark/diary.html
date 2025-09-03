@@ -377,6 +377,17 @@ header::after{
     .day-nav{ grid-template-columns: 46px 1fr 46px }
     .nav-arrow{ width:46px; height:46px; border-radius:14px }
   }
+#dayChip {
+  position: relative;
+  cursor: pointer;
+}
+
+#dayChip input[type="date"] {
+  position: absolute;
+  inset: 0;        /* растянет input на весь блок */
+  opacity: 0;      /* невидимый */
+  cursor: pointer; /* рука при наведении */
+}
 
   /* ===== Day pane transition (flip) ===== */
 #dayPane{
@@ -886,9 +897,11 @@ header{
       <button class="nav-arrow left" id="prevDay" aria-label="Предыдущий день">
         <svg width="18" height="18" viewBox="0 0 24 24" fill="none"><path d="M15 19l-7-7 7-7" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
       </button>
-      <div class="center-stack" id="diary-portal-target">
-  <label for="datePicker" class="chip big" id="dayChip">Сегодня · ср, 03 сентября 2025 г.</label>
-  <input id="datePicker" type="date" class="date-input" hidden>
+    <div class="center-stack" id="diary-portal-target">
+  <div class="chip big" id="dayChip">
+    Сегодня · ср, 03 сентября 2025 г.
+    <input id="datePicker" type="date" class="date-input">
+  </div>
 </div>
       <button class="nav-arrow right" id="nextDay" aria-label="Следующий день">
         <svg width="18" height="18" viewBox="0 0 24 24" fill="none"><path d="M9 5l7 7-7 7" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
@@ -1778,7 +1791,7 @@ function init(){
 <nav class="navbar" role="navigation" aria-label="Нижняя навигация">
   <div class="dock">
     <a class="nav-item" href="main.html"><svg class="ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M4 10.5l8-6 8 6"/><path d="M6 10v8a1 1 0 001 1h4v-6h2v6h4a1 1 0 001-1v-8"/></svg><span>Главная</span></a>
-    <a class="nav-item" href="calendar.html"><svg class="ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="3" y="5" width="18" height="16" rx="3"/><path d="M16 3v4M8 3v4M3 11h18"/></svg><span>Календарь<span data-pill-spot></span></div>
+    <a class="nav-item" href="calendar.html"><svg class="ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="3" y="5" width="18" height="16" rx="3"/><path d="M16 3v4M8 3v4M3 11h18"/></svg><span>Календарь</span></a>
     <a class="nav-item" href="myprofile.html"><svg class="ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="12" cy="8" r="4"/><path d="M4 21a8 8 0 0116 0"/></svg><span>Профиль</span><i class="underline"></i></a>
     <a class="nav-item active" href="diary.html"><svg class="ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="3" y="5" width="18" height="14" rx="3"/><path d="M8 12l3 3 4-5 4 6"/><circle cx="8" cy="9" r="1.2"/></svg><span>Фотодневник</span><i class="underline"></i></a>
     <a class="nav-item" href="labs.html"><svg class="ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M9 3v6L4 18a4 4 0 003.6 6h8.8A4 4 0 0020 18l-5-9V3"/><path d="M9 9h6"/></svg><span>Анализы</span></a>

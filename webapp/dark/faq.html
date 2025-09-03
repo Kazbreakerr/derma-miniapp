@@ -30,7 +30,7 @@ document.documentElement.dataset.theme = cur;
 
   <script>try{ if(localStorage.getItem('derma_consent')!=='1'){ location.replace('./warnings.html'); } }catch(_){}</script>
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>Roaccutane Tracker — FAQ</title>
+  <title>Roaccutane Tracker — FAQ<span data-pill-spot></span></title>
   <script src="https://telegram.org/js/telegram-web-app.js"></script>
   <script>window.API_BASE = window.API_BASE || '';</script>
 
@@ -155,16 +155,59 @@ document.documentElement.dataset.theme = cur;
       display: block !important;
     }
   </style>
+<style id="pill-alert-style">
+  .pill-alert{
+    display:inline-flex;align-items:center;justify-content:center;
+    margin-left:10px;padding:2px 8px;border-radius:10px;
+    font-weight:800;font-size:12px;letter-spacing:.2px;
+    color:#fff;background:#ff4242;
+    box-shadow:0 0 0 0 rgba(255,66,66,.65);
+    animation:hazard 1.15s steps(2,start) infinite;
+  }
+  @keyframes hazard{to{opacity:.38;box-shadow:0 0 0 10px rgba(255,66,66,0)}}
+  @media (prefers-reduced-motion:reduce){.pill-alert{animation:none}}
+</style>
+
+<script id="pill-alert-script">
+(function(){
+  function todayISO(){const d=new Date();d.setMinutes(d.getMinutes()-d.getTimezoneOffset());return d.toISOString().slice(0,10);}
+  function getTodayMg(){
+    const iso=todayISO();
+    try{ const tIso=localStorage.getItem('derma_today_iso');
+      if(tIso===iso){ const mg=+localStorage.getItem('derma_today_mg')||0; if(mg>0) return mg; }
+    }catch(_){}
+    try{ const diary=JSON.parse(localStorage.getItem('rt.diary.v1')||'{}'); const rec=diary[iso];
+      if(rec){ if(rec.miss===true||rec.taken===false) return 0; return +(rec.dose ?? rec.mg ?? 0)||0; }
+    }catch(_){}
+    return 0;
+  }
+  function render(){
+    const need=getTodayMg()<=0;
+    document.querySelectorAll('[data-pill-spot]').forEach(spot=>{
+      let b=spot.querySelector('.pill-alert');
+      if(!need){ if(b) b.remove(); return; }
+      if(!b){ b=document.createElement('span'); b.className='pill-alert'; b.textContent='препарат';
+        b.title='Сегодня доза не отмечена'; spot.appendChild(b); }
+    });
+  }
+  window.addEventListener('storage',e=>{
+    if(['rt.diary.v1','derma_today_iso','derma_today_mg'].includes(e.key)) render();
+  });
+  document.addEventListener('visibilitychange',()=>{ if(!document.hidden) render(); });
+  document.addEventListener('DOMContentLoaded',render);
+  window.renderPillAlert = render;
+})();
+</script>
 
 </head>
 <body>
   <div class="wrap">
     <div class="topbar">
-      <a class="back-btn" href="./main-dark.html" id="btn-back" aria-label="Назад на главную">
+      <a class="back-btn" href="./main.html" id="btn-back" aria-label="Назад на главную">
         <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M15 19l-7-7 7-7" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
         <span>Назад</span>
       </a>
-      <h1 style="margin:0">Roaccutane Tracker</h1>
+     <h1 style="margin:0">Roaccutane Tracker <span data-pill-spot></span></h1>
       <!-- Theme toggle exact -->
       <button id="themeToggle" class="theme-toggle" role="switch" aria-checked="false" aria-label="Переключить тему">
         <span class="scene light">
@@ -339,7 +382,7 @@ document.documentElement.dataset.theme = cur;
         <details class="qa" id="app">
           <summary>Как отмечать приём и где смотреть статистику в приложении? <span class="pill">app</span></summary>
           <div class="qa-body">
-            <p>На <a href="./main-dark.html">Главной</a> введите мг и дату, нажмите «Сохранить» или выберите чип дозы. Сводные метрики, процент к 135 мг/кг и ETA — в блоке «Прогресс». Последние отметки и календарь‑превью — ниже.</p>
+            <p>На <a href="./main.html">Главной</a> введите мг и дату, нажмите «Сохранить» или выберите чип дозы. Сводные метрики, процент к 135 мг/кг и ETA — в блоке «Прогресс». Последние отметки и календарь‑превью — ниже.</p>
           </div>
         </details>
 
@@ -349,7 +392,7 @@ document.documentElement.dataset.theme = cur;
         <section class="card" aria-label="Навигация">
       <div class="glow"></div>
       <div class="row" style="justify-content:space-between">
-        <a id="to-home" href="./main-dark.html">← На главную</a>
+        <a id="to-home" href="./main.html">← На главную</a>
       </div>
     </section>
 
@@ -391,7 +434,7 @@ document.documentElement.dataset.theme = cur;
         try{
           if (history.length > 1) { history.back(); return; }
         }catch(_){}
-        location.href = './main-dark.html';
+        location.href = './main.html';
       });
     }
 
@@ -404,7 +447,7 @@ document.documentElement.dataset.theme = cur;
     back.addEventListener('click', function(e){
       e.stopPropagation();
       var t = document.documentElement.dataset.theme || 'dark';
-      var target = (t === 'dark') ? './main-dark.html' : './main-light.html';
+      var target = (t === 'dark') ? './main.html' : './main.html';
       if (back.getAttribute('href') !== target) back.setAttribute('href', target);
     }, {capture:true});
   }
