@@ -7,6 +7,13 @@
   <title>Календарь — Roaccutane Tracker</title>
   <style>
     :root{
+  --bg: #0b0f16;
+  --bg-grad:
+    radial-gradient(1100px 620px at 12% -10%, rgba(255, 119, 156, .14) 0%, rgba(255, 119, 156, .06) 36%, transparent 60%),
+    radial-gradient(950px 680px at 88% 92%, rgba(56, 189, 248, .16) 0%, rgba(56, 189, 248, .08) 35%, transparent 60%),
+    radial-gradient(1200px 900px at 42% 30%, rgba(250, 204, 21, .10) 0%, rgba(250, 204, 21, .04) 35%, transparent 62%),
+    linear-gradient(#0b0f16,#0b0f16);
+
       --bg: #0c1824;
       --bg-2: #0f2231;
       --surface: rgba(18,33,48,0.8);
@@ -25,6 +32,13 @@
     }
     /* === SELECTED & TODAY === */
 :root{
+  --bg: #0b0f16;
+  --bg-grad:
+    radial-gradient(1100px 620px at 12% -10%, rgba(255, 119, 156, .14) 0%, rgba(255, 119, 156, .06) 36%, transparent 60%),
+    radial-gradient(950px 680px at 88% 92%, rgba(56, 189, 248, .16) 0%, rgba(56, 189, 248, .08) 35%, transparent 60%),
+    radial-gradient(1200px 900px at 42% 30%, rgba(250, 204, 21, .10) 0%, rgba(250, 204, 21, .04) 35%, transparent 62%),
+    linear-gradient(#0b0f16,#0b0f16);
+
   /* высота нижней навигации (таббара) + safe area */
   --tabbar-h: calc(64px + env(safe-area-inset-bottom));
   /* цвет кольца выбранных дней */
@@ -58,9 +72,7 @@
       margin:0;
       font-family: Inter, ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial, 'Apple Color Emoji','Segoe UI Emoji';
       color:var(--text);
-      background: radial-gradient(1200px 600px at -10% -10%, rgba(66, 227, 184, .12), transparent 60%),
-                  radial-gradient(1000px 700px at 120% 120%, rgba(90, 167, 255,.14), transparent 55%),
-                  linear-gradient(180deg, var(--bg) 0%, var(--bg-2) 100%);
+      background: var(--bg-grad);
       min-height:100vh;
       padding: clamp(14px, 2vw, 24px);
       padding-bottom: max(88px, calc(64px + env(safe-area-inset-bottom))); /* место под таббар */
@@ -531,6 +543,13 @@
 }
 /* === PORTAL (calendar → diary) — плавная и длиннее === */
 :root{
+  --bg: #0b0f16;
+  --bg-grad:
+    radial-gradient(1100px 620px at 12% -10%, rgba(255, 119, 156, .14) 0%, rgba(255, 119, 156, .06) 36%, transparent 60%),
+    radial-gradient(950px 680px at 88% 92%, rgba(56, 189, 248, .16) 0%, rgba(56, 189, 248, .08) 35%, transparent 60%),
+    radial-gradient(1200px 900px at 42% 30%, rgba(250, 204, 21, .10) 0%, rgba(250, 204, 21, .04) 35%, transparent 62%),
+    linear-gradient(#0b0f16,#0b0f16);
+
   /* Правишь только эти 5 переменных */
   --vt-out-ms: 1100ms;      /* старый экран схлопывается */
   --vt-in-ms:  1200ms;      /* новый экран раскрывается   */
@@ -1195,38 +1214,49 @@ window.addEventListener('keydown', (e)=>{ if(e.key === 'Escape') closeSheet(); }
 window.addEventListener('focus', render);
 document.addEventListener('visibilitychange', ()=>{ if (!document.hidden) render(); });
 
+/* Надёжный короткий тап на мобильных:
+   1) запоминаем, на какой дате начался тап;
+   2) при отпускании берём элемент под пальцем (elementFromPoint)
+      и открываем шит, если это короткий тап (<480мс). */
 (function(){
-  let tStart = 0, sx = 0, sy = 0, moved = false;
+  let downId = null;
+  let t0 = 0;
 
-  document.addEventListener('touchstart', (e)=>{
-    const t = e.touches[0]; if(!t) return;
-    tStart = Date.now(); sx = t.clientX; sy = t.clientY; moved = false;
-  }, {passive:true});
+  // старт на любом дне
+  grid.addEventListener('pointerdown', (e)=>{
+    const c = e.target.closest('.day[data-date]');
+    if (!c) return;
+    downId = c.dataset.date;
+    t0 = performance.now();
+  });
 
-  document.addEventListener('touchmove', (e)=>{
-    if(!tStart) return;
-    const t = e.touches[0]; if(!t) return;
-    if (Math.abs(t.clientX - sx) > 8 || Math.abs(t.clientY - sy) > 8) moved = true;
-  }, {passive:true});
+  // отпускание — в любом месте документа
+  const onUp = (e)=>{
+    if (!downId) return;
+    const dt = performance.now() - t0;
+    const longPress = dt > 480;
+    t0 = 0;
 
-  document.addEventListener('touchend', (e)=>{
-    const dt = Date.now() - tStart; tStart = 0;
-    if (moved || dt > 420) return;                // долгий тап/скролл — игнор
-    if (sheet.classList.contains('active')) return;
+    // если уже открыт sheet или это долгий тап — выходим
+    if (sheet.classList.contains('active') || longPress){ downId = null; return; }
 
-    // Ячейку берём по координатам последнего касания — работает надёжно на телефонах
-    const t = e.changedTouches[0]; if(!t) return;
-    const elUnderFinger = document.elementFromPoint(t.clientX, t.clientY);
-    const cell = elUnderFinger && elUnderFinger.closest('.day[data-date]');
-    if (!cell) return;
+    // координаты пальца/указателя
+    const p = (e.changedTouches && e.changedTouches[0]) || e;
+    const el = document.elementFromPoint(p.clientX, p.clientY);
+    const cell = el && el.closest && el.closest('.day[data-date]');
+    const id = cell ? cell.dataset.date : downId; // если вышли за сетку — берём стартовый день
 
-    const id = cell.dataset.date;
+    // выделение и открытие
     grid.querySelectorAll('.day.selected').forEach(el => el.classList.remove('selected'));
-    cell.classList.add('selected');
+    const cur = grid.querySelector(`.day[data-date="${id}"]`);
+    if (cur) cur.classList.add('selected');
+    openSheet(id);
 
-    const data = (function(){ try{ return JSON.parse(localStorage.getItem('rt.diary.v1')||'{}'); }catch(_){ return {}; } })()[id] || null;
-    openSheet(id, data);
-  }, {passive:true});
+    downId = null;
+  };
+
+  document.addEventListener('pointerup', onUp, {passive:true});
+  document.addEventListener('touchend',  onUp, {passive:true}); // на всякий случай для старых движков
 })();
 
   // === RANGE SELECT (п.4): делегирование по .day ===

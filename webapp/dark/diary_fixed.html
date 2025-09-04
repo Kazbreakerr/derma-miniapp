@@ -5,8 +5,8 @@
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
 <meta name="view-transition" content="same-origin">
 <title>Дневник — запись дня</title>
-<link rel="stylesheet" href="pill-alert.css">
-<script src="pill-alert.js" defer></script>
+<link rel="stylesheet" href="/pill-alert.css">
+<script src="/pill-alert.js" defer></script>
 <script>
 (function(){
   try{
@@ -27,7 +27,14 @@
 })();
 </script>
 
-<script src="js/app-state.js"></script>
+<script src="/js/app-state.js"></script>
+<script>
+  window.AppState = window.AppState || {
+    get: () => ({}),
+    applyTheme: t => { try { document.documentElement.dataset.theme = t; } catch(_){} }
+  };
+</script>
+
 <script>
   // Инициализация всех переключателей темы на странице
   document.addEventListener('DOMContentLoaded', () => {
@@ -84,8 +91,8 @@
   }catch(e){ document.documentElement.dataset.theme = 'dark'; }
 </script>
 
-<link rel="stylesheet" href="css/ui-tokens.css">
-<link rel="stylesheet" href="css/skeleton.css">
+<link rel="stylesheet" href="/css/ui-tokens.css">
+<link rel="stylesheet" href="/css/skeleton.css">
 
 <script>
   try{
@@ -920,7 +927,7 @@ header{
   <!-- Видео-фон квадратика -->
   <video id="moodVideo" class="mood-video"
          autoplay muted loop playsinline preload="auto"
-         poster="img/neutral-frame.jpg"></video>
+         poster="/img/neutral-frame.jpg"></video>
 
   <!-- Оставим canvas как запасной вариант (по умолчанию скрыт) -->
   <canvas id="pillCanvas" hidden></canvas>
@@ -1139,8 +1146,19 @@ if (USE_MOOD_VIDEO && videoEl){
   // Оставляем прежнюю анимацию
   canvas.hidden = false;
   // ВАЖНО: старт рендера капсулы только если мы НЕ на видео
-  requestAnimationFrame(frame);
+
 }
+
+// Фоновые изображения для 7 состояний (по порядку: очень плохо → отлично)
+const BG_URLS = [
+  '/img/bg-very-bad.png',
+  '/img/bg-bad.png',
+  '/img/bg-below.png',
+  '/img/bg-neutral.png',
+  '/img/bg-fair.png',
+  '/img/bg-good.png',
+  '/img/bg-excellent.png'
+];
 
 // --- анимация как раньше ---
 const rotationPeriod=20, breathAmp=0.03, breathPeriod=1.6, morphSpeed=1.7, morphAmpBase=0.06;
@@ -1389,6 +1407,13 @@ function updateColorsByValence(v){
   // трек слайдера оставляем красно-зелёным
   document.documentElement.style.setProperty('--trackA', 'hsl(10 90% 55%)');
   document.documentElement.style.setProperty('--trackB', 'hsl(140 72% 45%)');
+
+  // Фон-картинка за пилюлей (меняем var(--mood-bg))
+  const moodStageEl = document.querySelector('.mood-stage');
+  if (moodStageEl) {
+    moodStageEl.style.setProperty('--mood-bg', `url('${BG_URLS[idx]}')`);
+    moodStageEl.style.setProperty('--bg-blur', '4px'); // усилили блюр
+  }
 
 
   // передаём настроение в капсулу
@@ -1820,7 +1845,7 @@ function init(){
 
 </script>
 
-<script src="js/lazy-img.js" defer></script>
+<script src="/js/lazy-img.js" defer></script>
 
 
 <div class="page-bottom-spacer"></div>

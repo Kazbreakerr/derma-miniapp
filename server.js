@@ -972,27 +972,39 @@ app.get('/api/doctor/me', tgAuth, async (req, res) => {
 
 
 // ====== static ======
-const staticDir = path.join(__dirname, 'webapp');
-app.use(express.static(staticDir));
+const staticDir = path.join(__dirname);    // раздаём из текущей папки
+app.use(express.static(staticDir));        // /css, /js, /main.html и т.д.
+app.use('/dark', express.static(staticDir)); // на всякий случай, если остались ссылки с /dark
 app.get('/', (_, res) => res.sendFile(path.join(staticDir, 'index.html')));
-// В памяти: { [tgId]: { enabled: true, time: "09:00", _date, _sentToday, _lastMs } }
+// В памяти: { [tgId]: { enabled, time, _date, _sentToday, _lastMs } }
 const reminders = Object.create(null);
 
-// Сохранить настройки напоминаний (защищаем через tgAuth)
+// Сохранение настроек (под tgAuth)
 app.post('/api/reminder', tgAuth, async (req, res) => {
   const tgId = req.tg || req.tgUser?.id;
   if (!tgId) return res.status(401).json({ error: 'unauthorized' });
 
   const { enabled, time } = req.body || {};
-  reminders[tgId] = { ...(reminders[tgId] || {}), enabled: !!enabled, time: String(time || '').slice(0,5) };
+  reminders[tgId] = {
+    ...(reminders[tgId] || {}),
+    enabled: !!enabled,
+    time: String(time || '09:00').slice(0,5)
+  };
+
   console.log('Напоминание сохранено:', tgId, reminders[tgId]);
   res.json({ ok: true, data: reminders[tgId] });
-  const userTzCache = new Map();
+});
+
+// ===== вспомогательные функции — ОБЯЗАТЕЛЬНО один раз, вне роутов =====
+const userTzCache = new Map();
 
 async function getUserTzByTg(tgId) {
   if (userTzCache.has(tgId)) return userTzCache.get(tgId);
   await pool.query('SET search_path = derma, public');
-  const r = await pool.query('SELECT tz FROM derma.users WHERE tg_id=$1::bigint', [Number(tgId)]);
+  const r = await pool.query(
+    'SELECT tz FROM derma.users WHERE tg_id=$1::bigint',
+    [Number(tgId)]
+  );
   const tz = r.rows[0]?.tz || 'Europe/Moscow';
   userTzCache.set(tgId, tz);
   return tz;
@@ -1003,10 +1015,11 @@ function nowParts(tz) {
     timeZone: tz, year:'numeric', month:'2-digit', day:'2-digit',
     hour:'2-digit', minute:'2-digit', hour12:false
   }).formatToParts(new Date());
-  const get = t => p.find(x=>x.type===t)?.value;
-  const date = `${get('year')}-${get('month')}-${get('day')}`;
-  const time = `${get('hour')}:${get('minute')}`;
-  return { date, time };
+  const get = t => p.find(x => x.type===t)?.value;
+  return { 
+    date: `${get('year')}-${get('month')}-${get('day')}`,
+    time: `${get('hour')}:${get('minute')}`
+  };
 }
 
 async function hasTakenToday(tgId, tz) {
@@ -1022,55 +1035,26 @@ async function hasTakenToday(tgId, tz) {
   );
   return !!q.rowCount;
 }
-});
 
-
-// ==== START HTTP SERVER ====
-const port = process.env.PORT || 3000;
-const host = process.env.HOST || '0.0.0.0';
-
-app.listen(port, host, () => {
-  console.log(`API listening on ${host}:${port}`);
-});
-
-// Telegram webhook endpoint (ОДИН раз)
-app.post('/tg/webhook', (req, res) => {
-  try { bot.processUpdate(req.body); } 
-  catch (e) { console.error('webhook handler error:', e); }
-  res.sendStatus(200);
-});
-// === Вспомогательные функции для тайзоны и отметок приёма
-const userTzCache = new Map();
-async function getUserTzByTg(tgId) {
-  if (userTzCache.has(tgId)) return userTzCache.get(tgId);
-  await pool.query('SET search_path = derma, public');
-  const r = await pool.query('SELECT tz FROM derma.users WHERE tg_id=$1::bigint', [Number(tgId)]);
-  const tz = r.rows[0]?.tz || 'Europe/Moscow'; // дефолт, если пользователь ещё не выбрал
-  userTzCache.set(tgId, tz);
-  return tz;
+function appUrlFor(tgId) {
+  const base = (process.env.WEBAPP_URL || WEBAPP_URL || '').replace(/\/+$/,'');
+  return `${base}/main?tg=${tgId}`;
 }
-function nowParts(tz) {
-  const p = new Intl.DateTimeFormat('en-GB', {
-    timeZone: tz, year:'numeric', month:'2-digit', day:'2-digit',
-    hour:'2-digit', minute:'2-digit', hour12:false
-  }).formatToParts(new Date());
-  const get = t => p.find(x=>x.type===t)?.value;
-  const date = `${get('year')}-${get('month')}-${get('day')}`;
-  const time = `${get('hour')}:${get('minute')}`;
-  return { date, time };
-}
-async function hasTakenToday(tgId, tz) {
-  await pool.query('SET search_path = derma, public');
-  const q = await pool.query(
-    `SELECT 1
-       FROM derma.dose_logs dl
-       JOIN derma.users u ON u.id = dl.patient_id
-      WHERE u.tg_id = $1::bigint
-        AND dl.date = (now() AT TIME ZONE $2)::date
-      LIMIT 1`,
-    [Number(tgId), tz]
-  );
-  return !!q.rowCount;
+
+async function sendReminder(tgId, text) {
+  try {
+    await bot.sendMessage(tgId, text, {
+      parse_mode: 'HTML',
+      reply_markup: {
+        inline_keyboard: [
+          [{ text: 'Отметить приём 💊', web_app: { url: appUrlFor(tgId) } }],
+          [{ text: 'Открыть в браузере', url: appUrlFor(tgId) }]
+        ]
+      }
+    });
+  } catch (e) {
+    console.error('Ошибка отправки напоминания:', e?.response?.body || e);
+  }
 }
 
 async function checkReminders() {
@@ -1080,15 +1064,15 @@ async function checkReminders() {
     const tz = await getUserTzByTg(tgId);
     const { date, time } = nowParts(tz);
 
-    // новый день — сбрасываем дневные флажки
+    // на новый день — сбрасываем флаги
     if (cfg._date !== date) { cfg._date = date; cfg._sentToday = false; cfg._lastMs = 0; }
 
-    // если приём уже отмечали сегодня — пропускаем
+    // если уже отметили — пропускаем
     if (await hasTakenToday(tgId, tz)) continue;
 
-    const THREE_HOURS = 60 * 1000; // 1 минута для теста
-    const dueFirst  = !cfg._sentToday && time >= cfg.time;                       // первый пинг после заданного времени
-    const dueRepeat =  cfg._sentToday && (!cfg._lastMs || Date.now()-cfg._lastMs >= THREE_HOURS);
+    const THREE_HOURS_MS = Number(process.env.REM_MS || (3 * 60 * 60 * 1000));
+    const dueFirst  = !cfg._sentToday && time >= cfg.time; // первый пинг после заданного времени
+    const dueRepeat =  cfg._sentToday && (!cfg._lastMs || Date.now() - cfg._lastMs >= THREE_HOURS_MS);
 
     if (dueFirst || dueRepeat) {
       await sendReminder(tgId, 'Пора принять препарат 💊\nЕсли уже выпили — отметьте приём в трекере.');
@@ -1097,8 +1081,10 @@ async function checkReminders() {
     }
   }
 }
-// запускаем проверку раз в минуту
+
+// Проверяем раз в минуту
 setInterval(() => { checkReminders().catch(e => console.error('reminders tick error', e)); }, 60 * 1000);
+
 
 // ==== SET TELEGRAM WEBHOOK ON BOOT ====
 if (!isPolling) {

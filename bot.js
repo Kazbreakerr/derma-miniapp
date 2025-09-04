@@ -5,7 +5,7 @@ const BOT_TOKEN = process.env.BOT_TOKEN;
 const WEBAPP_URL = process.env.WEBAPP_URL || '';
 if (!BOT_TOKEN) throw new Error('BOT_TOKEN is empty');
 
-const usePolling = !process.env.WEBAPP_URL;      // локально — polling
+const usePolling = !process.env.WEBAPP_URL;
 const bot = new TelegramBot(BOT_TOKEN, { polling: usePolling });
 
 bot.onText(/\/start(?:\s+(.+))?/, (msg, match) => {
