@@ -1107,3 +1107,8 @@ if (!isPolling) {
 } else {
   console.log('Bot started in POLLING mode');
 }
+// === START EXPRESS SERVER ===
+const PORT = process.env.PORT || 3000;
+app.listen(PORT, () => {
+  console.log('Server listening on port', PORT);
+});
