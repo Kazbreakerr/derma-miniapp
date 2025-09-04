@@ -972,10 +972,12 @@ app.get('/api/doctor/me', tgAuth, async (req, res) => {
 
 
 // ====== static ======
-const staticDir = path.join(__dirname);    // раздаём из текущей папки
-app.use(express.static(staticDir));                 // /css, /js, /index.html и т.д.
-app.use('/dark', express.static(path.join(__dirname, 'dark'))); // 👉 именно подкаталог 'dark'
-app.get('/', (_, res) => res.sendFile(path.join(staticDir, 'index.html')));
+const staticRoot = path.join(__dirname, 'webapp'); // корень со статиками
+app.use(express.static(staticRoot));                // /css, /js, /img, /index.html
+app.use('/dark',  express.static(path.join(staticRoot, 'dark')));   // если используешь theme-папку
+app.use('/light', express.static(path.join(staticRoot, 'light')));  // если используешь theme-папку
+app.get('/', (_, res) => res.sendFile(path.join(staticRoot, 'index.html')));
+
 // В памяти: { [tgId]: { enabled, time, _date, _sentToday, _lastMs } }
 const reminders = Object.create(null);
 
