@@ -318,7 +318,11 @@
   } catch(_) {}
 }
 
-    location.href = 'doctor-cabinet-mint-rose.html' + qs + '#/doctor/patients';
+    // внутри обработчика finishBtn (ниже, сразу после вычисления qs)
+const realCode = store.get('doctorCode') || $('#doctorCode').textContent.trim();
+const sep = (qs && qs.includes('?')) ? '&' : '?';
+location.href = 'doctor-cabinet-mint-rose.html' + (qs || '') + sep + 'code=' + encodeURIComponent(realCode) + '#/doctor/patients';
+
   });
 </script>
 </body>

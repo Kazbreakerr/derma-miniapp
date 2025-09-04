@@ -496,13 +496,6 @@ header::after{
 @media (min-width: 1100px){
   .navbar .dock{ max-width: 860px; }
 }
-.mood-stage .mood-video{
-  position:absolute; inset:0;
-  width:100%; height:100%;
-  object-fit:cover;
-  filter:saturate(.95) brightness(1.02);
-  z-index:1;            /* ниже UI, выше ::before */
-}
 
 /* === PORTAL (calendar → diary) — плавная и длиннее === */
 :root{
@@ -672,6 +665,8 @@ header {
   user-select:none;
 }
 #datePicker[hidden]{ display:none; }
+
+
 </style>
 
 <!-- Neumorph seamless patch: ONLY CSS, no HTML/JS changes -->
@@ -898,10 +893,11 @@ header{
         <svg width="18" height="18" viewBox="0 0 24 24" fill="none"><path d="M15 19l-7-7 7-7" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
       </button>
     <div class="center-stack" id="diary-portal-target">
-  <div class="chip big" id="dayChip">
-    Сегодня · ср, 03 сентября 2025 г.
-    <input id="datePicker" type="date" class="date-input">
-  </div>
+  <div id="dayChip" class="chip chip-date">
+  <span id="todayLabel">Сегодня • </span>
+  <b id="dayText">чт, 04 сентября 2025 г.</b>
+  <input id="datePicker" type="date" />
+</div>
 </div>
       <button class="nav-arrow right" id="nextDay" aria-label="Следующий день">
         <svg width="18" height="18" viewBox="0 0 24 24" fill="none"><path d="M9 5l7 7-7 7" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
@@ -917,13 +913,8 @@ header{
     <div class="mood">
       <div class="mood-stage">
         <div class="mood-stage">
-  <!-- Видео-фон квадратика -->
-  <video id="moodVideo" class="mood-video"
-         autoplay muted loop playsinline preload="auto"
-         poster="img/neutral-frame.jpg"></video>
-
-  <!-- Оставим canvas как запасной вариант (по умолчанию скрыт) -->
-  <canvas id="pillCanvas" hidden></canvas>
+  <!-- Капсула — только canvas -->
+<canvas id="pillCanvas"></canvas>
 </div>
 
       </div>
@@ -1043,6 +1034,22 @@ const datePicker = document.getElementById('datePicker');
 const dayChip    = document.getElementById('dayChip');
 const prevDay    = document.getElementById('prevDay');
 const nextDay    = document.getElementById('nextDay');
+// Открываем нативный календарь по клику на чип даты
+if (dayChip && datePicker) {
+  dayChip.addEventListener('click', () => {
+    try {
+      if (typeof datePicker.showPicker === 'function') {
+        datePicker.showPicker();        // Chrome/Chromium
+      } else {
+        datePicker.focus();             // Safari/часть вебвью
+        datePicker.dispatchEvent(new MouseEvent('click', {bubbles:true, cancelable:true}));
+      }
+    } catch (e) {
+      datePicker.focus();
+      datePicker.click();               // запасной вариант
+    }
+  });
+}
 
 let lastDateISO = null;  // запоминаем, какая дата была на экране
 
@@ -1111,37 +1118,9 @@ const bar=document.getElementById('moodBar'); const knob=document.getElementById
 const canvas = document.getElementById('pillCanvas');
 const ctx = canvas.getContext('2d');
 
-// ====== ВИДЕО вместо анимации капсулы ======
-const USE_MOOD_VIDEO =
-  (window.matchMedia && window.matchMedia('(max-width: 800px)').matches) ||
-  (window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches);
-const videoEl = document.getElementById('moodVideo');
-
-if (USE_MOOD_VIDEO && videoEl){
-  // Укажи путь к ролику (лучше без пробелов): media/capsule-spin.mp4
-  const src = encodeURI('media/Капсула вращается.mp4'); // или 'media/capsule-spin.mp4'
-  videoEl.src = src;
-
-  // Скрываем canvas-анимацию и запускаем видео
-  canvas.hidden = true;
-  videoEl.hidden = false;
-
-  // iOS/мобильные: надёжный автозапуск
-  const tryPlay = ()=> videoEl.play().catch(()=>{});
-  videoEl.addEventListener('canplay', tryPlay, { once:true });
-  document.addEventListener('visibilitychange', ()=>{ if(!document.hidden) tryPlay(); });
-
-  // Уважение системной настройки "уменьшить движение"
-  if (window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches){
-    videoEl.pause();
-  }
-} else {
-  // Оставляем прежнюю анимацию
-  canvas.hidden = false;
-  // ВАЖНО: старт рендера капсулы только если мы НЕ на видео
-  requestAnimationFrame(frame);
-}
-
+// Всегда используем canvas (без видео)
+canvas.hidden = false;
+requestAnimationFrame(frame);
 // --- анимация как раньше ---
 const rotationPeriod=20, breathAmp=0.03, breathPeriod=1.6, morphSpeed=1.7, morphAmpBase=0.06;
 
@@ -1167,27 +1146,11 @@ window.addEventListener('resize', fit); fit();
 document.addEventListener('visibilitychange', ()=>{
   if (document.hidden) {
     if (rafId) { cancelAnimationFrame(rafId); rafId = 0; }
-  } else if (!USE_MOOD_VIDEO && !rafId) {
+  } else if (!rafId) {
     lastMs = 0;
     rafId = requestAnimationFrame(frame);
   }
 });
-// Пауза, если секция капсулы вне экрана
-const stageEl = document.querySelector('.mood-stage');
-if ('IntersectionObserver' in window && stageEl) {
-  const io = new IntersectionObserver(([e])=>{
-    if (e.isIntersecting) {
-      if (!document.hidden && !USE_MOOD_VIDEO && !rafId) {
-        lastMs = 0;
-        rafId = requestAnimationFrame(frame);
-      }
-    } else {
-      if (rafId) { cancelAnimationFrame(rafId); rafId = 0; }
-    }
-  }, { threshold: 0.2 });
-  io.observe(stageEl);
-}
-
 function pathCapsule(c, W, H, R){
   const r=Math.max(0, Math.min(R, Math.min(W,H)/2));
   const x=-W/2, y=-H/2;
@@ -1398,6 +1361,18 @@ function updateColorsByValence(v){
 // ===== Рендер капсулы (как был) =====
 let start=performance.now();
 let rafId = 0;     // id активного requestAnimationFrame
+// === iOS scroll fallback: держим анимацию во время скролла ===
+let __scrollTimer = 0, __scrollEndTO = 0;
+window.addEventListener('scroll', ()=>{
+  if (!__scrollTimer){
+    __scrollTimer = setInterval(()=>{ try{ frame(performance.now()); }catch(_){} }, 33);
+  }
+  clearTimeout(__scrollEndTO);
+  __scrollEndTO = setTimeout(()=>{
+    clearInterval(__scrollTimer); __scrollTimer = 0;
+    if (!rafId) rafId = requestAnimationFrame(frame);
+  }, 140);
+}, {passive:true});
 let lastMs = 0;    // метка времени предыдущего кадра (для 30 fps)
 function frame(nowMs){
   if (nowMs - lastMs < 33) { rafId = requestAnimationFrame(frame); return; }

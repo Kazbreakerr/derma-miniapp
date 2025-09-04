@@ -112,6 +112,23 @@ input[type=number],input[type=date],input[type=time],select{
     inset -6px -6px 12px rgba(255,255,255,.04),
     0 1px 0 rgba(255,255,255,.08);
 }
+/* === Тёмный системный попап у <select> (без кастомных библиотек) === */
+html, body, select {
+  color-scheme: dark;               /* Chromium/WebView, Safari, Firefox */
+}
+
+/* Подстраховка: некоторые движки красят список опций сами */
+select option,
+select optgroup {
+  background: #0F1A2B;              /* тёмный фон выпавшего списка */
+  color: var(--text-high, #EAF2FF); /* текст (есть fallback) */
+}
+
+/* Firefox: не откатываться к нативному виду при теме */
+@supports (-moz-appearance:none) {
+  select { -moz-appearance: none; }
+}
+/* === /тёмный попап у <select> === */
 input:focus,select:focus{border-color:#0EA5A6;box-shadow:0 0 0 3px var(--focus-ring)}
 input[disabled]{opacity:.6;cursor:not-allowed}
 /* подсветка ошибки даты */
@@ -528,6 +545,23 @@ function onSavePlan() {
   rt.remindEnabled = enabled;
 
   saveRt(rt);
+// синхронизация с остальными страницами
+localStorage.setItem('rem_enabled', enabled ? '1' : '0');
+localStorage.setItem('rem_time', time);
+localStorage.setItem('derma_remind_optin', enabled ? '1' : '0');
+localStorage.setItem('derma_remind_time', time);
+// «пинок» для других вкладок/вебвью
+localStorage.setItem('derma.reminder.bump', String(Date.now()));
+localStorage.removeItem('derma.reminder.bump');
+document.addEventListener('DOMContentLoaded', () => {
+  const rt = JSON.parse(localStorage.getItem('rt')||'{}');
+  const rec = (rt.reminders||[]).find(r=>r.id==='main');
+  const t = rec?.time || localStorage.getItem('rem_time') || localStorage.getItem('derma_remind_time') || '09:00';
+  const on = (rec?.enabled != null) ? rec.enabled :
+             ((localStorage.getItem('rem_enabled') ?? localStorage.getItem('derma_remind_optin') ?? '1') === '1');
+  $time && ($time.value = t);
+  $enabled && ($enabled.checked = !!on);
+});
 
   // StorageEvent срабатывает только в других вкладках.
   // Чтобы main обновился даже в той же веб-вью, шлём своё событие.
@@ -569,6 +603,33 @@ function saveMainReminderFromFields() {
 $time   && $time.addEventListener('change', saveMainReminderFromFields);
 $enabled&& $enabled.addEventListener('change', saveMainReminderFromFields);
 $save   && $save.addEventListener('click',  saveMainReminderFromFields);
+function setReminderState(on, time){
+  try{
+    localStorage.setItem('derma_remind_optin', on ? '1' : '0');
+    if(time) localStorage.setItem('derma_remind_time', time);
+    // пинок для других страниц
+    localStorage.setItem('derma.reminder.bump', Date.now().toString());
+    localStorage.removeItem('derma.reminder.bump');
+  }catch(_){}
+}
+
+function syncReminderUI(){
+  const on = localStorage.getItem('derma_remind_optin') === '1';
+  const t  = localStorage.getItem('derma_remind_time') || '09:00';
+
+  // в зависимости от страницы элементы разные
+  const toggle = document.getElementById('remToggle') || document.getElementById('bell');
+  const timeEl = document.getElementById('remTime') || document.getElementById('remindTime');
+  if(toggle){
+    if(toggle.type === 'checkbox') toggle.checked = on;
+    if(toggle.dataset) toggle.dataset.on = on ? '1' : '0';
+  }
+  if(timeEl) timeEl.value = t;
+}
+
+window.addEventListener('storage', syncReminderUI);
+document.addEventListener('DOMContentLoaded', syncReminderUI);
+
 </script>
 
 </body></html>

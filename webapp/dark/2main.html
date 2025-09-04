@@ -38,6 +38,49 @@ document.documentElement.dataset.theme = cur;
 </script>
 
   <script>try{ if(localStorage.getItem('derma_consent')!=='1'){ location.replace('./warnings.html' + (location.search||'')); } }catch(_){}
+// --- Pill burst animation on Add button ---
+(function setupPillBurst(){
+  const btn = document.getElementById('save');
+  if(!btn) return;
+  function burst(x,y){
+    const rect = btn.getBoundingClientRect();
+    const cx = x ? (x - rect.left) : rect.width/2;
+    const cy = y ? (y - rect.top)  : rect.height/2;
+    // Pill emoji
+    const pill = document.createElement('span');
+    pill.className = 'fx-pill';
+    pill.textContent = '💊';
+    pill.style.left = cx + 'px';
+    pill.style.top  = cy + 'px';
+    btn.appendChild(pill);
+    setTimeout(()=>pill.remove(), 900);
+
+    // Particles
+    const colors = ['#22D3EE','#14B8A6','#5EEAD4','#FDE047','#A7F3D0','#93C5FD'];
+    const N = 10;
+    for(let i=0;i<N;i++){
+      const dot = document.createElement('span');
+      dot.className = 'fx-dot';
+      dot.style.left = cx + 'px';
+      dot.style.top  = cy + 'px';
+      const angle = (Math.PI*2) * (i/N) + (Math.random()*0.6 - 0.3);
+      const r = 22 + Math.random()*16;
+      dot.style.setProperty('--dx',  Math.cos(angle)*r + 'px');
+      dot.style.setProperty('--dy',  Math.sin(angle)*r + 'px');
+      dot.style.width = dot.style.height = (4 + Math.random()*4) + 'px';
+      dot.style.background = colors[i % colors.length];
+      btn.appendChild(dot);
+      setTimeout(()=>dot.remove(), 800);
+    }
+  }
+  btn.addEventListener('click', (e)=>{
+    try{ burst(e.clientX, e.clientY); }catch(_){ burst(); }
+  });
+  btn.addEventListener('touchstart', (e)=>{
+    try{ const t = e.touches[0]; if(t) burst(t.clientX, t.clientY); }catch(_){ burst(); }
+  }, {passive:true});
+})();
+
 </script>
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>Roaccutane Tracker — Главная</title>
@@ -453,7 +496,6 @@ body.light .seg button{
   mix-blend-mode:soft-light;
   border-radius:inherit;
 }
-
   
 /* Stepper for dose input */
 .mg-wrap{ display:flex; align-items:center; gap:8px }
@@ -480,7 +522,36 @@ body.light .seg button{
   opacity:1 !important;
   transform:none !important;
 }
+/* ② Segmented control для типа капсулы */
+.seg{ display:inline-flex; gap:6px; padding:4px; border-radius:12px; background:var(--surface); border:1px solid var(--border); }
+.seg button{
+appearance:none; border:0; cursor:pointer; font-weight:800;
+padding:8px 12px; border-radius:10px; background:transparent; color:var(--text-high);
+}
+.seg button.active{ color:#07121F; background-image:linear-gradient(135deg,#22D3EE 0%, #14B8A6 100%); }
 
+
+/* ③ Дополним FX «всплывающей капсулы» (если анимации уже есть — дубликаты не нужны) */
+#save{ position:relative; overflow:hidden; isolation:isolate }
+#save .fx-pill{
+position:absolute; left:0; top:0; transform:translate(-50%,-50%) scale(.4);
+font-size:18px; line-height:1; filter: drop-shadow(0 3px 6px rgba(0,0,0,.35));
+animation: pill-up .8s cubic-bezier(.2, 1.0, .2, 1) forwards; pointer-events:none;
+}
+@keyframes pill-up{
+0%{ transform:translate(-50%,-50%) scale(.4); opacity:0 }
+45%{ transform:translate(-50%,-90%) scale(1.15); opacity:1 }
+70%{ transform:translate(-50%,-72%) scale(.95) }
+100%{ transform:translate(-50%,-130%) scale(1); opacity:0 }
+}
+#save .fx-dot{
+position:absolute; width:6px; height:6px; border-radius:50%; left:0; top:0;
+transform:translate(-50%,-50%); opacity:.95; pointer-events:none; animation: dot-burst .7s ease-out forwards;
+}
+@keyframes dot-burst{
+0%{ transform:translate(-50%,-50%) scale(.8); opacity:.95 }
+100%{ transform:translate(calc(-50% + var(--dx)), calc(-50% + var(--dy))) scale(.9); opacity:0 }
+}
   
 /* "Открыть" — маленькая голубая кнопка с анимацией сжатия */
 .open-btn{
@@ -844,61 +915,6 @@ body.light .tab.active{ color:#0d1220; background: linear-gradient(180deg, rgba(
   document.addEventListener('DOMContentLoaded',render);
   window.renderPillAlert = render; // ручной перерендер на всякий
 })();
-function setupCapsulesUI(forceDrug){
-  const wrap = document.getElementById('capType');
-  const seg  = document.getElementById('capSeg');
-  if (!wrap || !seg) return;
-
-  // 1) достаём препарат из всех возможных мест
-  let drugRaw = forceDrug
-    || (window.PLAN && window.PLAN.drug)
-    || localStorage.getItem('rt_drug');
-
-  // из общего объекта rt (если план-сохранение живёт там)
-  try {
-    const rt = JSON.parse(localStorage.getItem('rt') || '{}');
-    drugRaw = drugRaw || rt?.plan?.drug || rt?.plan?.selectedDrug || rt?.drug;
-  } catch (_) {}
-
-  // из query (?drug=...)
-  const qsDrug = new URLSearchParams(location.search).get('drug');
-  drugRaw = drugRaw || qsDrug || '';
-
-  const drug = String(drugRaw).toLowerCase().trim();
-
-  // 2) распознаём названия (учёл варианты написания)
-  const isAkne   = /(акнекутан|акнеккутан|aknekutan)/i.test(drug);
-  const isRoacc  = /(роаккутан|роакутан|roaccutane)/i.test(drug);
-
-  let opts = null;
-  if (isAkne)  opts = [8, 16];
-  if (isRoacc) opts = [10, 20];
-
-  if (!opts) {
-    wrap.hidden = true;
-    try { localStorage.removeItem('rt.capsule_mg'); } catch(_) {}
-    return;
-  }
-
-  // 3) рендер и выбор
-  const saved = Number(localStorage.getItem('rt.capsule_mg') || opts[0]);
-  seg.innerHTML = opts.map(mg =>
-    `<button type="button" data-mg="${mg}" class="seg-btn ${saved===mg?'active':''}">${mg} мг</button>`
-  ).join('');
-  wrap.hidden = false;
-
-  function select(mg){
-    localStorage.setItem('rt.capsule_mg', String(mg));
-    seg.querySelectorAll('button').forEach(b=>{
-      b.classList.toggle('active', Number(b.dataset.mg) === mg);
-    });
-    try { updateDoseHint(); } catch(_) {}
-  }
-
-  seg.querySelectorAll('button').forEach(b=>{
-    b.addEventListener('click', ()=> select(Number(b.dataset.mg)));
-  });
-}
 </script>
 
 
@@ -914,68 +930,6 @@ function setupCapsulesUI(forceDrug){
   /* apply and ensure it overrides previous bg/pseudo-element */
   html, body { background: var(--bg-grad) !important; }
   body::before { display: none !important; }
-  /* --- Тип капсулы: аккуратное выравнивание --- */
-#capType{
-  display:flex;
-  align-items:center;            /* метка и сегменты по одной линии */
-  gap:12px;
-  margin-left:8px;               /* лёгкий отступ от поля "Мг" */
-}
-
-#capType .ctrl-label{
-  margin:0;
-  white-space:nowrap;
-  font-size:14px;
-  opacity:.9;
-}
-
-#capType .seg{                   /* сами кнопки 10/20 или 8/16 */
-  display:flex;
-  gap:10px;
-}
-
-#capType .seg .seg-btn{
-  height:40px;
-  padding:0 16px;
-  border-radius:14px;
-}
-
-/* Узкие экраны: уводим сегменты на свою строку, чтоб не ломало верстку */
-@media (max-width: 160px){
-  #capType{
-    flex-wrap:wrap;
-    width:100%;
-    margin:8px 0 0 0;           /* переносим ниже поля "Мг" */
-  }
-  #capType .seg{
-    width:100%;
-  }
-}
-/* MAIN → делаем время в напоминании читаемым */
-input[type="time"]{
-  color: rgba(255,255,255,.96) !important;
-  opacity: 1 !important;
-  font-weight: 600;
-  letter-spacing: .02em;
-  text-shadow: 0 1px 0 rgba(0,0,0,.35);
-  background: rgba(255,255,255,.07);         /* если у тебя «пилюля» — чуть светлее фон */
-  border: 1px solid rgba(255,255,255,.12);
-  border-radius: 14px;
-  padding: 10px 14px;
-}
-
-/* сам текст внутри time в Chrome/Safari */
-input[type="time"]::-webkit-datetime-edit,
-input[type="time"]::-webkit-datetime-edit-hour-field,
-input[type="time"]::-webkit-datetime-edit-minute-field{
-  color: rgba(255,255,255,.96) !important;
-}
-
-/* иконку часов делаем светлой */
-input[type="time"]::-webkit-calendar-picker-indicator{
-  filter: invert(1) brightness(1.2);
-  opacity: .95;
-}
 </style>
 
 </head>
@@ -1166,13 +1120,14 @@ input[type="time"]::-webkit-calendar-picker-indicator{
             <button type="button" id="mgPlus"  class="step" aria-label="Увеличить на 10 мг">+</button>
           </div>
         </div>
-        <div class="ctrl" id="capType" hidden>
-  <label class="ctrl-label">Тип капсулы</label>
-  <div id="capSeg" class="seg" style="grid-template-columns:repeat(2,1fr)"></div>
-</div>
         <div class="date-wrap">
   <div>Дата:</div>
-        <input id="date" type="date" style="width:180px"></div>
+  <!-- ① CAPSULE TYPE (вставить после блока .date-wrap, перед кнопкой «Добавить») -->
+<div id="capsuleType" style="margin-top:12px; display:none">
+<div class="label" style="font-size:12px; opacity:.8; margin-bottom:6px">Тип капсулы</div>
+<div id="capsSeg" class="seg"></div>
+</div>
+        <input id="date" type="date" style="width:180px"></div>      
         <button id="save" class="cta">Добавить</button>
       </div>
       <div id="doseHint" class="muted" style="margin-top:8px"></div>
@@ -1364,7 +1319,87 @@ input[type="time"]::-webkit-calendar-picker-indicator{
     function ddmmyyyy(iso){ if (!iso) return '—'; const s=String(iso).slice(0,10); const [y,m,d]=s.split('-'); return d.padStart(2,'0')+'.'+m.padStart(2,'0')+'.'+y; }
     function normalizeDate(value){ if (!value) return ''; const s=String(value); if (/^\d{4}-\d{2}-\d{2}$/.test(s)) return s; const d=new Date(s); if (!isNaN(d)){ const y=d.getFullYear(); const m=String(d.getMonth()+1).padStart(2,'0'); const day=String(d.getDate()).padStart(2,'0'); return `${y}-${m}-${day}`;} return s.slice(0,10); }
     function daysDiffUTC(aISO,bISO){ try{ const a=new Date(aISO), b=new Date(bISO); const ad=Date.UTC(a.getFullYear(),a.getMonth(),a.getDate()); const bd=Date.UTC(b.getFullYear(),b.getMonth(),b.getDate()); return Math.floor((ad-bd)/86400000);}catch{ return 0; } }
+// ④ Определяем препарат и варианты капсул
+function renderCapsuleSeg(){
+const host = document.getElementById('capsuleType'); if(!host) return;
+const seg = document.getElementById('capsSeg'); const opts = _capsuleOptions();
+if (!opts.length){ host.style.display='none'; return; }
+host.style.display='';
+seg.innerHTML = opts.map(v=>`<button type="button" data-mg="${v}">${v} мг</button>`).join('');
+const sel = getCapsUnitMg();
+[...seg.children].forEach(btn=>{
+const mg = Number(btn.dataset.mg);
+btn.classList.toggle('active', mg===sel);
+btn.addEventListener('click', ()=>{
+[...seg.children].forEach(b=>b.classList.remove('active'));
+btn.classList.add('active');
+try{ localStorage.setItem('rt_caps_unit_mg', String(mg)); }catch(_){}
+}, {passive:true});
+});
+}
 
+
+// ⑤ Вычитаем капсулы со склада после успешного сохранения приёма
+function updateCapsStockAfterAdd(mg){
+const unit = getCapsUnitMg(); if (!(unit>0) || !(mg>0)) return;
+let count = Math.round(Number(mg)/unit); if (count<=0) count=1; // 16мг с капсулой 16 → 1; 24мг с 8 → 3 и т.д.
+let left = Math.max(0, Number(localStorage.getItem('rt_caps_stock')||0));
+if (!(left>0)) return;
+const prev = left; const next = Math.max(0, left - count);
+try{
+localStorage.setItem('rt_caps_stock', String(next));
+// триггер для других вкладок/страниц
+localStorage.setItem('rt.caps.bump', String(Date.now()));
+localStorage.removeItem('rt.caps.bump');
+}catch(_){}
+// Порог напоминания о закупке
+try{
+const prefs = JSON.parse(localStorage.getItem('rt_prefs')||'{}');
+const on = !!prefs?.stock; const th = Number(prefs?.threshold||0);
+if(on && prev>th && next<=th){
+const toast = document.createElement('div');
+toast.className = 'nope-toast';
+toast.textContent = 'Осталось мало капсул — пора докупить';
+(document.getElementById('remCard')||document.body).appendChild(toast);
+setTimeout(()=> toast.remove(), 1400);
+try{ Telegram?.WebApp?.HapticFeedback?.notificationOccurred?.('warning'); }catch(_){}
+}
+}catch(_){}
+}
+
+
+// ⑥ Эффект «всплывающей капсулы»
+function pillBurst(host){
+if(!host) return; const r = host.getBoundingClientRect(); const x = r.width/2;
+const pill = document.createElement('div'); pill.className='fx-pill'; pill.textContent='💊';
+pill.style.left = x+'px'; pill.style.top='0px'; host.appendChild(pill);
+setTimeout(()=> pill.remove(), 900);
+for(let i=0;i<14;i++){
+const dot = document.createElement('i'); dot.className='fx-dot';
+dot.style.left=x+'px'; dot.style.top='0px';
+const ang = Math.random()*Math.PI*2; const dist = 30 + Math.random()*60;
+dot.style.setProperty('--dx', (Math.cos(ang)*dist)+'px');
+dot.style.setProperty('--dy', (Math.sin(ang)*dist - 20)+'px');
+dot.style.background = (i%2? '#22D3EE' : '#14B8A6');
+host.appendChild(dot); setTimeout(()=> dot.remove(), 800);
+}
+}
+
+
+// ⑦ Включаем сегмент при загрузке данных плана (после renderChips)
+(function hookCapsOnLoad(){
+const _origLoadAll = window.loadAll; // если объявлена как function loadAll(){…}
+if (typeof _origLoadAll === 'function'){
+window.loadAll = async function(){
+const r = await _origLoadAll.apply(this, arguments);
+try{ renderCapsuleSeg(); }catch(_){}
+return r;
+}
+} else {
+// если нельзя перехватить — просто попробуем нарисовать через таймаут
+window.addEventListener('load', ()=> setTimeout(renderCapsuleSeg, 0));
+}
+})();
     // === BRIDGE: main <-> calendar (per-day mg) ===
 function diaryGet(){ try{ return JSON.parse(localStorage.getItem('rt.diary.v1')||'{}'); }catch(_){ return {}; } }
 function diarySave(d){ try{ localStorage.setItem('rt.diary.v1', JSON.stringify(d)); }catch(_){}
@@ -1978,15 +2013,13 @@ if(use){
         window.__intakesLoaded = true;
 
         renderChips((PLAN?.drug||'roaccutane').toLowerCase());
-        setupCapsulesUI();
         document.getElementById('date').value = todayISO();
         document.getElementById('date').addEventListener('change', ()=>{ renderCalPreview(); });
         updateSummary(); renderLast(); recalcDaysPerView(); renderCalPreview(); updateDoseHint();
         try { applyDiaryToMain(diaryGet()); renderCalPreview(); } catch(_){}
         try { syncDiaryFromIntakes(); } catch(_){}
-     } catch(e) {
+      } catch(e) {
   renderChips('roaccutane');
-  setupCapsulesUI();                // ← добавить эту строку
   try { document.getElementById('date').value = todayISO(); } catch(_){}
   try { recalcDaysPerView(); renderCalPreview(); updateDoseHint(); } catch(_){}
 }
@@ -2004,6 +2037,8 @@ if(use){
         const r = await api('/api/intakes', { method: 'POST', body: JSON.stringify({ mg, date }) });
         if (!r.ok) { st.textContent = 'Ошибка ' + r.status; return; }
         st.textContent = 'Сохранено';
+        try{ pillBurst(document.getElementById('save')); }catch(_){}
+try{ updateCapsStockAfterAdd(mg); }catch(_){}
         DOSES.unshift({ mg: mg, date: date });
         try{
           const iso = (date||'').slice(0,10);
@@ -2016,22 +2051,7 @@ if(use){
         try{ document.getElementById('remCard')?.classList.add('flipped'); }catch(_){}
         try{ window.renderPillAlert && window.renderPillAlert(); }catch(_){}
         try{ window.renderReminder && window.renderReminder(); }catch(_){}
-// вычитаем капсулы из остатка (если выбран тип капсулы)
-try{
-  const cap = Number(localStorage.getItem('rt.capsule_mg')||0);
-  if (cap > 0){
-    const count = (mg % cap === 0) ? (mg / cap) : Math.ceil(mg / cap);
-    const key = 'rt_capsules_left';
-    let left = Number(localStorage.getItem(key)||0);
-    if (left > 0){
-      left = Math.max(0, left - count);
-      localStorage.setItem(key, String(left));
-      // сигнал для других страниц (myprofile) через storage
-      localStorage.setItem('rt_capsules_left_bump', String(Date.now()));
-      localStorage.removeItem('rt_capsules_left_bump');
-    }
-  }
-}catch(_){}
+
         await loadAll().then(()=>{ try{ window.renderReminder && window.renderReminder(); }catch(_){ } }); updateDoseHint();
       } catch (e) {
         st.textContent = 'Ошибка сети';
@@ -2278,15 +2298,7 @@ function updateDoseHint(){
         if (iso === todayIso) today += Number(x.mg||x.mg_taken||0) || 0;
       }
     }
-    const cap = Number(localStorage.getItem('rt.capsule_mg')||0);
-    const mgInput = Number(document.getElementById('mg')?.value || 0);
-    let capInfo = '';
-    if (cap > 0 && mgInput > 0){
-      const exact = (mgInput % cap) === 0;
-      const n = exact ? (mgInput/cap) : Math.ceil(mgInput/cap);
-      capInfo = ` • ≈${n} капс.`;
-    }
-    hint.textContent = `Последний приём: ${fmtInt(last)} мг • Сегодня: ${fmtInt(today)} мг${capInfo}`;
+    hint.textContent = `Последний приём: ${fmtInt(last)} мг • Сегодня: ${fmtInt(today)} мг`;
   }catch(_){}
 }
 
@@ -2666,47 +2678,7 @@ function syncReminderUI(){
 window.addEventListener('storage', syncReminderUI);
 document.addEventListener('DOMContentLoaded', syncReminderUI);
 
-</script>
-<script>
-// Pill burst FX — в точке тапа по кнопке "Добавить"
-document.addEventListener('DOMContentLoaded', () => {
-  const btn = document.getElementById('save');
-  if (!btn) return;
 
-  function burst(x, y){
-    const rect = btn.getBoundingClientRect();
-    const cx = x ? (x - rect.left) : rect.width/2;
-    const cy = y ? (y - rect.top)  : rect.height/2;
-
-    const pill = document.createElement('span');
-    pill.className = 'fx-pill';
-    pill.textContent = '💊';
-    pill.style.left = cx + 'px';
-    pill.style.top  = cy + 'px';
-    btn.appendChild(pill);
-    setTimeout(()=>pill.remove(), 900);
-
-    const colors = ['#22D3EE','#14B8A6','#5EEAD4','#FDE047','#A7F3D0','#93C5FD'];
-    const N = 10;
-    for(let i=0;i<N;i++){
-      const dot = document.createElement('span');
-      dot.className = 'fx-dot';
-      dot.style.left = cx + 'px';
-      dot.style.top  = cy + 'px';
-      const angle = (Math.PI*2) * (i/N) + (Math.random()*0.6 - 0.3);
-      const r = 22 + Math.random()*16;
-      dot.style.setProperty('--dx',  Math.cos(angle)*r + 'px');
-      dot.style.setProperty('--dy',  Math.sin(angle)*r + 'px');
-      dot.style.width = dot.style.height = (4 + Math.random()*4) + 'px';
-      dot.style.background = colors[i % colors.length];
-      btn.appendChild(dot);
-      setTimeout(()=>dot.remove(), 800);
-    }
-  }
-
-  btn.addEventListener('click', (e)=>{ try{ burst(e.clientX, e.clientY); }catch(_){ burst(); } });
-  btn.addEventListener('touchstart', (e)=>{ try{ const t=e.touches[0]; if(t) burst(t.clientX, t.clientY); }catch(_){ burst(); } }, {passive:true});
-});
 </script>
 
 </body>

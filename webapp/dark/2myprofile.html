@@ -158,49 +158,6 @@ body.light .app-title{
     .field .lhs{ display:flex; flex-direction:column; gap:4px }
     .field .rhs{ display:flex; align-items:center; gap:12px }
     .field .unit{ opacity:.8 }
-    /* --- Пилюльный инпут с единицей измерения (как в блоке закупки) --- */
-.unit-input{
-  display:inline-flex;
-  align-items:center;
-  gap:0px;}
-  .unit-input__num{
-  padding-right:4px;  /* маленький зазор */
-
-  padding:8px 12px;
-  border-radius:999px;
-  background:rgba(255,255,255,.04);
-  border:1px solid rgba(255,255,255,.08);
-  backdrop-filter:saturate(140%) blur(4px);
-}
-
-.unit-input:focus-within{
-  border-color:rgba(20,184,166,.45);            /* акцент = ваш primary/teal */
-  box-shadow:0 0 0 2px rgba(20,184,166,.28) inset;
-}
-
-.unit-input__num{
-  width:7ch;
-  background:transparent;
-  border:0;
-  outline:0;
-  color:inherit;
-  text-align:center;
-  font-variant-numeric:tabular-nums;
-}
-
-.unit-input__num::-webkit-outer-spin-button,
-.unit-input__num::-webkit-inner-spin-button{
-  -webkit-appearance:none; margin:0;
-}
-.unit-input__num{ -moz-appearance:textfield; }  /* убираем стрелки в Firefox */
-
-.unit-input__unit{ opacity:.8; }
-dd:has(#capsLeftInput){
-  margin-left: -5px; /* регулируй -4px, -8px, -12px в зависимости от того, насколько нужно подвинуть */
-}
-#capsLeftInput{
-  margin-left:-3px; /* двигай цифру */
-}
 
     /* switch */
     .switch{ position:relative; width:54px; height:32px; flex:0 0 auto }
@@ -350,6 +307,7 @@ body.light .tab.active{
   border:1px solid rgba(0,0,0,.12);
 }
 
+
 /* === Fade&Slide cross-page transitions === */
 @keyframes vt-fade-slide-in {
   from { opacity: 0; transform: translateY(8px) scale(.995); }
@@ -361,6 +319,10 @@ body.light .tab.active{
 }
 ::view-transition-old(root){ animation: vt-fade-slide-out .35s ease both; }
 ::view-transition-new(root){ animation: vt-fade-slide-in  .35s ease both; }
+
+
+
+
 
 /* === Emphasized diary block + CTA === */
 .diary.is-cta{
@@ -493,7 +455,6 @@ body.light .diary.is-cta{
   }
   @keyframes hazard{to{opacity:.38;box-shadow:0 0 0 10px rgba(255,66,66,0)}}
   @media (prefers-reduced-motion:reduce){.pill-alert{animation:none}}
-  
 </style>
 
 <script id="pill-alert-script">
@@ -611,12 +572,11 @@ body.light .diary.is-cta{
           <dl class="kv">
             <dt>Аллергии</dt><dd id="allergies">нет данных</dd>
             <dt>Сегодня</dt><dd id="today">— мг</dd>
-          <dt>Осталось таблеток</dt>
+           <dt>Осталось таблеток</dt>
 <dd>
-  <div class="unit-input">
-    <input id="capsLeftInput" class="unit-input__num" type="number" inputmode="numeric" min="0" step="1">
-    <span class="unit-input__unit">капсул</span>
-  </div>
+<input id="capsStock" type="number" min="0" step="1" inputmode="numeric"
+style="width:110px;height:36px;border-radius:12px;padding:6px 10px;">
+<span class="muted">капсул</span>
 </dd>
           </dl>
         </div>
@@ -820,7 +780,7 @@ body.light .diary.is-cta{
     $('#heroMeta').textContent = `Цель: ${STATE.goalMgPerKg} mg/kg • Прогноз окончания: ${fmtDate(eta.toISOString().slice(0,10))}`;
 
     $('#allergies').textContent = STATE.allergies || 'Не указаны';
-    $('#today').textContent = Math.round(STATE.todayMg || 0) + ' мг';
+    $('#today').textContent = (STATE.todayMg||0) + ' мг';
     $('#lastDose').textContent = (STATE.lastDoseMg||0) + ' мг';
 
     const doc = STATE.doctor||{}; $('#doctorMeta').textContent = [doc.name, doc.clinic, doc.phone].filter(Boolean).join(' • ');
@@ -835,32 +795,7 @@ body.light .diary.is-cta{
     const C = 2*Math.PI*54; const off = C*(1-pct/100);
     document.querySelector('.ring .bar').setAttribute('stroke-dashoffset', off);
   }
-function todayISO(){
-  const d=new Date();
-  d.setMinutes(d.getMinutes()-d.getTimezoneOffset());
-  return d.toISOString().slice(0,10);
-}
-function getLocalTodayDose(){
-  const iso = todayISO();
-  // 1) быстрый кэш
-  try{
-    const tIso = localStorage.getItem('derma_today_iso');
-    if (tIso===iso){
-      const mg = +localStorage.getItem('derma_today_mg') || 0;
-      if (mg > 0) return mg;
-    }
-  }catch(_){}
-  // 2) из дневника
-  try{
-    const diary = JSON.parse(localStorage.getItem('rt.diary.v1')||'{}');
-    const rec = diary[iso];
-    if (rec){
-      if (rec.miss===true || rec.taken===false) return 0;
-      return +(rec.dose ?? rec.mg ?? 0) || 0;
-    }
-  }catch(_){}
-  return 0;
-}
+
 
   // ---- БОЕВОЙ BOOT: имя/аватар + данные из API, затем populate() ----
 (async function bootProfile(){
@@ -960,7 +895,7 @@ function getLocalTodayDose(){
   STATE.startISO    = (me.course_start || me.start_date || STATE.startISO || localStorage.getItem('rt_startISO') || '').slice(0,10);
 
   STATE.takenMg     = Number(sum.cum_mg || 0) || 0;
- STATE.todayMg     = (Number(sum.today_mg) || getLocalTodayDose() || 0);
+  STATE.todayMg     = Number(sum.today_mg || sum.avg7 || 0) || 0;
 const ALG_LABELS = {
   retinoids:   'Изотретиноин/ретиноиды',
   soy:         'Соя',
@@ -1481,31 +1416,17 @@ function ddmmyyyy(iso){
     document.getElementById('lastDoseLine').textContent = lastIso ? ddmmyyyy(lastIso) : '—';
   } catch(e){}
 })();
+(function wireCapsStock(){
+const input = document.getElementById('capsStock'); if(!input) return;
+const get = ()=> Math.max(0, Number(localStorage.getItem('rt_caps_stock')||0));
+const set = (v)=>{ try{ localStorage.setItem('rt_caps_stock', String(Math.max(0, Number(v)||0))); }catch(_){} };
+input.value = String(get());
+input.addEventListener('change', ()=> set(input.value));
+window.addEventListener('storage', (e)=>{
+if (e.key === 'rt_caps_stock' || e.key === 'rt.caps.bump') input.value = String(get());
+});
+})();
 </script>
-<script>
-function applyCapsLeftUI(){
-  const inp = document.getElementById('capsLeftInput'); if(!inp) return;
-  const KEY = 'rt_capsules_left';
 
-  function refresh(){ inp.value = String(Math.max(0, Number(localStorage.getItem(KEY)||0))); }
-  refresh();
-
-  if (!inp.dataset.bound){
-    inp.dataset.bound = '1';
-    inp.addEventListener('change', ()=>{
-      const n = Math.max(0, Math.floor(Number(inp.value||0)));
-      localStorage.setItem(KEY, String(n));
-      // уведомим другие страницы
-      localStorage.setItem('rt_capsules_left_bump', String(Date.now()));
-      localStorage.removeItem('rt_capsules_left_bump');
-    });
-    // обновляться, когда Main списывает капсулы
-    window.addEventListener('storage', (e)=>{
-      if (e.key === KEY || e.key === 'rt_capsules_left_bump') refresh();
-    });
-  }
-}
-document.addEventListener('DOMContentLoaded', applyCapsLeftUI);
-</script>
 </body>
 </html>

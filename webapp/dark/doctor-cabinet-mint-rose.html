@@ -92,6 +92,19 @@
 .ava-edit:hover{ transform:scale(1.03); }
 .ava-edit svg{ pointer-events:none; }
   </style>
+<style>
+/* Avatar edit button scoped */
+.ava-big{ position:relative; }
+.ava-big .ava-edit{
+  position:absolute; right:8px; bottom:8px; z-index:3;
+  width:28px; height:28px; border-radius:9999px; border:0;
+  display:flex; align-items:center; justify-content:center;
+  background:rgba(255,255,255,0.12);
+  backdrop-filter: blur(6px);
+  cursor:pointer;
+}
+.ava-big .ava-edit:hover{ background:rgba(255,255,255,0.18); }
+</style>
 </head>
 <body>
   <div class="wrap">
@@ -102,7 +115,7 @@
         <div class="code-pill">Ваш код: <b id="topCode">— — — — —</b></div>
       </div>
     </div>
-    <input id="avaInput" type="file" accept="image/*" style="display:none"/>
+    <input id="avaInput"style="position:fixed;left:-9999px;top:-9999px;width:1px;height:1px;opacity:0;pointer-events:none" accept="image/*" capture="environment" type="file" accept="image/*" style="display:none"/>
 
     <nav class="tabs" id="tabsNav" role="tablist">
       <button class="tab active" data-tab="patients" role="tab" aria-selected="true">Пациенты</button>
@@ -197,41 +210,43 @@
       </section>
 
       <!-- Профиль -->
-      <section class="sec" id="sec-profile">
-        <div class="card" style="margin-top:10px">
-          <div class="profile">
-            <div class="ava-big" id="bigAva">
-              <span id="bigAvaTxt">JD</span>
-              <img id="bigAvaImg" alt="" style="display:none">
-              <button class="ava-edit" id="editAvaBtn">+</button>
-            </div>
-            <div>
-              <div style="font-weight:800;font-size:18px" id="profName">ФИО врача</div>
-              <div class="muted" id="profMeta">Специализация • Клиника, Город</div>
-              <div class="row" style="margin-top:8px">
-                <div class="code-pill">Мой код: <b id="profCode">— — — — —</b></div>
-                <button class="btn-ghost" id="copyCode">Скопировать</button>
-                <button class="btn-ghost" id="qrCode">QR</button>
-                <button class="ava-edit" id="editAvaBtn" aria-label="Сменить фото" title="Сменить фото">
-  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" aria-hidden="true">
-    <path d="M12 5v14M5 12h14" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
-  </svg>
-</button>
-              </div>
-            </div>
-          </div>
-        </div>
+      
+<section class="sec" id="sec-profile">
+  <div class="card" style="margin-top:10px">
+    <div class="profile">
+      <div class="ava-big" id="bigAva">
+        <span id="bigAvaTxt">JD</span>
+        <img id="bigAvaImg" alt="" style="display:none">
+        <!-- Надёжный триггер загрузки: label привязан к #avaInput -->
+        <label for="avaInput" class="ava-edit" aria-label="Сменить фото" title="Сменить фото">+</label>
+      </div>
 
-        <div class="card" style="margin-top:12px">
-          <div style="font-weight:700;margin-bottom:8px">Статистика</div>
-          <div class="list" style="grid-template-columns:repeat(4,1fr)">
-            <div class="card" style="padding:12px"><div>Всего пациентов</div><div id="stTotal" style="font-size:22px;font-weight:800;margin-top:6px">0</div></div>
-            <div class="card" style="padding:12px"><div>На курсе</div><div id="stOn" style="font-size:22px;font-weight:800;margin-top:6px">0</div></div>
-            <div class="card" style="padding:12px"><div>Просрочены анализы</div><div id="stRed" style="font-size:22px;font-weight:800;margin-top:6px">0</div></div>
-            <div class="card" style="padding:12px"><div>Нужен ответ</div><div id="stNeeds" style="font-size:22px;font-weight:800;margin-top:6px">0</div></div>
-          </div>
+      <div>
+        <div style="font-weight:800;font-size:18px" id="profName">ФИО врача</div>
+        <div class="muted" id="profMeta">Специализация • Клиника, Город</div>
+
+        <div class="row" style="margin-top:8px;gap:8px;align-items:center">
+          <div class="code-pill">Мой код: <b id="profCode">— — — — —</b></div>
+          <button class="btn-ghost" id="copyCode">Скопировать</button>
+          <button class="btn-ghost" id="qrCode">QR</button>
+          <!-- Дополнительный удобный триггер загрузки (не позиционированный) -->
+          <label for="avaInput" class="btn-ghost" id="changePhotoBtn" title="Сменить фото">+</label>
         </div>
-      </section>
+      </div>
+    </div>
+  </div>
+
+  <div class="card" style="margin-top:12px">
+    <div style="font-weight:700;margin-bottom:8px">Статистика</div>
+    <div class="list" style="grid-template-columns:repeat(4,1fr)">
+      <div class="card" style="padding:12px"><div>Всего пациентов</div><div style="font-size:22px;font-weight:800;margin-top:6px">0</div></div>
+      <div class="card" style="padding:12px"><div>На курсе</div><div style="font-size:22px;font-weight:800;margin-top:6px">0</div></div>
+      <div class="card" style="padding:12px"><div>Просрочены анализы</div><div style="font-size:22px;font-weight:800;margin-top:6px">0</div></div>
+      <div class="card" style="padding:12px"><div>Нужен ответ</div><div style="font-size:22px;font-weight:800;margin-top:6px">0</div></div>
+    </div>
+  </div>
+</section>
+
     </main>
   </div>
 
@@ -479,13 +494,24 @@
   });
 
   /* ===== Загрузка аватара вручную ===== */
-  $('#smallAva').addEventListener('click',()=>$('#avaInput').click());
-  $('#editAvaBtn').addEventListener('click',()=>$('#avaInput').click());
-  $('#avaInput').addEventListener('change',e=>{
-    const f=e.target.files?.[0];
-    if(f){ const r=new FileReader(); r.onload=()=>{ localStorage.setItem('doctorAvatarUrl', r.result); applyAvatar(); }; r.readAsDataURL(f); }
+(() => {
+  // клики по маленькой аватарке в хедере — программный клик (рабочий в браузерах)
+  const small = document.querySelector('#smallAva');
+  if (small) small.addEventListener('click', () => document.querySelector('#avaInput')?.click(), {passive:true});
+
+  // label[for="avaInput"] внутри профиля триггерит выбор файла без JS (надёжно в iOS WebView)
+  const input = document.querySelector('#avaInput');
+  if (!input) return;
+
+  input.addEventListener('change', (e) => {
+    const f = e.target.files && e.target.files[0];
+    if (!f) return;
+    const r = new FileReader();
+    r.onload = () => { localStorage.setItem('doctorAvatarUrl', r.result); applyAvatar(); };
+    r.readAsDataURL(f);
   });
-  async function hydrateCodeFromServer(){
+})();
+async function hydrateCodeFromServer(){
     try{
       const initData = window.Telegram?.WebApp?.initData || '';
        const devTg = new URLSearchParams(location.search).get('tg');

@@ -430,6 +430,7 @@ function api(path, opts = {}) {
 
     // ====== Save ======
      document.getElementById('btnSaveProfile').addEventListener('click', async ()=>{
+      
     const msg = document.getElementById('profMsg');
     const sex = (document.querySelector('input[name="sex"]:checked')||{}).value || null;
     const weight_kg = Number(document.getElementById('p_weight').value || 0);
@@ -445,6 +446,7 @@ function api(path, opts = {}) {
       const r = await api('/api/me', { method:'POST', body: JSON.stringify({ sex, weight_kg, height_cm, birth_date, allergies }) });
       if (!r.ok){ let text='Ошибка '+r.status; try{const j=await r.json(); if(j&&j.error) text=j.error;}catch{} msg.textContent=text; return; }
       msg.textContent = 'Сохранено';
+     try { localStorage.setItem('rt_allergies', JSON.stringify(allergies)); } catch(_){}
       try{ localStorage.setItem('derma_next','plan'); }catch(_){}
       const qs = location.search || '';
       try{
