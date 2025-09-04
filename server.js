@@ -26,7 +26,8 @@ async function sendReminder(tgId, text) {
 }
 
 
-const isPolling = !process.env.WEBAPP_URL;    // локально — polling, на Render — webhook
+// локально (без WEBAPP_URL) работаем в polling, на Render — webhook
+const isPolling = !process.env.WEBAPP_URL && !process.env.TELEGRAM_WEBHOOK;
 const path = require('path');
 const express = require('express');
 const cors = require('cors');
@@ -1085,7 +1086,6 @@ async function checkReminders() {
 
 // Проверяем раз в минуту
 setInterval(() => { checkReminders().catch(e => console.error('reminders tick error', e)); }, 60 * 1000);
-
 
 // ==== SET TELEGRAM WEBHOOK ON BOOT ====
 if (!isPolling) {
