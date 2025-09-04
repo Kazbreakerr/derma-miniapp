@@ -49,6 +49,7 @@ document.documentElement.dataset.theme = cur;
 <link rel="stylesheet" href="/css/skeleton.css">
 
   <style>
+    
     :root{
       --bg:#0B1220; --surface:#0E1726; --card:#121C2E; --border:#1F2A3C;
       --primary:#14B8A6; --primary-700:#0EA5A6; --primary-300:#5EEAD4;
@@ -527,7 +528,12 @@ body.light .seg button{
 @media (max-width:420px){
   .date-wrap input#date{ width:150px }
 }
-
+.pill-alert{display:inline-flex;align-items:center;gap:.35rem;padding:.25rem .6rem;border-radius:999px;font-size:.9rem;font-weight:700;letter-spacing:.02em}
+  .pill-alert--stock{
+    background: linear-gradient(135deg, #1dd1a1, #10b981);
+    color:#07131b; border:1px solid rgba(255,255,255,.15);
+    box-shadow: 0 4px 20px rgba(16,185,129,.25);
+  }
 /* === Mini calendar (7 cells in one row, styled like calendar.html) === */
 #cardCalendar .preview-wrap { overflow: visible; }
 #cardCalendar .cal-grid{ 
@@ -811,6 +817,13 @@ body.light .tab.active{ color:#0d1220; background: linear-gradient(180deg, rgba(
     box-shadow:0 0 0 0 rgba(255,66,66,.65);
     animation:hazard 1.15s steps(2,start) infinite;
   }
+  .pill-alert--stock{
+    animation: breath 1.6s ease-in-out infinite;
+  box-shadow: 0 0 0 0 rgba(16,185,129,.35);
+    background: linear-gradient(135deg, #1dd1a1, #10b981);
+    color:#07131b; border:1px solid rgba(255,255,255,.15);
+    box-shadow: 0 4px 20px rgba(16,185,129,.25);
+  }
   @keyframes hazard{to{opacity:.38;box-shadow:0 0 0 10px rgba(255,66,66,0)}}
   @media (prefers-reduced-motion:reduce){.pill-alert{animation:none}}
 </style>
@@ -1041,7 +1054,7 @@ input[type="time"]::-webkit-calendar-picker-indicator{
   </defs>
 </svg>
   <div class="wrap">
-    <h1>Roaccutane Tracker</h1>  <span data-pill-spot></span>
+    <h1>Roaccutane Tracker</h1>  <span data-pill-spot></span><span data-stock-spot></span>
 
     <section class="card clickable" id="profileHeader" aria-label="Профиль">
       <div class="glow"></div>
@@ -2029,6 +2042,7 @@ try{
       // сигнал для других страниц (myprofile) через storage
       localStorage.setItem('rt_capsules_left_bump', String(Date.now()));
       localStorage.removeItem('rt_capsules_left_bump');
+      window.renderStockAlert && window.renderStockAlert();
     }
   }
 }catch(_){}
@@ -2176,35 +2190,69 @@ try{
 
   // UI + отправка на сервер
   function applyCtrl(){
-    const toggle = document.getElementById('remToggle');
-    const time   = document.getElementById('remTime');
-    const card   = document.getElementById('remCard');
-    if (!toggle || !time || !card) return;
+  const toggle = document.getElementById('remToggle');
+  const time   = document.getElementById('remTime');
+  const card   = document.getElementById('remCard');
+  if (!toggle || !time || !card) return;
 
-    toggle.checked = state.enabled;
-    time.value     = state.time;
-    card.classList.toggle('rem-off', !state.enabled);
+  toggle.checked = state.enabled;
+  time.value     = state.time;
+  card.classList.toggle('rem-off', !state.enabled);
 
-    const push = () => {
-      api('/api/reminder', {
-        method: 'POST',
-        body: JSON.stringify({ enabled: state.enabled, time: state.time })
-      }).catch(()=>{});
-    };
+  const push = () => {
+    api('/api/reminder', {
+      method: 'POST',
+      body: JSON.stringify({ enabled: state.enabled, time: state.time })
+    }).catch(()=>{});
+  };
 
-    toggle.addEventListener('change', () => {
-      state.enabled = toggle.checked;
-      localStorage.setItem('rem_enabled', state.enabled ? '1' : '0');
-      card.classList.toggle('rem-off', !state.enabled);
-      push();
-    });
+ function mirrorToRtPrefs() {
+  try {
+    const prefs = JSON.parse(localStorage.getItem('rt_prefs') || '{}');
+    prefs.daily = state.enabled;
+    prefs.time  = state.time;
+    localStorage.setItem('rt_prefs', JSON.stringify(prefs));
+    localStorage.setItem('rt_prefs_bump', Date.now().toString());
+    localStorage.removeItem('rt_prefs_bump');
+  } catch (e) {}
+}
 
-    time.addEventListener('change', () => {
-      state.time = time.value || '09:00';
-      localStorage.setItem('rem_time', state.time);
-      push();
-    });
-  }
+function mirrorToRtReminders() {
+  try {
+    const t = (String(state.time||'09:00').slice(0,5));
+    const rt = JSON.parse(localStorage.getItem('rt')||'{}');
+    rt.reminders = Array.isArray(rt.reminders) ? rt.reminders : [];
+    const i = rt.reminders.findIndex(r => r && r.id === 'main');
+    const rec = { id:'main', enabled: !!state.enabled, time: t };
+    if (i >= 0) rt.reminders[i] = rec; else rt.reminders.push(rec);
+    localStorage.setItem('rt', JSON.stringify(rt));
+
+    // дублируем в старые ключи для совместимости
+    localStorage.setItem('rem_enabled', state.enabled ? '1' : '0');
+    localStorage.setItem('rem_time', t);
+    localStorage.setItem('derma_remind_optin', state.enabled ? '1' : '0');
+    localStorage.setItem('derma_remind_time', t);
+
+    // пинок для других вкладок
+    localStorage.setItem('derma.reminder.bump', Date.now().toString());
+    localStorage.removeItem('derma.reminder.bump');
+  }catch(_){}
+}
+
+toggle.addEventListener('change', () => {
+  state.enabled = toggle.checked;
+  mirrorToRtReminders();   // <<< добавлено
+  card.classList.toggle('rem-off', !state.enabled);
+  push();
+});
+
+time.addEventListener('change', () => {
+  state.time = time.value || '09:00';
+  mirrorToRtReminders();   // <<< добавлено
+  push();
+});
+
+}
 
   // ПОЧИНЕНО: обычное объявление функции (не IIFE)
   function renderReminder(){
@@ -2654,7 +2702,7 @@ function syncReminderUI(){
   const t  = localStorage.getItem('derma_remind_time') || '09:00';
 
   // в зависимости от страницы элементы разные
-  const toggle = document.getElementById('remToggle') || document.getElementById('bell');
+  const toggle = document.getElementById('remDaily') || document.getElementById('remToggle') || document.getElementById('bell');
   const timeEl = document.getElementById('remTime') || document.getElementById('remindTime');
   if(toggle){
     if(toggle.type === 'checkbox') toggle.checked = on;
@@ -2709,5 +2757,146 @@ document.addEventListener('DOMContentLoaded', () => {
 });
 </script>
 
+<script>
+(function(){
+  const TIME_KEY  = 'derma_remind_time';
+  const OPTIN_KEY = 'derma_remind_optin';
+
+const timeEl = document.getElementById('remTime');
+ const swEl   = document.getElementById('remToggle');
+
+  function readState(){
+    return {
+      enabled: (localStorage.getItem(OPTIN_KEY)||'0') === '1',
+      time: localStorage.getItem(TIME_KEY) || '19:00'
+    };
+  }
+  function applyUI(){
+    const s = readState();
+    if (swEl)   swEl.checked = s.enabled;
+    if (timeEl) timeEl.value = s.time;
+  }
+  function bump(k){ localStorage.setItem(k, Date.now().toString()); localStorage.removeItem(k); }
+  function save(part){
+    const cur = readState(), next = { ...cur, ...part };
+    localStorage.setItem(OPTIN_KEY, next.enabled ? '1' : '0');
+    localStorage.setItem(TIME_KEY,  next.time);
+    bump('derma.reminder.bump');
+  }
+
+  swEl?.addEventListener('change', e=> save({enabled: !!e.target.checked}));
+  timeEl?.addEventListener('change', e=> save({time: e.target.value || '19:00'}));
+
+  window.addEventListener('storage', e=>{
+    if ([OPTIN_KEY, TIME_KEY, 'derma.reminder.bump'].includes(e.key)) applyUI();
+  });
+
+  applyUI();
+})();
+</script>
+<script>
+/* === Stock alert renderer (зелёный) === */
+(function(){
+  const K_LEFT='rt_capsules_left', K_THRESH='rt_capsules_threshold', K_ON='rt_capsules_alert_enabled';
+
+  function n(x){ x=Number(x); return Number.isFinite(x)?x:0; }
+  const on =()=> (localStorage.getItem(K_ON)||'0')==='1';
+
+  function text(){
+    if(!on()) return null;
+    const left = n(localStorage.getItem(K_LEFT)||0);
+    const thr  = n(localStorage.getItem(K_THRESH)||0);
+    if(left>0 && thr>0 && left<=thr) return `осталось ${left} капсул`;
+    return null;
+  }
+
+  (function(){
+  const K_LEFT='rt_capsules_left', K_THRESH='rt_capsules_threshold', K_ON='rt_capsules_alert_enabled';
+  const num = x => (x=Number(x), Number.isFinite(x)?x:0);
+  const on  = () => (localStorage.getItem(K_ON)||'0')==='1';
+
+  function render(){
+    const left = num(localStorage.getItem(K_LEFT)||0);
+    const thr  = num(localStorage.getItem(K_THRESH)||0);
+    const low  = on() && thr>0 && left>0 && left<=thr;
+
+    document.querySelectorAll('[data-stock-spot]').forEach(host=>{
+      let el = host.querySelector('.pill-alert--stock');
+      if(!el){
+        el = document.createElement('span');
+        el.className = 'pill-alert pill-alert--stock';
+        host.appendChild(el);
+      }
+      // статично показываем остаток всегда
+      el.textContent = `${left} капсул`;
+      // анимация/подсветка только при тревоге
+      el.classList.toggle('is-low', low);
+    });
+  }
+
+  window.addEventListener('storage', e=>{
+    if([K_LEFT,K_THRESH,K_ON,'rt_capsules_left_bump','rt_capsules_threshold_bump','rt_capsules_alert_bump'].includes(e.key)) render();
+  });
+  document.addEventListener('visibilitychange', ()=>{ if(!document.hidden) render(); });
+  render();
+  window.renderStockAlert = render;
+})();
+  // реагируем на изменения из других страниц
+  window.addEventListener('storage', e=>{
+    if([K_LEFT,K_THRESH,K_ON,'rt_capsules_alert_bump','rt_capsules_left_bump','rt_capsules_threshold_bump'].includes(e.key)){
+      render();
+    }
+  });
+  document.addEventListener('visibilitychange',()=>{ if(!document.hidden) render(); });
+
+  // экспорт
+  window.renderStockAlert = render;
+
+  // первичный рендер
+  render();
+})();
+</script>
+
+<style>
+  /* зелёный бейдж про остаток капсул */
+  .pill-alert--stock{
+    display:inline-flex;align-items:center;gap:.35rem;
+    padding:.25rem .6rem;border-radius:999px;font-size:.9rem;font-weight:700;letter-spacing:.02em;
+    background: linear-gradient(135deg, #1dd1a1, #10b981);
+    color:#07131b; border:1px solid rgba(255,255,255,.15);
+    box-shadow: 0 4px 20px rgba(16,185,129,.25);
+    white-space:nowrap;
+  }
+</style>
+<script>
+/* ЗЕЛЁНЫЙ АЛЕРТ — рендерим в [data-stock-spot] */
+(function(){
+  const K_LEFT='rt_capsules_left', K_THRESH='rt_capsules_threshold', K_ON='rt_capsules_alert_enabled';
+  const num=(k,d=0)=>{const v=parseInt(localStorage.getItem(k)||d,10);return Number.isFinite(v)?v:0;}
+  const on =()=> (localStorage.getItem(K_ON)||'0')==='1';
+
+  function text(){
+    if(!on()) return null;
+    const left=num(K_LEFT,0), thr=num(K_THRESH,0);
+    if(left>0 && thr>0 && left<=thr) return `осталось ${left} капсул`;
+    return null;
+  }
+  function render(){
+    document.querySelectorAll('[data-stock-spot]').forEach(host=>{
+      let el=host.querySelector('.pill-alert--stock');
+      const t=text();
+      if(!t){ el?.remove(); return; }
+      if(!el){ el=document.createElement('span'); el.className='pill-alert--stock'; host.appendChild(el); }
+      el.textContent=t;
+    });
+  }
+  window.addEventListener('storage', e=>{
+    if([K_LEFT,K_THRESH,K_ON,'rt_capsules_left_bump','rt_capsules_threshold_bump','rt_capsules_alert_bump'].includes(e.key)) render();
+  });
+  document.addEventListener('visibilitychange', ()=>{ if(!document.hidden) render(); });
+  render();
+  window.renderStockAlert=render;
+})();
+</script>
 </body>
 </html>

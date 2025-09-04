@@ -357,6 +357,7 @@
     if(!tabs.includes(tab)) tab='patients';
     $$('#tabsNav .tab').forEach(t=>{ const a=t.dataset.tab===tab; t.classList.toggle('active',a); t.setAttribute('aria-selected',a?'true':'false'); });
     tabs.forEach(id=>$('#sec-'+id).classList.toggle('active', id===tab));
+    if (tab === 'requests') { loadRequests(); }
   }
   $('#tabsNav').addEventListener('click', (e)=>{ const btn=e.target.closest('.tab'); if(!btn) return; e.preventDefault(); setTab(btn.dataset.tab); renderAll(); });
   window.addEventListener('hashchange', ()=>{ const h=(location.hash||'').replace('#/doctor/',''); setTab(h); renderAll(); });
@@ -448,6 +449,79 @@
     storage.set('doctorSettings',st);
     updateRequestsTips();
   });
+// === API helper для этой страницы ===
+async function callApi(path, opts = {}){
+  const initData = window.Telegram?.WebApp?.initData || '';
+  const devTg = new URLSearchParams(location.search).get('tg');
+  const base = (window.API_BASE || '');
+  const url = base + path + (devTg ? (path.includes('?') ? '&' : '?') + 'tg=' + encodeURIComponent(devTg) : '');
+  const headers = {
+    'Content-Type':'application/json',
+    ...(opts.headers || {}),
+    ...(initData ? {'X-Telegram-InitData': initData} : {})
+  };
+  return fetch(url, { ...opts, headers });
+}
+
+// === Загрузка списка заявок врача ===
+async function loadRequests(){
+  const box = document.getElementById('requestsList');
+  const empty = document.getElementById('requestsEmpty');
+  if (!box || !empty) return;
+
+  box.innerHTML = '<div class="muted">Загрузка…</div>';
+  try{
+    const r = await callApi('/api/doctor/requests');
+    if (!r.ok){
+      box.innerHTML = '<div class="muted">Ошибка загрузки</div>';
+      empty.style.display = 'block';
+      return;
+    }
+    const list = await r.json();
+    box.innerHTML = '';
+    if (!Array.isArray(list) || list.length === 0){
+      empty.style.display = 'block';
+      return;
+    }
+    empty.style.display = 'none';
+
+    for (const row of list){
+      const dt = new Date(row.created_at).toLocaleString('ru-RU');
+      const el = document.createElement('div');
+      el.className = 'card';
+      el.style.cssText = 'padding:12px; display:flex; align-items:center; justify-content:space-between; gap:10px';
+      el.innerHTML = `
+        <div>
+          <b>${row.patient_name || 'Пациент'}</b>
+          <div class="muted">Заявка от ${dt}</div>
+        </div>
+        <div class="btn-row" style="margin:0">
+          <button class="btn" data-acc="${row.id}">Принять</button>
+          <button class="btn-ghost" data-rej="${row.id}">Отклонить</button>
+        </div>
+      `;
+      box.appendChild(el);
+    }
+  }catch(e){
+    box.innerHTML = '<div class="muted">Ошибка соединения</div>';
+    empty.style.display = 'block';
+  }
+}
+
+// === Делегирование кликов на Принять/Отклонить ===
+document.addEventListener('click', async (e)=>{
+  const acc = e.target.closest('[data-acc]');
+  const rej = e.target.closest('[data-rej]');
+  if (!acc && !rej) return;
+
+  const id = (acc || rej).getAttribute(acc ? 'data-acc' : 'data-rej');
+  const path = acc ? `/api/doctor/requests/${id}/accept` : `/api/doctor/requests/${id}/reject`;
+
+  try{
+    await callApi(path, { method:'POST' });
+  }catch(_){}
+  loadRequests(); // перерисуем список по факту
+});
 
   /* ===== Общие кнопки ===== */
   $('#copyCode').onclick=async()=>{ try{ await navigator.clipboard.writeText(storage.get('doctorCode')||''); }catch(e){} };
@@ -460,12 +534,14 @@
   }
   $('#qrClose').onclick=()=>$('#qrModal').style.display='none';
   $('#qrCode').onclick=openQR;
-  $('#shareCode').onclick=async()=>{
+ {
+  const shareBtn = $('#shareCode');
+  if (shareBtn) shareBtn.onclick = async ()=>{
     const code=storage.get('doctorCode')||''; const url=shareURL(code);
     if(navigator.share){ try{ await navigator.share({title:'Мой врачебный код',text:'Прикрепись ко мне по ссылке',url}); }catch(e){} }
     else{ try{ await navigator.clipboard.writeText(url); }catch(e){} }
   };
-
+}
   function renderProfile(){
     const settings=storage.get('doctorSettings',{autoAccept:false});
     $('#autoSwitch').classList.toggle('on', !!settings.autoAccept);
