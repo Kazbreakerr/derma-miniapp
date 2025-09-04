@@ -26,7 +26,7 @@ async function sendReminder(tgId, text) {
 }
 
 
-const isPolling = !process.env.WEBAPP_URL;    // локально — polling, на Render — webhook
+const isWebhook= !process.env.WEBAPP_URL;    // локально — polling, на Render — webhook
 const path = require('path');
 const express = require('express');
 const cors = require('cors');
