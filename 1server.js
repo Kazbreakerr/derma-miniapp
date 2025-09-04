@@ -26,7 +26,7 @@ async function sendReminder(tgId, text) {
 }
 
 
-const isPolling = !process.env.WEBAPP_URL;    // локально — polling, на Render — webhook
+const isPooling= !process.env.WEBAPP_URL;    // локально — polling, на Render — webhook
 const path = require('path');
 const express = require('express');
 const cors = require('cors');
@@ -972,11 +972,12 @@ app.get('/api/doctor/me', tgAuth, async (req, res) => {
 
 
 // ====== static ======
-const staticRoot = path.join(__dirname, 'webapp'); // serve files from /webapp
+const staticRoot = path.join(__dirname, 'webapp'); // корень со статиками
 app.use(express.static(staticRoot));                // /css, /js, /img, /index.html
-app.use('/dark',  express.static(path.join(staticRoot, 'dark')));
-app.use('/light', express.static(path.join(staticRoot, 'light')));
+app.use('/dark',  express.static(path.join(staticRoot, 'dark')));   // если используешь theme-папку
+app.use('/light', express.static(path.join(staticRoot, 'light')));  // если используешь theme-папку
 app.get('/', (_, res) => res.sendFile(path.join(staticRoot, 'index.html')));
+
 // В памяти: { [tgId]: { enabled, time, _date, _sentToday, _lastMs } }
 const reminders = Object.create(null);
 
