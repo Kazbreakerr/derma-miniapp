@@ -1866,6 +1866,53 @@ document.addEventListener('DOMContentLoaded', applyCapsLeftUI);
   window.renderStockAlert=render;
 })();
 </script>
+<style>
+.pill-alert--stock{
+  display:inline-flex;
+  align-items:center;
+  justify-content:center;
+  white-space:nowrap;
+  padding:3px 8px;
+  border-radius:999px;
+  font-weight:700;
+  font-size:14px;
+  letter-spacing:.02em;
+  line-height:1;
+  background:linear-gradient(135deg,#22e6a1,#10b981);
+  color:#061a12;
+  border:1px solid rgba(255,255,255,.15);
 
+  /* базовое свечение */
+  box-shadow:
+    0 0 6px rgba(16,185,129,.55),
+    0 0 14px rgba(16,185,129,.35),
+    inset 0 1px 2px rgba(255,255,255,.2);
+
+  transform-origin:center;
+  will-change:transform,box-shadow;
+  animation:stock-breathe 3s ease-in-out infinite;
+}
+
+@keyframes stock-breathe{
+  0%,100%{
+    transform:scale(1);
+    box-shadow:
+      0 0 6px rgba(16,185,129,.55),
+      0 0 14px rgba(16,185,129,.35),
+      inset 0 1px 2px rgba(255,255,255,.2);
+  }
+  50%{
+    transform:scale(0.985);
+    box-shadow:
+      0 0 10px rgba(16,185,129,.75),
+      0 0 22px rgba(16,185,129,.45),
+      inset 0 1px 2px rgba(255,255,255,.25);
+  }
+}
+
+@media (prefers-reduced-motion:reduce){
+  .pill-alert--stock{ animation:none }
+}
+</style>
 </body>
 </html>

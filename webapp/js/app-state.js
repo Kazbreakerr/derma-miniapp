@@ -25,8 +25,9 @@
       consent: { doctorViewDiary: false },
     },
     [KEYS.reminders]: [
-      { id: 'main', time: '20:30', enabled: false },
-    ],
+  { id: 'main', time: '20:30', enabled: false },         // приём препарата
+  { id: 'stock', time: '09:00', enabled: false },        // остаток капсул
+],
     [KEYS.profile]: {
       allergies: [],
       avatar: null,
@@ -142,7 +143,19 @@
       return arr;
     });
   }
-
+function getStockReminder() {
+  const list = get('reminders') || [];
+  return list.find(r => r.id === 'stock') || { id:'stock', time:'09:00', enabled:false };
+}
+function setStockReminder({ time, enabled }) {
+  update('reminders', list => {
+    const arr = Array.isArray(list) ? list.slice() : [];
+    const idx = arr.findIndex(r => r.id === 'stock');
+    const next = { id:'stock', time: time ?? '09:00', enabled: enabled ?? true };
+    if (idx === -1) arr.push(next); else arr[idx] = Object.assign({}, arr[idx], next);
+    return arr;
+  });
+}
  // Мини-хелпер темы
 function applyTheme(theme){
   document.documentElement.dataset.theme = theme;
@@ -158,7 +171,7 @@ function applyTheme(theme){
 // в экспорт:
 window.AppState = {
   KEYS, get, set, update, patch, subscribe,
-  reminders: { getMain: getMainReminder, setMain: setMainReminder },
+  reminders: { getMain: getMainReminder, setMain: setMainReminder, getStock: getStockReminder, setStock: setStockReminde},
   applyTheme,
 };
 
@@ -170,7 +183,7 @@ window.AppState = {
   window.AppState = {
     KEYS,
     get, set, update, patch, subscribe,
-    reminders: { getMain: getMainReminder, setMain: setMainReminder },
+    reminders: { getMain: getMainReminder, setMain: setMainReminder,getStock: getStockReminder, setStock: setStockReminde},
     applyTheme,
   };
 })();

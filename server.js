@@ -1144,9 +1144,9 @@ app.get('/api/_health', async (req, res) => {
 app.get(['/main', '/plan', '/profile'], (req, res) => {
   const q = req.originalUrl.includes('?') ? req.originalUrl.slice(req.originalUrl.indexOf('?')) : '';
   const map = {
-    '/main': '/main-dark.html',
-    '/plan': '/plan-dark.html',
-    '/profile': '/profile-dark.html',
+    '/main': '/main.html',
+    '/plan': '/plan.html',
+    '/profile': '/profile.html',
   };
   res.redirect(302, map[req.path] + q);
 });
@@ -1195,10 +1195,11 @@ app.use(express.static(staticRoot));                // /css, /js, /img, /index.h
 app.use('/dark',  express.static(path.join(staticRoot, 'dark')));
 app.use('/light', express.static(path.join(staticRoot, 'light')));
 app.get('/', (_, res) => res.sendFile(path.join(staticRoot, 'index.html')));
-// В памяти: { [tgId]: { enabled, time, _date, _sentToday, _lastMs } }
-const reminders = Object.create(null);
+// === REMINDERS v2 ============================================================
+const reminders = Object.create(null);      // приём препарата
+const stockCfg  = Object.create(null);      // напоминание "мало капсул"
 
-// Сохранение настроек (под tgAuth)
+// Сохранение настроек для приёма (из WebApp)
 app.post('/api/reminder', tgAuth, async (req, res) => {
   const tgId = req.tg || req.tgUser?.id;
   if (!tgId) return res.status(401).json({ error: 'unauthorized' });
@@ -1207,38 +1208,43 @@ app.post('/api/reminder', tgAuth, async (req, res) => {
   reminders[tgId] = {
     ...(reminders[tgId] || {}),
     enabled: !!enabled,
-    time: String(time || '09:00').slice(0,5)
+    time: String(time || '20:30').slice(0,5),
+    _date: null, _sentToday: false, _lastMs: 0
   };
-
-  console.log('Напоминание сохранено:', tgId, reminders[tgId]);
   res.json({ ok: true, data: reminders[tgId] });
 });
 
-// ===== вспомогательные функции — ОБЯЗАТЕЛЬНО один раз, вне роутов =====
-const userTzCache = new Map();
+// Сохранение настроек для "мало капсул" (из WebApp)
+app.post('/api/reminder/stock', tgAuth, async (req, res) => {
+  const tgId = req.tg || req.tgUser?.id;
+  if (!tgId) return res.status(401).json({ error: 'unauthorized' });
 
+  const { enabled, time, threshold } = req.body || {};
+  stockCfg[tgId] = {
+    ...(stockCfg[tgId] || {}),
+    enabled: !!enabled,
+    time: String(time || '09:00').slice(0,5),
+    threshold: Number.isFinite(+threshold) ? +threshold : 10,
+    _date: null, _sent: false
+  };
+  res.json({ ok: true, data: stockCfg[tgId] });
+});
+
+// ---- вспомогательные
+const userTzCache = new Map();
 async function getUserTzByTg(tgId) {
   if (userTzCache.has(tgId)) return userTzCache.get(tgId);
   await pool.query('SET search_path = derma, public');
-  const r = await pool.query(
-    'SELECT tz FROM derma.users WHERE tg_id=$1::bigint',
-    [Number(tgId)]
-  );
+  const r = await pool.query('SELECT tz FROM derma.users WHERE tg_id=$1::bigint',[Number(tgId)]);
   const tz = r.rows[0]?.tz || 'Europe/Moscow';
   userTzCache.set(tgId, tz);
   return tz;
 }
 
 function nowParts(tz) {
-  const p = new Intl.DateTimeFormat('en-GB', {
-    timeZone: tz, year:'numeric', month:'2-digit', day:'2-digit',
-    hour:'2-digit', minute:'2-digit', hour12:false
-  }).formatToParts(new Date());
-  const get = t => p.find(x => x.type===t)?.value;
-  return { 
-    date: `${get('year')}-${get('month')}-${get('day')}`,
-    time: `${get('hour')}:${get('minute')}`
-  };
+  const p = new Intl.DateTimeFormat('en-GB',{timeZone:tz,year:'numeric',month:'2-digit',day:'2-digit',hour:'2-digit',minute:'2-digit',hour12:false}).formatToParts(new Date());
+  const g = t => p.find(x => x.type===t)?.value;
+  return { date: `${g('year')}-${g('month')}-${g('day')}`, time: `${g('hour')}:${g('minute')}` };
 }
 
 async function hasTakenToday(tgId, tz) {
@@ -1255,54 +1261,83 @@ async function hasTakenToday(tgId, tz) {
   return !!q.rowCount;
 }
 
-function appUrlFor(tgId) {
-  const base = (process.env.WEBAPP_URL || WEBAPP_URL || '').replace(/\/+$/,'');
-  return `${base}/main?tg=${tgId}`;
+// приблизительный расчёт оставшихся капсул по данным прогресса
+async function getCapsulesLeft(tgId) {
+  await pool.query('SET search_path = derma, public');
+  const q = await pool.query(`
+    SELECT vp.days_left_estimate::numeric AS days_left,
+           COALESCE(vp.daily_dose_mg,0)::numeric AS daily_mg,
+           COALESCE(p.capsule_mg,0)::numeric     AS cap_mg
+      FROM derma.v_patient_progress vp
+      JOIN derma.users u ON u.id = vp.patient_id
+      LEFT JOIN derma.plans p ON p.patient_id = u.id
+     WHERE u.tg_id = $1::bigint
+     LIMIT 1`,
+     [Number(tgId)]
+  );
+  if (!q.rowCount) return null;
+  const r = q.rows[0];
+  if (!r.cap_mg || !r.daily_mg || !r.days_left) return null;
+  const mgLeft   = Number(r.days_left) * Number(r.daily_mg);
+  const capsLeft = Math.max(0, Math.ceil(mgLeft / Number(r.cap_mg)));
+  return capsLeft;
 }
 
-async function sendReminder(tgId, text) {
-  try {
-    await bot.sendMessage(tgId, text, {
-      parse_mode: 'HTML',
-      reply_markup: {
-        inline_keyboard: [
-          [{ text: 'Отметить приём 💊', web_app: { url: appUrlFor(tgId) } }],
-          [{ text: 'Открыть в браузере', url: appUrlFor(tgId) }]
-        ]
-      }
-    });
-  } catch (e) {
-    console.error('Ошибка отправки напоминания:', e?.response?.body || e);
-  }
-}
-
-async function checkReminders() {
+// основной тикер для приёма
+async function tickDoseReminders() {
+  const REPEAT_MS = Number(process.env.REM_MS || (3*60*60*1000)); // дефолт 3 часа
   for (const [tgId, cfg] of Object.entries(reminders)) {
     if (!cfg?.enabled || !cfg.time) continue;
 
     const tz = await getUserTzByTg(tgId);
     const { date, time } = nowParts(tz);
 
-    // на новый день — сбрасываем флаги
+    // новый день → сброс флагов
     if (cfg._date !== date) { cfg._date = date; cfg._sentToday = false; cfg._lastMs = 0; }
 
-    // если уже отметили — пропускаем
+    // если уже отметили — не напоминаем
     if (await hasTakenToday(tgId, tz)) continue;
 
-    const THREE_HOURS_MS = Number(process.env.REM_MS || (3 * 60 * 60 * 1000));
-    const dueFirst  = !cfg._sentToday && time >= cfg.time; // первый пинг после заданного времени
-    const dueRepeat =  cfg._sentToday && (!cfg._lastMs || Date.now() - cfg._lastMs >= THREE_HOURS_MS);
+    const dueFirst  = !cfg._sentToday && time >= cfg.time;
+    const dueRepeat =  cfg._sentToday && (!cfg._lastMs || Date.now() - cfg._lastMs >= REPEAT_MS);
 
     if (dueFirst || dueRepeat) {
-      await sendReminder(tgId, 'Пора принять препарат 💊\nЕсли уже выпили — отметьте приём в трекере.');
+      await sendReminder(
+        tgId,
+        'Пора принять препарат 💊\nЕсли уже выпили — отметьте приём в трекере.'
+      );
       cfg._sentToday = true;
-      cfg._lastMs = Date.now();
+      cfg._lastMs    = Date.now();
     }
   }
 }
 
-// Проверяем раз в минуту
-setInterval(() => { checkReminders().catch(e => console.error('reminders tick error', e)); }, 60 * 1000);
+// тикер для “мало капсул”: строго 1 раз в день в своё время
+async function tickStockReminders() {
+  for (const [tgId, cfg] of Object.entries(stockCfg)) {
+    if (!cfg?.enabled || !cfg.time) continue;
+
+    const tz = await getUserTzByTg(tgId);
+    const { date, time } = nowParts(tz);
+
+    if (cfg._date !== date) { cfg._date = date; cfg._sent = false; }
+
+    if (!cfg._sent && time >= cfg.time) {
+      const left = await getCapsulesLeft(tgId);
+      if (left != null && left <= (cfg.threshold ?? 10)) {
+        await sendReminder(tgId, `⚠️ Осталось ${left} капсул. Пора закупить лекарство.`);
+      }
+      cfg._sent = true;
+    }
+  }
+}
+
+// общий тикер раз в минуту
+setInterval(() => {
+  Promise.all([ tickDoseReminders(), tickStockReminders() ])
+    .catch(e => console.error('reminders tick error', e));
+}, 60 * 1000);
+
 
 // ==== SET TELEGRAM WEBHOOK ON BOOT ====
 if (!isPolling) {
