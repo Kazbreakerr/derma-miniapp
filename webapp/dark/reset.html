@@ -267,7 +267,7 @@ html[data-theme="light"] .cancel{
 <body>
   <div class="wrap">
     <div class="topbar">
-      <h1 style="margin:0">Roaccutane Tracker<span data-pill-spot></span></h1>
+      <h1 style="margin:0">Roaccutane Tracker<span data-pill-spot></span></h1><span data-stock-spot></span>
       <button id="themeToggle" class="theme-toggle" role="switch" aria-checked="true" aria-label="Переключить тему">
         <span class="scene light">
           <svg viewBox="0 0 260 88" preserveAspectRatio="none" xmlns="http://www.w3.org/2000/svg">
@@ -451,5 +451,83 @@ try {
       }
     }
   </script>
+  <script>
+(function(){
+  const K_LEFT='rt_capsules_left', K_THRESH='rt_capsules_threshold', K_ON='rt_capsules_alert_enabled';
+  const num=(k,d=0)=>{const v=parseInt(localStorage.getItem(k)||d,10);return Number.isFinite(v)?v:0;}
+  const on =()=> (localStorage.getItem(K_ON)||'0')==='1';
+
+  function text(){
+    if(!on()) return null;
+    const left=num(K_LEFT,0), thr=num(K_THRESH,0);
+    if(left>0 && thr>0 && left<=thr) return `осталось ${left} капсул`;
+    return null;
+  }
+  function render(){
+    document.querySelectorAll('[data-stock-spot]').forEach(host=>{
+      let el=host.querySelector('.pill-alert--stock');
+      const t=text();
+      if(!t){ el?.remove(); return; }
+      if(!el){ el=document.createElement('span'); el.className='pill-alert pill-alert--stock'; host.appendChild(el); }
+      el.textContent=t;
+    });
+  }
+  window.addEventListener('storage', e=>{
+    if([K_LEFT,K_THRESH,K_ON,'rt_capsules_left_bump','rt_capsules_threshold_bump','rt_capsules_alert_bump'].includes(e.key)) render();
+  });
+  document.addEventListener('visibilitychange', ()=>{ if(!document.hidden) render(); });
+  render();
+  window.renderStockAlert=render;
+})();
+</script>
+
+<style>
+.pill-alert--stock{
+  display:inline-flex;
+  align-items:center;
+  justify-content:center;
+  white-space:nowrap;
+  padding:3px 8px;
+  border-radius:999px;
+  font-weight:700;
+  font-size:14px;
+  letter-spacing:.02em;
+  line-height:1;
+  background:linear-gradient(135deg,#22e6a1,#10b981);
+  color:#061a12;
+  border:1px solid rgba(255,255,255,.15);
+
+  /* базовое свечение */
+  box-shadow:
+    0 0 6px rgba(16,185,129,.55),
+    0 0 14px rgba(16,185,129,.35),
+    inset 0 1px 2px rgba(255,255,255,.2);
+
+  transform-origin:center;
+  will-change:transform,box-shadow;
+  animation:stock-breathe 3s ease-in-out infinite;
+}
+
+@keyframes stock-breathe{
+  0%,100%{
+    transform:scale(1);
+    box-shadow:
+      0 0 6px rgba(16,185,129,.55),
+      0 0 14px rgba(16,185,129,.35),
+      inset 0 1px 2px rgba(255,255,255,.2);
+  }
+  50%{
+    transform:scale(0.985);
+    box-shadow:
+      0 0 10px rgba(16,185,129,.75),
+      0 0 22px rgba(16,185,129,.45),
+      inset 0 1px 2px rgba(255,255,255,.25);
+  }
+}
+
+@media (prefers-reduced-motion:reduce){
+  .pill-alert--stock{ animation:none }
+}
+</style>
 </body>
 </html>

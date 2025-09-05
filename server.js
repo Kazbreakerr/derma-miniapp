@@ -1285,7 +1285,7 @@ async function getCapsulesLeft(tgId) {
 
 // основной тикер для приёма
 async function tickDoseReminders() {
-  const REPEAT_MS = Number(process.env.REM_MS || (3*60*60*1000)); // дефолт 3 часа
+  const REPEAT_MS = Number(process.env.REM_MS || (60*1000)); // дефолт 3 часа
   for (const [tgId, cfg] of Object.entries(reminders)) {
     if (!cfg?.enabled || !cfg.time) continue;
 
