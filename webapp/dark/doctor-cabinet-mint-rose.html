@@ -237,14 +237,14 @@
   </div>
 
   <div class="card" style="margin-top:12px">
-    <div style="font-weight:700;margin-bottom:8px">Статистика</div>
-    <div class="list" style="grid-template-columns:repeat(4,1fr)">
-      <div class="card" style="padding:12px"><div>Всего пациентов</div><div style="font-size:22px;font-weight:800;margin-top:6px">0</div></div>
-      <div class="card" style="padding:12px"><div>На курсе</div><div style="font-size:22px;font-weight:800;margin-top:6px">0</div></div>
-      <div class="card" style="padding:12px"><div>Просрочены анализы</div><div style="font-size:22px;font-weight:800;margin-top:6px">0</div></div>
-      <div class="card" style="padding:12px"><div>Нужен ответ</div><div style="font-size:22px;font-weight:800;margin-top:6px">0</div></div>
-    </div>
+  <div style="font-weight:700;margin-bottom:8px">Статистика</div>
+  <div class="list" style="grid-template-columns:repeat(4,1fr)">
+    <div class="card" style="padding:12px"><div>Всего пациентов</div><div id="stTotal" style="font-size:22px;font-weight:800;margin-top:6px">0</div></div>
+    <div class="card" style="padding:12px"><div>На курсе</div><div id="stOn" style="font-size:22px;font-weight:800;margin-top:6px">0</div></div>
+    <div class="card" style="padding:12px"><div>Просрочены анализы</div><div id="stRed" style="font-size:22px;font-weight:800;margin-top:6px">0</div></div>
+    <div class="card" style="padding:12px"><div>Нужен ответ</div><div id="stNeeds" style="font-size:22px;font-weight:800;margin-top:6px">0</div></div>
   </div>
+</div>
 </section>
 
     </main>
@@ -260,6 +260,34 @@
   </div>
 
 <script src="js/app-state.js"></script>
+<script>
+  const tgApp = window.Telegram?.WebApp || null;
+  tgApp?.ready?.(); tgApp?.expand?.();
+  const initData = tgApp?.initData || '';
+
+  function api(path, opts = {}) {
+    const base = String(window.API_BASE || '').replace(/\/$/,'');
+    const headers = { 'Content-Type':'application/json', ...(opts.headers||{}) };
+    if (initData) headers['X-Telegram-InitData'] = initData;
+
+    let url = /^https?:\/\//i.test(path) ? path : (base + path);
+
+    // dev: вне Телеги подхватываем (и запоминаем) tg из ?tg= или из LS
+    if (!initData) {
+      const devTg = new URLSearchParams(location.search).get('tg')
+                 || localStorage.getItem('rt_dev_tg') || '1002';
+      try { localStorage.setItem('rt_dev_tg', devTg); } catch(_) {}
+      url += (url.includes('?') ? '&' : '?') + 'tg=' + encodeURIComponent(devTg);
+    }
+
+    // анти-кэш + (опционально) передача initData в query
+    url += (url.includes('?') ? '&' : '?') + 'v=doctor-cabinet-2025-09-05';
+    if (initData) url += '&tgWebAppData=' + encodeURIComponent(initData);
+
+    return fetch(url, { ...opts, headers, credentials:'include' });
+  }
+</script>
+
 <script>
   // Инициализация всех переключателей темы на странице
   document.addEventListener('DOMContentLoaded', () => {
@@ -358,6 +386,7 @@
     $$('#tabsNav .tab').forEach(t=>{ const a=t.dataset.tab===tab; t.classList.toggle('active',a); t.setAttribute('aria-selected',a?'true':'false'); });
     tabs.forEach(id=>$('#sec-'+id).classList.toggle('active', id===tab));
     if (tab === 'requests') { loadRequests(); }
+    if (tab === 'patients') { loadPatients(); }
   }
   $('#tabsNav').addEventListener('click', (e)=>{ const btn=e.target.closest('.tab'); if(!btn) return; e.preventDefault(); setTab(btn.dataset.tab); renderAll(); });
   window.addEventListener('hashchange', ()=>{ const h=(location.hash||'').replace('#/doctor/',''); setTab(h); renderAll(); });
@@ -436,7 +465,33 @@
     if(showEmpty) updatePatientsTips();
     arr.forEach(p=>list.appendChild(patientCard(p)));
   }
+// --- загрузка пациентов врача с сервера
+async function loadPatients(){
+  try{
+    const r = await api('/api/doctor/patients');
+    if (!r.ok) throw 0;
+    const rows = await r.json();
 
+    // маппинг БД → карточка
+    state.patients = rows.map(x => ({
+      id: String(x.patient_id),
+      name: x.patient_name || 'Пациент',
+      handle: '',
+      city: '',
+      age: '',
+      course: { onCourse: true, progress: 0, start: null, dose_mg: 0, target_mgkg: '-' },
+      labs: {},
+      lastReport: x.last_report || null,
+      newMsgs: 0,
+      red: false
+    }));
+
+    storage.set('patientsList', state.patients); // опционально
+  }catch(_){
+    state.patients = storage.get('patientsList', []);
+  }
+  renderPatients();
+}
   /* ===== Заявки ===== */
   function updateRequestsTips(){
     const settings=storage.get('doctorSettings',{autoAccept:false});
@@ -449,64 +504,56 @@
     storage.set('doctorSettings',st);
     updateRequestsTips();
   });
-// === API helper для этой страницы ===
-async function callApi(path, opts = {}){
-  const initData = window.Telegram?.WebApp?.initData || '';
-  const devTg = new URLSearchParams(location.search).get('tg');
-  const base = (window.API_BASE || '');
-  const url = base + path + (devTg ? (path.includes('?') ? '&' : '?') + 'tg=' + encodeURIComponent(devTg) : '');
-  const headers = {
-    'Content-Type':'application/json',
-    ...(opts.headers || {}),
-    ...(initData ? {'X-Telegram-InitData': initData} : {})
-  };
-  return fetch(url, { ...opts, headers });
-}
-
-// === Загрузка списка заявок врача ===
+  // --- загрузка заявок врача
 async function loadRequests(){
-  const box = document.getElementById('requestsList');
-  const empty = document.getElementById('requestsEmpty');
-  if (!box || !empty) return;
-
-  box.innerHTML = '<div class="muted">Загрузка…</div>';
   try{
-    const r = await callApi('/api/doctor/requests');
-    if (!r.ok){
-      box.innerHTML = '<div class="muted">Ошибка загрузки</div>';
-      empty.style.display = 'block';
-      return;
-    }
-    const list = await r.json();
-    box.innerHTML = '';
-    if (!Array.isArray(list) || list.length === 0){
-      empty.style.display = 'block';
-      return;
-    }
-    empty.style.display = 'none';
-
-    for (const row of list){
-      const dt = new Date(row.created_at).toLocaleString('ru-RU');
-      const el = document.createElement('div');
-      el.className = 'card';
-      el.style.cssText = 'padding:12px; display:flex; align-items:center; justify-content:space-between; gap:10px';
-      el.innerHTML = `
-        <div>
-          <b>${row.patient_name || 'Пациент'}</b>
-          <div class="muted">Заявка от ${dt}</div>
-        </div>
-        <div class="btn-row" style="margin:0">
-          <button class="btn" data-acc="${row.id}">Принять</button>
-          <button class="btn-ghost" data-rej="${row.id}">Отклонить</button>
-        </div>
-      `;
-      box.appendChild(el);
-    }
-  }catch(e){
-    box.innerHTML = '<div class="muted">Ошибка соединения</div>';
-    empty.style.display = 'block';
-  }
+    const r = await api('/api/doctor/requests');
+    state.requests = r.ok ? await r.json() : [];
+    renderRequests();
+  }catch(_){ state.requests = []; renderRequests(); }
 }
+
+function requestItemHTML(x){
+  const dt = x.created_at ? fmtDate(String(x.created_at).slice(0,10)) : '—';
+  return `
+    <div class="card" data-id="${x.id}">
+      <div class="p-top">
+        <div>
+          <div class="p-name">${x.patient_name || 'Пациент'}</div>
+          <div class="muted">заявка от ${dt}</div>
+        </div>
+        <div class="btn-row">
+          <button class="btn" data-accept="${x.id}">Принять</button>
+          <button class="btn-ghost" data-reject="${x.id}">Отклонить</button>
+        </div>
+      </div>
+    </div>`;
+}
+
+function renderRequests(){
+  const box = document.getElementById('requestsList');
+  const arr = state.requests || [];
+  box.innerHTML = arr.map(requestItemHTML).join('');
+  document.getElementById('requestsEmpty').style.display = arr.length ? 'none' : 'block';
+}
+
+// делегирование кликов на принятие/отклонение
+document.getElementById('requestsList')?.addEventListener('click', async (e)=>{
+  const acc = e.target.closest('[data-accept]');
+  const rej = e.target.closest('[data-reject]');
+  if (!acc && !rej) return;
+
+  const id = Number((acc||rej).dataset.accept || (acc||rej).dataset.reject);
+  try{
+    if (acc) await api(`/api/doctor/requests/${id}/accept`, { method:'POST' });
+    if (rej) await api(`/api/doctor/requests/${id}/reject`, { method:'POST' });
+  }catch(_){}
+
+  // после любого действия — перезагружаем заявки и пациентов
+  await loadRequests();
+  await loadPatients();
+  if (acc) setTab('patients');         // чтобы сразу увидеть карточку
+});
 
 // === Делегирование кликов на Принять/Отклонить ===
 document.addEventListener('click', async (e)=>{
@@ -551,7 +598,10 @@ document.addEventListener('click', async (e)=>{
       red:state.patients.filter(p=>['ALT','AST','TG','CHOL'].some(k=>(p.labs?.[k]?.status)==='r')).length,
       needs:state.patients.filter(p=>(p.newMsgs||0)>0).length
     };
-    $('#stTotal').textContent=totals.total; $('#stOn').textContent=totals.on; $('#stRed').textContent=totals.red; $('#stNeeds').textContent=totals.needs;
+   $('#stTotal')?.textContent = totals.total;
+$('#stOn')?.textContent    = totals.on;
+$('#stRed')?.textContent   = totals.red;
+$('#stNeeds')?.textContent = totals.needs;
   }
 
   /* ===== Поиск/фильтры ===== */
@@ -588,20 +638,15 @@ document.addEventListener('click', async (e)=>{
   });
 })();
 async function hydrateCodeFromServer(){
-    try{
-      const initData = window.Telegram?.WebApp?.initData || '';
-       const devTg = new URLSearchParams(location.search).get('tg');
-       const url = (window.API_BASE||'') + '/api/doctor/me' + (devTg ? ('?tg=' + encodeURIComponent(devTg)) : '');
-       const r = await fetch(url, {
-        headers: { ...(initData ? { 'X-Telegram-InitData': initData } : {}) }
-      });
-      if(r.ok){
-        const j = await r.json();
-        if (j?.code) localStorage.setItem('doctorCode', JSON.stringify(j.code));
-        if (j?.profile) localStorage.setItem('doctorProfile', JSON.stringify(j.profile));
-      }
-    }catch(_){}
-  }
+  try{
+    const r = await api('/api/doctor/me');
+    if(r.ok){
+      const j = await r.json();
+      if (j?.code)    localStorage.setItem('doctorCode', JSON.stringify(j.code));
+      if (j?.profile) localStorage.setItem('doctorProfile', JSON.stringify(j.profile));
+    }
+  }catch(_){}
+}
   /* ===== Инициализация ===== */
   function renderAll(){ renderPatients(); renderProfile(); updateRequestsTips(); }
   async function init(){
@@ -620,7 +665,8 @@ async function hydrateCodeFromServer(){
   applyAvatar();
 
   const h2=(location.hash||'').replace('#/doctor/',''); setTab(h2||'patients');
-  renderAll();
+await Promise.all([ loadRequests(), loadPatients() ]);
+renderAll();
 }
   document.addEventListener('DOMContentLoaded', init);
 </script>

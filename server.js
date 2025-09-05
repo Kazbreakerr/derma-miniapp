@@ -693,6 +693,32 @@ app.get('/api/doctor/validate', tgAuth, async (req, res) => {
     res.status(500).json({ error: e.message });
   }
 });
+// Список прикреплённых к врачу пациентов
+app.get('/api/doctor/patients', tgAuth, async (req, res) => {
+  try {
+    await pool.query('SET search_path = derma, public');
+    const did = await userIdByTg(req.tg || req.tgUser?.id);
+
+    // проверим, что это врач
+    const u = await pool.query('SELECT is_doctor FROM derma.users WHERE id=$1', [did]);
+    if (!u.rowCount || !u.rows[0].is_doctor) return res.status(403).json({ error:'not a doctor' });
+
+    const { rows } = await pool.query(`
+      SELECT p.id   AS patient_id,
+             COALESCE(p.full_name,'Пациент') AS patient_name,
+             p.weight_kg, p.sex,
+             (SELECT MAX(date) FROM derma.dose_logs d WHERE d.patient_id=p.id) AS last_report
+        FROM derma.patient_doctors pd
+        JOIN derma.users p ON p.id = pd.patient_id
+       WHERE pd.doctor_id=$1 AND pd.unbound_at IS NULL
+       ORDER BY patient_name NULLS LAST, p.id`, [did]);
+
+    res.json(rows);
+  } catch (e) {
+    console.error('DOCTOR PATIENTS ERROR:', e);
+    res.status(500).json({ error: e.message });
+  }
+});
 
 app.post('/api/doctor/attach', tgAuth, async (req, res) => {
   try {
