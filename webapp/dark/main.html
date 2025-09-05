@@ -1392,6 +1392,15 @@ function wipeLocalDiary(reason = 'manual-reset'){
     'derma_today_mg'
   ];
   try { KEYS.forEach(k => localStorage.removeItem(k)); } catch(_) {}
+   // --- НОВОЕ: обнуляем «остаток капсул» и дергаем рендер ---
+  try {
+    localStorage.removeItem('rt_capsules_left');
+    // пинок для других вкладок/страниц
+    localStorage.setItem('rt_capsules_left_bump', String(Date.now()));
+    localStorage.removeItem('rt_capsules_left_bump');
+    // локальная перерисовка бейджа
+    if (window.renderStockAlert) window.renderStockAlert();
+  } catch(_) {}
 
   // ОБЯЗАТЕЛЬНО: чистим оперативный кэш главной
   try { window.DOSES = []; } catch(_) {}
@@ -1985,6 +1994,19 @@ if(use){
         PLAN      = planR.ok ? await planR.json() : null;
         DOSES     = doseR.ok ? (await doseR.json()) : [];
         DOSES = DOSES.map(d => ({ ...d, date: normalizeDate(d.date) }));
+        // в конце try-блока loadAll после присваиваний ME/PLAN/DOSES/PROGRESS
+try {
+  const diary = JSON.parse(localStorage.getItem('rt.diary.v1')||'{}');
+  const diaryEmpty = !diary || !Object.keys(diary).length;
+  const dosesEmpty = Array.isArray(DOSES) && DOSES.length === 0;
+  if (diaryEmpty && dosesEmpty) {
+    // сервер пуст, локалка пуста — чистим и «капсулы»
+    localStorage.removeItem('rt_capsules_left');
+    localStorage.setItem('rt_capsules_left_bump', String(Date.now()));
+    localStorage.removeItem('rt_capsules_left_bump');
+    if (window.renderStockAlert) window.renderStockAlert();
+  }
+} catch(_) {}
 // Важно: если сервер/офлайн вернул пусто — ничего не чистим.
 // Локальные данные (rt.diary.v1/v2) считаем источником правды.
         PROGRESS  = prR.ok   ? await prR.json()   : null;

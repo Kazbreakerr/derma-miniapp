@@ -1285,7 +1285,7 @@ async function getCapsulesLeft(tgId) {
 
 // основной тикер для приёма
 async function tickDoseReminders() {
-  const REPEAT_MS = Number(process.env.REM_MS || (60*1000)); // дефолт 3 часа
+  const REPEAT_MS = Number(process.env.REM_MS || (3*60*60*1000)); // дефолт 3 часа
   for (const [tgId, cfg] of Object.entries(reminders)) {
     if (!cfg?.enabled || !cfg.time) continue;
 
@@ -1336,8 +1336,7 @@ async function tickStockReminders() {
 setInterval(() => {
   Promise.all([ tickDoseReminders(), tickStockReminders() ])
     .catch(e => console.error('reminders tick error', e));
-}, 60 * 1000);
-
+}, 3 * 60 * 60 * 1000);
 
 // ==== SET TELEGRAM WEBHOOK ON BOOT ====
 if (!isPolling) {

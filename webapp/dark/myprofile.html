@@ -1187,13 +1187,20 @@ function setDoctorReq(obj){ try{ if(obj) localStorage.setItem(DOCTOR_REQ_KEY, JS
     if(labLine)  labLine.hidden  = false;
     if(doctorProfileBtn) doctorProfileBtn.hidden = !d.url; // как и раньше
 
-    fillCard(d);
-    // кнопка «Открепить» работает как раньше
-    detachBtn?.removeAttribute('disabled');
-    detachBtn?.setAttribute('title','Открепить');
-
-    return;
+     if (detachBtn){
+    detachBtn.disabled = false;
+    detachBtn.title = 'Открепить';
+    detachBtn.textContent = 'Открепить';
+    detachBtn.onclick = async () => {
+      await api('/api/doctor/attached', { method:'DELETE' });
+      setDoctor(null);      // убираем из localStorage
+      applyDoctor();        // перерисовываем UI
+    };
   }
+
+  return;
+}
+
 
   // 2) Есть «pending» заявка
   if (rq && rq.status === 'pending'){
