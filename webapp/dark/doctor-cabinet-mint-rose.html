@@ -55,6 +55,19 @@
     .select{padding:8px 10px;border-radius:999px;border:1px solid var(--stroke);background:#F2F4F7;color:var(--text)}
     .card{background:var(--card);border:1px solid var(--stroke);border-radius:var(--r);padding:14px;box-shadow: 8px 8px 24px rgba(15,23,42,.08), -8px -8px 24px rgba(255,255,255,.70)}
     .list{display:grid;gap:10px}
+    /* Статистика в профиле — адаптивные колонки */
+#sec-profile .list{
+  grid-template-columns: repeat(4, minmax(0,1fr)) !important;
+}
+@media (max-width: 900px){
+  #sec-profile .list{ grid-template-columns: repeat(2, minmax(0,1fr)) !important; }
+}
+@media (max-width: 480px){
+  #sec-profile .list{ grid-template-columns: 1fr 1fr !important; }
+}
+
+/* чтобы дети флекс/грид-рядов не «выпирали» */
+.row > *{ min-width:0; }
     .glass{background:var(--grad2);border:1px solid rgba(255,255,255,.12);backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px)}
     .empty-title{font-weight:800}.muted{color:var(--muted);font-size:13px}
     .p-card{position:relative}
@@ -270,11 +283,16 @@
 
 @media (max-width: 540px){
   /* делаем именно для пары блоков в Профиле */
-  #sec-profile .cta-split--doc{
-    grid-template-columns: 1fr 1fr !important;
-    gap: 8px !important;
-    margin-top: 8px !important;
-  }
+.cta-split--doc{
+  display:grid;
+  grid-template-columns: 1fr 1fr;
+  gap:12px;
+  align-items:stretch;
+}
+.cta-split--doc > *{ min-width:0; }
+@media (max-width:680px){
+  .cta-split--doc{ grid-template-columns:1fr; }
+}
   #sec-profile .cta-split--doc > .card{
     height: var(--doc-mobile-h) !important;   /* одинаковая высота */
     min-height: unset !important;
@@ -826,8 +844,26 @@
     // ===== Аватар
     function parseHandle(tg){ if(!tg) return null; var m=String(tg).trim().match(/@?([a-zA-Z0-9_]+)/); return m?m[1]:null; }
     function initialsFrom(name){ name=String(name||'').trim(); var p=name.split(/\s+/); var a=(p[0]||'').charAt(0), b=(p[1]||'').charAt(0); var s=(a+b||'JD').toUpperCase(); return s; }
-    function setSmallAvatar(url, init){ var box=q('#smallAva'); if(!box) return; if(url){ box.innerHTML='<img alt="ava" referrerpolicy="no-referrer">'; box.querySelector('img').src=url; } else { box.textContent=init||'JD'; } }
-    function setBigAvatar(url, init){ var img=q('#bigAvaImg'), txt=q('#bigAvaTxt'); if(!img||!txt) return; if(url){ img.referrerPolicy="no-referrer"; img.src=url; img.style.display='block'; txt.style.display='none'; } else { img.style.display='none'; txt.textContent=init||'JD'; txt.style.display='block'; } }
+function setSmallAvatar(url, init){
+  var box = q('#smallAva'); if (!box) return;
+  if (url){
+    var img = box.querySelector('img');
+    if (!img){
+      img = document.createElement('img');
+      img.alt = '';
+      img.referrerPolicy = 'no-referrer';
+      img.style.width = '100%';
+      img.style.height = '100%';
+      img.style.objectFit = 'cover';
+      img.style.display = 'block';
+      box.innerHTML = '';
+      box.appendChild(img);
+    }
+    img.src = url;
+  } else {
+    box.innerHTML = (init || 'JD');
+  }
+}    function setBigAvatar(url, init){ var img=q('#bigAvaImg'), txt=q('#bigAvaTxt'); if(!img||!txt) return; if(url){ img.referrerPolicy="no-referrer"; img.src=url; img.style.display='block'; txt.style.display='none'; } else { img.style.display='none'; txt.textContent=init||'JD'; txt.style.display='block'; } }
     function setAvatarUrl(url){ if(!url) return; try{ localStorage.setItem('doctorAvatarUrl', url);}catch(e){} applyAvatar(); }
     function tryTGAvatar(){
       try{

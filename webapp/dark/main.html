@@ -2177,54 +2177,95 @@ try {
     } catch(_){}
   } catch(_) {}
 
-  // если сервер принял — мягко синхронизируемся
-  if (serverOk) {
-    try { await loadAll(); } catch(_){}
-  }
-});
+ // если сервер принял — мягко синхронизируемся
+if (serverOk) {
+  try { await loadAll(); } catch(_) {}
+}
 
+/* ==== Telegram: имя и аватар ==== */
+(async function hydrateTgUser(){
+  const tg = window.Telegram?.WebApp || null;
 
-    (async function hydrateTgUser(){
-  const tg  = window.Telegram?.WebApp;
   const nameEl = document.querySelector('#tgName, #topName, #fullName, [data-tg-name]');
   const avaEl  = document.querySelector('#ava, #topAva, [data-tg-ava]');
 
+  const initials = (name='') =>
+    name.trim().split(/\s+/).map(s=>s[0]||'').slice(0,2).join('').toUpperCase() || 'U';
+
   function setInitials(target, name){
-    const i = (name||'').trim().split(/\s+/).map(s=>s[0]||'').slice(0,2).join('').toUpperCase() || 'U';
-    if (target) target.textContent = i;
+    if (!target) return;
+    target.textContent = initials(name);
   }
+
   function putPhoto(target, url, fallbackName){
-    if (!target) return setInitials(target, fallbackName);
-    const img = new Image(); img.alt='';
-    img.src = url; img.onload = ()=>{ target.innerHTML=''; img.style.width='100%'; img.style.height='100%'; img.style.objectFit='cover'; target.appendChild(img); };
-    img.onerror = ()=> setInitials(target, fallbackName);
+    if (!target || !url) return setInitials(target, fallbackName);
+    const img = new Image();
+    img.alt = '';
+    img.referrerPolicy = 'no-referrer';
+    img.onload = () => {
+      target.innerHTML = '';
+      Object.assign(img.style, { width:'100%', height:'100%', objectFit:'cover', display:'block' });
+      target.appendChild(img);
+    };
+    img.onerror = () => setInitials(target, fallbackName);
+    img.src = url;
   }
 
-  let name = '', photo = '';
+  // 1) начинаем с кеша — меньше мерцаний
+  let name  = localStorage.getItem('rt_usr_name')   || '';
+  let photo = localStorage.getItem('rt_usr_avatar') || '';
+  let handle = '';
+
+  // 2) Telegram initData (если есть)
   const u = tg?.initDataUnsafe?.user;
-  if (u) { name = [u.first_name,u.last_name].filter(Boolean).join(' '); photo = u.photo_url||''; }
-  if (!name) {
-    const qs = new URLSearchParams(location.search);
-    name  = qs.get('tg_name')  || '';
-    photo = qs.get('tg_photo') || '';
-  }
-  if (!name) {
-    try { const r = await api('/api/me'); if (r.ok) { const me = await r.json(); name = me.full_name || name; } } catch(_){}
+  if (u){
+    const n = [u.first_name, u.last_name].filter(Boolean).join(' ');
+    if (n) name = n;
+    if (u.photo_url) photo = u.photo_url;
+    handle = u.username || '';
   }
 
+  // 3) Параметры URL (tg_name/tg_photo/tg_username)
+  const qs = new URLSearchParams(location.search);
+  if (!name)  name  = qs.get('tg_name')  || name;
+  if (!photo) photo = qs.get('tg_photo') || photo;
+  if (!handle) handle = qs.get('tg_username') || handle;
+
+  // 4) Фоллбек-аватар по username через unavatar
+  if (!photo && handle) {
+    photo = `https://unavatar.io/telegram/${encodeURIComponent(handle)}`;
+  }
+
+  // 5) /api/me как последний фоллбек для имени
+  if (!name) {
+    try {
+      const r = await api('/api/me');
+      if (r.ok) { const me = await r.json(); name = me.full_name || name; }
+    } catch(_) {}
+  }
+
+  // 6) Проставляем в UI
   if (nameEl) nameEl.textContent = name || '—';
   if (photo) putPhoto(avaEl, photo, name); else setInitials(avaEl, name);
+
+  // 7) Кешируем для других страниц
+  try { localStorage.setItem('rt_usr_name',   name  || ''); } catch(_){}
+  try { localStorage.setItem('rt_usr_avatar', photo || ''); } catch(_){}
 })();
 
+/* ==== остальной инициализационный код ==== */
+document.getElementById('resetBtn').addEventListener('click', ()=>{
+  location.href = './reset.html' + (location.search || '');
+});
 
-    document.getElementById('resetBtn').addEventListener('click', ()=>{
-      location.href = './reset.html' + (location.search||'');
-    });
-    loadAll().then(()=>{ try{ window.renderReminder && window.renderReminder(); }catch(_){ } });
-    document.querySelectorAll('#doseSeg button').forEach(b=> b.addEventListener('click', ()=> setDoseMode(b.dataset.mode) ));
-    document.querySelector('#doseSeg button[data-mode="'+(DOSE_MODE||'opt')+'"]')?.click();
-  
-// === Reminder block logic ===
+loadAll().then(()=>{ try{ window.renderReminder && window.renderReminder(); }catch(_){ } });
+
+document.querySelectorAll('#doseSeg button')
+  .forEach(b => b.addEventListener('click', ()=> setDoseMode(b.dataset.mode)));
+
+document.querySelector('#doseSeg button[data-mode="'+(DOSE_MODE||'opt')+'"]')?.click();
+
+/* === Reminder block logic === */
 (function(){
   const todayIsoFn = (typeof window.todayISO === 'function')
     ? window.todayISO
@@ -2244,6 +2285,8 @@ try {
     if (front) front.innerHTML = '<b>Сегодня вы ещё не приняли ' + drug + '</b>';
     if (back)  back.textContent = 'Молодец! Сегодня вы приняли ' + drug;
   }
+})();
+
 
   // локальное состояние напоминания
   const state = {
