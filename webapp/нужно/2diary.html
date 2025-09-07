@@ -4,7 +4,8 @@
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
 <meta name="view-transition" content="same-origin">
-<title>Дневник — запись дня</title><script>
+<title>Дневник — запись дня</title>
+<script>
 (function(){
   try{
     const xy = sessionStorage.getItem('portalXY');
@@ -24,7 +25,7 @@
 })();
 </script>
 
-<script src="../js/app-state.js"></script>  
+<script src="js/app-state.js"></script>
 <script>
   // Инициализация всех переключателей темы на странице
   document.addEventListener('DOMContentLoaded', () => {
@@ -49,9 +50,6 @@
   });
 </script>
 
-
-
-
 <script>
   try{
     const s = JSON.parse(localStorage.getItem('rt.settings')||'{}');
@@ -59,8 +57,8 @@
   }catch(e){ document.documentElement.dataset.theme = 'dark'; }
 </script>
 
- 
-<link rel="stylesheet" href="../css/skeleton.css">
+<link rel="stylesheet" href="css/ui-tokens.css">
+<link rel="stylesheet" href="css/skeleton.css">
 
 
 <style>
@@ -894,7 +892,47 @@ header{
   window.renderPillAlert = render; // ручной перерендер на всякий
 })();
 </script>
+  /* Цвета классического градиента */
+  :root{
+    --classic-mint:   #21dfc2;
+    --classic-purple: #7b5cf5;
+    --classic-red:    #ff6371;
+    --classic-deepA:  #0a0f18;  /* тёмная основа */
+    --classic-deepB:  #0b0f1a;
+  }
 
+  /* Базовый тёмный слой */
+  body{
+    background: var(--classic-deepB);
+    position: relative;
+    transition: background .45s ease, background-color .45s ease;
+  }
+
+  /* Огромные радиальные пятна + линейный фон — без стыков и швов */
+  body::before{
+    content:"";
+    position: fixed;
+    inset: -28vmax;                 /* фон больше экрана, чтобы края не были видны */
+    z-index: -1;
+    pointer-events: none;
+    background:
+      /* мята — справа сверху */
+      radial-gradient(120vmax 80vmax at 85% -12%,
+        color-mix(in oklab, var(--classic-mint), transparent 84%), transparent 62%),
+
+      /* фиолет — слева сверху */
+      radial-gradient(110vmax 70vmax at -12% -18%,
+        color-mix(in oklab, var(--classic-purple), transparent 86%), transparent 64%),
+
+      /* красный — снизу по центру */
+      radial-gradient(90vmax 60vmax at 50% 118%,
+        color-mix(in oklab, var(--classic-red), transparent 88%), transparent 66%),
+
+      /* глубокая подложка */
+      linear-gradient(180deg, var(--classic-deepA), var(--classic-deepB));
+    filter: saturate(1.03) contrast(1.02);
+  }
+</style>
 
 
 <!-- BOOTSTRAP: стартуем с сохранённого самочувствия для выбранной даты -->
@@ -905,7 +943,8 @@ header{
       const qs = new URLSearchParams(location.search);
       const hs = new URLSearchParams(location.hash && location.hash.startsWith('#') ? location.hash.slice(1) : '');
      const fromQuery = qs.get('date') || hs.get('date')
-                 || sessionStorage.getItem('rt.openDate'); // БЕЗ last_date
+                 || sessionStorage.getItem('rt.openDate')
+                 || localStorage.getItem('rt.diary.last_date');
       const pad=n=>String(n).padStart(2,'0');
       const today = (()=>{ const d=new Date(); return `${d.getFullYear()}-${pad(d.getMonth()+1)}-${pad(d.getDate())}`; })();
       const x = fromQuery || today;
@@ -967,10 +1006,12 @@ header{
   </button>
 </div>
     <div class="mood">
-      <div class="mood-stage">
+        <div class="mood-stage">
   <!-- Капсула — только canvas -->
-  <canvas id="pillCanvas"></canvas>
+<canvas id="pillCanvas"></canvas>
 </div>
+
+      </div>
       <div class="mood-ctrl">
         <div class="state-label" id="stateLabel">Нейтрально</div>
         <div class="bar" id="moodBar" role="slider" aria-valuemin="-100" aria-valuemax="100" aria-valuenow="0" aria-label="Самочувствие">
@@ -1053,8 +1094,6 @@ header{
   <input type="range" id="compareRange" min="0" max="100" step="0.5" value="50" aria-label="Разделитель сравнения">
 </div>
 
-  </section>
-
   <!-- Notes -->
   <section class="card">
     <h2>Заметка дня</h2>
@@ -1064,9 +1103,7 @@ header{
 
 </div>
 </main>
-<script>
-  window.debounce = window.debounce || ((fn,ms)=>{let t;return(...a)=>{clearTimeout(t);t=setTimeout(()=>fn.apply(null,a),ms)}});
-</script>
+
 <script>
 /* ===== Storage ===== */
 const KEY = 'rt.diary.v2';
@@ -1078,15 +1115,32 @@ function getStartISO(){
   const qs = new URLSearchParams(location.search);
   const hs = new URLSearchParams(location.hash.startsWith('#') ? location.hash.slice(1) : location.hash);
   const fromQuery =
-  qs.get('date') ||
-  hs.get('date') ||
-  sessionStorage.getItem('rt.openDate'); // БЕЗ last_date    // ← добавили фоллбэк
+    qs.get('date') ||
+    hs.get('date') ||
+    sessionStorage.getItem('rt.openDate') ||
+    localStorage.getItem('rt.diary.last_date');       // ← добавили фоллбэк
 
   const iso = fromQuery || todayISO();
   return /^\d{4}-\d{2}-\d{2}$/.test(iso) ? iso : todayISO();
 }
-function loadDB(){ try{const v=JSON.parse(localStorage.getItem(KEY)); if(v&&v.version===2) return v;}catch(e){} const fresh={version:2,baseline:null,entries:{}}; localStorage.setItem(KEY,JSON.stringify(fresh)); return fresh; }
-function saveDB(db){
+function loadDB(){
+  try{
+    const v = JSON.parse(localStorage.getItem(KEY));
+    if (v && v.version === 2) return v;
+  }catch(_){}
+  const fresh = {version:2, baseline:null, entries:{}};
+  try{
+    localStorage.setItem(KEY, JSON.stringify(fresh));
+  }catch(e){
+    if (ensureSpace(approxBytes(JSON.stringify(fresh)))) {
+      localStorage.setItem(KEY, JSON.stringify(fresh));
+    } else {
+      alert('Хранилище переполнено — не удалось инициализировать дневник.');
+      throw e;
+    }
+  }
+  return fresh;
+}function saveDB(db){
   const payload = JSON.stringify(db);
   try{
     localStorage.setItem(KEY, payload);
@@ -1100,15 +1154,8 @@ function saveDB(db){
     }
   }
 }
-function getEntry(date){
-  const db = loadDB();
-  const base = db.entries[date] || {date, wellness:50, sideEffects:{}, photos:{face:null, body:null}, notes:''};
-  if (!base.sideEffects) base.sideEffects = {};
-  if (!base.photos)      base.photos = {face:null, body:null};
-  if (typeof base.notes !== 'string') base.notes = '';
-  if (typeof base.wellness !== 'number') base.wellness = 50;
-  return base;
-}function putEntry(entry){ const db=loadDB(); db.entries[entry.date]=entry; if(!db.baseline) db.baseline = entry.date; saveDB(db); return db; }
+function getEntry(date){ const db=loadDB(); return db.entries[date] || {date, wellness:50, sideEffects:{}, photos:{face:null, body:null}, notes:''}; }
+function putEntry(entry){ const db=loadDB(); db.entries[entry.date]=entry; if(!db.baseline) db.baseline = entry.date; saveDB(db); return db; }
 // Текущая выбранная дата в дневнике (YYYY-MM-DD)
 function currentISO(){
   const q = new URLSearchParams(location.search).get('date');
@@ -1724,7 +1771,39 @@ glintBloom(ctx, -W*0.30,  H*0.26,  W*0.16, H*0.14, pal.glintB, .48, -0.08);
     if (e.key === 'ArrowLeft')  { applyIndex(curIdx - 1); e.preventDefault(); }
     if (e.key === 'ArrowRight') { applyIndex(curIdx + 1); e.preventDefault(); }
   });
+const DB_KEY_V2 = 'rt.diary.v2';
 
+function loadV2(){
+  try{
+    const v = JSON.parse(localStorage.getItem(DB_KEY_V2)||'null');
+    return (v && v.version===2) ? v : {version:2, entries:{}};
+  }catch(_){ return {version:2, entries:{}}; }
+}
+function saveV2(db){
+  const payload = JSON.stringify(db);
+  try{
+    localStorage.setItem(DB_KEY_V2, payload);
+  }catch(e){
+    if (ensureSpace(approxBytes(payload))) {
+      localStorage.setItem(DB_KEY_V2, payload);
+    } else {
+      alert('Хранилище переполнено — не удалось сохранить самочувствие.');
+      throw e;
+    }
+  }
+  localStorage.setItem('rt.diary.bump', String(Date.now()));
+}
+function putV2Wellness(iso, wellness0_100){
+  const db = loadV2();
+  db.version = 2;
+  db.entries[iso] = { ...(db.entries[iso]||{}), wellness: Number(wellness0_100) };
+  saveV2(db); // триггерит rt.diary.bump
+}
+function curISO(){
+  const d = window.currentDate || new Date();
+  const pad=n=>String(n).padStart(2,'0');
+  return `${d.getFullYear()}-${pad(d.getMonth()+1)}-${pad(d.getDate())}`;
+}
   // ШИМЫ для старого API — если где-то зовёшь проценты
   window.applyValence = function(v){
     v = Math.max(0, Math.min(100, Number(v)||0));
@@ -1739,39 +1818,15 @@ glintBloom(ctx, -W*0.30,  H*0.26,  W*0.16, H*0.14, pal.glintB, .48, -0.08);
   var startIdx = Math.round(((typeof window.valence==='number'?window.valence:50)/100) * 6);
   applyIndex(startIdx);
 })();
-const DB_KEY_V2 = 'rt.diary.v2';
 
-function loadV2(){
-  try{
-    const v = JSON.parse(localStorage.getItem(DB_KEY_V2)||'null');
-    return (v && v.version===2) ? v : {version:2, entries:{}};
-  }catch(_){ return {version:2, entries:{}}; }
-}
-function saveV2(db){
-  localStorage.setItem(DB_KEY_V2, JSON.stringify(db));
-  // напинаем календарь перерисоваться
-  localStorage.setItem('rt.diary.bump', String(Date.now()));
-}
-function putV2Wellness(iso, wellness0_100){
-  const db = loadV2();
-  db.version = 2;
-  db.entries[iso] = { ...(db.entries[iso]||{}), wellness: Number(wellness0_100) };
-  saveV2(db); // триггерит rt.diary.bump
-}
-function curISO(){
-  const d = window.currentDate || new Date();
-  const pad=n=>String(n).padStart(2,'0');
-  return `${d.getFullYear()}-${pad(d.getMonth()+1)}-${pad(d.getDate())}`;
-}
 
 /* ===== Side effects ===== */
 const SE_DEFS=[['lips_dry','Сухость губ'],['skin_dry','Сухость кожи'],['nose_bleed','Кровотечения из носа'],['muscle_pain','Боль в мышцах/суставах'],['headache','Головная боль'],];
 const seList=document.getElementById('seList');
 function renderSE(entry){
   seList.innerHTML='';
-  const se = entry.sideEffects || (entry.sideEffects = {});
   SE_DEFS.forEach(([key,title])=>{
-    const level = se[key] ?? 0;
+    const level=entry.sideEffects[key]??0;
     const row=document.createElement('div'); row.className='se-item';
     row.innerHTML=`<div class="label">${title}</div><div class="ctrl"><input type="range" min="0" max="3" step="1" value="${level}"><span class="se-badge">${level}</span></div>`;
     const input=row.querySelector('input'); const badge=row.querySelector('.se-badge');
@@ -1791,20 +1846,22 @@ if (delFaceBtn) delFaceBtn.addEventListener('click', () => {
   const d = currentISO();
   const e = getEntry(d);
   e.photos.face = null;
+  try{ localStorage.removeItem(photoKey('face', d)); }catch(_){}
   putEntry(e);
   faceThumb.hidden = true;
   faceThumb.src = '';
-  
   refreshCompare();
 });
 
 if (delBodyBtn) delBodyBtn.addEventListener('click', () => {
-  const d = datePicker.value || todayISO();
+  const d = (datePicker.value || todayISO()).slice(0,10);
   const e = getEntry(d);
   e.photos.body = null;
+  try{ localStorage.removeItem(photoKey('body', d)); }catch(_){}
   putEntry(e);
   bodyThumb.hidden = true;
   bodyThumb.src = '';
+  refreshCompare();
 });
 
 const compareWrap=document.getElementById('compareWrap'); const imgStart=document.getElementById('imgStart'); const imgCurrent=document.getElementById('imgCurrent'); const topWrap=document.getElementById('topWrap');
@@ -1842,32 +1899,31 @@ function readImageFile(file, max=1200, quality=0.72){
 }
 async function onPick(input, key, thumb){
   const f = input.files && input.files[0]; if(!f) return;
-  const url = await readImageFile(f);                 // уже есть в файле
+  const url = await readImageFile(f);
   const d = (datePicker?.value || todayISO()).slice(0,10);
   const e = getEntry(d);
-  if (!e.photos) e.photos = {face:null, body:null};
-// гарантируем место под это фото
-if(!ensureSpace(approxBytes(url) + 16_384)){
-  alert('Мало места для фото. Удаляю старые и пробую ещё раз...');
-  if(!ensureSpace(approxBytes(url) + 16_384)){
-    alert('Не удалось сохранить фото — хранилище переполнено.');
-    return;
-  }
-}
-try{
-  localStorage.setItem(photoKey(key, d), url);
-}catch(e){
-  if(ensureSpace(approxBytes(url) + 16_384)){
-    localStorage.setItem(photoKey(key, d), url);
-  }else{
-    alert('Не удалось сохранить фото — нет места.');
-    return;
-  }
-}
-  // сохраняем само изображение отдельно
-  try{ localStorage.setItem(photoKey(key, d), url); }catch(_){}
 
-  // в записи оставляем только флажок наличия
+  // гарантируем место под это фото
+  if(!ensureSpace(approxBytes(url) + 16_384)){
+    alert('Мало места для фото. Удаляю старые и пробую ещё раз...');
+    if(!ensureSpace(approxBytes(url) + 16_384)){
+      alert('Не удалось сохранить фото — хранилище переполнено.');
+      return;
+    }
+  }
+  // сохраняем фото (1 раз) с ретраем
+  try{
+    localStorage.setItem(photoKey(key, d), url);
+  }catch(e){
+    if(ensureSpace(approxBytes(url) + 16_384)){
+      localStorage.setItem(photoKey(key, d), url);
+    }else{
+      alert('Не удалось сохранить фото — нет места.');
+      return;
+    }
+  }
+
+  // запись-флаг
   e.photos[key] = true;
   putEntry(e);
 
@@ -1875,7 +1931,8 @@ try{
   thumb.src = url;
   thumb.hidden = false;
 
-refreshCompare();}
+  refreshCompare();
+}
 
 faceInput.addEventListener('change',()=>onPick(faceInput,'face',faceThumb)); bodyInput.addEventListener('change',()=>onPick(bodyInput,'body',bodyThumb));
 
@@ -2010,80 +2067,71 @@ function refreshMoodSaveIndicator(){
     setMoodSavedUI(!!(e && same));
   }catch(_){}
 }
-function debounce(fn, ms){ let t; return (...args)=>{ clearTimeout(t); t=setTimeout(()=>fn(...args), ms); }; }
 
 /* ===== Notes ===== */
 const notesEl = document.getElementById('notes');
 
+let __notesTO = 0;
 function persistNotes(){
-  const iso = (datePicker?.value || todayISO()).slice(0,10);
-  const entry = getEntry(iso);
+  const iso = currentISO();
+  const e = getEntry(iso);
   const text = (notesEl.value || '').trim();
-  if (entry.notes !== text){
-    entry.notes = text;
-    putEntry(entry); // сохраняет в rt.diary.v2
+  if (e.notes !== text){
+    e.notes = text;
+    putEntry(e);                                   // → saveDB(db) с защитой
     try{
-      // пинаем другие вкладки/календарь
       localStorage.setItem('rt.diary.bump', Date.now().toString());
-      localStorage.removeItem('rt.diary.bump');
+      localStorage.removeItem('rt.diary.bump');    // «пнуть» другие вкладки
     }catch(_){}
   }
 }
-
-let __notesTO = 0;
-
 if (notesEl){
-  // автосейв при наборе (без debounce)
   notesEl.addEventListener('input', ()=>{
     clearTimeout(__notesTO);
-    __notesTO = setTimeout(persistNotes, 350);
+    __notesTO = setTimeout(persistNotes, 400);
   });
-
-  // сейв при потере фокуса
   notesEl.addEventListener('blur', persistNotes);
-
-  // Ctrl/Cmd+S
   window.addEventListener('keydown', (e)=>{
     if ((e.ctrlKey||e.metaKey) && e.key.toLowerCase()==='s'){
-      e.preventDefault();
-      persistNotes();
+      e.preventDefault(); persistNotes();
     }
   });
 }
 
-
 /* ===== Load/Save UI ===== */
 const confirmMood=document.getElementById('confirmMood'); const saveAll=document.getElementById('saveAll');
 function updateDayChip(dateISO){
-  const today = todayISO();               // у тебя уже есть todayISO()
-  const d = parseISO(dateISO);            // и parseISO()
+  const today = todayISO();
+  const d = parseISO(dateISO);
   const weekday = new Intl.DateTimeFormat('ru-RU',{weekday:'short'}).format(d).replace('.', '');
   const full = new Intl.DateTimeFormat('ru-RU',{day:'2-digit', month:'long', year:'numeric'}).format(d);
   const prefix = (dateISO===today) ? 'Сегодня' : 'Выбранный день';
-  // dayChip — это твой элемент с датой (он уже объявлен выше в коде)
-  dayChip.innerHTML = `<span class="muted">${prefix}</span> · <b style="letter-spacing:.3px">${weekday}, ${full}</b>`;
+
+  // не трогаем разметку внутри #dayChip — обновляем только текстовые ноды
+  const lab = document.getElementById('todayLabel');
+  const txt = document.getElementById('dayText');
+  if (lab) lab.textContent = `${prefix} • `;
+  if (txt) txt.textContent = `${weekday}, ${full}`;
+
   const pdc = document.getElementById('photosDateChip');
-if (pdc) {
-  // тот же формат, что ты используешь в шапке
- pdc.textContent = new Intl.DateTimeFormat('ru-RU').format(new Date(dateISO));
-}
+  if (pdc) pdc.textContent = new Intl.DateTimeFormat('ru-RU').format(new Date(dateISO));
 }
 function loadIntoUI(dateISO){
   const entry = getEntry(dateISO);
   updateDayChip(dateISO);
-  applyValence(entry.wellness ?? 50, true);
+ applyValence(entry.wellness ?? 50);
   renderSE(entry);
 
-// миниатюры из отдельного хранилища (страховка от старых записей)
-if (entry.photos && entry.photos.face){
-  const u = localStorage.getItem(photoKey('face', dateISO)) || '';
-  faceThumb.src = u; faceThumb.hidden = !u;
-} else { faceThumb.hidden = true; faceThumb.src = ''; }
+  // миниатюры из отдельного хранилища
+  if (entry.photos.face){
+    const u = localStorage.getItem(photoKey('face', dateISO)) || '';
+    faceThumb.src = u; faceThumb.hidden = !u;
+  } else { faceThumb.hidden = true; faceThumb.src = ''; }
 
-if (entry.photos && entry.photos.body){
-  const u = localStorage.getItem(photoKey('body', dateISO)) || '';
-  bodyThumb.src = u; bodyThumb.hidden = !u;
-} else { bodyThumb.hidden = true; bodyThumb.src = ''; }
+  if (entry.photos.body){
+    const u = localStorage.getItem(photoKey('body', dateISO)) || '';
+    bodyThumb.src = u; bodyThumb.hidden = !u;
+  } else { bodyThumb.hidden = true; bodyThumb.src = ''; }
 
   notesEl.value = entry.notes || '';
   setMoodSavedUI(!!entry.wellnessSaved);
@@ -2148,7 +2196,7 @@ function init(){
 
 </script>
 
-<script src="../js/lazy-img.js" defer></script>
+<script src="js/lazy-img.js" defer></script>
 
 
 <div class="page-bottom-spacer"></div>

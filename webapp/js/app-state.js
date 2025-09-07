@@ -7,6 +7,16 @@
      - rt.diary.v2   → (как есть сейчас у тебя)
 */
 
+// shim на случай старых вызовов с опечаткой
+if (typeof window.setStockReminde !== 'function') {
+  window.setStockReminde = function(...args){
+    if (typeof window.setStockReminder === 'function') {
+      return window.setStockReminder(...args);
+    }
+    // иначе молча noop
+  };
+}
+
 (() => {
   const NS = 'rt';
   const KEYS = {
@@ -171,7 +181,7 @@ function applyTheme(theme){
 // в экспорт:
 window.AppState = {
   KEYS, get, set, update, patch, subscribe,
-  reminders: { getMain: getMainReminder, setMain: setMainReminder, getStock: getStockReminder, setStock: setStockReminde},
+  reminders: { getMain: getMainReminder, setMain: setMainReminder, getStock: getStockReminder, setStock: setStockReminder},
   applyTheme,
 };
 
@@ -183,7 +193,7 @@ window.AppState = {
   window.AppState = {
     KEYS,
     get, set, update, patch, subscribe,
-    reminders: { getMain: getMainReminder, setMain: setMainReminder,getStock: getStockReminder, setStock: setStockReminde},
+    reminders: { getMain: getMainReminder, setMain: setMainReminder,getStock: getStockReminder, setStock: setStockReminder},
     applyTheme,
   };
 })();

@@ -1,5 +1,5 @@
 <!doctype html>
-<html lang="ru" data-theme="light">
+<html lang="ru" data-theme="dark">
 <head>
   
   <script src="https://telegram.org/js/telegram-web-app.js"></script>
@@ -16,18 +16,10 @@
   </script>
 
   <style>
-    
     :root{
-      --bg:#F6F7FB;                 /* light canvas */
-      --card:#FFFFFF;               /* surfaces */
-      --text:#0F172A;               /* slate-900 */
-      --muted:#667085;              /* slate-500/600 */
-      --stroke:#E6EAF2;             /* light border */
-
-      /* gradients: mint → peach → lavender */
-      --grad1: linear-gradient(135deg, #B8F3E4 0%, #FFD7C8 48%, #E6D6FF 100%);
-      --grad2: linear-gradient(135deg, rgba(184,243,228,.35) 0%, rgba(255,215,200,.28) 48%, rgba(230,214,255,.35) 100%);
-
+      --bg:#0E1116; --card:#141A22; --text:#EDEFF2; --muted:#9AA3AE; --stroke:#1F2833;
+      --grad1: linear-gradient(135deg, #6FEAD8 0%, #BDF7EE 40%, #FFD6E9 100%);
+      --grad2: linear-gradient(135deg, rgba(111,234,216,.18) 0%, rgba(255,214,233,.18) 100%);
       --r:18px; --dur:.24s; --ease:cubic-bezier(.2,.6,.2,1);
     }
     body{margin:0;background:var(--bg);color:var(--text);font:16px/1.4 system-ui,-apple-system,Segoe UI,Inter,Roboto,Arial,sans-serif}
@@ -35,25 +27,24 @@
     .top{display:flex;justify-content:space-between;align-items:center;margin:8px 0 16px;gap:12px}
     .h1{font-weight:800;font-size:clamp(18px,2.8vw,24px)}
     .right{display:flex;align-items:center;gap:10px}
-    .code-pill{display:inline-flex;align-items:center;gap:8px;padding:8px 10px;border-radius:999px;background:#F2F4F7;border:1px solid var(--stroke);color:var(--muted);font-size:12px;white-space:nowrap}
+    .code-pill{display:inline-flex;align-items:center;gap:8px;padding:8px 10px;border-radius:999px;background:#0D1219;border:1px solid var(--stroke);color:var(--muted);font-size:12px;white-space:nowrap}
     .code-pill b{letter-spacing:1.2px;color:var(--text)}
     .ava{width:36px;height:36px;border-radius:999px;overflow:hidden;border:1px solid var(--stroke);display:grid;place-items:center;background:var(--grad1);color:#0b1511;font-weight:800;cursor:pointer}
     .ava img{width:100%;height:100%;object-fit:cover;display:block}
 
     .tabs{display:flex;gap:8px;align-items:center;border-bottom:1px solid var(--stroke);
       padding-bottom:8px;position:sticky;top:0;background:var(--bg);z-index:10}
-    .tab{padding:10px 14px;border-radius:999px;cursor:pointer;background:#F2F4F7;color:var(--text);
+    .tab{padding:10px 14px;border-radius:999px;cursor:pointer;background:#0D1219;color:var(--text);
       border:1px solid var(--stroke);transition:background .2s ease,border-color .2s ease}
-    .tab:hover{border-color:rgba(2,6,23,.12)}
+    .tab:hover{border-color:rgba(255,255,255,.18)}
     .tab.active{background:var(--grad1);color:#0b1511;border-color:transparent;font-weight:700}
 
     .row{display:flex;gap:10px;align-items:center;flex-wrap:wrap;margin:14px 0}
     .search{flex:1 1 320px;min-width:220px;display:flex}
-    .input{width:100%;padding:12px;border-radius:12px;background:#F2F4F7;border:1px solid var(--stroke);color:var(--text);outline:none}
-    .input:focus{border-color:#D0D7E2;box-shadow:0 0 0 4px rgba(100,116,139,.10)}
+    .input{width:100%;padding:12px;border-radius:12px;background:#0D1219;border:1px solid var(--stroke);color:var(--text)}
     .chip{border:1px solid var(--stroke);border-radius:999px;padding:8px 12px;color:var(--text);background:transparent}
-    .select{padding:8px 10px;border-radius:999px;border:1px solid var(--stroke);background:#F2F4F7;color:var(--text)}
-    .card{background:var(--card);border:1px solid var(--stroke);border-radius:var(--r);padding:14px;box-shadow: 8px 8px 24px rgba(15,23,42,.08), -8px -8px 24px rgba(255,255,255,.70)}
+    .select{padding:8px 10px;border-radius:999px;border:1px solid var(--stroke);background:#0D1219;color:var(--text)}
+    .card{background:var(--card);border:1px solid var(--stroke);border-radius:var(--r);padding:14px;box-shadow:0 6px 22px rgba(0,0,0,.14)}
     .list{display:grid;gap:10px}
     .glass{background:var(--grad2);border:1px solid rgba(255,255,255,.12);backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px)}
     .empty-title{font-weight:800}.muted{color:var(--muted);font-size:13px}
@@ -62,15 +53,15 @@
     .p-name{font-weight:800;font-size:16px}
     .p-grid{display:grid;grid-template-columns:1fr auto;gap:8px;align-items:center;margin-top:8px}
     .badges{display:flex;gap:8px;align-items:center;flex-wrap:wrap}
-    .badge{padding:6px 8px;border-radius:999px;font-size:12px;background:#F2F4F7;border:1px solid var(--stroke)}
-    .prog{height:8px;background:#F2F4F7;border:1px solid var(--stroke);border-radius:999px;overflow:hidden}
+    .badge{padding:6px 8px;border-radius:999px;font-size:12px;background:#0D1219;border:1px solid var(--stroke)}
+    .prog{height:8px;background:#0D1219;border:1px solid var(--stroke);border-radius:999px;overflow:hidden}
     .prog>i{display:block;height:100%;width:0;background:var(--grad1)}
     .labs{display:flex;gap:10px;align-items:center;flex-wrap:wrap;font-size:12px}
     .lab{display:inline-flex;align-items:center;gap:6px}
     .dot{width:10px;height:10px;border-radius:999px}.g{background:#22C55E}.y{background:#F59E0B}.r{background:#EF4444}
     .icons{display:flex;gap:10px;align-items:center;color:var(--muted)}
     .pill{display:inline-flex;align-items:center;gap:6px;padding:6px 10px;border:1px solid var(--stroke);border-radius:999px;font-size:12px}
-    .btn{padding:10px 12px;border-radius:12px;border:1px solid transparent;cursor:pointer;font-weight:700;color:#0B1220;background:var(--grad1);transition:transform var(--dur) var(--ease)}
+    .btn{padding:10px 12px;border-radius:12px;border:1px solid transparent;cursor:pointer;font-weight:700;color:#05140C;background:var(--grad1);transition:transform var(--dur) var(--ease)}
     .btn:active{transform:translateY(1px) scale(.99)}
     .btn-ghost{padding:10px 12px;border-radius:12px;background:transparent;color:var(--text);border:1px solid var(--stroke);cursor:pointer}
 
@@ -97,7 +88,7 @@
   width:28px;
   height:28px;
   border-radius:50%;
-  background:rgba(255,255,255,.82);
+  background:#0D1219CC;
   border:1px solid var(--stroke);
   color:#EDEFF2;
   cursor:pointer;
@@ -162,7 +153,7 @@
   display:flex; flex-direction:column; align-items:center; justify-content:center; gap:6px;
   min-height:64px; padding:14px 18px; border-radius:16px; text-decoration:none;
   color:#eaffff; text-align:center;
-  background: rgba(9,22,28,.06);
+  background: rgba(9,22,28,.15);
   border:1.5px solid rgba(56,189,248,.80);
   box-shadow: 0 0 18px rgba(56,189,248,.45), 0 0 42px rgba(56,189,248,.28), inset 0 0 0 3px rgba(56,189,248,.08);
   transition: transform .15s ease, box-shadow .15s ease, background .15s ease;
@@ -557,43 +548,6 @@
   margin: var(--neon-bump) auto 0 !important; /* ↓ вниз, по центру по ширине */
   width: clamp(220px, 92%, 320px) !important; /* чтобы влезала */
 }
-  
-/* === Contrast tweaks for light theme — neon button & avatar plus === */
-:root{ --neon-accent:#2AD1E8; }
-
-/* Neon CTA */
-#sec-profile .welcome-panel .neon-btn{
-  color:#0F172A;
-  background: linear-gradient(180deg, rgba(255,255,255,.98), rgba(255,255,255,.90));
-  border: 2px solid var(--neon-accent);
-  box-shadow:
-    0 12px 28px rgba(42,209,232,.24),
-    0 0 0 6px rgba(42,209,232,.12),
-    inset 0 1px 0 rgba(255,255,255,.75);
-  text-shadow: none;
-}
-#sec-profile .welcome-panel .neon-btn:hover{
-  transform: translateY(-2px);
-  box-shadow:
-    0 16px 36px rgba(42,209,232,.30),
-    0 0 0 7px rgba(42,209,232,.16),
-    inset 0 1px 0 rgba(255,255,255,.90);
-}
-#sec-profile .welcome-panel .neon-title{ color:#0F172A; }
-#sec-profile .welcome-panel .neon-sub{ color:#6B7280; opacity:1; }
-
-/* Avatar edit (+) button */
-.ava-edit{
-  background: linear-gradient(180deg, #FFFFFF, #F2F4F7);
-  color:#0F172A;
-  border:1.5px solid #D0D7E2;
-  box-shadow: 0 2px 8px rgba(15,23,42,.14), 0 0 0 3px rgba(42,209,232,.12);
-}
-.ava-edit:hover{
-  box-shadow: 0 4px 12px rgba(15,23,42,.18), 0 0 0 4px rgba(42,209,232,.16);
-}
-.ava-edit svg{ width:16px; height:16px; }
-
   </style>
   
 </head>
@@ -1158,8 +1112,6 @@
   btn.addEventListener('pointerleave', cancelHold);
   btn.addEventListener('pointercancel', cancelHold);
 })();
-
-document.addEventListener('DOMContentLoaded', init);
 
 function doDoctorReset(){
   try{

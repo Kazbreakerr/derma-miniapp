@@ -2,7 +2,6 @@
 <html lang="ru">
 <head>
   <meta charset="utf-8" />
-
   <script src="/js/app-state.js"></script>
   <script>
   // Инициализация всех переключателей темы на странице
@@ -203,7 +202,7 @@ document.documentElement.dataset.theme = cur;
 <body>
   <div class="wrap">
     <div class="topbar">
-      <a class="back-btn" href="/dark/main.html" id="btn-back" aria-label="Назад на главную">
+      <a class="back-btn" href="./main.html" id="btn-back" aria-label="Назад на главную">
         <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M15 19l-7-7 7-7" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
         <span>Назад</span>
       </a>
@@ -382,7 +381,7 @@ document.documentElement.dataset.theme = cur;
         <details class="qa" id="app">
           <summary>Как отмечать приём и где смотреть статистику в приложении? <span class="pill">app</span></summary>
           <div class="qa-body">
-            <p>На <a href="/dark/main.html">Главной</a> введите мг и дату, нажмите «Сохранить» или выберите чип дозы. Сводные метрики, процент к 135 мг/кг и ETA — в блоке «Прогресс». Последние отметки и календарь‑превью — ниже.</p>
+            <p>На <a href="./main.html">Главной</a> введите мг и дату, нажмите «Сохранить» или выберите чип дозы. Сводные метрики, процент к 135 мг/кг и ETA — в блоке «Прогресс». Последние отметки и календарь‑превью — ниже.</p>
           </div>
         </details>
 
@@ -392,7 +391,7 @@ document.documentElement.dataset.theme = cur;
         <section class="card" aria-label="Навигация">
       <div class="glow"></div>
       <div class="row" style="justify-content:space-between">
-        <a id="to-home" href="/dark/main.html">← На главную</a>
+        <a id="to-home" href="./main.html">← На главную</a>
       </div>
     </section>
 
@@ -581,40 +580,5 @@ document.documentElement.dataset.theme = cur;
   .pill-alert--stock{ animation:none }
 }
 </style>
-
-<script>
-// Keep in-page anchors on the same document.
-document.addEventListener('click', function(e){
-  const a = e.target.closest('a[href^="#"]');
-  if(!a) return;
-  const href = a.getAttribute('href');
-  if (!href || href === '#') return;
-  const id = href.slice(1);
-  const el = document.getElementById(id);
-  if (el){
-    e.preventDefault();
-    el.scrollIntoView({behavior:'smooth', block:'start'});
-    try { history.replaceState(null, '', '#' + id); } catch (_) { location.hash = id; }
-  }
-});
-// Back button: go back to whoever пришёл (main/myprofile), иначе в /dark/main.html
-document.addEventListener('DOMContentLoaded', function(){
-  const backBtn = document.querySelector('#backBtn, .back-btn, a.back-btn');
-  if(!backBtn) return;
-  backBtn.addEventListener('click', function(ev){
-    ev.preventDefault();
-    const ref = document.referrer || '';
-    if (ref.includes('/dark/main') || ref.includes('/dark/myprofile')) {
-      location.href = ref; return;
-    }
-    const last = sessionStorage.getItem('lastPage') || '';
-    if (/\/dark\/(main|myprofile)\.html/.test(last)) {
-      location.href = last; return;
-    }
-    location.href = '/dark/main.html';
-  });
-});
-</script>
-
 </body>
 </html>

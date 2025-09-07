@@ -185,17 +185,18 @@
 .day::after{
   content:"";
   position:absolute;
-  inset:-6px;                  /* чуть шире ячейки для мягкого края */
+  inset:-6px;
   border-radius:inherit;
-  background: radial-gradient(120% 90% at 50% 20%,
-              var(--glowC, transparent) 0 45%, transparent 60%);
-  filter: blur(14px) saturate(1.05);
-  mix-blend-mode: screen;      /* светится, не забивает фон */
-  opacity: 1;
-  z-index: 0;                  /* под контентом */
+  /* 1) основной «цвет дня» (градиент); 2) мягкое свечение поверх */
+  background:
+    var(--moodBg, transparent),
+    radial-gradient(120% 90% at 50% 20%,
+      var(--glowC, transparent) 0 45%, transparent 60%);
+  filter: blur(10px) saturate(1.05);
+  mix-blend-mode: screen;
+  z-index:0;
   pointer-events:none;
 }
-
 /* контент поверх свечения */
 .day .day-num{ position: relative; z-index: 2; }
 .day .marks{ z-index: 2; }     /* без position */
@@ -215,7 +216,7 @@
 }
 
 /* смайлик не расширяет капсулу — уезжает вправо */
-.mood{ margin-left:auto; opacity:.7; }
+.mood{ display:none; }
 
 /* бейдж дозы + иконка-капсула */
 .dose{ flex:0 0 auto;
@@ -605,7 +606,11 @@ html::view-transition-new(root){
   html::view-transition-new(root),
   ::view-transition-group(portal){ animation:none!important; clip-path:none!important; }
 }
-
+/* компактнее bottom-sheet */
+.sheet{ font-size: clamp(14px, 1.9vw, 16px); }
+.sheet .sheet-title{ font-size: clamp(16px, 2.2vw, 18px); }
+.sheet .badge{ font-size: 12px; }
+.sheet .sheet-row strong{ font-size: 15px; }
 
 </style>
 <style id="pill-alert-style">
@@ -720,6 +725,29 @@ html::view-transition-new(root){
 <script>
 (function(){
   const $ = (s, r=document) => r.querySelector(s);
+    // --- API helper (dev: подхватываем tg из ?tg= или LS) ---
+  const tgApp   = window.Telegram?.WebApp || null;
+  tgApp?.ready?.();
+  const initData = tgApp?.initData || '';
+  const API_BASE = String(window.API_BASE||'').replace(/\/$/,'');
+  const qs = new URLSearchParams(location.search);
+  let devTg = qs.get('tg') || localStorage.getItem('rt.dev.tg') || '';
+  if (devTg) { try { localStorage.setItem('rt.dev.tg', devTg); } catch(_) {} }
+
+  function api(path, opts = {}) {
+    let url = /^https?:\/\//i.test(path) ? path : (API_BASE + path);
+    const params = [];
+    if (!initData && devTg) params.push('tg=' + encodeURIComponent(devTg)); // вне Telegram — шлём tg
+    params.push('v=calendar-2025-09-06');
+    url += (url.includes('?') ? '&' : '?') + params.join('&');
+
+    const headers = { 'Content-Type':'application/json', ...(opts.headers||{}) };
+    if (initData) headers['X-Telegram-InitData'] = initData;       // в Telegram — заголовок
+    return fetch(url, { ...opts, headers, credentials:'include' });
+  }
+
+  const todayISO = ()=>{ const d=new Date(); d.setMinutes(d.getMinutes()-d.getTimezoneOffset()); return d.toISOString().slice(0,10); };
+
   const monthLabel = $("#monthLabel");
   const grid = $("#grid");
   function setPortalXYFromEvent(ev){
@@ -837,29 +865,50 @@ function missGlow(){ return 'hsla(0,86%,58%,.60)'; } // сочный красн�
 function readWellnessV2(id){
   try{
     const v = JSON.parse(localStorage.getItem('rt.diary.v2')||'null');
-    if (v && v.entries && v.entries[id] && typeof v.entries[id].wellness === 'number'){
-      return v.entries[id].wellness; // 0..100
+    if (v && v.entries && v.entries[id]){
+      const e = v.entries[id];
+      if (typeof e.wellness === 'number') return e.wellness; // основной путь
+      if (typeof e.valence  === 'number') return e.valence;  // на всякий случай
     }
   }catch(_){}
   return null;
 }
-// -3..+3  →  0..100
+// старые оценки -3..+3 -> валентность (0..100) по центрам 7 корзин
 function normalizeMoodV1(m){
-  if (m==null) return null;
-  const clamped = Math.max(-3, Math.min(3, Number(m)));
-  return Math.round((clamped + 3) * (100/6));
+  if (m === null || m === undefined || m === '' || !Number.isFinite(Number(m))) return null;
+  const x = Math.max(-3, Math.min(3, Number(m)));
+  const centers = [8.5, 25, 40, 50, 60, 75, 91.5];
+  const idx = Math.round(x + 3);
+  return centers[idx];
 }
 // 0..100 → индекс 0..6
 function moodIndexFromValence(v){
-  const s=(v-50)/50;
-  if (s<-0.66) return 0;
-  if (s<-0.33) return 1;
-  if (s<-0.06) return 2;
-  if (s< 0.06) return 3;
-  if (s< 0.33) return 4;
-  if (s< 0.66) return 5;
-  return 6;
+  if (v==null) return null;
+  const step = 100/6;
+  const idx  = Math.round(Math.max(0, Math.min(100, Number(v))) / step);
+  return Math.max(0, Math.min(6, idx));
 }
+function moodBg(idx){
+  // 7 состояний слева→справа (от очень плохо до отлично)
+  const G = [
+    // 0  очень плохо — жёлтая «тревога»
+    'radial-gradient(140% 70% at 50% 10%, rgba(255,206,51,.42) 0 62%, rgba(255,206,51,0) 70%)',
+    // 1  ниже нормы — тёплый оранжевый
+    'radial-gradient(140% 70% at 50% 10%, rgba(255,136,34,.40) 0 62%, rgba(255,136,34,0) 70%)',
+    // 2  неплохо — мягкий красно-розовый
+    'radial-gradient(140% 70% at 50% 10%, rgba(255,92,92,.38) 0 62%, rgba(255,92,92,0) 70%)',
+    // 3  нейтрально — холодный серо-голубой
+    'radial-gradient(140% 70% at 50% 10%, rgba(160,180,200,.35) 0 62%, rgba(160,180,200,0) 70%)',
+    // 4  хорошо — мята
+    'radial-gradient(140% 70% at 50% 10%, rgba(34,197,167,.40) 0 62%, rgba(34,197,167,0) 70%)',
+    // 5  очень хорошо — изумруд/зелёный
+    'radial-gradient(140% 70% at 50% 10%, rgba(16,185,129,.42) 0 62%, rgba(16,185,129,0) 70%)',
+    // 6  отлично — насыщенный сине-бирюзовый (под звёзды)
+    'radial-gradient(140% 70% at 50% 10%, rgba(56,189,248,.44) 0 62%, rgba(56,189,248,0) 70%)'
+  ];
+  return G[Math.max(0, Math.min(6, +idx||0))];
+}
+
 // === Diary v2 helpers (самочувствие, заметка, побочки) ===
 function loadDiaryV2(){
   try{
@@ -893,7 +942,7 @@ function sideEffectsCount(entry){
 // цвет свечения по индексу
 function moodGlow(idx){
   switch(idx){
-    case 0: return 'hsla(350,76%,46%,.62)'; // бордовый — очень плохо
+    case 0: return 'hsla(344,70%,46%,.82)'; // бордовый — очень плохо
     case 1: return 'hsla(24,85%,47%,.58)';  // тёмно-оранжевый — плохо
     case 2: return 'hsla(37,92%,74%,.38)';  // бежевый — ниже нормы
     case 3: return 'hsla(200,86%,93%,.45)'; // слабый голубой — нейтрально
@@ -952,6 +1001,27 @@ function render(){
   }
   if (!maxDose) maxDose = 1; // чтобы не делить на 0
 
+  const DB_KEY_V2 = 'rt.diary.v2';
+
+function loadV2(){
+  try{
+    const v = JSON.parse(localStorage.getItem(DB_KEY_V2)||'null');
+    return (v && v.version===2) ? v : {version:2, entries:{}};
+  }catch(_){ return {version:2, entries:{}}; }
+}
+function saveV2(db){
+  localStorage.setItem(DB_KEY_V2, JSON.stringify(db));
+  // «пинок» для других вкладок/страниц
+  localStorage.setItem('rt.diary.bump', String(Date.now()));
+}
+function putV2Notes(iso, text){
+  const db = loadV2();
+  const e  = db.entries[iso] || {};
+  e.comment = text;   // для совместимости со старым кодом
+  e.notes   = text;   // и новое имя поля
+  db.entries[iso] = e;
+  saveV2(db);
+}
   // Рисуем сетку
   grid.innerHTML = '';
   const first    = new Date(year, month, 1);
@@ -983,6 +1053,17 @@ if (day === 1) cell.style.gridColumnStart = String(startCol + 1);
 const glow = missed ? missGlow()
            : (moodIdx != null ? moodGlow(moodIdx) : 'transparent');
 cell.style.setProperty('--glowC', glow);
+// цветной фон по самочувствию (как на твоём скрине)
+if (moodIdx != null){
+  cell.style.setProperty('--moodBg', moodBg(moodIdx));
+} else {
+  cell.style.removeProperty('--moodBg');
+}
+
+// если самочувствия нет, но есть доза — даём зелёное свечение heatmap
+if (glow === 'transparent' && dose > 0 && !missed){
+  cell.style.setProperty('--glowC', heatColor(dose, maxDose));
+}
 if (moodIdx === 6) cell.classList.add('mood-6'); // звёзды только для «отлично»
 // контент
 const doseClass = `dose${taken ? ' taken' : ''}`;
@@ -1078,10 +1159,15 @@ grid.appendChild(cell);
   // Доза
   const doseText = d1 && (d1.dose || d1.mg) ? (d1.dose || d1.mg) + ' мг' : '—';
 
-  // Комментарий: 1-е предложение из “Заметка дня” + …
-  const noteRaw = (e2 && e2.notes) ? String(e2.notes).trim() : '';
-  const comment = noteRaw ? firstSentenceWithEllipsis(noteRaw)
-                          : 'Записей нет. Нажмите и удерживайте день, чтобы открыть дневник.';
+    // Комментарий: берём из v2 (notes), если пусто — пробуем старые поля из v1 (comment|note|notes)
+  let noteRaw = (e2 && typeof e2.notes === 'string') ? e2.notes.trim() : '';
+  if (!noteRaw && d1) {
+    const v1Note = (d1.comment ?? d1.note ?? d1.notes ?? '').toString().trim();
+    if (v1Note) noteRaw = v1Note;
+  }
+  const comment = noteRaw
+    ? firstSentenceWithEllipsis(noteRaw)
+    : 'Записей нет. Нажмите и удерживайте день, чтобы открыть дневник.';
 
   // Побочки: показываем только если есть (>0)
   const seCount = sideEffectsCount(e2);
@@ -1113,23 +1199,51 @@ grid.appendChild(cell);
   const scrim = document.getElementById('scrim');
   if (scrim){ scrim.classList.add('active'); scrim.setAttribute('aria-hidden','false'); scrim.onclick = closeSheet; }
 
-  const btn = document.getElementById('doseEdit');
-  if (btn){
-    btn.onclick = ()=>{
-      const cur = d1 && (d1.dose || d1.mg) ? Number(d1.dose || d1.mg) : '';
-      const v = prompt('Введите дозу, мг:', cur);
-      if (v == null) return;
-      const mg = Math.max(0, Math.round(Number(v)));
-      const diary = getDiary();
-      diary[id] = diary[id] || {};
-      diary[id].dose = mg;
-      diary[id].taken = true;
-      delete diary[id].miss;
-      localStorage.setItem('rt.diary.v1', JSON.stringify(diary));
-      render();
-      openSheet(id, diary[id]); // refresh
-    };
-  }
+const btn = document.getElementById('doseEdit');
+if (btn){
+  btn.onclick = async ()=>{
+    const cur = d1 && (d1.dose || d1.mg) ? Number(d1.dose || d1.mg) : '';
+    const v = prompt('Введите дозу, мг:', cur);
+    if (v == null) return;
+    const mg = Math.max(0, Math.round(Number(v)));
+
+    // 1) Локально: дневник v1
+    const diary = getDiary();
+    diary[id] = diary[id] || {};
+    diary[id].dose  = mg;          // абсолютная доза за день
+    diary[id].taken = mg > 0;
+    delete diary[id].miss;
+    localStorage.setItem('rt.diary.v1', JSON.stringify(diary));
+
+    // 2) Если это сегодня — обновим кеш «сегодня»
+    try{
+      const t = todayISO();
+      if (id === t){
+        localStorage.setItem('derma_today_iso', id);
+        localStorage.setItem('derma_today_mg', String(mg));
+      }
+    }catch(_){}
+
+    // 3) Пинк для других вкладок/страниц (главная услышит и пересчитает)
+    try{
+      localStorage.setItem('rt.diary.bump', Date.now().toString());
+      localStorage.removeItem('rt.diary.bump');
+    }catch(_){}
+
+    // 4) Серверная БД (если есть доступ: Telegram initData или dev ?tg=)
+    try{
+      await api('/api/intakes', {
+        method: 'POST',
+        body: JSON.stringify({ mg, date: id })
+      });
+    }catch(_){ /* если 401 — ок, локально уже сохранено */ }
+
+    // 5) Обновим UI текущей страницы
+    render();
+    openSheet(id, diary[id]); // refresh внизу
+  };
+}
+
 }
 
   

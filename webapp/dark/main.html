@@ -9,6 +9,7 @@ try{
   document.documentElement.dataset.theme = 'dark';
 }
 </script>
+<script>window.render = window.render || function(){};</script>
   <meta charset="utf-8" />
  
 <script src="/js/app-state.js"></script>
@@ -851,8 +852,13 @@ body.light .tab.active{ color:#0d1220; background: linear-gradient(180deg, rgba(
     });
   }
   window.addEventListener('storage',e=>{
-    if(['rt.diary.v1','derma_today_iso','derma_today_mg'].includes(e.key)) render();
-  });
+  if(['rt.diary.v1','rt.diary.bump','derma_today_iso','derma_today_mg'].includes(e.key)){
+    try { applyDiaryToMain(diaryGet()); } catch(_){}
+    try { renderCalPreview(); } catch(_){}
+    try { updateSummary(); } catch(_){}
+    render();
+  }
+});
   document.addEventListener('visibilitychange',()=>{ if(!document.hidden) render(); });
   document.addEventListener('DOMContentLoaded',render);
   window.renderPillAlert = render; // ручной перерендер на всякий
@@ -1195,7 +1201,7 @@ input[type="time"]::-webkit-calendar-picker-indicator{
 
     <section class="card section" id="cardCalendar" aria-label="Календарь">
       <div class="glow"></div>
-      <div class="row" style="justify-content:space-between"><h2 style="margin:0">Календарь</h2><a href="calendar.html" class="open-btn" id="openCalendarBtn">Открыть</a></div>
+      <div class="row" style="justify-content:space-between"><h2 style="margin:0">Календарь</h2><a href="/dark/calendar.html" class="open-btn" id="openCalendarBtn">Открыть</a></div>
 
       <div class="preview-wrap" id="calWrap">
         <div id="calMonthLabel" class="cal-month" aria-live="polite"></div>
@@ -1273,7 +1279,7 @@ input[type="time"]::-webkit-calendar-picker-indicator{
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 11l9-7 9 7"/><path d="M5 12v7a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2v-7"/><path d="M9 21v-6h6v6"/></svg>
       <small>Главная</small>
     </a>
-    <a class="tab" href="calendar.html" data-vt-link>
+    <a class="tab" href="/dark/calendar.html" data-vt-link>
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="18" rx="3"/><path d="M16 2v4"/><path d="M8 2v4"/><path d="M3 10h18"/></svg>
       <small>Календарь</small>
     </a>
@@ -1421,6 +1427,8 @@ function wipeLocalDiary(reason = 'manual-reset'){
 window.wipeLocalDiary = wipeLocalDiary;
 
 // === Mood helpers for calendar preview ===
+
+// читаем wellness 0..100 из новой БД дневника
 function _wellnessMap(){
   try{
     const db = JSON.parse(localStorage.getItem('rt.diary.v2')||'null');
@@ -1428,33 +1436,46 @@ function _wellnessMap(){
     if (db && db.entries){
       for (const [k, e] of Object.entries(db.entries)){
         if (typeof e.wellness === 'number') out[k] = e.wellness;
+        else if (typeof e.valence  === 'number') out[k] = e.valence; // ← добавили
       }
     }
     return out;
   }catch(_){ return {}; }
 }
 
-
-// вернуть индекс настроения 1..6 по записи дневника/оценке
+// 7 состояний: 1=оч.плохо, 2=плохо, 3=ниже нормы, 4=нейтрально,
+// 5=неплохо, 6=хорошо, 7=отлично
 function moodIndexFromDiary(rec, iso){
-  // приоритет: wellness v2 (0..100), запасной вариант — rec.mood (1..6)
-  const wm = _wellnessMap(); 
+  const wm = _wellnessMap();
   const v = wm[iso];
-  if (v != null && isFinite(v)) return Math.max(1, Math.min(6, Math.round(1 + v*5/100)));
+
+  if (v != null && isFinite(v)) {
+    const s = (Number(v) - 50) / 50; // -1..+1
+    if (s < -0.66) return 1;
+    if (s < -0.33) return 2;
+    if (s < -0.06) return 3;
+    if (s <  0.06) return 4;
+    if (s <  0.33) return 5; // ← "Неплохо"
+    if (s <  0.66) return 6;
+    return 7;
+  }
+
+  // старый дневник с 6 состояниями -> мягко растягиваем до 7
   const m = Number(rec?.mood ?? rec?.m);
-  if (m >= 1 && m <= 6) return Math.round(m);
+  if (m >= 1 && m <= 6) return Math.max(1, Math.min(7, Math.round(m * 7 / 6)));
   return 0;
 }
 
-// цвет свечения по индексу (совпадает с CSS)
+// оттенок свечения под индекс (совпадает с CSS)
 function moodGlowColor(idx){
   switch(idx){
     case 1: return 'hsla(350,76%,46%,.62)'; // очень плохо — красный
     case 2: return 'hsla(24,85%,47%,.58)';  // плохо — тёмно-оранжевый
     case 3: return 'hsla(37,92%,74%,.38)';  // ниже нормы — бежевый
     case 4: return 'hsla(200,86%,93%,.45)'; // нейтрально — светло-голубой
-    case 5: return 'hsla(155,98%,55%,.52)'; // хорошо — мятный
-    case 6: return 'hsla(215,85%,60%,.60)'; // отлично — космически-синий
+    case 5: return 'hsla(350,78%,68%,.42)'; // НЕПЛОХО — мягкий розово-красный
+    case 6: return 'hsla(155,98%,55%,.52)'; // хорошо — мятный
+    case 7: return 'hsla(215,85%,60%,.60)'; // отлично — космически-синий
     default: return 'transparent';
   }
 }
@@ -1488,19 +1509,42 @@ function syncDiaryFromIntakes(){
 }
 
 // применить изменения дневника к UI main (сегодняшняя сумма, подсказки)
+// применить изменения дневника к UI main (накладываем ВСЕ даты)
 function applyDiaryToMain(d){
   try{
-    const today = (window.todayISO ? window.todayISO() : (new Date()).toISOString().slice(0,10));
-    const mgToday = Number(d?.[today]?.dose||0);
+    const diary = d || (function(){ try{ return JSON.parse(localStorage.getItem('rt.diary.v1')||'{}'); }catch(_){ return {}; } })();
+    // 1) Соберём оверлей по датам из дневника:
+    const overlay = {}; // iso -> {mg} | {drop:true} (пропуск)
+    for (const [iso, rec] of Object.entries(diary||{})){
+      if (!rec) continue;
+      if (rec.miss === true || rec.taken === false){ overlay[iso] = { drop:true }; continue; }
+      const mg = Number(rec.dose ?? rec.mg ?? 0);
+      if (mg > 0) overlay[iso] = { mg: Math.round(mg) };
+    }
+
+    // 2) Уберём из DOSES все даты, которые перекрываются дневником
+    const arr = Array.isArray(window.DOSES) ? window.DOSES.slice() : [];
+    const kept = arr.filter(x => !overlay[String((x.date||'')).slice(0,10)]);
+
+    // 3) Добавим записи из дневника (кроме drop)
+    for (const [iso, v] of Object.entries(overlay)){
+      if (v.drop) continue;
+      kept.push({ date: iso, mg: v.mg });
+    }
+
+    // 4) Отсортируем по дате (новые сверху)
+    kept.sort((a,b)=> String(b.date).localeCompare(String(a.date)));
+
+    // 5) Обновим глобальный массив
+    window.DOSES = kept;
+
+    // 6) Проставим кеш «сегодня», чтобы подпись "Сегодня: X мг" была верной
+    const today = (window.todayISO ? window.todayISO() : new Date().toISOString().slice(0,10));
+    const mgToday = Number(diary?.[today]?.dose || 0);
     localStorage.setItem('derma_today_iso', today);
     localStorage.setItem('derma_today_mg', String(mgToday));
 
-    // подправим DOSES для отображения «Сегодня: X мг»
-    if (Array.isArray(window.DOSES)){
-      window.DOSES = window.DOSES.filter(x => String(x.date||'').slice(0,10) !== today);
-      if (mgToday>0) window.DOSES.unshift({date: today, mg: mgToday});
-    }
-    // перерисовки
+    // 7) Перерисовки
     try{ window.updateSummary && window.updateSummary(); }catch(_){}
     try{ window.renderLast && window.renderLast(); }catch(_){}
     try{ window.updateDoseHint && window.updateDoseHint(); }catch(_){}
@@ -1809,6 +1853,8 @@ const mShort = ['Янв','Фев','Мар','Апр','Май','Июн','Июл','
 const startW = new Date(base);
 const endW = new Date(base); endW.setDate(endW.getDate() + 6);
 
+
+
 // Лейбл типа "Сентябрь 2025" или "Авг – Сен 2025" (учтём переход года)
 let label;
 if (startW.getMonth() === endW.getMonth() && startW.getFullYear() === endW.getFullYear()){
@@ -1822,6 +1868,8 @@ const ml = document.getElementById('calMonthLabel');
 if (ml) ml.textContent = label;
   const currentIso = (document.getElementById('date')?.value||'').slice(0,10);
   const dAll = diaryGet();
+  
+  
 
   for(let i=0;i<7;i++){
     const d = new Date(base); d.setDate(base.getDate()+i);
@@ -1841,14 +1889,18 @@ const monthChip = isFirstOfMonth ? `<span class="month-chip">${mShort[d.getMonth
     cell.setAttribute('data-iso', iso);
 
     if (rec.miss === true && mg === 0){
-      cell.classList.add('miss');
-      cell.style.setProperty('--glowC','rgba(244,63,94,.55)'); // красный для пропуска
-    } else if (moodIdx > 0){
-      cell.classList.add('mood-'+moodIdx);
-      cell.style.setProperty('--glowC', moodGlowColor(moodIdx));
-    } else {
-      cell.style.removeProperty('--glowC');
-    }
+  cell.classList.add('miss');
+  cell.style.setProperty('--glowC','rgba(244,63,94,.55)'); // красный — пропуск
+} else {
+  const moodIdx = moodIndexFromDiary(rec, iso);
+  if (moodIdx > 0){
+    cell.classList.add('mood-'+moodIdx);
+    cell.style.setProperty('--glowC', moodGlowColor(moodIdx)); // ← цвет самочувствия
+  } else {
+    cell.style.removeProperty('--glowC');
+  }
+}
+
 
     cell.innerHTML = `
   <div class="day-num">${Number(dd)}</div>
@@ -1883,13 +1935,38 @@ const monthChip = isFirstOfMonth ? `<span class="month-chip">${mShort[d.getMonth
     })();
 
     function updateSummary(){
-      let cum = 0;
-      try{ cum = (PROGRESS && Number.isFinite(PROGRESS.taken_mg)) ? Number(PROGRESS.taken_mg) : 0; }catch(_){}
-      if (!cum){
-        const ms = DOSES.map(x=>Number(x.mg||x.mg_taken||0));
-        cum   = ms.reduce((a,b)=>a+b,0);
-        try{ const seed = Number(localStorage.getItem('derma_seed_cum_mg')||0); if (seed>0) cum += seed; }catch(_){}
-      }
+     let cum = 0;
+// серверная кумуля
+try{ cum = parseInt(PROGRESS?.taken_mg||0); }catch(_){}
+if(!cum){ // fallback — по DOSES
+  const seen = new Set();
+  cum = (DOSES||[]).reduce((s,d)=> s + (seen.has(d.date) ? 0 : (seen.add(d.date), d.mg||0)), 0)
+      + (PROGRESS?.seed_cum_mg||0);
+}
+
+// +++ ДОБАВИЛИ: локальный оверлей дней из календаря (rt.diary.v1)
+try{
+  const diary = JSON.parse(localStorage.getItem('rt.diary.v1')||'{}');
+
+  // серверные мг по датам (то, что уже в DOSES)
+  const srv = Object.create(null);
+  for (const d of (DOSES||[])) {
+    const id = String(d.date).slice(0,10);
+    srv[id] = Number(d.mg || d.mg_taken || 0) || 0;
+  }
+
+  // разница локального дневника vs серверных DOSES
+  let delta = 0;
+  for (const [id, rec] of Object.entries(diary)) {
+    const drop = rec?.miss === true || rec?.taken === false;      // «пропуск»
+    const mg   = Number(rec?.dose ?? rec?.mg ?? 0) || 0;          // локально заданные мг
+    if (drop)       delta -= (srv[id] || 0);
+    else if (mg>0)  delta += (mg - (srv[id] || 0));
+  }
+
+  // прибавляем локальную дельту к кумулятивной дозе
+  cum += delta;
+}catch(_){}
 
       const w = Number((ME?.weight_kg ?? ME?.weight ?? PROGRESS?.weight_kg ?? 0));
       document.getElementById('cumMg').textContent       = fmtInt(cum);
@@ -2030,51 +2107,82 @@ try {
     document.getElementById('mg').addEventListener('input', syncChipsSelection);
 
     document.getElementById('save').addEventListener('click', async ()=>{
-      const mg   = Number(document.getElementById('mg').value || 0);
-      const date = document.getElementById('date').value || todayISO();
-      const st   = document.getElementById('saveStatus');
-      if (!(mg > 0)) { st.textContent = 'Введите дозу > 0'; return; }
-      st.textContent = 'Сохраняю...';
-      try {
-        const r = await api('/api/intakes', { method: 'POST', body: JSON.stringify({ mg, date }) });
-        if (!r.ok) { st.textContent = 'Ошибка ' + r.status; return; }
-        st.textContent = 'Сохранено';
-        DOSES.unshift({ mg: mg, date: date });
-        try{
-          const iso = (date||'').slice(0,10);
-          if (iso === (window.todayISO? window.todayISO(): iso)){
-            const prev = Number(localStorage.getItem('derma_today_mg')||0);
-            localStorage.setItem('derma_today_iso', iso);
-            localStorage.setItem('derma_today_mg', String(prev + mg));
-          }
-        }catch(_){}
-        try{ document.getElementById('remCard')?.classList.add('flipped'); }catch(_){}
-        try{ window.renderPillAlert && window.renderPillAlert(); }catch(_){}
-        try{ window.renderReminder && window.renderReminder(); }catch(_){}
-// вычитаем капсулы из остатка (если выбран тип капсулы)
-try{
-  const cap = Number(localStorage.getItem('rt.capsule_mg')||0);
-  if (cap > 0){
-    const count = (mg % cap === 0) ? (mg / cap) : Math.ceil(mg / cap);
-    const key = 'rt_capsules_left';
-    let left = Number(localStorage.getItem(key)||0);
-    if (left > 0){
-      left = Math.max(0, left - count);
-      localStorage.setItem(key, String(left));
-      // сигнал для других страниц (myprofile) через storage
-      localStorage.setItem('rt_capsules_left_bump', String(Date.now()));
-      localStorage.removeItem('rt_capsules_left_bump');
-      window.renderStockAlert && window.renderStockAlert();
-    }
-  }
-}catch(_){}
-        await loadAll().then(()=>{ try{ window.renderReminder && window.renderReminder(); }catch(_){ } }); updateDoseHint();
-      } catch (e) {
-        st.textContent = 'Ошибка сети';
-      }
-      bumpDiaryDose((date||'').slice(0,10), mg);
-      try{ window.renderPillAlert && window.renderPillAlert(); }catch(_){}
+  const mgEl = document.getElementById('mg');
+  const dateEl = document.getElementById('date');
+  const st = document.getElementById('saveStatus');
+
+  const mg = Number(mgEl?.value || 0);
+  const iso = String(dateEl?.value || todayISO()).slice(0,10);
+  if (!(mg > 0)) { st.textContent = 'Введите дозу > 0'; return; }
+
+  st.textContent = 'Сохраняю...';
+
+  let serverOk = false;
+  try {
+    const r = await api('/api/intakes', {
+      method: 'POST',
+      body: JSON.stringify({ mg, date: iso })
     });
+    serverOk = r.ok;
+    st.textContent = serverOk ? 'Сохранено ✓' : 'Сохранено локально';
+  } catch(_) {
+    st.textContent = 'Сохранено локально';
+  }
+
+  // --- Всегда пишем локально (даже если сервер дал 401) ---
+  try {
+    // дневник по датам
+    bumpDiaryDose(iso, mg);
+
+    // DOSES для UI (список последних приёмов)
+    if (Array.isArray(window.DOSES)) {
+      window.DOSES.unshift({ mg, date: iso });
+    }
+
+    // кеш «сегодня»
+    const today = (window.todayISO ? window.todayISO() : new Date().toISOString().slice(0,10));
+    if (iso === today) {
+      const prev = Number(localStorage.getItem('derma_today_mg')||0);
+      localStorage.setItem('derma_today_iso', iso);
+      localStorage.setItem('derma_today_mg', String(prev + mg));
+    }
+
+    // перерисовка интерфейса
+    try { applyDiaryToMain(diaryGet()); } catch(_){}
+    try { renderCalPreview(); } catch(_){}
+    try { updateSummary(); } catch(_){}
+    try { updateDoseHint(); } catch(_){}
+    try { window.renderReminder && window.renderReminder(); } catch(_){}
+    try { window.renderPillAlert && window.renderPillAlert(); } catch(_){}
+    
+// === СПИСЫВАЕМ КАПСУЛЫ и "пинаем" обновление остатка капсул ===
+try {
+  const capMg = Math.max(1, Number(localStorage.getItem('rt.capsule_mg')) || 0);
+  if (capMg) {
+    // mg — это твоя добавленная доза из кода выше
+    const usedCaps = Math.max(1, Math.ceil(mg / capMg)); // сколько капсул ушло на этот приём
+    const cur = Math.max(0, Number(localStorage.getItem('rt_capsules_left')) || 0);
+    const next = Math.max(0, cur - usedCaps);
+    localStorage.setItem('rt_capsules_left', String(next));
+
+    // отдельный "бамп" для тех страниц, что следят за остатком капсул
+    localStorage.setItem('rt_capsules_left_bump', String(Date.now()));
+    localStorage.removeItem('rt_capsules_left_bump');
+  }
+} catch(_) {}
+    // «пинок» для других вкладок/страниц
+    try {
+      localStorage.setItem('rt.diary.bump', Date.now().toString());
+      localStorage.removeItem('rt.diary.bump');
+    } catch(_){}
+  } catch(_) {}
+
+  // если сервер принял — мягко синхронизируемся
+  if (serverOk) {
+    try { await loadAll(); } catch(_){}
+  }
+});
+
 
     (async function hydrateTgUser(){
   const tg  = window.Telegram?.WebApp;
@@ -2379,7 +2487,7 @@ function updateDoseHint(){
   if(!btn) return;
   btn.addEventListener('click', (e)=>{
     e.preventDefault();
-     if(typeof go==='function'){ go('/calendar.html'); return; }
+     if(typeof go==='function'){ go('/dark/calendar.html'); return; }
     location.assign('/calendar.html');
   });
 })();

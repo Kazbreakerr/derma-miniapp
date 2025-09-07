@@ -329,7 +329,7 @@ html[data-theme="light"] .cancel{
   </button>
 
   <div class="btns">
-    <a class="cancel" id="btnCancel" href="./main.html">Отмена</a>
+    <a class="cancel" id="btnCancel" href="#">Отмена</a>
     <span id="msg" class="muted"></span>
   </div>
 </div>
@@ -445,7 +445,16 @@ try {
           }
         }catch(_ ){}
         msg.textContent = 'Готово';
-        setTimeout(()=>{ location.replace('./welcome-rt.html' + (location.search||'')); }, 450);
+        setTimeout(()=>{
+  try{
+    const qs = location.search || '';
+    const next = encodeURIComponent('./welcome-rt.html' + qs);
+    const target = './splash-video.html' + (qs ? qs + '&' : '?') + 'next=' + next;
+    location.replace(target);
+  }catch(_){
+    location.replace('./splash-video.html'); // запасной вариант
+  }
+}, 450);
       }catch(e){
         msg.textContent = 'Ошибка сети'; btn.disabled=false; setProgress(0);
       }
@@ -529,5 +538,28 @@ try {
   .pill-alert--stock{ animation:none }
 }
 </style>
+
+<script>
+(function(){
+  const a = document.getElementById('btnCancel'); if(!a) return;
+  const qs = new URLSearchParams(location.search);
+  const fromParam = qs.get('from');
+  const sameOrigin = (u) => { try { return new URL(u, location.href).origin === location.origin; } catch { return false; } };
+
+  let target = null;
+  if (fromParam && sameOrigin(fromParam))       target = fromParam;
+  else if (document.referrer && sameOrigin(document.referrer)) target = document.referrer;
+
+  a.setAttribute('href', target || ('./main.html' + (location.search || '')));
+
+  a.addEventListener('click', function(e){
+    e.preventDefault();
+    if (target) return location.replace(target);
+    if (history.length > 1) return history.back();
+    location.replace('./main.html' + (location.search || ''));
+  });
+})();
+</script>
+
 </body>
 </html>

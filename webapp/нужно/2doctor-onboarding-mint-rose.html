@@ -212,7 +212,7 @@
             <div class="dr-field"><label class="dr-label">Telegram (опц.)</label><input class="dr-input" id="tg" placeholder="@dr_skin"></div>
             <div class="dr-field"><label class="dr-label">Телефон/сайт (опц.)</label><input class="dr-input" id="contact" placeholder="+7••• / site.ru"></div>
           </div>
-          <div class="dr-actions" style="justify-content:space-between"><a class="dr-btn-ghost" id="back1" href="welcome-rt.html">Назад</a><button class="dr-btn" id="next1" disabled>Далее</button></div>
+          <div class="dr-actions"><button class="dr-btn" id="next1" disabled>Далее</button></div>
         </div>
       </section>
 
@@ -392,63 +392,49 @@
     });
     $('#qrClose').addEventListener('click',()=>$('#qrModal').classList.remove('show'));
 
-document.getElementById('finishBtn').addEventListener('click', async () => {
-  // Собираем данные из локалки (их сохранили на шагах 1-2)
-  const code      = store.get('doctorCode');
-  const profile   = store.get('doctorProfile', {});
-  const settings  = store.get('doctorSettings', {});
-  const avatarUrl = localStorage.getItem('doctorAvatarUrl') || null;
+    document.getElementById('finishBtn').addEventListener('click', async () => {
+    const store = { set:(k,v)=>localStorage.setItem(k,JSON.stringify(v)), get:(k,d=null)=>JSON.parse(localStorage.getItem(k)||'null')??d };
+    const code     = store.get('doctorCode');
+    const profile  = store.get('doctorProfile', {});
+    const settings = store.get('doctorSettings', {});
+    const avatarUrl= localStorage.getItem('doctorAvatarUrl') || null;
 
-  // Без кода сгенерируем на лету (страховка)
-  if (!code || !/^[A-Z0-9]{5}$/.test(code)) {
-    const ABC='ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
-    const genCode=()=> Array.from({length:5},()=>ABC[Math.floor(Math.random()*ABC.length)]).join('');
-    const newCode = genCode();
-    store.set('doctorCode', newCode);
-  }
+    try{
+      const initData = window.Telegram?.WebApp?.initData || '';
+        const devTg = new URLSearchParams(location.search).get('tg');
+ const url = (window.API_BASE||'') + '/api/doctor/code' + (devTg ? ('?tg=' + encodeURIComponent(devTg)) : '');
+      await fetch(url, {
+        method: 'POST',
+        headers: {
+          'Content-Type':'application/json',
+          ...(initData ? { 'X-Telegram-InitData': initData } : {})
+        },
+        body: JSON.stringify({ code, profile, settings, avatarUrl })
+      });
+    }catch(e){ console.warn('persist doctor code failed', e); }
 
-  // Пытаемся сохранить на сервере, но переход в кабинет сделаем в любом случае
+    try { localStorage.setItem('rt_doctor_done', '1'); localStorage.setItem('rt_role', 'doctor'); } catch(_) {}
+    store.set('doctorOnboardingDone', { at: new Date().toISOString() });
+    const qs = location.search || '';
+    
+    // --- ИМЕННОЙ флаг онбординга для текущего tg ---
+{
+  const sp = new URLSearchParams(location.search);
+  const tgInit = window.Telegram?.WebApp?.initDataUnsafe?.user?.id;
+  const uid = sp.get('tg') || tgInit || '';  // здесь без dev-дефолта
   try {
-    const initData = window.Telegram?.WebApp?.initData || '';
-    const devTg =
-      new URLSearchParams(location.search).get('tg') ||
-      localStorage.getItem('rt_dev_tg') || '1002';
-    try { localStorage.setItem('rt_dev_tg', devTg); } catch(_) {}
-
-    const url = (window.API_BASE||'') + '/api/doctor/code' + (initData ? '' : ('?tg=' + encodeURIComponent(devTg)));
-    await fetch(url, {
-      method: 'POST',
-      headers: {
-        'Content-Type':'application/json',
-        ...(initData ? { 'X-Telegram-InitData': initData } : {})
-      },
-      body: JSON.stringify({ code: store.get('doctorCode'), profile, settings, avatarUrl })
-    });
-  } catch(e) {
-    console.warn('persist doctor code failed', e);
-  }
-
-  // Ставим флаги онбординга (именной + общий)
-  try {
-    const sp = new URLSearchParams(location.search);
-    const tgInit = window.Telegram?.WebApp?.initDataUnsafe?.user?.id;
-    const uid = sp.get('tg') || tgInit || '';
-    if (uid) localStorage.setItem(`dermaApp:${uid}:doctor_done`, '1');
-    localStorage.setItem('rt_doctor_done','1');
+    if (uid) localStorage.setItem(`dermaApp:${uid}:doctor_done`, '1'); // именной
+    localStorage.setItem('rt_doctor_done','1');                        // глобальный (на всякий)
     localStorage.setItem('rt_role','doctor');
   } catch(_) {}
+}
 
-  // Переход в кабинет с сохранением query и добавлением code
-  const currentQS = location.search || '';
-  const realCode = store.get('doctorCode') || (document.getElementById('doctorCode')?.textContent.trim() || '');
-  const sep = currentQS.includes('?') && currentQS.length > 0 ? '&' : (currentQS ? '?' : '?');
-  const target = 'doctor-cabinet-mint-rose.html' + (currentQS || '') + sep + 'code=' + encodeURIComponent(realCode) + '#/doctor/patients';
+    // внутри обработчика finishBtn (ниже, сразу после вычисления qs)
+const realCode = store.get('doctorCode') || $('#doctorCode').textContent.trim();
+const sep = (qs && qs.includes('?')) ? '&' : '?';
+location.href = 'doctor-cabinet-mint-rose.html' + (qs || '') + sep + 'code=' + encodeURIComponent(realCode) + '#/doctor/patients';
 
-  // Надёжный переход
-  if (window.Telegram?.WebApp?.openLink) {
-    try { window.Telegram.WebApp.openLink(target); return; } catch(_) {}
-  }
-  location.replace(target);
-});</script>
+  });
+</script>
 </body>
 </html>

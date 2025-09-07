@@ -6,25 +6,23 @@
   "license": "UNLICENSED",
   "type": "commonjs",
   "main": "server.js",
-
   "engines": {
     "node": ">=18.18 <23",
     "npm": ">=9"
   },
   "packageManager": "npm@10.8.2",
-
   "scripts": {
-    "start": "NODE_ENV=production node server.js",
-    "dev": "nodemon --quit server.js",
+    "start": "node server.js",
+  "dev": "nodemon --quit server.js",
     "audit": "npm audit",
     "audit:prod": "npm audit --omit=dev",
     "audit:fix": "npm audit fix --omit=dev || true",
     "outdated": "npm outdated",
     "postinstall": "node -e \"console.log('postinstall done')\""
   },
-
   "dependencies": {
     "compression": "1.7.5",
+    "cookie-parser": "^1.4.7",
     "cors": "2.8.5",
     "dotenv": "16.4.5",
     "express": "4.19.2",
@@ -33,13 +31,20 @@
     "node-telegram-bot-api": "0.66.0",
     "pg": "8.11.3"
   },
-
   "devDependencies": {
+    "cross-env": "^10.0.0",
     "nodemon": "3.1.0"
   },
-
   "nodemonConfig": {
-    "watch": ["server.js", "api", "routes"],
-    "ignore": ["node_modules", "public", "dist"]
+    "watch": [
+      "server.js",
+      "api",
+      "routes"
+    ],
+    "ignore": [
+      "node_modules",
+      "public",
+      "dist"
+    ]
   }
 }

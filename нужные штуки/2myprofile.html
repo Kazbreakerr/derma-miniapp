@@ -4,8 +4,29 @@
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>Профиль — RoaccutaneTracker</title>
+  <link rel="stylesheet" href="/pill-alert.css">
+<link rel="stylesheet" href="/css/ui-tokens.css">
+<script src="/pill-alert.js" defer></script>
+<script>window.render = window.render || function(){};</script>
+<script>
+  try{
+    const s = JSON.parse(localStorage.getItem('rt.settings')||'{}');
+    const t = s?.theme || localStorage.getItem('rt_theme') || 'dark';
+    document.documentElement.dataset.theme = t;
+  }catch(e){
+    document.documentElement.dataset.theme = localStorage.getItem('rt_theme') || 'dark';
+  }
+</script>
+
   <style>
     :root{
+      --bg: #0b0f16;
+      --bg-grad:
+        radial-gradient(1100px 620px at 12% -10%, rgba(255, 119, 156, .14) 0%, rgba(255, 119, 156, .06) 36%, transparent 60%),
+        radial-gradient(950px 680px at 88% 92%, rgba(56, 189, 248, .16) 0%, rgba(56, 189, 248, .08) 35%, transparent 60%),
+        radial-gradient(1200px 900px at 42% 30%, rgba(250, 204, 21, .10) 0%, rgba(250, 204, 21, .04) 35%, transparent 62%),
+        linear-gradient(#0b0f16,#0b0f16);
+
       --bg-0:#0f1722; /* общий фон */
       --bg-1:rgba(255,255,255,.06); /* стекло */
       --bg-2:rgba(255,255,255,.04);
@@ -26,8 +47,9 @@
     *{box-sizing:border-box}
     html,body{height:100%}
     body{
-      margin:0; color:var(--txt); background: radial-gradient(1200px 600px at 75% -10%, #18304e, transparent 60%),
-                 radial-gradient(900px 600px at -10% 10%, #1a2b3f, transparent 60%), var(--bg-0);
+      margin:0; color:var(--txt);
+      background: var(--bg-grad);
+      color:var(--txt);
       font: 15px/1.45 system-ui, -apple-system, Segoe UI, Roboto, Inter, Arial, sans-serif;
     }
     a{color:inherit; text-decoration:none}
@@ -36,12 +58,83 @@
 
     /* Top bar */
     .topbar{ position:sticky; top:0; z-index:50; display:flex; align-items:center; justify-content:space-between; gap:10px; padding:10px 6px; background:linear-gradient(to bottom, rgba(15,23,34,.9), rgba(15,23,34,.55) 60%, transparent); backdrop-filter: blur(10px); }
-    .title{ font-weight:700; letter-spacing:.2px; font-size:18px; opacity:.9 }
+    .title{ font-weight:700; letter-spacing:.2px; font-size:18px; opacity:.9 }/* Подпись бренда в топбаре */
+.brand{
+  font-weight:800;
+  font-size:18px;
+  letter-spacing:.3px;
+  opacity:.95;
+  background: linear-gradient(180deg, rgba(255,255,255,.95), rgba(255,255,255,.78));
+  -webkit-background-clip:text;
+  color: transparent;
+  text-shadow: 0 1px 0 rgba(0,0,0,.25);
+}
+
+/* Крупный заголовок страницы — как на calendar.html */
+.app-title{
+  font-size: clamp(20px, 4vw, 36px);
+  font-weight:800;
+  letter-spacing:.3px;
+  margin: 6px 0 16px;
+  padding-left: 6px;             /* лёгкий отступ, как на календаре */
+  text-shadow: 0 1px 0 rgba(0,0,0,.2);
+}
+body.light .app-title{
+  color:#0d1220;
+  text-shadow:none;
+}
+
     .iconbtn{ display:inline-flex; align-items:center; justify-content:center; width:42px; height:42px; border-radius:999px; background:linear-gradient(180deg, rgba(255,255,255,.08), rgba(255,255,255,.02)); border:1px solid var(--bd-1); box-shadow:var(--shadow); cursor:pointer }
     .iconbtn.modern{ position:relative; background:linear-gradient(135deg, rgba(35,227,204,.18), rgba(52,137,255,.12)); border:1px solid rgba(255,255,255,.18); }
     .iconbtn.modern:hover{ transform:translateY(-1px) scale(1.02) }
     .iconbtn.modern::after{ content:""; position:absolute; inset:0; border-radius:inherit; box-shadow:inset 0 1px 8px rgba(255,255,255,.06), 0 0 0 1px rgba(0,0,0,.15); pointer-events:none }
     .iconbtn:hover{ transform:translateY(-1px) }
+    /* круглые кнопки в топбаре: FAQ и Reset */
+.iconbtn{ width:42px; height:42px; } /* чтобы точно были круглыми и одинаковыми */
+
+/* FAQ — мягкий бирюзово-синий неоморф с текстом */
+.iconbtn.faq{
+  position:relative;
+  border:1px solid rgba(255,255,255,.18);
+  background:
+    radial-gradient(120% 120% at 30% -10%, rgba(94,207,200,.28), rgba(94,207,200,0) 60%),
+    linear-gradient(180deg, rgba(255,255,255,.08), rgba(255,255,255,.02));
+  box-shadow: var(--shadow);
+}
+.iconbtn.faq .txt{
+  font-weight:800;
+  font-size:12px;
+  letter-spacing:.08em;
+  text-transform:uppercase;
+  opacity:.95;
+}
+
+/* Reset — тёплый красный градиент как на референсе */
+.iconbtn.reset{
+  border:none;
+  background: linear-gradient(135deg, #ff6054, #e63b2e);
+  color:#0d1220;
+  box-shadow:
+    0 10px 26px rgba(230,59,46,.35),
+    inset 0 1px 0 rgba(255,255,255,.18);
+}
+.iconbtn.reset:hover{ transform:translateY(-1px) scale(1.03); }
+
+/* лёгкие ховеры一致ные для всех */
+.iconbtn.faq:hover{ transform:translateY(-1px) scale(1.02); }
+
+/* светлая тема — немного корректируем контраст */
+body.light .iconbtn.faq{
+  border-color: rgba(0,0,0,.10);
+  background:
+    radial-gradient(120% 120% at 30% -10%, rgba(94,207,200,.25), rgba(94,207,200,0) 60%),
+    linear-gradient(180deg, rgba(255,255,255,.92), rgba(255,255,255,.80));
+}
+body.light .iconbtn.reset{
+  box-shadow:
+    0 10px 20px rgba(230,59,46,.28),
+    inset 0 1px 0 rgba(255,255,255,.24);
+}
 
     /* Glass card */
     .card{ background:var(--bg-1); border:1px solid var(--bd-1); box-shadow:var(--shadow); border-radius:var(--radius-2xl); backdrop-filter: blur(14px) saturate(1.35); -webkit-backdrop-filter: blur(14px) saturate(1.35); }
@@ -65,6 +158,7 @@
 
     .hero-name{ font-weight:700; font-size:18px; }
     .hero-meta{ color:var(--muted); font-size:13px; }
+    
 
     /* Chips grid around avatar */
     .chips{ margin-top:8px; display:grid; grid-template-columns:repeat(6, minmax(0,1fr)); gap:10px; }
@@ -87,6 +181,15 @@
     .kv{ display:grid; grid-template-columns: 120px 1fr; gap:8px 12px; align-items:center; }
     .kv dt{ color:var(--muted) }
     .kv dd{ margin:0 }
+    /* аккуратная подпись под полем "Осталось таблеток" */
+.kv dd .help--caps{
+  display:block;
+  margin-top:6px;
+  font-size:13px;
+  color:var(--muted);
+  opacity:.95;
+}
+body.light .kv dd .help--caps{ opacity:.9; }
 
     .doctor{ display:grid; grid-template-columns: 1fr auto; gap:10px; align-items:center; min-width:260px; }
     .doctor .actions{ display:flex; gap:8px }
@@ -112,6 +215,49 @@
     .field .lhs{ display:flex; flex-direction:column; gap:4px }
     .field .rhs{ display:flex; align-items:center; gap:12px }
     .field .unit{ opacity:.8 }
+    /* --- Пилюльный инпут с единицей измерения (как в блоке закупки) --- */
+.unit-input{
+  display:inline-flex;
+  align-items:center;
+  gap:0px;}
+  .unit-input__num{
+  padding-right:4px;  /* маленький зазор */
+
+  padding:8px 12px;
+  border-radius:999px;
+  background:rgba(255,255,255,.04);
+  border:1px solid rgba(255,255,255,.08);
+  backdrop-filter:saturate(140%) blur(4px);
+}
+
+.unit-input:focus-within{
+  border-color:rgba(20,184,166,.45);            /* акцент = ваш primary/teal */
+  box-shadow:0 0 0 2px rgba(20,184,166,.28) inset;
+}
+
+.unit-input__num{
+  width:7ch;
+  background:transparent;
+  border:0;
+  outline:0;
+  color:inherit;
+  text-align:center;
+  font-variant-numeric:tabular-nums;
+}
+
+.unit-input__num::-webkit-outer-spin-button,
+.unit-input__num::-webkit-inner-spin-button{
+  -webkit-appearance:none; margin:0;
+}
+.unit-input__num{ -moz-appearance:textfield; }  /* убираем стрелки в Firefox */
+
+.unit-input__unit{ opacity:.8; }
+dd:has(#capsLeftInput){
+  margin-left: -5px; /* регулируй -4px, -8px, -12px в зависимости от того, насколько нужно подвинуть */
+}
+#capsLeftInput{
+  margin-left:-3px; /* двигай цифру */
+}
 
     /* switch */
     .switch{ position:relative; width:54px; height:32px; flex:0 0 auto }
@@ -155,8 +301,22 @@
     .btn.contrast:hover{ background:rgba(255,255,255,.1); }
     .btn.contrast svg{ stroke: currentColor; }
   /* Light theme overrides */
-    body.light{ color:var(--txt); background: radial-gradient(1600px 900px at 82% -12%, rgba(82, 220, 164, .55), transparent 60%), radial-gradient(1600px 900px at -12% 0%, rgba(255, 185, 150, .55), transparent 60%), var(--bg-0); }
-    body.light:root{}
+    body.light{ color:var(--txt);
+  background:
+    radial-gradient(1700px 1000px at 82% -15%, rgba(94,207,200,.45) 0%, rgba(94,207,200,0) 60%),
+    radial-gradient(1700px 1000px at -12% 0%,  rgba(255,211,163,.45) 0%, rgba(255,211,163,0) 60%),
+    linear-gradient(180deg, rgba(255,255,255,0) 0%, rgba(0,0,0,.03) 45%, rgba(0,0,0,.02) 70%, rgba(255,255,255,0) 100%),
+    var(--bg-0);
+  background-attachment: fixed, fixed, fixed, fixed;
+}
+    body.light:root{
+      --bg: #0b0f16;
+      --bg-grad:
+        radial-gradient(1100px 620px at 12% -10%, rgba(255, 119, 156, .14) 0%, rgba(255, 119, 156, .06) 36%, transparent 60%),
+        radial-gradient(950px 680px at 88% 92%, rgba(56, 189, 248, .16) 0%, rgba(56, 189, 248, .08) 35%, transparent 60%),
+        radial-gradient(1200px 900px at 42% 30%, rgba(250, 204, 21, .10) 0%, rgba(250, 204, 21, .04) 35%, transparent 62%),
+        linear-gradient(#0b0f16,#0b0f16);
+}
     body.light{ --bg-0:#eef2f8; --bg-1:rgba(255,255,255,.66); --bg-2:rgba(255,255,255,.45); --bd-1:rgba(0,0,0,.08); --txt:#0d1220; --muted:#5a6783; }
     body.light .tabbar{ background:rgba(255,255,255,.85); border-top:1px solid rgba(0,0,0,.08); }
     body.light .topbar{ background:linear-gradient(to bottom, rgba(255,255,255,.92), rgba(255,255,255,.7) 60%, transparent); }
@@ -247,7 +407,6 @@ body.light .tab.active{
   border:1px solid rgba(0,0,0,.12);
 }
 
-
 /* === Fade&Slide cross-page transitions === */
 @keyframes vt-fade-slide-in {
   from { opacity: 0; transform: translateY(8px) scale(.995); }
@@ -259,6 +418,74 @@ body.light .tab.active{
 }
 ::view-transition-old(root){ animation: vt-fade-slide-out .35s ease both; }
 ::view-transition-new(root){ animation: vt-fade-slide-in  .35s ease both; }
+
+/* === Emphasized diary block + CTA === */
+.diary.is-cta{
+  background:
+    linear-gradient(135deg, rgba(35,227,204,.16), rgba(52,137,255,.12)),
+    var(--bg-1) !important;
+  box-shadow: 0 10px 28px rgba(0,0,0,.25), inset 0 0 0 1px rgba(255,255,255,.06);
+  border-color: rgba(255,255,255,.18) !important;
+}
+.diary .diary-title{ font-weight:800; font-size:16px; letter-spacing:.2px; margin-bottom:4px; }
+.diary .diary-desc{ color:var(--muted); max-width:52ch; }
+.btn.primary.cta{
+  min-height:48px; padding:0 18px; font-size:15px; border-radius:16px;
+  background: linear-gradient(135deg, var(--accent-1), var(--accent-2));
+  box-shadow: 0 10px 22px rgba(35,227,204,.25);
+}
+.btn.primary.cta:hover{ transform: translateY(-1px) scale(1.01); }
+body.light .diary.is-cta{
+  background: linear-gradient(135deg, rgba(94,207,200,.35), rgba(255,211,163,.30)), var(--bg-1) !important;
+  border-color: rgba(0,0,0,.08) !important;
+  box-shadow: 0 10px 22px rgba(94,207,200,.20);
+}
+
+/* === Compact theme toggle variant (preserves design) === */
+#themeToggle.theme-toggle.small{ --h:32px; --w:88px; --pad:4px; --bd:2px; }
+@media (max-width: 480px){ #themeToggle.theme-toggle.small{ --h:30px; --w:80px; --pad:4px; } }
+
+
+/* ДЕНЬ (UNCHECKED) — Солнце */
+.theme-toggle input:not(:checked) + .track .thumb::before,
+.theme-toggle input:not(:checked) + .scene .thumb::before,
+.theme-toggle input:not(:checked) + .theme-toggle__track .theme-toggle__thumb::before{
+  /* ядро солнца: замени три цвета */
+  background: radial-gradient(60% 60% at 45% 40%,
+    #FFF4BF 0%,   /* ← светлая сердцевина */
+    #FFD67D 55%,  /* ← середина */
+    #FFB84D 100%  /* ← край */
+  );
+}
+.theme-toggle input:not(:checked) + .track .thumb::after,
+.theme-toggle input:not(:checked) + .scene .thumb::after,
+.theme-toggle input:not(:checked) + .theme-toggle__track .theme-toggle__thumb::after{
+  /* ореол солнца */
+  background: radial-gradient(80% 80% at 50% 50%, rgba(255,210,120,.32), transparent 70%);
+}
+
+/* НОЧЬ (CHECKED) — Луна */
+.theme-toggle input:checked + .track .thumb::before,
+.theme-toggle input:checked + .scene .thumb::before,
+.theme-toggle input:checked + .theme-toggle__track .theme-toggle__thumb::before{
+  /* тело луны + кратеры: меняй 4 цвета */
+  background:
+    radial-gradient(60% 60% at 50% 45%,
+      #F2F5FF 0%,   /* центр луны */
+      #DDE3FF 60%,  /* переход */
+      #C8CFF5 100%  /* край */
+    ),
+    radial-gradient(8px 8px at 36% 40%, #B8C0EA 98%, transparent 100%),
+    radial-gradient(6px 6px at 62% 58%, #B8C0EA 98%, transparent 100%),
+    radial-gradient(5px 5px at 45% 68%, #B8C0EA 98%, transparent 100%);
+}
+.theme-toggle input:checked + .track .thumb::after,
+.theme-toggle input:checked + .scene .thumb::after,
+.theme-toggle input:checked + .theme-toggle__track .theme-toggle__thumb::after{
+  /* ореол луны */
+  background: radial-gradient(80% 80% at 52% 48%, rgba(210,218,255,.26), transparent 70%);
+}
+
 
 </style>
  <script src="https://telegram.org/js/telegram-web-app.js"></script>
@@ -354,12 +581,213 @@ body.light .tab.active{
     #themeToggle.theme-toggle .scene{ inset: var(--bd) !important; border-radius: calc(var(--h)/2 - var(--bd)) !important; overflow: hidden !important; }
     #themeToggle.theme-toggle .scene svg{ width: 100% !important; height: 100% !important; display: block !important; }
   </style>
+  <style>
+  .pill-alert{display:inline-flex;align-items:center;gap:.35rem;padding:.25rem .6rem;border-radius:999px;font-size:.9rem;font-weight:700;letter-spacing:.02em}
+  
+</style>
+<style id="pill-alert-style">
+  .pill-alert{
+    display:inline-flex;align-items:center;justify-content:center;
+    margin-left:10px;padding:2px 8px;border-radius:10px;
+    font-weight:800;font-size:12px;letter-spacing:.2px;
+    color:#fff;background:#ff4242;
+    box-shadow:0 0 0 0 rgba(255,66,66,.65);
+    animation:hazard 1.15s steps(2,start) infinite;
+  }
+  .pill-alert--stock{
+    animation: breath 1.6s ease-in-out infinite;
+  box-shadow: 0 0 0 0 rgba(16,185,129,.35);
+    background: linear-gradient(135deg, #1dd1a1, #10b981);
+    color:#07131b; border:1px solid rgba(255,255,255,.15);
+    box-shadow: 0 4px 20px rgba(16,185,129,.25);
+  }
+  @keyframes hazard{to{opacity:.38;box-shadow:0 0 0 10px rgba(255,66,66,0)}}
+  @media (prefers-reduced-motion:reduce){.pill-alert{animation:none}}
+  
+  /* --- Reset panel (информирует, не пугает) --- */
+.reset-panel{
+  margin-top:16px;
+  padding:16px 18px;
+  display:flex; align-items:center; justify-content:space-between; gap:14px;
+  border-radius: var(--radius-2xl);
+  border:1px solid rgba(230,59,46,.25);              /* лёгкий красный контур */
+  background:
+    radial-gradient(120% 140% at -10% -20%, rgba(230,59,46,.10), rgba(230,59,46,0) 55%),
+    linear-gradient(180deg, rgba(255,255,255,.08), rgba(255,255,255,.02));
+  box-shadow: var(--shadow), inset 0 0 0 1px rgba(255,255,255,.04);
+}
+.reset-panel .reset-title{ margin:0 0 6px 0; font-weight:800; letter-spacing:.2px; }
+.reset-panel .muted b{ color:inherit; opacity:1; }
+
+.btn.btn-reset{
+  display:inline-flex; align-items:center; justify-content:center;
+  min-height:44px; padding:0 16px;
+  border-radius:16px; font-weight:700;
+  border:1px solid rgba(230,59,46,.45);
+  background: rgba(230,59,46,.10);                   /* спокойная, не кричащая */
+  color:#fff;
+  box-shadow: 0 8px 20px rgba(230,59,46,.22), inset 0 1px 0 rgba(255,255,255,.10);
+  transition: transform .2s ease, box-shadow .2s ease, background .2s ease, border-color .2s ease;
+}
+.btn.btn-reset:hover{
+  transform: translateY(-1px);
+  background: rgba(230,59,46,.14);
+  box-shadow: 0 10px 24px rgba(230,59,46,.26);
+}
+.btn.btn-reset:active{ transform: translateY(0); }
+
+/* Светлая тема: повышаем читаемость и снижаем «опасность» тона */
+body.light .reset-panel{
+  border-color: rgba(230,59,46,.22);
+  background:
+    radial-gradient(120% 140% at -10% -20%, rgba(230,59,46,.08), rgba(230,59,46,0) 55%),
+    var(--bg-1);
+}
+body.light .btn.btn-reset{
+  background: rgba(230,59,46,.08);
+  color:#0d1220;
+  border-color: rgba(230,59,46,.35);
+  box-shadow: 0 8px 16px rgba(230,59,46,.18), inset 0 1px 0 rgba(255,255,255,.65);
+}
+</style>
+
+<script id="pill-alert-script">
+(function(){
+  function todayISO(){const d=new Date();d.setMinutes(d.getMinutes()-d.getTimezoneOffset());return d.toISOString().slice(0,10);}
+  function getTodayMg(){
+    const iso=todayISO();
+    try{ const tIso=localStorage.getItem('derma_today_iso');
+      if(tIso===iso){ const mg=+localStorage.getItem('derma_today_mg')||0; if(mg>0) return mg; }
+    }catch(_){}
+    try{ const diary=JSON.parse(localStorage.getItem('rt.diary.v1')||'{}'); const rec=diary[iso];
+      if(rec){ if(rec.miss===true||rec.taken===false) return 0; return +(rec.dose ?? rec.mg ?? 0)||0; }
+    }catch(_){}
+    return 0;
+  }
+  function render(){
+    const need=getTodayMg()<=0;
+    document.querySelectorAll('[data-pill-spot]').forEach(spot=>{
+      let b=spot.querySelector('.pill-alert');
+      if(!need){ if(b) b.remove(); return; }
+      if(!b){ b=document.createElement('span'); b.className='pill-alert'; b.textContent='препарат';
+        b.title='Сегодня доза не отмечена'; spot.appendChild(b); }
+    });
+  }
+  window.addEventListener('storage',e=>{
+    if(['rt.diary.v1','derma_today_iso','derma_today_mg'].includes(e.key)) render();
+  });
+  document.addEventListener('visibilitychange',()=>{ if(!document.hidden) render(); });
+  document.addEventListener('DOMContentLoaded',render);
+  window.renderPillAlert = render; // ручной перерендер на всякий
+})();
+</script>
+
+
+<style>.hero{position:relative}.hero .hero-alert{position:absolute;top:12px;left:12px;display:inline-flex;gap:8px;align-items:center;z-index:5}.app-title{margin:6px 0 10px!important}.topbar{top:10px!important}</style>
+<style id="hero-bg-layer">
+/* картинка под стеклянной .hero */
+.hero{
+  --hero-bg-img: none;   /* сюда JS подставляет url(...) */
+  --hero-bg-op: .65;     /* непрозрачность картинки */
+}
+/* показываем картинку и зелёную «вуаль» только когда есть фон */
+.hero.has-bg::before{
+  content:"";
+  position:absolute; inset:0; border-radius:inherit;
+  background: var(--hero-bg-img) center/cover no-repeat;
+  filter: saturate(1.05) contrast(1.05) brightness(.9);
+  opacity: var(--hero-bg-op);
+  z-index: 0;
+}
+.hero.has-bg::after{ background: none; }    
+/* всё содержимое .hero поверх */
+.hero > *{ position:relative; z-index:1 }
+
+/* мини-переключатель превью (справа-сверху карточки) */
+.hero-bg-switch{
+  position:absolute; right:12px; top:12px; z-index:2;
+  display:flex; gap:8px;
+}
+.hero-bg-switch button{
+  width:28px; height:28px; border-radius:999px; cursor:pointer;
+  border:1px solid var(--bd-1);
+  background: rgba(255,255,255,.08);
+  -webkit-backdrop-filter: blur(6px) saturate(1.2);
+  backdrop-filter: blur(6px) saturate(1.2);
+  box-shadow: var(--shadow);
+  overflow:hidden; position:relative;
+}
+.hero-bg-switch button::before{
+  content:""; position:absolute; inset:0; border-radius:inherit;
+  background-size: cover; background-position:center;
+  filter: saturate(1.05) contrast(1.05) brightness(.95);
+}
+.hero-bg-switch .b1::before{ background-image:url("img/wall-bear-pill.png"); }
+.hero-bg-switch .b2::before{ background-image:url("img/wall-molecule.png"); }
+.hero-bg-switch .b3::before{ background-image:url("img/wall-capsules.png"); }
+.hero-bg-switch button.is-on{ outline:2px solid rgba(35,227,204,.7); }
+
+/* светлая тема: фон мягче */
+html[data-theme="light"] .hero.has-bg::before{ opacity:.35; filter:saturate(1.05) brightness(1.05); }
+</style>
+
+<style id="hero-bg-layer-patch">
+/* гарантируем относительное позиционирование для псевдоэлементов */
+#hero.hero{ position: relative; }
+
+/* показываем фон только когда есть класс .has-bg */
+#hero.hero.has-bg::before{
+  content:""; position:absolute; inset:0; border-radius:inherit;
+  background: var(--hero-bg-img) center/cover no-repeat;
+  filter: saturate(1.05) contrast(1.05) brightness(.9);
+  opacity: var(--hero-bg-op, .55);
+  z-index:0;
+}
+#hero.hero.has-bg::after{
+  content:""; position:absolute; inset:0; border-radius:inherit; z-index:0; pointer-events:none;
+  background: linear-gradient(135deg, rgba(46,230,161,.18), rgba(35,227,204,.12) 40%, rgba(52,137,255,.08));
+}
+
+/* всё содержимое карточки поверх */
+#hero.hero > *{ position:relative; z-index:1 }
+
+/* мини-переключатель превью */
+.hero-bg-switch{ position:absolute; right:12px; top:12px; z-index:2; display:flex; gap:8px; }
+.hero-bg-switch button{
+  width:28px; height:28px; border-radius:999px; cursor:pointer;
+  border:1px solid var(--bd-1);
+  background: rgba(255,255,255,.08);
+  -webkit-backdrop-filter: blur(6px) saturate(1.2);
+  backdrop-filter: blur(6px) saturate(1.2);
+  box-shadow: var(--shadow);
+  overflow:hidden; position:relative;
+}
+.hero-bg-switch button::before{
+  content:""; position:absolute; inset:0; border-radius:inherit;
+  background-size: cover; background-position:center;
+  filter: saturate(1.05) contrast(1.05) brightness(.95);
+}
+.hero-bg-switch .b1::before{ background-image:url("img/wall-bear-pill.png"); }   /* 🐻+капсула */
+.hero-bg-switch .b2::before{ background-image:url("img/wall-molecule.png"); }    /* формула */
+.hero-bg-switch .b3::before{ background-image:url("img/wall-capsules.png"); }    /* капсулы */
+
+/* КНОПКА «БЕЗ ФОНА» */
+.hero-bg-switch .b0{ background: rgba(255,255,255,.06); }
+.hero-bg-switch .b0::before{
+  background: conic-gradient(from 45deg, transparent 0 25%, rgba(255,255,255,.22) 0 30%, transparent 0 55%, rgba(255,255,255,.22) 0 60%, transparent 0);
+  mask: radial-gradient(circle at 50% 50%, #000 64%, transparent 66%);
+}
+.hero-bg-switch button.is-on{ outline:2px solid rgba(35,227,204,.7); }
+
+/* светлая тема — фон помягче */
+html[data-theme="light"] #hero.hero.has-bg::before{ opacity:.35; filter:saturate(1.05) brightness(1.05); }
+</style>
 
 </head>
 <body>
   <div class="topbar">
-    <div class="title">Профиль</div>
-    <button id="themeToggle" class="theme-toggle" role="switch" aria-checked="false" aria-label="Переключить тему">
+    <div class="brand">Roaccutane Tracker</div>
+<button id="themeToggle" class="theme-toggle small" role="switch" aria-checked="false" aria-label="Переключить тему">
       <span class="scene light">
         <svg viewBox="0 0 260 88" preserveAspectRatio="none" xmlns="http://www.w3.org/2000/svg">
           <defs><linearGradient id="lgLight" x1="0" y1="0" x2="1" y2="0">
@@ -388,11 +816,28 @@ body.light .tab.active{
       <!-- pencil icon -->
       <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20h9"/><path d="M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4 12.5-12.5z"/></svg>
     </button>
+    <a class="iconbtn faq" href="faq.html" data-vt-link title="FAQ" aria-label="Открыть FAQ">
+  <span class="txt">FAQ</span>
+</a>
+
+  <!-- refresh/rotate icon -->
+  <svg viewBox="0 0 24 24" width="20" height="20" fill="none"
+       stroke="#0d1220" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+    <polyline points="1 4 1 10 7 10"/>
+    <path d="M3.5 15a9 9 0 1 0 2.2-9.3L1 10"/>
+  </svg>
+</a>
   </div>
 
   <main class="container">
-    <!-- HERO -->
+      <div class="app-title">Профиль пациента<span data-pill-spot></span><span data-stock-spot></span></div>
     <section class="card hero" id="hero">
+     <div class="hero-bg-switch" id="heroBgSwitch" aria-label="Фон карточки">
+  <button class="b0" data-bg="none" title="Без фона"></button>
+  <button class="b1" data-bg="bear" title="Медвежонок"></button>
+  <button class="b2" data-bg="chem" title="Формула"></button>
+  <button class="b3" data-bg="caps" title="Капсулы"></button>
+</div>
       <div class="hero-head">
         <div class="avatar-wrap">
           <div class="avatar" data-shared="avatar" aria-label="Аватар">
@@ -438,7 +883,15 @@ body.light .tab.active{
           <dl class="kv">
             <dt>Аллергии</dt><dd id="allergies">нет данных</dd>
             <dt>Сегодня</dt><dd id="today">— мг</dd>
-            <dt>Последний приём</dt><dd id="lastDose">— мг</dd>
+          <dt>Осталось таблеток</dt>
+<dd>
+  <div class="unit-input">
+    <input id="capsLeftInput" class="unit-input__num" type="number"
+           inputmode="numeric" min="0" step="1" placeholder="0" aria-label="Сколько осталось капсул">
+    <span class="unit-input__unit">капсул</span>
+  </div>
+  <small class="help help--caps">Укажите, сколько осталось капсул</small>
+</dd>
           </dl>
         </div>
 
@@ -529,7 +982,7 @@ body.light .tab.active{
         </div>
         <div class="rhs">
           <label class="switch" aria-label="Вкл/выкл ежедневное напоминание">
-            <input id="remDaily" type="checkbox">
+            <input id="remToggle" type="checkbox">
             <span class="slider"></span>
           </label>
           <input id="remTime" type="time" value="09:00">
@@ -550,11 +1003,37 @@ body.light .tab.active{
         </div>
       </div>
     </section>
+    <div class="cta-split">
+  <!-- ЛЕВАЯ половина: Обнуление -->
+  <section class="card reset-panel">
+    <div class="reset-text">
+      <h3 class="reset-title">Обнулить всё</h3>
+      <p class="muted">
+        Будут удалены: журнал приёмов, настройки напоминаний, локальные кэши прогресса.
+        <b>Профиль останется.</b>
+      </p>
+    </div>
+    <a class="btn btn-reset" href="reset.html" data-vt-link
+       title="Переход на страницу сброса. Ничего не удалится без подтверждения.">
+      Перейти к обнулению
+    </a>
+  </section>
+
+  <!-- ПРАВАЯ половина: возврат на приветствие -->
+  <section class="card welcome-panel">
+    <a class="neon-btn" href="welcome-rt.html" data-vt-link
+       title="Вернуться на приветственную страницу выбора роли">
+      <span class="neon-title">К выбору роли&nbsp;›</span>
+      <span class="neon-sub">перейти на приветственную</span>
+    </a>
+    <small class="help">Вернуться на приветственную страницу выбора роли (врач/пациент)</small>
+  </section>
+</div>
   </main>
 
   <!-- Bottom tabbar -->
   <nav class="tabbar">
-    <a class="tab" href="main-dark.html" data-vt-link>
+    <a class="tab" href="main.html" data-vt-link>
       <!-- home icon (rounded) -->
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 11l9-7 9 7"/><path d="M5 12v7a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2v-7"/><path d="M9 21v-6h6v6"/></svg>
       <small>Главная</small>
@@ -569,7 +1048,7 @@ body.light .tab.active{
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
       <small>Профиль</small>
     </a>
-    <a class="tab" href="photolog.html" data-vt-link>
+    <a class="tab" href="diary.html" data-vt-link>
       <!-- image/gallery icon -->
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="5" width="18" height="14" rx="2"/><circle cx="8.5" cy="12" r="2.5"/><path d="M21 13l-4-4-6 6"/></svg>
       <small>Фотодневник</small>
@@ -584,6 +1063,33 @@ body.light .tab.active{
     <svg viewBox="0 0 24 24" fill="none" stroke="#0d1220" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="5"/><path d="M12 1v2"/><path d="M12 21v2"/><path d="M4.22 4.22l1.42 1.42"/><path d="M18.36 18.36l1.42 1.42"/><path d="M1 12h2"/><path d="M21 12h2"/><path d="M4.22 19.78l1.42-1.42"/><path d="M18.36 5.64l1.42-1.42"/></svg>
     <span>Светлая тема</span>
   </button>
+  
+<script src="/js/app-state.js"></script>
+
+<script>
+  // Инициализация всех переключателей темы на странице
+  document.addEventListener('DOMContentLoaded', () => {
+    const settings = AppState.get('settings') || {};
+    const theme = (settings.theme === 'light') ? 'light' : 'dark';
+    document.documentElement.dataset.theme = theme;
+
+    // найдём все тумблеры с data-role="theme-switch"
+    document.querySelectorAll('[data-role="theme-switch"]').forEach(sw => {
+      const isLight = (document.documentElement.dataset.theme === 'light');
+      sw.setAttribute('aria-pressed', isLight ? 'true' : 'false');
+
+      sw.addEventListener('click', () => {
+        const cur = document.documentElement.dataset.theme === 'light' ? 'light' : 'dark';
+        const next = (cur === 'light') ? 'dark' : 'light';
+        AppState.applyTheme(next);                  // сохраняем и ставим data-theme
+        // визуально обновим все тумблеры на странице
+        document.querySelectorAll('[data-role="theme-switch"]')
+          .forEach(x => x.setAttribute('aria-pressed', next === 'light' ? 'true' : 'false'));
+      });
+    });
+  });
+</script>
+
 
   <script>
 
@@ -615,7 +1121,7 @@ body.light .tab.active{
     $('#heroMeta').textContent = `Цель: ${STATE.goalMgPerKg} mg/kg • Прогноз окончания: ${fmtDate(eta.toISOString().slice(0,10))}`;
 
     $('#allergies').textContent = STATE.allergies || 'Не указаны';
-    $('#today').textContent = (STATE.todayMg||0) + ' мг';
+    $('#today').textContent = Math.round(STATE.todayMg || 0) + ' мг';
     $('#lastDose').textContent = (STATE.lastDoseMg||0) + ' мг';
 
     const doc = STATE.doctor||{}; $('#doctorMeta').textContent = [doc.name, doc.clinic, doc.phone].filter(Boolean).join(' • ');
@@ -630,7 +1136,32 @@ body.light .tab.active{
     const C = 2*Math.PI*54; const off = C*(1-pct/100);
     document.querySelector('.ring .bar').setAttribute('stroke-dashoffset', off);
   }
-
+function todayISO(){
+  const d=new Date();
+  d.setMinutes(d.getMinutes()-d.getTimezoneOffset());
+  return d.toISOString().slice(0,10);
+}
+function getLocalTodayDose(){
+  const iso = todayISO();
+  // 1) быстрый кэш
+  try{
+    const tIso = localStorage.getItem('derma_today_iso');
+    if (tIso===iso){
+      const mg = +localStorage.getItem('derma_today_mg') || 0;
+      if (mg > 0) return mg;
+    }
+  }catch(_){}
+  // 2) из дневника
+  try{
+    const diary = JSON.parse(localStorage.getItem('rt.diary.v1')||'{}');
+    const rec = diary[iso];
+    if (rec){
+      if (rec.miss===true || rec.taken===false) return 0;
+      return +(rec.dose ?? rec.mg ?? 0) || 0;
+    }
+  }catch(_){}
+  return 0;
+}
 
   // ---- БОЕВОЙ BOOT: имя/аватар + данные из API, затем populate() ----
 (async function bootProfile(){
@@ -730,9 +1261,20 @@ body.light .tab.active{
   STATE.startISO    = (me.course_start || me.start_date || STATE.startISO || localStorage.getItem('rt_startISO') || '').slice(0,10);
 
   STATE.takenMg     = Number(sum.cum_mg || 0) || 0;
-  STATE.todayMg     = Number(sum.today_mg || sum.avg7 || 0) || 0;
-
-  STATE.allergies   = (Array.isArray(me.allergies) && me.allergies.length) ? 'Указаны' : 'Отсутствуют';
+ STATE.todayMg     = (Number(sum.today_mg) || getLocalTodayDose() || 0);
+const ALG_LABELS = {
+  retinoids:   'Изотретиноин/ретиноиды',
+  soy:         'Соя',
+  peanut:      'Арахис',
+  parabens:    'Парабены',
+  gelatin:     'Желатин',
+  lactose:     'Лактоза',
+  antibiotics: 'Антибиотики (тетра/докси)',
+  unknown:     'Не знаю'
+};
+  STATE.allergies = (Array.isArray(me.allergies) && me.allergies.length)
+  ? me.allergies.map(v => ALG_LABELS[v] || (String(v).startsWith('other:') ? String(v).slice(6) : v)).join(', ')
+  : 'Отсутствуют';
   STATE.labs        = { status: 'ok', dueISO: (sum.eta_opt_date || '').slice(0,10) };
 
   // 4) Только теперь отрисовываем UI
@@ -755,13 +1297,29 @@ body.light .tab.active{
   // ======= Prefs (reminders) =======
   const DEFAULT_PREFS = { daily:false, time:'09:00', stock:false, threshold:10 };
   const prefs = Object.assign({}, DEFAULT_PREFS, JSON.parse(localStorage.getItem('rt_prefs')||'{}'));
-  const elDaily = document.getElementById('remDaily');
+  const elDaily = document.getElementById('remToggle');
   const elTime = document.getElementById('remTime');
   const elStock = document.getElementById('remStock');
   const elThr = document.getElementById('remThreshold');
 
   function syncPrefsToUI(){ if(!elDaily) return; elDaily.checked = !!prefs.daily; if(elTime) elTime.value = prefs.time||'09:00'; if(elStock) elStock.checked = !!prefs.stock; if(elThr) elThr.value = String(prefs.threshold||10); }
-  function savePrefs(){ localStorage.setItem('rt_prefs', JSON.stringify(prefs)); }
+  function savePrefs(){
+  localStorage.setItem('rt_prefs', JSON.stringify(prefs));
+
+  // мост для зелёного алерта:
+  try{
+    const on  = !!prefs.stock;
+    const thr = Math.max(1, Number(prefs.threshold||0));
+    localStorage.setItem('rt_capsules_alert_enabled', on ? '1' : '0');
+    localStorage.setItem('rt_capsules_threshold', String(thr));
+
+    // пинки для всех страниц
+    localStorage.setItem('rt_capsules_alert_bump', Date.now().toString());
+    localStorage.removeItem('rt_capsules_alert_bump');
+    localStorage.setItem('rt_capsules_threshold_bump', Date.now().toString());
+    localStorage.removeItem('rt_capsules_threshold_bump');
+  }catch(_){}
+}
 
   syncPrefsToUI();
 
@@ -862,7 +1420,13 @@ body.light .tab.active{
   });
 
   rxSync();
+const DOCTOR_REQ_KEY = 'rt_doctor_req'; // { doctor:{...}, ts, id? , status }
 
+function getDoctor(){ try{ return JSON.parse(localStorage.getItem(DOCTOR_KEY)||'null'); }catch(_){ return null; } }
+function setDoctor(obj){ try{ if(obj) localStorage.setItem(DOCTOR_KEY, JSON.stringify(obj)); else localStorage.removeItem(DOCTOR_KEY); }catch(_){ } }
+
+function getDoctorReq(){ try{ return JSON.parse(localStorage.getItem(DOCTOR_REQ_KEY)||'null'); }catch(_){ return null; } }
+function setDoctorReq(obj){ try{ if(obj) localStorage.setItem(DOCTOR_REQ_KEY, JSON.stringify(obj)); else localStorage.removeItem(DOCTOR_REQ_KEY); }catch(_){ } }
   // ======= Doctor link/binding =======
   const DOCTOR_KEY = 'rt_doctor';
   const CODE_RE = /^[A-Za-z0-9]{5}$/;
@@ -881,39 +1445,127 @@ body.light .tab.active{
   function getDoctor(){ try{ return JSON.parse(localStorage.getItem(DOCTOR_KEY)||'null'); }catch(_){ return null; } }
   function setDoctor(obj){ try{ if(obj) localStorage.setItem(DOCTOR_KEY, JSON.stringify(obj)); else localStorage.removeItem(DOCTOR_KEY); }catch(_){ } }
   function applyDoctor(){
-    const d = getDoctor();
-    const bind = document.getElementById('docBind');
-    const head = document.getElementById('docHead');
-    const analyses = document.getElementById('analysesBlock');
-    const labLine = document.getElementById('labLine');
-    if(d){
-      doctorMeta.textContent = 'Врач прикреплён';
-      if(head) head.hidden = false;
-      if(bind) bind.style.display = 'none';
-      if(analyses) analyses.hidden = false;
-      if(labLine) labLine.hidden = false;
-      // fill card
-      if(docNameEl) docNameEl.textContent = d.name || `Врач по коду ${d.code}`;
-      if(docSubEl) docSubEl.textContent = [ `Код ${d.code}`, d.clinic, d.phone ].filter(Boolean).join(' • ');
-      if(docAvatarFallback) docAvatarFallback.textContent = (d.name||'Врач').trim().charAt(0).toUpperCase();
-      if(d.avatarUrl && docAvatarImg){ docAvatarImg.src = d.avatarUrl; }
-      if(doctorProfileBtn){ doctorProfileBtn.hidden = !d.url; if(d.url) doctorProfileBtn.href = d.url; }
-      // status
-      const dueISO = d.deadlineISO || new Date(Date.now()+10*864e5).toISOString().slice(0,10);
-      document.getElementById('labDue').textContent = fmtDate(dueISO);
-      const pill = document.getElementById('labStatus'); pill.textContent = 'OK'; pill.className = 'pill ok';
-    } else {
-      doctorMeta.textContent = 'Врач не прикреплён';
-      if(head) head.hidden = true;
-      if(bind) bind.style.display = 'flex';
-      if(analyses) analyses.hidden = true;
-      if(labLine) labLine.hidden = true;
-      if(doctorProfileBtn) doctorProfileBtn.hidden = true;
-    }
+  const d  = getDoctor();
+  const rq = getDoctorReq();
+
+  const bind      = document.getElementById('docBind');
+  const head      = document.getElementById('docHead');
+  const analyses  = document.getElementById('analysesBlock');
+  const labLine   = document.getElementById('labLine');
+  const detachBtn = document.getElementById('docDetachBtn');
+
+  const doctorMeta = document.getElementById('doctorMeta');
+  const doctorProfileBtn = document.getElementById('doctorProfileBtn');
+  const docAvatarImg = document.getElementById('docAvatarImg');
+  const docAvatarFallback = document.getElementById('docAvatarFallback');
+  const docNameEl = document.getElementById('docName');
+  const docSubEl  = document.getElementById('docSub');
+
+  function fillCard(src){
+    if(docNameEl) docNameEl.textContent = src.name || 'Врач';
+    if(docSubEl)  docSubEl.textContent  = [ src.clinic, src.phone, src.code && ('Код '+src.code) ].filter(Boolean).join(' • ');
+    if(docAvatarFallback) docAvatarFallback.textContent = (src.name||'Врач').trim().charAt(0).toUpperCase();
+    if(src.avatarUrl && docAvatarImg){ docAvatarImg.src = src.avatarUrl; }
   }
 
-  applyDoctor();
+  // 1) Принят (нормальная карточка врача)
+  if (d){
+    doctorMeta.textContent = 'Врач прикреплён';
+    if(head) head.hidden = false;
+    if(bind) bind.style.display = 'none';
+    if(analyses) analyses.hidden = false;
+    if(labLine)  labLine.hidden  = false;
+    if(doctorProfileBtn) doctorProfileBtn.hidden = !d.url; // как и раньше
 
+     if (detachBtn){
+    detachBtn.disabled = false;
+    detachBtn.title = 'Открепить';
+    detachBtn.textContent = 'Открепить';
+    detachBtn.onclick = async () => {
+      await api('/api/doctor/attached', { method:'DELETE' });
+      setDoctor(null);      // убираем из localStorage
+      applyDoctor();        // перерисовываем UI
+    };
+  }
+
+  return;
+}
+
+
+  // 2) Есть «pending» заявка
+  if (rq && rq.status === 'pending'){
+    doctorMeta.textContent = 'Заявка отправлена — ждём подтверждения';
+    if(head) head.hidden = false;
+    if(bind) bind.style.display = 'none';
+    if(analyses) analyses.hidden = true;
+    if(labLine)  labLine.hidden  = true;
+
+    fillCard(rq.doctor || {});
+    // кнопку превращаем в «Отменить»
+    if (detachBtn){
+      detachBtn.textContent = 'Отменить заявку';
+      detachBtn.disabled = false;
+      detachBtn.onclick = async () => {
+        await api('/api/doctor/request', { method:'DELETE' });
+        setDoctorReq(null);
+        applyDoctor();
+      };
+    }
+    return;
+  }
+
+  // 3) Ничего нет — форма ввода кода
+  doctorMeta.textContent = 'Врач не прикреплён';
+  if(head) head.hidden = true;
+  if(bind) bind.style.display = 'flex';
+  if(analyses) analyses.hidden = true;
+  if(labLine)  labLine.hidden  = true;
+  if(doctorProfileBtn) doctorProfileBtn.hidden = true;
+}
+
+
+  applyDoctor();
+let _reqPollTimer = null;
+
+async function checkRequestOnce(){
+  try{
+    const r = await api('/api/doctor/request');
+    if(!r.ok) return;
+    const j = await r.json();
+
+    if (j.status === 'accepted'){
+      setDoctor({
+        name: j.doctor?.name || 'Врач',
+        clinic: j.doctor?.clinic || '',
+        avatarUrl: j.doctor?.avatar_url || ''
+      });
+      setDoctorReq(null);
+      applyDoctor();
+      stopRequestPolling();
+    } else if (j.status === 'rejected' || j.status === 'cancelled' || j.status === 'none'){
+      setDoctorReq(null);
+      applyDoctor();
+      stopRequestPolling();
+    }
+  }catch(_){}
+}
+
+function startRequestPolling(){
+  stopRequestPolling();
+  _reqPollTimer = setInterval(checkRequestOnce, 8000);
+}
+function stopRequestPolling(){
+  if(_reqPollTimer){ clearInterval(_reqPollTimer); _reqPollTimer = null; }
+}
+
+// Синхронизируемся при загрузке страницы
+document.addEventListener('DOMContentLoaded', () => {
+  checkRequestOnce(); // подтянуть серверный статус на старте
+});
+document.addEventListener('visibilitychange', ()=>{
+  if (document.hidden) stopRequestPolling();
+  else if (getDoctorReq()) startRequestPolling();
+});
   // UX: Enter to submit & normalize code
   docCodeInput?.addEventListener('keydown', (e)=>{ if(e.key==='Enter'){ e.preventDefault(); docBindBtn?.click(); } });
   docCodeInput?.addEventListener('input', (e)=>{ const t=e.target; t.value = t.value.toUpperCase().replace(/[^A-Z0-9]/g,''); const valid = CODE_RE.test(t.value); if(docBindBtn) docBindBtn.disabled = !valid; const err = document.getElementById('docError'); if(err) err.hidden = true; });
@@ -921,41 +1573,60 @@ body.light .tab.active{
   docBindBtn?.addEventListener('click', async ()=>{
   const code = (docCodeInput?.value||'').trim().toUpperCase();
   if(!CODE_RE.test(code)){
-    const err = document.getElementById('docError'); if(err) err.hidden = false;
+    document.getElementById('docError')?.removeAttribute('hidden');
     return;
   }
-  // сначала валидируем код, затем прикрепляем
-  const v = await api('/api/doctor/validate?code=' + encodeURIComponent(code));
-  if(!v.ok){
-    const err = document.getElementById('docError'); if(err) err.hidden = false;
-    return;
-  }
-  const a = await api('/api/doctor/attach', { method:'POST', body: JSON.stringify({ code }) });
-  if(!a.ok){
-    const err = document.getElementById('docError'); if(err) err.hidden = false;
-    return;
-  }
-  const j = await a.json();
-  setDoctor({
-    code,
-    name: j.doctor?.name || ('Врач по коду '+code),
-    clinic: j.doctor?.clinic || '',
-    phone:  '', // можно потом дополнить
-    avatarUrl: j.doctor?.avatar_url || ''
+
+  // Быстрая валидация кода (как и раньше)
+  const vr = await api('/api/doctor/validate?code=' + encodeURIComponent(code));
+  if(!vr.ok){ document.getElementById('docError')?.removeAttribute('hidden'); return; }
+  const vj = await vr.json();
+
+  // Создаём заявку
+  const r = await api('/api/doctor/request', {
+    method:'POST',
+    body: JSON.stringify({ code })
   });
-  applyDoctor();
+
+  if (!r.ok && r.status!==202){
+    document.getElementById('docError')?.removeAttribute('hidden');
+    return;
+  }
+  const j = await r.json();
+
+  if (j.status === 'accepted') {
+    // автопринятие
+    setDoctor({
+      code,
+      name: j.doctor?.name || ('Врач по коду '+code),
+      clinic: j.doctor?.clinic || '',
+      phone: '',
+      avatarUrl: j.doctor?.avatar_url || ''
+    });
+    setDoctorReq(null);
+    applyDoctor();
+  } else {
+    // pending
+    setDoctor(null);       // ещё не прикреплён
+    setDoctorReq({
+      doctor: {
+        code,
+        name: vj.doctor?.name || 'Врач',
+        clinic: vj.doctor?.clinic || '',
+        avatarUrl: vj.doctor?.avatar_url || ''
+      },
+      status:'pending',
+      ts: Date.now()
+    });
+    applyDoctor();
+    startRequestPolling(); // начнём опрос статуса
+  }
 });
 
-  docDetachBtn?.addEventListener('click', async ()=>{
-  await api('/api/doctor/attach', { method:'DELETE' });
-  setDoctor(null);
-  if(docCodeInput) docCodeInput.value = '';
-  applyDoctor();
-});
 
   // ======= Edit flow =======
   document.getElementById('editBtn').addEventListener('click', (ev)=>{
-    navigateWithVT('profile-dark.html');
+    navigateWithVT('profile.html');
   });
 
   // ======= View Transitions helper for links =======
@@ -1122,6 +1793,675 @@ body.light .tab.active{
     document.documentElement.setAttribute('data-theme', t);
     if(!silent){ document.dispatchEvent(new CustomEvent('themechange', {detail:t})); }
   }
+})();
+</script>
+
+
+<script>
+// Enhance "Дневник состояния" block: stronger CTA + richer description
+(function(){
+  const wrap = document.querySelector('.diary');
+  if(!wrap) return;
+  wrap.classList.add('is-cta');
+  // title/desc
+  const title = wrap.querySelector('.diary-title') || wrap.querySelector('div > div[style*="font-weight"]') || wrap.firstElementChild?.firstElementChild;
+  const desc  = wrap.querySelector('.diary-desc')  || wrap.querySelector('.muted');
+  if (title && !title.classList.contains('diary-title')) title.classList.add('diary-title');
+  if (desc){
+    if (!desc.classList.contains('diary-desc')) desc.classList.add('diary-desc');
+    desc.innerHTML = 'Отслеживайте самочувствие, сухость кожи/губ, настроение. Добавляйте <b>фотографии лица/тела</b> и короткие <b>заметки</b>.';
+  }
+  // CTA button
+  const btn = wrap.querySelector('a.btn.primary');
+  if (btn){
+    btn.classList.add('cta');
+    btn.setAttribute('href','diary.html');
+    btn.setAttribute('data-vt-link','');
+  }
+})();
+function setReminderState(on, time){
+  try{
+    const t = (String(time||'09:00').slice(0,5));
+
+    // 1) rt.reminders[id:'main']
+    const rt = JSON.parse(localStorage.getItem('rt')||'{}');
+    rt.reminders = Array.isArray(rt.reminders) ? rt.reminders : [];
+    const i = rt.reminders.findIndex(r => r && r.id === 'main');
+    const rec = { id:'main', enabled: !!on, time: t };
+    if (i >= 0) rt.reminders[i] = rec; else rt.reminders.push(rec);
+    localStorage.setItem('rt', JSON.stringify(rt));
+
+    // 2) совместимость со старыми ключами
+    localStorage.setItem('rem_enabled', on ? '1' : '0');
+    localStorage.setItem('rem_time', t);
+    localStorage.setItem('derma_remind_optin', on ? '1' : '0');
+    localStorage.setItem('derma_remind_time', t);
+
+    // пинок для других страниц
+    localStorage.setItem('derma.reminder.bump', Date.now().toString());
+    localStorage.removeItem('derma.reminder.bump');
+  }catch(_){}
+}
+
+function syncReminderUI(){
+  const on = localStorage.getItem('derma_remind_optin') === '1';
+  const t  = localStorage.getItem('derma_remind_time') || '09:00';
+
+  // в зависимости от страницы элементы разные
+  const toggle = document.getElementById('remToggle') || document.getElementById('remToggle') || document.getElementById('bell');
+  const timeEl = document.getElementById('remTime') || document.getElementById('remindTime');
+  if(toggle){
+    if(toggle.type === 'checkbox') toggle.checked = on;
+    if(toggle.dataset) toggle.dataset.on = on ? '1' : '0';
+  }
+  if(timeEl) timeEl.value = t;
+}
+
+window.addEventListener('storage', syncReminderUI);
+document.addEventListener('DOMContentLoaded', syncReminderUI);
+document.addEventListener('DOMContentLoaded', () => {
+  const daily = document.getElementById('remToggle');
+  const time  = document.getElementById('remTime');
+
+  // инициализация UI из локалки
+  const rt = JSON.parse(localStorage.getItem('rt')||'{}');
+  const rec = (rt.reminders||[]).find(r=>r.id==='main') || null;
+  const initTime = rec?.time || localStorage.getItem('rem_time') || localStorage.getItem('derma_remind_time') || '09:00';
+  const initOn   = (rec?.enabled != null) ? rec.enabled :
+                   ((localStorage.getItem('rem_enabled') ?? localStorage.getItem('derma_remind_optin') ?? '1') === '1');
+  if (time)  time.value = initTime;
+  if (daily) daily.checked = !!initOn;
+
+  // слушатели
+  daily?.addEventListener('change', () => setReminderState(daily.checked, time?.value||'09:00'));
+  time?.addEventListener('change',  () => setReminderState(daily?.checked ?? true, time.value||'09:00'));
+});
+
+// dd.mm.yyyy из 'yyyy-mm-dd'
+function ddmmyyyy(iso){
+  const [y,m,d] = String(iso||'').split('-');
+  return (d && m && y) ? `${d}.${m}.${y}` : '—';
+}
+// ====== Allergies + Today + Last dose ======
+(function fillProfileDetails(){
+  try {
+    // Аллергии
+    const raw = localStorage.getItem('rt_allergies');
+    let txt = 'Отсутствуют';
+    if (raw) {
+      const arr = JSON.parse(raw);
+      if (Array.isArray(arr) && arr.length > 0) {
+        txt = arr.map(v => v.startsWith('other:') ? v.slice(6) : v).join(', ');
+      }
+    }
+    document.getElementById('allergyLine').textContent = txt;
+
+    // Сегодняшняя доза
+    const todayISO = new Date().toISOString().slice(0,10);
+    const diary = JSON.parse(localStorage.getItem('rt.diary.v1')||'{}');
+    const todayRec = diary[todayISO] || {};
+    const todayMg = todayRec.dose || localStorage.getItem('derma_today_mg') || 0;
+    document.getElementById('todayDoseLine').textContent = todayMg > 0 ? todayMg : '—';
+
+    // Последний приём
+    let lastIso = null;
+    Object.keys(diary).sort().forEach(k => {
+      if ((diary[k].dose||0) > 0) lastIso = k;
+    });
+    document.getElementById('lastDoseLine').textContent = lastIso ? ddmmyyyy(lastIso) : '—';
+  } catch(e){}
+})();
+</script>
+<script>
+function applyCapsLeftUI(){
+  const inp = document.getElementById('capsLeftInput'); if(!inp) return;
+  const KEY = 'rt_capsules_left';
+
+  function refresh(){ inp.value = String(Math.max(0, Number(localStorage.getItem(KEY)||0))); }
+  refresh();
+
+  if (!inp.dataset.bound){
+    inp.dataset.bound = '1';
+    inp.addEventListener('change', ()=>{
+      const n = Math.max(0, Math.floor(Number(inp.value||0)));
+      localStorage.setItem(KEY, String(n));
+      // уведомим другие страницы
+      localStorage.setItem('rt_capsules_left_bump', String(Date.now()));
+      localStorage.removeItem('rt_capsules_left_bump');
+    });
+    // обновляться, когда Main списывает капсулы
+    window.addEventListener('storage', (e)=>{
+      if (e.key === KEY || e.key === 'rt_capsules_left_bump') refresh();
+    });
+  }
+}
+document.addEventListener('DOMContentLoaded', applyCapsLeftUI);
+</script>
+<script>
+(function(){
+  const TIME_KEY  = 'derma_remind_time';
+  const OPTIN_KEY = 'derma_remind_optin';
+
+  const timeEl = document.getElementById('remTime');
+ const swEl   = document.getElementById('remToggle');
+
+  function readState(){
+    return {
+      enabled: (localStorage.getItem(OPTIN_KEY)||'0') === '1',
+      time: localStorage.getItem(TIME_KEY) || '19:00'
+    };
+  }
+  function applyUI(){
+    const s = readState();
+    if (swEl)   swEl.checked = s.enabled;
+    if (timeEl) timeEl.value = s.time;
+  }
+  function bump(k){ localStorage.setItem(k, Date.now().toString()); localStorage.removeItem(k); }
+  function save(part){
+    const cur = readState(), next = { ...cur, ...part };
+    localStorage.setItem(OPTIN_KEY, next.enabled ? '1' : '0');
+    localStorage.setItem(TIME_KEY,  next.time);
+    bump('derma.reminder.bump');
+  }
+
+  swEl?.addEventListener('change', e=> save({enabled: !!e.target.checked}));
+  timeEl?.addEventListener('change', e=> save({time: e.target.value || '19:00'}));
+
+  window.addEventListener('storage', e=>{
+    if ([OPTIN_KEY, TIME_KEY, 'derma.reminder.bump'].includes(e.key)) applyUI();
+  });
+
+  applyUI();
+})();
+</script>
+<script>
+/* === Stock alert renderer (зелёный) === */
+(function(){
+  const K_LEFT='rt_capsules_left', K_THRESH='rt_capsules_threshold', K_ON='rt_capsules_alert_enabled';
+
+  function n(x){ x=Number(x); return Number.isFinite(x)?x:0; }
+  const on =()=> (localStorage.getItem(K_ON)||'0')==='1';
+
+  function text(){
+    if(!on()) return null;
+    const left = n(localStorage.getItem(K_LEFT)||0);
+    const thr  = n(localStorage.getItem(K_THRESH)||0);
+    if(left>0 && thr>0 && left<=thr) return `осталось ${left} капсул`;
+    return null;
+  }
+
+  (function(){
+  const K_LEFT='rt_capsules_left', K_THRESH='rt_capsules_threshold', K_ON='rt_capsules_alert_enabled';
+  const num = x => (x=Number(x), Number.isFinite(x)?x:0);
+  const on  = () => (localStorage.getItem(K_ON)||'0')==='1';
+
+  function render(){
+    const left = num(localStorage.getItem(K_LEFT)||0);
+    const thr  = num(localStorage.getItem(K_THRESH)||0);
+    const low  = on() && thr>0 && left>0 && left<=thr;
+
+    document.querySelectorAll('[data-stock-spot]').forEach(host=>{
+      let el = host.querySelector('.pill-alert--stock');
+      if(!el){
+        el = document.createElement('span');
+        el.className = 'pill-alert pill-alert--stock';
+        host.appendChild(el);
+      }
+      // статично показываем остаток всегда
+      el.textContent = `${left} капсул`;
+      // анимация/подсветка только при тревоге
+      el.classList.toggle('is-low', low);
+    });
+  }
+
+  window.addEventListener('storage', e=>{
+    if([K_LEFT,K_THRESH,K_ON,'rt_capsules_left_bump','rt_capsules_threshold_bump','rt_capsules_alert_bump'].includes(e.key)) render();
+  });
+  document.addEventListener('visibilitychange', ()=>{ if(!document.hidden) render(); });
+  render();
+  window.renderStockAlert = render;
+})();
+
+
+  // реагируем на изменения из других страниц
+  window.addEventListener('storage', e=>{
+    if([K_LEFT,K_THRESH,K_ON,'rt_capsules_alert_bump','rt_capsules_left_bump','rt_capsules_threshold_bump'].includes(e.key)){
+      render();
+    }
+  });
+  document.addEventListener('visibilitychange',()=>{ if(!document.hidden) render(); });
+
+  // экспорт
+  window.renderStockAlert = render;
+
+  // первичный рендер
+  render();
+})();
+</script>
+<script>
+/* === Stock reminder wiring (myprofile) === */
+(function(){
+  const K_LEFT='rt_capsules_left', K_THRESH='rt_capsules_threshold', K_ON='rt_capsules_alert_enabled';
+
+  // попытаемся найти поле "Осталось таблеток" по нескольким id
+  const leftField = document.getElementById('capsLeftInput')   // <--- добавь это
+               || document.getElementById('capsLeft')
+               || document.getElementById('pillsLeft')
+               || document.getElementById('capsulesLeft')
+               || document.getElementById('capsCount');
+
+  const sw  = document.getElementById('remStock');
+  const thr = document.getElementById('remThreshold');
+
+  function num(v){ v=Number(v); return Number.isFinite(v)?v:0; }
+
+  function readLeft(){
+    if(!leftField) return null;
+    if (leftField.tagName === 'INPUT') return num(leftField.value);
+    // если это не инпут, берём цифру из текста
+    const m = String(leftField.textContent||leftField.innerText||'').match(/\d+/);
+    return num(m ? m[0] : 0);
+  }
+
+  function load(){
+  const prefs = (() => {
+    try { return JSON.parse(localStorage.getItem('rt_prefs')||'{}'); } catch(_) { return {}; }
+  })();
+
+  const hasOn  = localStorage.getItem(K_ON)  != null;
+  const hasThr = localStorage.getItem(K_THRESH) != null;
+
+  // что показываем в UI
+  const on  = hasOn  ? (localStorage.getItem(K_ON) === '1') : !!prefs.stock;
+  const val = hasThr ? num(localStorage.getItem(K_THRESH))  : num(prefs.threshold ?? (thr?.value || 10));
+
+  if (sw)  sw.checked = !!on;
+  if (thr) thr.value  = String(val || 10);
+
+  // если ключей ещё нет — записываем их, чтобы рендер увидел
+  if (!hasOn || !hasThr) {
+    save({ on, thr: val || 10 });
+  }
+}
+
+
+  function bump(key){
+    try{
+      localStorage.setItem(key, Date.now().toString());
+      localStorage.removeItem(key);
+    }catch(_){}
+  }
+
+  function save(part){
+    try{
+      if (part.on  !== undefined) localStorage.setItem(K_ON,  part.on ? '1':'0');
+      if (part.thr !== undefined) localStorage.setItem(K_THRESH, String(num(part.thr)));
+      if (part.left!== undefined) localStorage.setItem(K_LEFT, String(num(part.left)));
+      bump('rt_capsules_alert_bump');
+      // перерисовать локально
+      if (window.renderStockAlert) window.renderStockAlert();
+    }catch(_){}
+  }
+
+  sw?.addEventListener('change', ()=> save({ on: !!sw.checked }));
+  thr?.addEventListener('change', ()=> save({ thr: thr.value }));
+
+  if (leftField){
+    const h = ()=> save({ left: readLeft() });
+    leftField.addEventListener?.('change', h);
+    leftField.addEventListener?.('input',  h);
+  }
+
+  // ловим изменения из других страниц (main/plan)
+  window.addEventListener('storage', (e)=>{
+    if([K_LEFT,K_THRESH,K_ON,'rt_capsules_alert_bump','rt_capsules_left_bump','rt_capsules_threshold_bump'].includes(e.key)){
+      load();
+      if (window.renderStockAlert) window.renderStockAlert();
+    }
+  });
+
+  // первичная инициализация
+  load();
+})();
+</script>
+<style>
+  .pill-alert--stock{
+    display:inline-flex;align-items:center;gap:.35rem;
+    padding:.25rem .6rem;border-radius:999px;font-size:.9rem;font-weight:700;letter-spacing:.02em;
+    background: linear-gradient(135deg, #1dd1a1, #10b981);
+    color:#07131b; border:1px solid rgba(255,255,255,.15);
+    box-shadow: 0 4px 20px rgba(16,185,129,.25);
+    white-space:nowrap;
+  }
+</style>
+<script>
+(function(){
+  const K_LEFT='rt_capsules_left', K_THRESH='rt_capsules_threshold', K_ON='rt_capsules_alert_enabled';
+  const num=(k,d=0)=>{const v=parseInt(localStorage.getItem(k)||d,10);return Number.isFinite(v)?v:0;}
+  const on =()=> (localStorage.getItem(K_ON)||'0')==='1';
+
+  function text(){
+    if(!on()) return null;
+    const left=num(K_LEFT,0), thr=num(K_THRESH,0);
+    if(left>0 && thr>0 && left<=thr) return `осталось ${left} капсул`;
+    return null;
+  }
+  function render(){
+    document.querySelectorAll('[data-stock-spot]').forEach(host=>{
+      let el=host.querySelector('.pill-alert--stock');
+      const t=text();
+      if(!t){ el?.remove(); return; }
+      if(!el){ el=document.createElement('span'); el.className='pill-alert--stock'; host.appendChild(el); }
+      el.textContent=t;
+    });
+  }
+  window.addEventListener('storage', e=>{
+    if([K_LEFT,K_THRESH,K_ON,'rt_capsules_left_bump','rt_capsules_threshold_bump','rt_capsules_alert_bump'].includes(e.key)) render();
+  });
+  document.addEventListener('visibilitychange', ()=>{ if(!document.hidden) render(); });
+  render();
+  window.renderStockAlert=render;
+})();
+</script>
+<style>
+.pill-alert--stock{
+  display:inline-flex;
+  align-items:center;
+  justify-content:center;
+  white-space:nowrap;
+  padding:3px 8px;
+  border-radius:999px;
+  font-weight:700;
+  font-size:14px;
+  letter-spacing:.02em;
+  line-height:1;
+  background:linear-gradient(135deg,#22e6a1,#10b981);
+  color:#061a12;
+  border:1px solid rgba(255,255,255,.15);
+
+  /* базовое свечение */
+  box-shadow:
+    0 0 6px rgba(16,185,129,.55),
+    0 0 14px rgba(16,185,129,.35),
+    inset 0 1px 2px rgba(255,255,255,.2);
+
+  transform-origin:center;
+  will-change:transform,box-shadow;
+  animation:stock-breathe 3s ease-in-out infinite;
+}
+
+@keyframes stock-breathe{
+  0%,100%{
+    transform:scale(1);
+    box-shadow:
+      0 0 6px rgba(16,185,129,.55),
+      0 0 14px rgba(16,185,129,.35),
+      inset 0 1px 2px rgba(255,255,255,.2);
+  }
+  50%{
+    transform:scale(0.985);
+    box-shadow:
+      0 0 10px rgba(16,185,129,.75),
+      0 0 22px rgba(16,185,129,.45),
+      inset 0 1px 2px rgba(255,255,255,.25);
+  }
+}
+
+@media (prefers-reduced-motion:reduce){
+  .pill-alert--stock{ animation:none }
+}
+
+/* === RESET PANEL — чистый, ровный, вертикальный === */
+.card.reset-panel{
+  /* геометрия */
+  margin-top:16px;
+  border-radius:18px;
+  overflow:hidden;                 /* обрезаем внутренние градиенты по радиусу */
+  padding:16px 18px;
+
+  /* вертикальная раскладка (текст, потом кнопка) */
+  display:flex;
+  flex-direction:column;
+  align-items:flex-start;
+  gap:12px;
+
+  /* фон и обводка без «яичного» эффекта */
+  background: linear-gradient(180deg, rgba(255,255,255,.08), rgba(255,255,255,.03));
+  border:1px solid rgba(230,59,46,.22);
+  box-shadow: var(--shadow);
+}
+/* мягкий красный акцент внутри, не ломает края */
+.card.reset-panel::after{
+  content:"";
+  position:absolute; inset:0; pointer-events:none; border-radius:inherit;
+  box-shadow:
+    inset 0 0 0 1px rgba(230,59,46,.14),
+    inset 0 -30px 60px rgba(230,59,46,.06);
+}
+
+/* заголовок и абзац */
+.reset-panel .reset-title{ margin:0; font-weight:800; letter-spacing:.2px; }
+.reset-panel .reset-text p{ margin:0; }
+
+/* кнопка-переход: аккуратный прямоугольник со скруглением */
+.reset-panel .btn.btn-reset{
+  align-self:flex-start;
+  min-height:40px; padding:0 16px;
+  border-radius:12px;
+  font-weight:700; letter-spacing:.02em;
+
+  background: rgba(230,59,46,.08);
+  border:1px solid rgba(230,59,46,.38);
+  color:#fff;
+  box-shadow: 0 2px 0 rgba(0,0,0,.18);
+  transform:none;                 /* никаких масштабов — ровные края */
+}
+.reset-panel .btn.btn-reset:hover{
+  background: rgba(230,59,46,.12);
+}
+.reset-panel .btn.btn-reset:active{
+  box-shadow: inset 0 1px 0 rgba(0,0,0,.16);
+}
+
+/* светлая тема */
+body.light .card.reset-panel{
+  background: var(--bg-1);
+  border-color: rgba(230,59,46,.20);
+}
+body.light .card.reset-panel::after{
+  box-shadow:
+    inset 0 0 0 1px rgba(230,59,46,.12),
+    inset 0 -24px 44px rgba(230,59,46,.08);
+}
+body.light .reset-panel .btn.btn-reset{
+  background: rgba(230,59,46,.06);
+  color:#0d1220;
+  border-color: rgba(230,59,46,.34);
+}
+/* ширина как у остальных карточек */
+main.container > .reset-panel{ width:100%; margin:16px 0; }
+/* Сплит-ряд 1/2 + автостек на мобиле */
+.cta-split{
+  display:grid;
+  grid-template-columns:1fr 1fr;
+  gap:16px;
+  align-items:stretch;
+  margin:16px 0;
+}
+@media (max-width: 760px){
+  .cta-split{ grid-template-columns:1fr; }
+}
+
+/* приводим карточки к "квадратному" ощущению */
+.cta-split > .card{
+  min-height: 180px;          /* даёт форму квадрата по ощущению */
+  border-radius:18px;
+  padding:16px 18px;
+}
+
+/* reset-panel внутри сплита растягивается */
+.cta-split .reset-panel{
+  display:flex;
+  flex-direction:column;
+  align-items:flex-start;
+  justify-content:space-between;
+  gap:12px;
+  background: linear-gradient(180deg, rgba(255,255,255,.08), rgba(255,255,255,.03));
+  border:1px solid rgba(230,59,46,.22);
+  box-shadow: var(--shadow);
+}
+.cta-split .reset-panel .btn.btn-reset{
+  align-self:flex-start;
+  min-height:40px; padding:0 16px;
+  border-radius:12px;
+  background: rgba(230,59,46,.08);
+  border:1px solid rgba(230,59,46,.38);
+  color:#fff;
+  box-shadow: 0 2px 0 rgba(0,0,0,.18);
+}
+.cta-split .reset-panel .btn.btn-reset:hover{ background:rgba(230,59,46,.12); }
+
+/* правая карточка с неоновой кнопкой */
+.welcome-panel{
+  display:flex;
+
+  flex-direction:column;
+  justify-content:center;
+  gap:12px;
+  background: linear-gradient(135deg, rgba(35,227,204,.10), rgba(52,137,255,.06)), var(--bg-1);
+  border:1px solid var(--bd-1);
+}
+
+/* Неоновая кнопка а-ля референс */
+.neon-btn{
+  display:flex;
+  flex-direction:column;
+  align-items:center;
+  justify-content:center;
+  gap:6px;
+  min-height:64px;
+  padding:14px 18px;
+  border-radius:16px;
+  text-align:center;
+  text-decoration:none;
+  color:#eaffff;
+
+  background: rgba(9,22,28,.15);
+  border:1.5px solid rgba(56,189,248,.80);
+
+  /* свечение */
+  box-shadow:
+    0 0 18px rgba(56,189,248,.45),
+    0 0 42px rgba(56,189,248,.28),
+    inset 0 0 0 3px rgba(56,189,248,.08);
+  transition: transform .15s ease, box-shadow .15s ease, background .15s ease;
+}
+.neon-btn:hover{
+  transform: translateY(-1px);
+  box-shadow:
+    0 0 22px rgba(56,189,248,.55),
+    0 0 54px rgba(56,189,248,.34),
+    inset 0 0 0 3px rgba(56,189,248,.12);
+}
+.neon-title{
+  font-weight:800;
+  font-size: clamp(16px, 2.6vw, 20px);
+  letter-spacing:.2px;
+}
+.neon-sub{
+  font-size:13px;
+  opacity:.9;
+}
+
+/* светлая тема — помягче контраст */
+body.light .welcome-panel{
+  background: linear-gradient(135deg, rgba(94,207,200,.30), rgba(255,211,163,.24)), var(--bg-1);
+  border-color: rgba(0,0,0,.10);
+}
+body.light .neon-btn{
+  color:#0d1220;
+  background: rgba(94,207,200,.10);
+  border-color: rgba(56,189,248,.70);
+}
+/* === ТОНКАЯ НАСТРОЙКА CTA-БЛОКОВ (регуляторы) === */
+:root{
+  --cta-min-h: 150px;   /* ↓ уменьшаешь — ниже блоки */
+  --cta-pad-y: 14px;    /* вертикальные отступы внутри карточек */
+  --cta-pad-x: 16px;
+
+  --cta-title: 18px;    /* одинаковый размер заголовков */
+  --cta-text: 14px;     /* одинаковый размер текста */
+  --cta-lh: 1.35;       /* межстрочный */
+  --cta-btn-h: 56px;    /* высота неон-кнопки справа */
+}
+
+/* одинаковая геометрия карточек */
+.cta-split > .card{
+  min-height: var(--cta-min-h);
+  padding: var(--cta-pad-y) var(--cta-pad-x);
+}
+
+/* единая типографика в обоих блоках */
+.cta-split .reset-title,
+.cta-split .neon-title{
+  font-size: var(--cta-title) !important;
+  line-height: 1.2;
+  font-weight: 800;
+  margin: 0;
+}
+.cta-split .reset-panel .muted,
+.cta-split .neon-sub{
+  font-size: var(--cta-text) !important;
+  line-height: var(--cta-lh);
+}
+
+/* чтобы кнопка не растягивала высоту */
+.cta-split .neon-btn{ min-height: var(--cta-btn-h); }
+
+/* при желании сделать компактнее ещё и левые отступы кнопки сброса */
+.cta-split .reset-panel .btn.btn-reset{
+  min-height: 40px;
+  padding: 0 14px;
+  border-radius: 12px;
+}
+
+</style>
+<script>
+(function heroBg(){
+  const KEY  = 'rt.hero.bg';
+  const card = document.getElementById('hero');           // <section id="hero">
+  const sw   = document.getElementById('heroBgSwitch');
+  if (!card || !sw) return;
+
+  // ✅ Путь к картинкам (.png). Если у тебя .jpg — поменяй расширение здесь и в CSS-превью.
+  const map = {
+    none: 'none',
+    bear: "url('img/wall-bear-pill.png')",
+    chem: "url('img/wall-molecule.png')",
+    caps: "url('img/wall-capsules.png')"
+  };
+
+  function apply(v){
+    const val = map[v] ?? 'none';
+    card.style.setProperty('--hero-bg-img', val);
+    card.classList.toggle('has-bg', val !== 'none');      // включает слой ::before/::after
+    sw.querySelectorAll('button').forEach(b => b.classList.toggle('is-on', b.dataset.bg === v));
+    try{ localStorage.setItem(KEY, v); }catch(_){}
+  }
+
+  // инициализация: читаем сохранённый выбор, по умолчанию «none»
+  apply(localStorage.getItem(KEY) || 'none');
+
+  // клики по превью
+  sw.addEventListener('click', (e)=>{
+    const btn = e.target.closest('button[data-bg]');
+    if (!btn) return;
+    apply(btn.dataset.bg);
+  });
+
+  // 👇 быстрый самотест в консоли, если «ничего не меняется»:
+  // document.getElementById('hero').classList.add('has-bg');
+  // document.getElementById('hero').style.setProperty('--hero-bg-img', "url('img/wall-bear-pill.png')");
 })();
 </script>
 
