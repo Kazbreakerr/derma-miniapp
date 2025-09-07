@@ -98,28 +98,24 @@ function parseAndVerifyInitData(initData) {
 }
 
 // DEV-дружественная аутентификация: initData (Telegram) или ?tg=<num> (dev).
+async 
 async function tgAuth(req, res, next){
   try{
-    let tgId = null;
+    let tgId = null, parsed = null;
 
-    // 1) Telegram WebApp header
-    const raw = req.get('X-Telegram-InitData') || req.get('x-telegram-initdata') || '';
-    if (raw) {
-      try {
-        const sp = new URLSearchParams(raw);
-        const hash = sp.get('hash');
-        sp.delete('hash');
-        const entries = [];
-        sp.forEach((v,k) => entries.push(`${k}=${v}`));
-        entries.sort();
-        const dataCheckString = entries.join('\n');
-        const secret = crypto.createHmac('sha256', 'WebAppData').update(process.env.BOT_TOKEN).digest();
-        const sign   = crypto.createHmac('sha256', secret).update(dataCheckString).digest('hex');
-        if (sign === hash) {
-          const u = sp.get('user');
-          if (u) tgId = JSON.parse(u).id;
-        }
-      } catch (_) { /* игнор */ }
+    // 1) Telegram WebApp: берём initData из заголовка ИЛИ из query (?tgWebAppData / ?initData)
+    const rawHeader = req.get('X-Telegram-InitData') || req.get('x-telegram-initdata') || '';
+    const rawQuery  = req.query.tgWebAppData || req.query.initData || '';
+
+    if (rawHeader) {
+      try { parsed = parseAndVerifyInitData(rawHeader); } catch(_) {}
+    }
+    if (!parsed && rawQuery) {
+      try { parsed = parseAndVerifyInitData(rawQuery); } catch(_) {}
+    }
+    if (parsed?.user?.id) {
+      tgId = Number(parsed.user.id);
+      req.tgUser = parsed.user;
     }
 
     // 2) dev/браузер: ?tg=123
@@ -141,9 +137,6 @@ async function tgAuth(req, res, next){
     res.status(401).json({ error: 'BOT_INVALID' });
   }
 }
-
-
-
 // ====== helpers ======
 async function ensureUser(req) {
   try {
@@ -1272,42 +1265,6 @@ app.use((req, res, next) => {
 const staticRoot = path.join(__dirname, 'webapp');
 const staticOpts = { etag: false, lastModified: false, cacheControl: true, maxAge: 0 };
 
-// === Принудительная маршрутизация страниц врача (до static) ===
-app.get(['/dark/doctor-onboarding-mint-rose.html', '/dark/doctor-onboarding.html'], tgAuth, async (req, res, next) => {
-  try {
-    await pool.query('SET search_path = derma, public');
-    const uid = await userIdByTg(req.tg || req.tgUser?.id);
-    if (!uid) return res.redirect('/dark/welcome-rt.html');
-
-    const { onbDone } = await decideDoctorState(uid);
-    if (onbDone) {
-      // Онбординг уже завершён — сразу в кабинет
-      return res.redirect('/dark/doctor-cabinet-mint-rose.html');
-    }
-    // Онбординг ещё не завершён — отдать саму страницу онбординга
-    return res.sendFile(path.join(staticRoot, 'dark', 'doctor-onboarding-mint-rose.html'));
-  } catch (e) {
-    next(e);
-  }
-});
-
-app.get(['/dark/doctor-cabinet-mint-rose.html', '/dark/doctor-cabinet.html'], tgAuth, async (req, res, next) => {
-  try {
-    await pool.query('SET search_path = derma, public');
-    const uid = await userIdByTg(req.tg || req.tgUser?.id);
-    if (!uid) return res.redirect('/dark/welcome-rt.html');
-
-    const { onbDone } = await decideDoctorState(uid);
-    if (!onbDone) {
-      // Онбординг не завершён — отправляем на онбординг
-      return res.redirect('/dark/doctor-onboarding-mint-rose.html');
-    }
-    // Онбординг завершён — отдаём кабинет
-    return res.sendFile(path.join(staticRoot, 'dark', 'doctor-cabinet-mint-rose.html'));
-  } catch (e) {
-    next(e);
-  }
-});
 app.use(express.static(staticRoot, staticOpts));                       // /css, /js, /img, /index.html
 app.use('/dark',  express.static(path.join(staticRoot, 'dark'), staticOpts));
 app.use('/light', express.static(path.join(staticRoot, 'light'), staticOpts));
