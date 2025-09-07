@@ -1355,6 +1355,16 @@ document.addEventListener('visibilitychange', ()=>{ if (!document.hidden) render
 
   document.addEventListener('pointerup', onUp, {passive:true});
   document.addEventListener('touchend',  onUp, {passive:true}); // на всякий случай для старых движков
+  // Доп. делегирование: клик по любой ячейке откроет Sheet
+grid.addEventListener('click', (e)=>{
+  const c = e.target.closest('.day[data-date]');
+  if (!c) return;
+  const sheetEl = document.getElementById('sheet');
+  if (sheetEl && sheetEl.classList.contains('active')) return;
+  grid.querySelectorAll('.day.selected').forEach(el => el.classList.remove('selected'));
+  c.classList.add('selected');
+  openSheet(c.dataset.date);
+});
 })();
 
   // === RANGE SELECT (п.4): делегирование по .day ===
@@ -1465,6 +1475,25 @@ document.addEventListener('pointerup', finishDrag);
 @media (prefers-reduced-motion:reduce){
   .pill-alert--stock{ animation:none }
 }
+/* Поверх всего, выше таббара */
+#scrim{
+  position:fixed; inset:0;
+  background:rgba(0,0,0,.45);
+  opacity:0; transition:opacity .2s ease;
+  z-index: 999;
+}
+#scrim.active{ opacity:1; }
+
+#sheet{
+  position:fixed; left:0; right:0; bottom:0;
+  transform: translateY(110%);
+  transition: transform .28s ease;
+  z-index: 1000;
+}
+#sheet.active{ transform: translateY(0); }
+
+/* чтобы таббар не перекрывал шит */
+nav.tabbar{ z-index: 40 !important; }
 </style>
 </body>
 </html>

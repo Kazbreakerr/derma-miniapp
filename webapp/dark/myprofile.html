@@ -2494,31 +2494,50 @@ body.light .neon-btn{
 })();
 </script>
 <script>
-  (function applyAvatarOnProfile(){
-    const tg = window.Telegram?.WebApp || null;
-    const u   = tg?.initDataUnsafe?.user;
+ (function bootstrapTgIdentity(){
+  const tg = window.Telegram?.WebApp;
+  const u  = tg?.initDataUnsafe?.user || null;
 
-    let name  = [u?.first_name, u?.last_name].filter(Boolean).join(' ') || localStorage.getItem('rt_usr_name') || '';
-    let photo = (u?.photo_url || localStorage.getItem('rt_usr_avatar') || '');
-    const handle = u?.username || '';
+  // 1) имя и фото из Telegram + локальные фолбэки
+  let name  = u ? [u.first_name, u.last_name].filter(Boolean).join(' ') : '';
+  let photo = u?.photo_url || '';
 
-    if (!photo && handle) photo = `https://unavatar.io/telegram/${encodeURIComponent(handle)}`;
+  // dev-режим (запуск вне Telegram): ?tg_name=...&tg_photo=...
+  const qs = new URLSearchParams(location.search);
+  if (!name)  name  = qs.get('tg_name')  || localStorage.getItem('rt_usr_name')   || '';
+  if (!photo) photo = qs.get('tg_photo') || localStorage.getItem('rt_usr_avatar') || '';
 
-    const target = document.querySelector('[data-shared="avatar"]'); // твой круглый аватар
-    if (photo) {
+  // если есть username и нет photo — попробуем unavatar
+  const handle = u?.username || qs.get('tg_handle') || '';
+  if (!photo && handle) photo = `https://unavatar.io/telegram/${encodeURIComponent(handle)}`;
+
+  try{ if(name)  localStorage.setItem('rt_usr_name', name); }catch(_){}
+  try{ if(photo) localStorage.setItem('rt_usr_avatar', photo); }catch(_){}
+
+  // 2) поставим имя во «все подходящие места»
+  const nameTargets = document.querySelectorAll('#tgName, #topName, #fullName, [data-tg-name], #heroName, .hero-name, #profileName');
+  nameTargets.forEach(el => { if (el) el.textContent = name || '—'; });
+
+  // 3) аватар — во «все подходящие места»
+  const avaTargets = document.querySelectorAll('#ava, #topAva, [data-tg-ava], [data-shared="avatar"], #smallAva, #bigAva');
+  avaTargets.forEach(t => setAvatar(t, photo, name));
+
+  function setAvatar(target, url, fallbackName){
+    if (!target) return;
+    const putInitials = () => { target.innerHTML = `<span>${initials(fallbackName)}</span>`; };
+    if (url){
       const img = new Image();
       img.alt=''; img.referrerPolicy='no-referrer';
-      Object.assign(img.style,{width:'100%',height:'100%',objectFit:'cover',display:'block'});
+      Object.assign(img.style,{width:'100%',height:'100%',objectFit:'cover',display:'block',borderRadius:getComputedStyle(target).borderRadius||'50%'});
       img.onload  = () => { target.innerHTML=''; target.appendChild(img); };
-      img.onerror = () => { target.textContent = (name||'U').slice(0,2).toUpperCase(); };
-      img.src = photo;
+      img.onerror = putInitials;
+      img.src = url;
     } else {
-      target.textContent = (name||'U').slice(0,2).toUpperCase();
+      putInitials();
     }
-
-    const nameEl = document.getElementById('heroName') || document.querySelector('.hero-name');
-    if (nameEl && name) nameEl.textContent = name;
-  })();
+  }
+  function initials(n){ return (n||'U').trim().split(/\s+/).map(s=>s[0]||'').slice(0,2).join('').toUpperCase() || 'U';}
+})();
 </script>
 </body>
 </html>
