@@ -98,7 +98,6 @@ function parseAndVerifyInitData(initData) {
 }
 
 // DEV-дружественная аутентификация: initData (Telegram) или ?tg=<num> (dev).
-async 
 async function tgAuth(req, res, next){
   try{
     let tgId = null, parsed = null;
