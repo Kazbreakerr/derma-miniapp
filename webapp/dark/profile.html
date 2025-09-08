@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8" />
 
-<script src="js/app-state.js"></script>
+<script src="/js/app-state.js"></script>
 <script>
   document.addEventListener('DOMContentLoaded', () => {
     const settings = (window.AppState?.get('settings')) || {};
@@ -52,7 +52,7 @@ if (!(hasNs || hasOld)) {
   <script src="https://telegram.org/js/telegram-web-app.js"></script>
   <script>window.API_BASE = window.API_BASE || '';</script>
 
-<link rel="stylesheet" href="css/ui-tokens.css">
+<link rel="stylesheet" href="/css/ui-tokens.css">
 <script>document.documentElement.dataset.theme='dark';</script>
 
   <style>
@@ -218,11 +218,14 @@ body::before{
 
 
 <script>
-  F.initLinks();
+  if (window.F && typeof F.initLinks === 'function') {
+    F.initLinks();
+  }
   document.getElementById('agree-derma')?.addEventListener('click', () => {
-    const c = Gates.consent(); c.derma = true;
-    localStorage.setItem('rt.consent', JSON.stringify(c));
-    location.href = F.href('profile.html');
+    const c = (window.Gates && Gates.consent) ? Gates.consent() : {};
+    c.derma = true;
+    try { localStorage.setItem('rt.consent', JSON.stringify(c)); } catch(_) {}
+    location.href = (window.F && F.href) ? F.href('profile.html') : './profile.html';
   });
 </script>
 </head>

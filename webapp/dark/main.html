@@ -1,6 +1,7 @@
 <!doctype html>
 <html lang="ru">
 <head>
+  <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg'/%3E">
   <script>
 try{
   const s = JSON.parse(localStorage.getItem('rt.settings')||'{}');
@@ -1295,7 +1296,7 @@ input[type="time"]::-webkit-calendar-picker-indicator{
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10 2v5l-5 9a4 4 0 0 0 3.5 6h7a4 4 0 0 0 3.5-6l-5-9V2"/><path d="M8 11h8"/></svg>
       <small>Анализы</small>
     </a>
-  
+  </nav>
     <script>
 // Ensure bottom nav -> Profile passes snapshot like header block
 (function attachTabbarProfileRoute(){
@@ -1678,13 +1679,24 @@ updateSegLabels();
 }
 
     // Header user
-    (function fillHeader(){
-      const name = initUser ? [initUser.first_name, initUser.last_name].filter(Boolean).join(' ') : '—';
-      document.getElementById('fullName').textContent = name;
-      const ava = document.getElementById('ava');
-      if (initUser && initUser.photo_url){ ava.innerHTML = '<img alt="" src="'+initUser.photo_url+'">'; }
-      else{ ava.textContent = initials(name); }
-    })();
+  (function fillHeader(){
+  const name = initUser ? [initUser.first_name, initUser.last_name].filter(Boolean).join(' ') : '—';
+  document.getElementById('fullName').textContent = name;
+
+  const ava = document.getElementById('ava');
+  if (!ava) return;
+
+  let url = '';
+  if (initUser){
+    url = initUser.photo_url || (initUser.username ? ('https://unavatar.io/telegram/' + encodeURIComponent(initUser.username)) : '');
+  }
+
+  if (url){
+    ava.innerHTML = '<img alt="" referrerpolicy="no-referrer" src="'+url+'">';
+  } else {
+    ava.textContent = (name||'U').trim().split(/\s+/).map(s=>s[0]||'').slice(0,2).join('').toUpperCase();
+  }
+})();
 
     // State
     let ME=null, PLAN=null, DOSES=[], PROGRESS=null;
@@ -1816,7 +1828,8 @@ if (lbl){ lbl.textContent = fmt2(p) + '%'; }}
     function renderChips(drug){ /* chips removed */ updateDoseHint(); }
     
     // === Календарь: 7 дней, свайп + стрелки ===
-    let calOffset = 0; // смещение от сегодня (в днях) кратно 7
+    window.calOffset = window.calOffset || 0; // единый источник правды
+
     
 function renderCalPreview(){
   const box = document.getElementById('calPreview');
@@ -1841,7 +1854,7 @@ function renderCalPreview(){
 
   // Базовая дата = понедельник нужной недели
   const base = new Date(); base.setHours(0,0,0,0);
-  base.setDate(base.getDate() + calOffset);
+  base.setDate(base.getDate() + window.calOffset);
   const wd = base.getDay(); // 0-вс..6-сб
   const toMonday = (wd === 0 ? -6 : (1 - wd));
   base.setDate(base.getDate() + toMonday);
@@ -1923,14 +1936,15 @@ const monthChip = isFirstOfMonth ? `<span class="month-chip">${mShort[d.getMonth
       const wrap = document.getElementById('calWrap');
       const prev = document.getElementById('calPrev');
       const next = document.getElementById('calNext');
-      prev.addEventListener('click', ()=>{ calOffset -= 7; slideCalendar('prev', renderCalPreview); });
-      next.addEventListener('click', ()=>{ calOffset += 7; slideCalendar('next', renderCalPreview); });
+      prev.addEventListener('click', ()=>{ window.calOffset -= 7; slideCalendar('prev', renderCalPreview); });
+next.addEventListener('click', ()=>{ window.calOffset += 7; slideCalendar('next', renderCalPreview); });
       let x0=null;
       wrap.addEventListener('touchstart', (e)=>{ x0 = e.touches[0].clientX; }, {passive:true});
       wrap.addEventListener('touchend',   (e)=>{
         if(x0==null) return;
         const x1=(e.changedTouches[0]||{}).clientX || x0; const dx=x1-x0; x0=null;
-        if (Math.abs(dx)>30){ calOffset += (dx<0 ? +7 : -7); slideCalendar(dx<0 ? 'next' : 'prev', renderCalPreview); }
+        if (Math.abs(dx)>30){ window.calOffset += (dx<0 ? +7 : -7); slideCalendar(dx<0 ? 'next' : 'prev', renderCalPreview); }
+
       }, {passive:true});
     })();
 
@@ -2051,139 +2065,174 @@ if(use){
 
     function renderLast(){
   const box = document.getElementById('lastDoses');
-  if (!box) return;                 // ← защита
-  if (!DOSES.length){ box.textContent='Нет отметок'; return; }
+  if (!box) return; // защита
+  if (!DOSES.length){ box.textContent = 'Нет отметок'; return; }
   const rows = DOSES.slice(0,4).map(x =>
     ddmmyyyy((normalizeDate(x.date)||'').slice(0,10))+': '+fmtInt(Number(x.mg||x.mg_taken||0))+' мг 💊'
   );
   box.innerHTML = rows.join('<br>');
 }
 
-    async function loadAll(){
-      try{
-        const [meR, planR, doseR, prR] = await Promise.all([
-          api('/api/me'),
-          api('/api/plan'),
-          api('/api/intakes?limit=60'),
-          api('/api/progress?mode='+encodeURIComponent(DOSE_MODE))
-        ]);
-        ME        = meR.ok   ? await meR.json()   : null;
-        PLAN      = planR.ok ? await planR.json() : null;
-        DOSES     = doseR.ok ? (await doseR.json()) : [];
-        DOSES = DOSES.map(d => ({ ...d, date: normalizeDate(d.date) }));
-        // в конце try-блока loadAll после присваиваний ME/PLAN/DOSES/PROGRESS
-try {
-  const diary = JSON.parse(localStorage.getItem('rt.diary.v1')||'{}');
-  const diaryEmpty = !diary || !Object.keys(diary).length;
-  const dosesEmpty = Array.isArray(DOSES) && DOSES.length === 0;
-  if (diaryEmpty && dosesEmpty) {
-    // сервер пуст, локалка пуста — чистим и «капсулы»
-    localStorage.removeItem('rt_capsules_left');
-    localStorage.setItem('rt_capsules_left_bump', String(Date.now()));
-    localStorage.removeItem('rt_capsules_left_bump');
-    if (window.renderStockAlert) window.renderStockAlert();
-  }
-} catch(_) {}
-// Важно: если сервер/офлайн вернул пусто — ничего не чистим.
-// Локальные данные (rt.diary.v1/v2) считаем источником правды.
-        PROGRESS  = prR.ok   ? await prR.json()   : null;
-        window.__intakesLoaded = true;
+async function loadAll(){
+  try{
+    const [meR, planR, doseR, prR] = await Promise.all([
+      api('/api/me'),
+      api('/api/plan'),
+      api('/api/intakes?limit=60'),
+      api('/api/progress?mode='+encodeURIComponent(DOSE_MODE))
+    ]);
 
-        renderChips((PLAN?.drug||'roaccutane').toLowerCase());
-        setupCapsulesUI();
-        document.getElementById('date').value = todayISO();
-        document.getElementById('date').addEventListener('change', ()=>{ renderCalPreview(); });
-        updateSummary(); renderLast(); recalcDaysPerView(); renderCalPreview(); updateDoseHint();
-        try { applyDiaryToMain(diaryGet()); renderCalPreview(); } catch(_){}
-        try { syncDiaryFromIntakes(); } catch(_){}
-     } catch(e) {
-  renderChips('roaccutane');
-  setupCapsulesUI();                // ← добавить эту строку
-  try { document.getElementById('date').value = todayISO(); } catch(_){}
-  try { recalcDaysPerView(); renderCalPreview(); updateDoseHint(); } catch(_){}
+    ME    = meR.ok   ? await meR.json()   : null;
+    PLAN  = planR.ok ? await planR.json() : null;
+    DOSES = doseR.ok ? (await doseR.json()) : [];
+    DOSES = DOSES.map(d => ({ ...d, date: normalizeDate(d.date) }));
+
+    // если и сервер, и локальное хранилище пусты — обнулим «капсулы»
+    try{
+      const diary = JSON.parse(localStorage.getItem('rt.diary.v1')||'{}');
+      const diaryEmpty = !diary || !Object.keys(diary).length;
+      const dosesEmpty = Array.isArray(DOSES) && DOSES.length === 0;
+      if (diaryEmpty && dosesEmpty) {
+        localStorage.removeItem('rt_capsules_left');
+        localStorage.setItem('rt_capsules_left_bump', String(Date.now()));
+        localStorage.removeItem('rt_capsules_left_bump');
+        if (window.renderStockAlert) window.renderStockAlert();
+      }
+    }catch(_){}
+
+    PROGRESS = prR.ok ? await prR.json() : null;
+    window.__intakesLoaded = true;
+
+    renderChips((PLAN?.drug||'roaccutane').toLowerCase());
+    setupCapsulesUI();
+
+    // безопасно работаем с полем даты
+    const dateEl = document.getElementById('date');
+    if (dateEl) {
+      try { dateEl.value = todayISO(); } catch(_) {}
+      dateEl.addEventListener('change', ()=>{ try{ renderCalPreview?.(); }catch(_){} });
+    }
+
+    // мягкие вызовы — даже если какая-то функция отсутствует, не роняем страницу
+    try{ updateSummary?.(); }catch(_){}
+    try{ renderLast?.(); }catch(_){}
+    try{ recalcDaysPerView?.(); }catch(_){}
+    try{ renderCalPreview?.(); }catch(_){}
+    try{ updateDoseHint?.(); }catch(_){}
+    try{ applyDiaryToMain?.(diaryGet?.()); renderCalPreview?.(); }catch(_){}
+    try{ syncDiaryFromIntakes?.(); }catch(_){}
+
+  }catch(e){
+    // оффлайн-фоллбек
+renderChips('roaccutane');
+setupCapsulesUI('roaccutane'); // ← форсируем 10/20 мг
+const dateEl = document.getElementById('date');
+if (dateEl) try { dateEl.value = todayISO(); } catch(_){}
+try{
+  recalcDaysPerView?.();
+  renderCalPreview?.();
+  updateDoseHint?.();
+  updateSummary?.();            // ← мгновенно рисуем кольца/бар/улитку
+}catch(_){}
+  }
 }
-    }
 
-    document.getElementById('mg').addEventListener('input', syncChipsSelection);
+/* ===== безопасные привязки ===== */
 
-    document.getElementById('save').addEventListener('click', async ()=>{
-  const mgEl = document.getElementById('mg');
-  const dateEl = document.getElementById('date');
-  const st = document.getElementById('saveStatus');
-
-  const mg = Number(mgEl?.value || 0);
-  const iso = String(dateEl?.value || todayISO()).slice(0,10);
-  if (!(mg > 0)) { st.textContent = 'Введите дозу > 0'; return; }
-
-  st.textContent = 'Сохраняю...';
-
-  let serverOk = false;
-  try {
-    const r = await api('/api/intakes', {
-      method: 'POST',
-      body: JSON.stringify({ mg, date: iso })
+// mg — ввод дозы
+{
+  const mgElInput = document.getElementById('mg');
+  if (mgElInput) {
+    mgElInput.addEventListener('input', () => {
+      try { syncChipsSelection?.(); } catch(_) {}
     });
-    serverOk = r.ok;
-    st.textContent = serverOk ? 'Сохранено ✓' : 'Сохранено локально';
-  } catch(_) {
-    st.textContent = 'Сохранено локально';
   }
+}
 
-  // --- Всегда пишем локально (даже если сервер дал 401) ---
-  try {
-    // дневник по датам
-    bumpDiaryDose(iso, mg);
+// save — кнопка «Добавить»
+const saveBtn = document.getElementById('save');
+if (saveBtn) {
+  saveBtn.addEventListener('click', async () => {
+    const mgEl   = document.getElementById('mg');
+    const dateEl = document.getElementById('date');
+    const st     = document.getElementById('saveStatus');
 
-    // DOSES для UI (список последних приёмов)
-    if (Array.isArray(window.DOSES)) {
-      window.DOSES.unshift({ mg, date: iso });
+    const mg  = Number(mgEl?.value || 0);
+    const iso = String(dateEl?.value || todayISO()).slice(0,10);
+    if (!(mg > 0)) {
+      if (st) st.textContent = 'Введите дозу > 0';
+      return;
     }
 
-    // кеш «сегодня»
-    const today = (window.todayISO ? window.todayISO() : new Date().toISOString().slice(0,10));
-    if (iso === today) {
-      const prev = Number(localStorage.getItem('derma_today_mg')||0);
-      localStorage.setItem('derma_today_iso', iso);
-      localStorage.setItem('derma_today_mg', String(prev + mg));
-    }
+    if (st) st.textContent = 'Сохраняю...';
 
-    // перерисовка интерфейса
-    try { applyDiaryToMain(diaryGet()); } catch(_){}
-    try { renderCalPreview(); } catch(_){}
-    try { updateSummary(); } catch(_){}
-    try { updateDoseHint(); } catch(_){}
-    try { window.renderReminder && window.renderReminder(); } catch(_){}
-    try { window.renderPillAlert && window.renderPillAlert(); } catch(_){}
-    
-// === СПИСЫВАЕМ КАПСУЛЫ и "пинаем" обновление остатка капсул ===
-try {
-  const capMg = Math.max(1, Number(localStorage.getItem('rt.capsule_mg')) || 0);
-  if (capMg) {
-    // mg — это твоя добавленная доза из кода выше
-    const usedCaps = Math.max(1, Math.ceil(mg / capMg)); // сколько капсул ушло на этот приём
-    const cur = Math.max(0, Number(localStorage.getItem('rt_capsules_left')) || 0);
-    const next = Math.max(0, cur - usedCaps);
-    localStorage.setItem('rt_capsules_left', String(next));
-
-    // отдельный "бамп" для тех страниц, что следят за остатком капсул
-    localStorage.setItem('rt_capsules_left_bump', String(Date.now()));
-    localStorage.removeItem('rt_capsules_left_bump');
-  }
-} catch(_) {}
-    // «пинок» для других вкладок/страниц
+    let serverOk = false;
     try {
-      localStorage.setItem('rt.diary.bump', Date.now().toString());
-      localStorage.removeItem('rt.diary.bump');
-    } catch(_){}
-  } catch(_) {}
+      const r = await api('/api/intakes', {
+        method: 'POST',
+        body: JSON.stringify({ mg, date: iso })
+      });
+      serverOk = r.ok;
+      st.textContent = serverOk ? 'Сохранено ✓' : 'Сохранено локально';
+    } catch(_) {
+      st.textContent = 'Сохранено локально';
+    }
 
- // если сервер принял — мягко синхронизируемся
-if (serverOk) {
-  try { await loadAll(); } catch(_) {}
+    // --- Всегда пишем локально (даже если сервер дал 401) ---
+    try {
+      // 1) дневник по датам
+      bumpDiaryDose(iso, mg);
+
+      // 2) DOSES для UI (список последних приёмов)
+      if (Array.isArray(window.DOSES)) {
+        window.DOSES.unshift({ mg, date: iso });
+      }
+
+      // 3) кеш «сегодня»
+      const today = (window.todayISO ? window.todayISO() : new Date().toISOString().slice(0,10));
+      if (iso === today) {
+        const prev = Number(localStorage.getItem('derma_today_mg')||0);
+        localStorage.setItem('derma_today_iso', iso);
+        localStorage.setItem('derma_today_mg', String(prev + mg));
+      }
+
+      // 4) списываем капсулы + пинаем слушателей
+      try {
+        const capMg = Math.max(1, Number(localStorage.getItem('rt.capsule_mg')) || 0);
+        if (capMg) {
+          const usedCaps = Math.max(1, Math.ceil(mg / capMg));
+          const cur = Math.max(0, Number(localStorage.getItem('rt_capsules_left')) || 0);
+          const next = Math.max(0, cur - usedCaps);
+          localStorage.setItem('rt_capsules_left', String(next));
+          localStorage.setItem('rt_capsules_left_bump', String(Date.now()));
+          localStorage.removeItem('rt_capsules_left_bump');
+        }
+      } catch(_) {}
+
+      // 5) перерисовка интерфейса
+      try { applyDiaryToMain(diaryGet()); } catch(_) {}
+      try { renderCalPreview(); } catch(_) {}
+      try { updateSummary(); } catch(_) {}
+      try { updateDoseHint(); } catch(_) {}
+      try { window.renderReminder && window.renderReminder(); } catch(_) {}
+      try { window.renderPillAlert && window.renderPillAlert(); } catch(_) {}
+
+      // 6) «пинок» для других вкладок/страниц
+      try {
+        localStorage.setItem('rt.diary.bump', Date.now().toString());
+        localStorage.removeItem('rt.diary.bump');
+      } catch(_){}
+    } catch(_) {}
+
+    // 7) если сервер принял — мягко синхронизируемся
+    if (serverOk) {
+      try { await loadAll(); } catch(_) {}
+    }
+  });
 }
 
 /* ==== Telegram: имя и аватар ==== */
-(async function hydrateTgUser(){
+;(async function hydrateTgUser(){
   const tg = window.Telegram?.WebApp || null;
 
   const nameEl = document.querySelector('#tgName, #topName, #fullName, [data-tg-name]');
@@ -2217,7 +2266,7 @@ if (serverOk) {
   let handle = '';
 
   // 2) Telegram initData (если есть)
-  const u = tg?.initDataUnsafe?.user;
+const u = window.Telegram?.WebApp?.initDataUnsafe?.user;
   if (u){
     const n = [u.first_name, u.last_name].filter(Boolean).join(' ');
     if (n) name = n;
@@ -2263,29 +2312,27 @@ loadAll().then(()=>{ try{ window.renderReminder && window.renderReminder(); }cat
 document.querySelectorAll('#doseSeg button')
   .forEach(b => b.addEventListener('click', ()=> setDoseMode(b.dataset.mode)));
 
-document.querySelector('#doseSeg button[data-mode="'+(DOSE_MODE||'opt')+'"]')?.click();
+document.querySelector('#doseSeg button[data-mode="'+(localStorage.getItem('derma_dose_mode')||'opt')+'"]')?.click();
 
-/* === Reminder block logic === */
-(function(){
-  const todayIsoFn = (typeof window.todayISO === 'function')
-    ? window.todayISO
-    : () => { const d=new Date(); d.setMinutes(d.getMinutes()-d.getTimezoneOffset()); return d.toISOString().slice(0,10); };
+/* === Reminder block logic (глобальные хелперы) === */
+window.todayIsoFn = window.todayIsoFn || function(){
+  const d = new Date();
+  d.setMinutes(d.getMinutes() - d.getTimezoneOffset());
+  return d.toISOString().slice(0,10);
+};
 
-  function drugRu(){
-    const raw = ((window.PLAN?.drug || '') + '').trim().toLowerCase();
-    if (!raw) return 'препарат';
-    if (raw.includes('akne') || raw.includes('aknek') || raw.includes('акнек') || raw === 'aknekutan' || raw === 'акнеккутан') return 'акнеккутан';
-    if (raw.includes('roacc') || raw.includes('роакк') || raw === 'roaccutane' || raw === 'роаккутан') return 'роаккутан';
-    return 'препарат';
-  }
-  function setReminderTexts(){
-    const front = document.getElementById('remFront')?.querySelector('.msg');
-    const back  = document.getElementById('remBack')?.querySelector('.msg');
-    const drug = drugRu();
-    if (front) front.innerHTML = '<b>Сегодня вы ещё не приняли ' + drug + '</b>';
-    if (back)  back.textContent = 'Молодец! Сегодня вы приняли ' + drug;
-  }
-})();
+function setReminderTexts(){
+  const front = document.getElementById('remFront')?.querySelector('.msg');
+  const back  = document.getElementById('remBack')?.querySelector('.msg');
+
+  const raw = String(window.PLAN?.drug || '').toLowerCase();
+  const drug =
+    /акнек|aknek/.test(raw) ? 'акнеккутан' :
+    /роакк|roacc/.test(raw) ? 'роаккутан'  : 'препарат';
+
+  if (front) front.innerHTML = '<b>Сегодня вы ещё не приняли ' + drug + '</b>';
+  if (back)  back.textContent = 'Молодец! Сегодня вы приняли ' + drug;
+}
 
 
   // локальное состояние напоминания
@@ -2437,7 +2484,7 @@ time.addEventListener('change', () => {
 
     // синхронизируем локальный кеш «сегодня»
     try{
-      const tISO = todayIsoFn();
+      const tISO = window.todayIsoFn();
       if (sum > 0){
         localStorage.setItem('derma_today_iso', tISO);
         localStorage.setItem('derma_today_mg', String(sum));
@@ -2448,7 +2495,7 @@ time.addEventListener('change', () => {
       }
     }catch(_){}
 
-    const took = (sum > 0) || (ls > 0) || (getDiaryDose(todayIsoFn()) > 0);
+    const took = (sum > 0) || (ls > 0) || (getDiaryDose(window.todayIsoFn()) > 0);
     card.classList.toggle('flipped', took);
   }
   window.renderReminder = renderReminder;
@@ -2484,7 +2531,6 @@ time.addEventListener('change', () => {
   }
 
   scheduleByReminder();
-})();
 
 // Dose hint: "Последний приём: {N} мг • Сегодня: {X} мг"
 function updateDoseHint(){
@@ -2542,7 +2588,13 @@ document.addEventListener('DOMContentLoaded', ()=>{
     if(e.animationName==='pageIn') document.body.classList.remove('page-enter');
   }, {once:true});
 });
-
+// Моментальная инициализация UI (работает даже без бэка)
+document.addEventListener('DOMContentLoaded', () => {
+  try { document.getElementById('date').value = todayISO(); } catch(_){}
+  try { setupCapsulesUI('roaccutane'); } catch(_){}
+  try { recalcDaysPerView(); renderCalPreview(); } catch(_){}
+  try { updateSummary(); updateDoseHint(); window.renderReminder && window.renderReminder(); } catch(_){}
+});
 </script>
 
 <script>
@@ -2888,83 +2940,36 @@ window.addEventListener('storage', syncReminderUI);
 document.addEventListener('DOMContentLoaded', syncReminderUI);
 
 </script>
-<script>
-// Pill burst FX — в точке тапа по кнопке "Добавить"
-document.addEventListener('DOMContentLoaded', () => {
-  const btn = document.getElementById('save');
-  if (!btn) return;
-
-  function burst(x, y){
-    const rect = btn.getBoundingClientRect();
-    const cx = x ? (x - rect.left) : rect.width/2;
-    const cy = y ? (y - rect.top)  : rect.height/2;
-
-    const pill = document.createElement('span');
-    pill.className = 'fx-pill';
-    pill.textContent = '💊';
-    pill.style.left = cx + 'px';
-    pill.style.top  = cy + 'px';
-    btn.appendChild(pill);
-    setTimeout(()=>pill.remove(), 900);
-
-    const colors = ['#22D3EE','#14B8A6','#5EEAD4','#FDE047','#A7F3D0','#93C5FD'];
-    const N = 10;
-    for(let i=0;i<N;i++){
-      const dot = document.createElement('span');
-      dot.className = 'fx-dot';
-      dot.style.left = cx + 'px';
-      dot.style.top  = cy + 'px';
-      const angle = (Math.PI*2) * (i/N) + (Math.random()*0.6 - 0.3);
-      const r = 22 + Math.random()*16;
-      dot.style.setProperty('--dx',  Math.cos(angle)*r + 'px');
-      dot.style.setProperty('--dy',  Math.sin(angle)*r + 'px');
-      dot.style.width = dot.style.height = (4 + Math.random()*4) + 'px';
-      dot.style.background = colors[i % colors.length];
-      btn.appendChild(dot);
-      setTimeout(()=>dot.remove(), 800);
-    }
-  }
-
-  btn.addEventListener('click', (e)=>{ try{ burst(e.clientX, e.clientY); }catch(_){ burst(); } });
-  btn.addEventListener('touchstart', (e)=>{ try{ const t=e.touches[0]; if(t) burst(t.clientX, t.clientY); }catch(_){ burst(); } }, {passive:true});
-});
-</script>
 
 <script>
 (function(){
-  const TIME_KEY  = 'derma_remind_time';
+  const TIME_KEY = 'derma_remind_time';
   const OPTIN_KEY = 'derma_remind_optin';
+  const timeEl = document.getElementById('remTime');
+  const swEl   = document.getElementById('remToggle');
 
-const timeEl = document.getElementById('remTime');
- const swEl   = document.getElementById('remToggle');
-
-  function readState(){
-    return {
-      enabled: (localStorage.getItem(OPTIN_KEY)||'0') === '1',
-      time: localStorage.getItem(TIME_KEY) || '19:00'
-    };
-  }
-  function applyUI(){
-    const s = readState();
-    if (swEl)   swEl.checked = s.enabled;
-    if (timeEl) timeEl.value = s.time;
-  }
-  function bump(k){ localStorage.setItem(k, Date.now().toString()); localStorage.removeItem(k); }
-  function save(part){
-    const cur = readState(), next = { ...cur, ...part };
-    localStorage.setItem(OPTIN_KEY, next.enabled ? '1' : '0');
-    localStorage.setItem(TIME_KEY,  next.time);
-    bump('derma.reminder.bump');
-  }
-
-  swEl?.addEventListener('change', e=> save({enabled: !!e.target.checked}));
-  timeEl?.addEventListener('change', e=> save({time: e.target.value || '19:00'}));
-
-  window.addEventListener('storage', e=>{
-    if ([OPTIN_KEY, TIME_KEY, 'derma.reminder.bump'].includes(e.key)) applyUI();
+  const read = () => ({
+    enabled: (localStorage.getItem(OPTIN_KEY)||'0') === '1',
+    time:     localStorage.getItem(TIME_KEY) || '09:00'
   });
 
-  applyUI();
+  const apply = () => {
+    const s = read();
+    if (swEl)   swEl.checked = s.enabled;
+    if (timeEl) timeEl.value = s.time;
+  };
+
+  apply();
+
+  swEl?.addEventListener('change', () => {
+    localStorage.setItem(OPTIN_KEY, swEl.checked ? '1' : '0');
+    window.renderReminder?.();
+  });
+
+  timeEl?.addEventListener('change', () => {
+    localStorage.setItem(TIME_KEY, timeEl.value || '09:00');
+    window.renderReminder?.();
+  });
 })();
 </script>
 <script>
