@@ -5,6 +5,21 @@
   <meta name="viewport" content="width=device-width,initial-scale=1" />
   <title>Roaccutane Tracker — загрузка</title>
 
+  <script>
+(function cacheTelegramIdentity(){
+  try{
+    const tg = window.Telegram?.WebApp;
+    const u  = tg?.initDataUnsafe?.user;
+    if (u){
+      const name = [u.first_name, u.last_name].filter(Boolean).join(' ');
+      if (name)         localStorage.setItem('rt_usr_name', name);
+      if (u.username)   localStorage.setItem('rt_usr_handle', u.username);
+      if (u.photo_url)  localStorage.setItem('rt_usr_avatar', u.photo_url);
+      localStorage.setItem('rt_usr_id', String(u.id || ''));
+    }
+  }catch(e){}
+})();
+</script>
   <!-- Telegram SDK (нужен только чтобы взять colorScheme) -->
   <script src="https://telegram.org/js/telegram-web-app.js"></script>
 

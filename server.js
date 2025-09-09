@@ -59,6 +59,38 @@ const pool = new Pool({
   connectionString: dsn,
   ssl: { rejectUnauthorized: false },
 });
+// ==== helpers: нормализация дат и вставка дозы ====
+function isoTsOrZ(iso) {
+  // 'YYYY-MM-DD' => начало дня в UTC; иначе — корректный ISO
+  if (/^\d{4}-\d{2}-\d{2}$/.test(String(iso))) return `${iso}T00:00:00.000Z`;
+  const d = new Date(iso || Date.now());
+  if (Number.isNaN(d.getTime())) throw new Error('Bad date');
+  return d.toISOString();
+}
+
+async function addIntake(pool, userId, iso, mg) {
+  // сначала пробуем схему с timestamptz колонкой "at"
+  const ts = isoTsOrZ(iso);
+  try {
+    await pool.query(
+      `INSERT INTO derma.intakes (user_id, at, mg) VALUES ($1, $2::timestamptz, $3)`,
+      [userId, ts, mg]
+    );
+    return;
+  } catch (e) {
+    // если колонки "at" нет — пробуем схему с колонкой "day" (DATE)
+    if (e.code === '42703' || /column\s+"?at"?\s+does not exist/i.test(String(e.message))) {
+      const day = String(iso || '').slice(0, 10);
+      if (!/^\d{4}-\d{2}-\d{2}$/.test(day)) throw new Error('Bad date');
+      await pool.query(
+        `INSERT INTO derma.intakes (user_id, day, mg) VALUES ($1, $2::date, $3)`,
+        [userId, day, mg]
+      );
+      return;
+    }
+    throw e;
+  }
+}
 
 try { console.log('PG host:', new URL(dsn).hostname); } catch {}
 
@@ -461,7 +493,7 @@ app.post('/api/dose', tgAuth, async (req, res) => {
 
 // === New endpoints for updated front ===
 
-// Aliases for intakes
+// Aliases for intakes (совместимость со старым фронтом)
 app.get('/api/intakes', tgAuth, async (req, res) => {
   try {
     const uid = await userIdByTg(req.tg);
@@ -483,25 +515,36 @@ app.get('/api/intakes', tgAuth, async (req, res) => {
   }
 });
 
+// Безопасная вставка (принимаем date = 'YYYY-MM-DD' или iso; upsert по дате)
 app.post('/api/intakes', tgAuth, async (req, res) => {
   try {
     const uid = await userIdByTg(req.tg);
-    if (!uid) return res.status(400).json({ error: 'missing tg' });
+    if (!uid) return res.status(401).json({ error: 'unauthorized' });
 
     const mg = Number(req.body?.mg);
-    if (!Number.isFinite(mg) || mg < 0) return res.status(400).json({ error: 'bad mg' });
+    if (!Number.isFinite(mg) || mg <= 0) return res.status(400).json({ error: 'mg>0 required' });
 
-    const d = req.body?.date || new Date().toISOString().slice(0,10);
+    // поддерживаем и {date:'YYYY-MM-DD'}, и {iso:'...'}
+    let d = String(req.body?.date || '').slice(0, 10);
+    if (!/^\d{4}-\d{2}-\d{2}$/.test(d)) {
+      // если прилетело iso, приведём к 'YYYY-MM-DD'
+      const iso = String(req.body?.iso || '');
+      const dt = new Date(iso || Date.now());
+      d = isNaN(dt.getTime()) ? new Date().toISOString().slice(0,10) : dt.toISOString().slice(0,10);
+    }
+
     await pool.query(
-      `INSERT INTO derma.dose_logs(patient_id,date,mg_taken)
+      `INSERT INTO derma.dose_logs (patient_id, date, mg_taken)
        VALUES ($1,$2,$3)
-       ON CONFLICT (patient_id,date) DO UPDATE SET mg_taken=EXCLUDED.mg_taken`,
+       ON CONFLICT (patient_id, date) DO UPDATE
+         SET mg_taken = EXCLUDED.mg_taken`,
       [uid, d, mg]
     );
-    res.status(201).json({ ok: true, date: d, mg });
+
+    res.json({ ok: true, date: d, mg });
   } catch (e) {
     console.error('INTAKES POST ERROR:', e);
-    res.status(500).json({ error: e.message });
+    res.status(500).json({ error: e.message || 'INTAKES_INSERT_FAILED' });
   }
 });
 
@@ -1287,7 +1330,38 @@ app.post('/api/reminder', tgAuth, async (req, res) => {
   };
   res.json({ ok: true, data: reminders[tgId] });
 });
+// ==== Telegram avatar proxy by tg_id ====
+// Требуется: process.env.BOT_TOKEN
+app.get('/api/tg-avatar/:id', async (req, res) => {
+  try {
+    const userId = req.params.id;
+    if (!/^\d+$/.test(userId)) return res.sendStatus(400);
 
+    const r1 = await fetch(
+      `https://api.telegram.org/bot${process.env.BOT_TOKEN}/getUserProfilePhotos?user_id=${userId}&limit=1`
+    );
+    const j1 = await r1.json();
+    if (!j1.ok || (j1.result.total_count || 0) === 0) return res.sendStatus(404);
+
+    const sizes = j1.result.photos[0];
+    const best = sizes[sizes.length - 1];
+    const r2 = await fetch(
+      `https://api.telegram.org/bot${process.env.BOT_TOKEN}/getFile?file_id=${best.file_id}`
+    );
+    const j2 = await r2.json();
+    if (!j2.ok || !j2.result?.file_path) return res.sendStatus(404);
+
+    const fileUrl = `https://api.telegram.org/file/bot${process.env.BOT_TOKEN}/${j2.result.file_path}`;
+    const img = await fetch(fileUrl);
+
+    res.set('Cache-Control', 'public, max-age=86400'); // кэш на день
+    res.set('Content-Type', img.headers.get('content-type') || 'image/jpeg');
+    img.body.pipe(res);
+  } catch (e) {
+    console.error('tg-avatar proxy error', e);
+    res.sendStatus(500);
+  }
+});
 // Сохранение настроек для "мало капсул" (из WebApp)
 app.post('/api/reminder/stock', tgAuth, async (req, res) => {
   const tgId = req.tg || req.tgUser?.id;
