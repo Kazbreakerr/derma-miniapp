@@ -1293,7 +1293,7 @@ app.use((req, res, next) => {
       // было: "script-src  'self' 'unsafe-inline' 'unsafe-eval' blob:",
       "script-src  'self' 'unsafe-inline' 'unsafe-eval' blob: https://telegram.org https://*.telegram.org",
       "style-src   'self' 'unsafe-inline' data:",
-      "img-src     'self' data: blob:",
+      "img-src     'self' data: blob: https: http: https://unavatar.io https://*.unavatar.io https://telegram.org https://*.telegram.org https://t.me https://*.t.me",
       "media-src   'self' data: blob:",
       "font-src    'self' data:",
       // было: "connect-src 'self' https: http: data: blob:"
