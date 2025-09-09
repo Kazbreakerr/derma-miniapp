@@ -1,5 +1,5 @@
 <!doctype html>
-<html lang="ru" data-theme="light">
+<html lang="ru">
 <head>
   
   <script src="https://telegram.org/js/telegram-web-app.js"></script>
@@ -7,13 +7,14 @@
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>Кабинет врача</title>
 
-  <link rel="stylesheet" href="css/ui-tokens.css">
+ <link rel="stylesheet" href="/css/ui-tokens.css">
+
   <script>
-    try{
-      var s = JSON.parse(localStorage.getItem('rt.settings')||'{}');
-      document.documentElement.dataset.theme = (s && s.theme==='light') ? 'light' : 'dark';
-    }catch(e){ document.documentElement.dataset.theme = 'dark'; }
-  </script>
+  // Для doctor-cabinet принудительно светлая тема,
+  // чтобы ui-tokens не красили body в тёмный.
+  document.documentElement.dataset.theme = 'light';
+</script>
+
 
   <style>
     
@@ -815,7 +816,7 @@
     </div>
   </div>
 
-  <script src="js/app-state.js"></script>
+  <script src="/js/app-state.js"></script>
   <script>
     // ===== helpers (ES5)
     function q(s){return document.querySelector(s);}
@@ -832,27 +833,50 @@
     if (tgApp && tgApp.expand) tgApp.expand();
     var initData = (tgApp && tgApp.initData) ? tgApp.initData : '';
 
-    function api(path, opts){
-      opts = opts || {};
-      var base = String(window.API_BASE || '').replace(/\/$/,'');
-      var headers = {'Content-Type':'application/json'};
-      if (opts.headers){ for (var k in opts.headers) headers[k]=opts.headers[k]; }
-      if (initData) headers['X-Telegram-InitData'] = initData;
+    // === DEV-флаги (можно ставить хоть над api, главное — до первых вызовов api)
+window.RT_DEV = !((window.Telegram && Telegram.WebApp && Telegram.WebApp.initData) || '').length;
+// демо-данные запрещены всегда
+window.RT_USE_MOCK = false;
 
-      var url = /^https?:\/\//i.test(path) ? path : (base + path);
+// === ЗАМЕНА api(path, opts) — ПОЛНОСТЬЮ вместо старой функции
+function api(path, opts){
+  opts = opts || {};
+  var base = String(window.API_BASE || '').replace(/\/$/,'');
+  var headers = {'Content-Type':'application/json'};
 
-      // dev: tg из ?tg= или из LS
-      if (!initData){
-        var devTg = new URLSearchParams(location.search).get('tg') || localStorage.getItem('rt_dev_tg') || '1002';
-        try{ localStorage.setItem('rt_dev_tg', devTg); }catch(_){}
-        url += (url.indexOf('?')>-1?'&':'?') + 'tg=' + encodeURIComponent(devTg);
-      }
-      url += (url.indexOf('?')>-1?'&':'?') + 'v=es5';
+  // Telegram заголовок (если в телеге)
+  var initData = (window.Telegram && Telegram.WebApp && Telegram.WebApp.initData) || '';
+  if (initData) headers['X-Telegram-InitData'] = initData;
 
-      var fopts = {}; for (var p in opts) fopts[p]=opts[p];
-      fopts.headers = headers; fopts.credentials='include';
-      return fetch(url, fopts);
-    }
+  // строим URL
+  var url = /^https?:\/\//i.test(path) ? path : (base + path);
+
+  // если НЕ в телеге — подставляем dev tg врача (сохраняем в LS)
+  if (!initData){
+   var devTg = new URLSearchParams(location.search).get('tg') ||
+            localStorage.getItem('rt_dev_tg') || '';
+if (devTg) {
+  try{ localStorage.setItem('rt_dev_tg', devTg); }catch(_){}
+  url += (url.indexOf('?')>-1?'&':'?') + 'tg=' + encodeURIComponent(devTg);
+}
+
+  // МОК-режим (полностью без сети, чтобы не ловить 403/401/красноту)
+  if (window.RT_DEV && window.RT_USE_MOCK){
+    var mock = __mockDoctorApi(url);
+    return Promise.resolve(new Response(JSON.stringify(mock.body), {
+      status: 200, headers: {'Content-Type':'application/json'}
+    }));
+  }
+
+  // Обычный fetch; в dev, если пришёл 401/403 — подменим на мок
+  var fopts = {}; for (var k in opts) fopts[k]=opts[k];
+  fopts.headers = headers; fopts.credentials = 'include';
+
+ // только реальный запрос, без моков и подмен
+return fetch(url, fopts);}
+
+// === Моки — ДОБАВИТЬ сразу под api. Остальной файл не трогаем.
+function __mockDoctorApi(){ return { body:{} }; }}
 
     // ===== Аватар
     function parseHandle(tg){ if(!tg) return null; var m=String(tg).trim().match(/@?([a-zA-Z0-9_]+)/); return m?m[1]:null; }
@@ -1158,7 +1182,22 @@ function setSmallAvatar(url, init){
     }
 
     function renderAll(){ renderPatients(); renderProfile(); updateRequestsTips(); }
-
+// Разовая зачистка следов демо-режима в localStorage
+(function purgeDemoOnce(){
+  try{
+    // пациенты «Иван Петров» / «Ольга Соколова»
+    var list = JSON.parse(localStorage.getItem('patientsList') || '[]');
+    if (Array.isArray(list) && list.length &&
+        list.every(function(p){ return ['Иван Петров','Ольга Соколова'].indexOf(p && p.name) > -1; })) {
+      localStorage.removeItem('patientsList');
+    }
+    // демонстрационный профиль/код
+    var prof = JSON.parse(localStorage.getItem('doctorProfile') || 'null');
+    if (prof && /Демонстрацион/i.test(prof.name||'')) localStorage.removeItem('doctorProfile');
+    var code = JSON.parse(localStorage.getItem('doctorCode') || 'null');
+    if (code === 'AB12C') localStorage.removeItem('doctorCode');
+  }catch(_){}
+})();
     async function init(){
       await hydrateCodeFromServer();
       initHeader();
@@ -1174,9 +1213,14 @@ function setSmallAvatar(url, init){
       applyAvatar();
 
       var h2=(location.hash||'').replace('#/doctor/',''); setTab(h2||'patients');
-      await Promise.all([ loadRequests(), loadPatients() ]);
-      renderAll();
+      await Promise.allSettled([ loadRequests(), loadPatients() ]);
+renderAll();
+hideSkeletons();
     }
+    function hideSkeletons(){
+  document.body.classList.remove('ghost');
+  document.querySelectorAll('.skeleton').forEach(el => el.classList.remove('skeleton'));
+}
    // ===== Hold-to-confirm для сброса роли врача
 (function(){
   var btn = document.getElementById('doctorHoldReset');

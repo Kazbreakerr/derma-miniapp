@@ -1113,13 +1113,17 @@ window.AppState = window.AppState || (function(){
   function clamp(n,min,max){ return Math.max(min, Math.min(max,n)); }
 
   function populate(){
-    $('#userName').textContent = STATE.name || 'Профиль';
-    const av = $('#avatarImg'); if(STATE.avatarUrl){ av.src = STATE.avatarUrl; } else { $('#avatarFallback').textContent = (STATE.name||'U').trim().charAt(0).toUpperCase(); }
+    const set = (id, val) => { const el = document.getElementById(id); if (el) el.textContent = val; };
+
+set('userName', STATE.name || 'Профиль');
+const av = $('#avatarImg');
+if (av && STATE.avatarUrl) { av.src = STATE.avatarUrl; }
+else { const af = $('#avatarFallback'); if (af) af.textContent = ((STATE.name||'U').trim().charAt(0)||'U').toUpperCase(); }
 
     const goalMg = Math.round(STATE.weightKg * STATE.goalMgPerKg);
     const pct = clamp(goalMg? (STATE.takenMg/goalMg*100):0, 0, 100);
 
-    $('#goalMgKg').textContent = STATE.goalMgPerKg + ' mg/kg';
+   set('goalMgKg', STATE.goalMgPerKg + ' mg/kg');
     $('#goalMg').textContent   = goalMg.toLocaleString('ru-RU') + ' мг';
     $('#progressAbs').textContent = STATE.takenMg.toLocaleString('ru-RU') + ' мг';
     $('#progressPct').textContent = Math.round(pct) + '%';
@@ -1138,7 +1142,8 @@ window.AppState = window.AppState || (function(){
     if((_el=document.getElementById('today'))) _el.textContent = Math.round(STATE.todayMg || 0) + ' мг';
     if((_el=document.getElementById('lastDose'))) _el.textContent = (STATE.lastDoseMg||0) + ' мг';
 
-    const doc = STATE.doctor||{}; $('#doctorMeta').textContent = [doc.name, doc.clinic, doc.phone].filter(Boolean).join(' • ');
+const doc = STATE.doctor||{};
+set('doctorMeta', [doc.name, doc.clinic, doc.phone].filter(Boolean).join(' • '));
 
     const st = (STATE.labs||{}).status||'miss';
     const pill = document.getElementById('labStatus');
@@ -1148,7 +1153,7 @@ window.AppState = window.AppState || (function(){
 
     // update ring
     const C = 2*Math.PI*54; const off = C*(1-pct/100);
-    document.querySelector('.ring .bar').setAttribute('stroke-dashoffset', off);
+   { const bar = document.querySelector('.ring .bar'); if (bar) bar.setAttribute('stroke-dashoffset', off); }
   }
 function todayISO(){
   const d=new Date();
@@ -2004,152 +2009,131 @@ document.addEventListener('DOMContentLoaded', applyCapsLeftUI);
 })();
 </script>
 <script>
-/* === Stock alert renderer (зелёный) === */
+/* === Stock alert renderer (зелёный) — FINAL === */
 (function(){
-  const K_LEFT='rt_capsules_left', K_THRESH='rt_capsules_threshold', K_ON='rt_capsules_alert_enabled';
+  const K_LEFT='rt_capsules_left';
+  const K_THRESH='rt_capsules_threshold';
+  const K_ON='rt_capsules_alert_enabled';
 
-  function n(x){ x=Number(x); return Number.isFinite(x)?x:0; }
-  const on =()=> (localStorage.getItem(K_ON)||'0')==='1';
+  const num = v => { v = Number(v); return Number.isFinite(v) ? v : 0; };
+  const on  = () => (localStorage.getItem(K_ON) || '0') === '1';
 
   function text(){
-    if(!on()) return null;
-    const left = n(localStorage.getItem(K_LEFT)||0);
-    const thr  = n(localStorage.getItem(K_THRESH)||0);
-    if(left>0 && thr>0 && left<=thr) return `осталось ${left} капсул`;
+    if (!on()) return null;
+    const left = num(localStorage.getItem(K_LEFT));
+    const thr  = num(localStorage.getItem(K_THRESH));
+    if (left>0 && thr>0 && left<=thr) return `осталось ${left} капсул`;
     return null;
   }
 
-  (function(){
-  const K_LEFT='rt_capsules_left', K_THRESH='rt_capsules_threshold', K_ON='rt_capsules_alert_enabled';
-  const num = x => (x=Number(x), Number.isFinite(x)?x:0);
-  const on  = () => (localStorage.getItem(K_ON)||'0')==='1';
-
   function render(){
-    const left = num(localStorage.getItem(K_LEFT)||0);
-    const thr  = num(localStorage.getItem(K_THRESH)||0);
-    const low  = on() && thr>0 && left>0 && left<=thr;
-
+    const t = text();
     document.querySelectorAll('[data-stock-spot]').forEach(host=>{
       let el = host.querySelector('.pill-alert--stock');
-      if(!el){
+      if (!t){ if (el) el.remove(); return; }
+      if (!el){
         el = document.createElement('span');
         el.className = 'pill-alert pill-alert--stock';
         host.appendChild(el);
       }
-      // статично показываем остаток всегда
-      el.textContent = `${left} капсул`;
-      // анимация/подсветка только при тревоге
-      el.classList.toggle('is-low', low);
+      el.textContent = t;
     });
   }
 
-  window.addEventListener('storage', e=>{
-    if([K_LEFT,K_THRESH,K_ON,'rt_capsules_left_bump','rt_capsules_threshold_bump','rt_capsules_alert_bump'].includes(e.key)) (window.renderStockAlert && window.renderStockAlert());
-  });
-  document.addEventListener('visibilitychange', ()=>{ if(!document.hidden) (window.renderStockAlert && window.renderStockAlert()); });
-  (window.renderStockAlert && window.renderStockAlert());
-  window.renderStockAlert = render;
-})();
-
-
-  // реагируем на изменения из других страниц
-  window.addEventListener('storage', e=>{
-    if([K_LEFT,K_THRESH,K_ON,'rt_capsules_alert_bump','rt_capsules_left_bump','rt_capsules_threshold_bump'].includes(e.key)){
-      (window.renderStockAlert && window.renderStockAlert());
+  window.addEventListener('storage', (e)=>{
+    if ([K_LEFT,K_THRESH,K_ON,'rt_capsules_left_bump','rt_capsules_threshold_bump','rt_capsules_alert_bump'].includes(e.key)) {
+      render();
     }
   });
-  document.addEventListener('visibilitychange',()=>{ if(!document.hidden) (window.renderStockAlert && window.renderStockAlert()); });
+  document.addEventListener('visibilitychange', ()=>{ if (!document.hidden) render(); });
 
-  // экспорт
-  window.renderStockAlert = render;
-
-  // первичный рендер
-  (window.renderStockAlert && window.renderStockAlert());
+  window.renderStockAlert = render;   // экспорт
+  render();                           // первичный рендер
 })();
 </script>
+
 <script>
-/* === Stock reminder wiring (myprofile) === */
+/* === Stock reminder wiring (myprofile) — FINAL === */
 (function(){
-  const K_LEFT='rt_capsules_left', K_THRESH='rt_capsules_threshold', K_ON='rt_capsules_alert_enabled';
+  const K_LEFT='rt_capsules_left';
+  const K_THRESH='rt_capsules_threshold';
+  const K_ON='rt_capsules_alert_enabled';
 
-  // попытаемся найти поле "Осталось таблеток" по нескольким id
-  const leftField = document.getElementById('capsLeftInput')   // <--- добавь это
-               || document.getElementById('capsLeft')
-               || document.getElementById('pillsLeft')
-               || document.getElementById('capsulesLeft')
-               || document.getElementById('capsCount');
+  // Поле "Осталось капсул" — любой из возможных id
+  const leftField =
+      document.getElementById('capsLeftInput') ||
+      document.getElementById('capsLeft') ||
+      document.getElementById('pillsLeft') ||
+      document.getElementById('capsulesLeft') ||
+      document.getElementById('capsCount');
 
-  const sw  = document.getElementById('remStock');
-  const thr = document.getElementById('remThreshold');
+  const sw  = document.getElementById('remStock');     // чекбокс "показывать алерт"
+  const thr = document.getElementById('remThreshold'); // порог
 
-  function num(v){ v=Number(v); return Number.isFinite(v)?v:0; }
+  const num = v => { v = Number(v); return Number.isFinite(v) ? v : 0; };
 
   function readLeft(){
-    if(!leftField) return null;
+    if (!leftField) return null;
     if (leftField.tagName === 'INPUT') return num(leftField.value);
-    // если это не инпут, берём цифру из текста
     const m = String(leftField.textContent||leftField.innerText||'').match(/\d+/);
     return num(m ? m[0] : 0);
   }
 
+  function save({on,thrVal,left}){
+    try{
+      if (typeof on === 'boolean') {
+        localStorage.setItem(K_ON, on ? '1' : '0');
+        localStorage.setItem('rt_capsules_alert_bump', Date.now().toString());
+        localStorage.removeItem('rt_capsules_alert_bump');
+      }
+      if (typeof thrVal === 'number') {
+        localStorage.setItem(K_THRESH, String(Math.max(0, Math.floor(thrVal))));
+        localStorage.setItem('rt_capsules_threshold_bump', Date.now().toString());
+        localStorage.removeItem('rt_capsules_threshold_bump');
+      }
+      if (typeof left === 'number') {
+        localStorage.setItem(K_LEFT, String(Math.max(0, Math.floor(left))));
+        localStorage.setItem('rt_capsules_left_bump', Date.now().toString());
+        localStorage.removeItem('rt_capsules_left_bump');
+      }
+    }catch(_){}
+    // перерисовать бейдж
+    try{ window.renderStockAlert && window.renderStockAlert(); }catch(_){}
+  }
+
   function load(){
-  const prefs = (() => {
-    try { return JSON.parse(localStorage.getItem('rt_prefs')||'{}'); } catch(_) { return {}; }
-  })();
+    const prefs = (()=>{ try{ return JSON.parse(localStorage.getItem('rt_prefs')||'{}'); }catch(_){ return {}; } })();
 
-  const hasOn  = localStorage.getItem(K_ON)  != null;
-  const hasThr = localStorage.getItem(K_THRESH) != null;
+    const hasOn  = localStorage.getItem(K_ON)     != null;
+    const hasThr = localStorage.getItem(K_THRESH) != null;
+    const hasLft = localStorage.getItem(K_LEFT)   != null;
 
-  // что показываем в UI
-  const on  = hasOn  ? (localStorage.getItem(K_ON) === '1') : !!prefs.stock;
-  const val = hasThr ? num(localStorage.getItem(K_THRESH))  : num(prefs.threshold ?? (thr?.value || 10));
+    const onVal   = hasOn  ? (localStorage.getItem(K_ON)==='1') : !!prefs.stock;
+    const thrVal  = hasThr ? num(localStorage.getItem(K_THRESH)) : num(prefs.threshold ?? 10);
+    const leftVal = hasLft ? num(localStorage.getItem(K_LEFT))   : num(readLeft());
 
-  if (sw)  sw.checked = !!on;
-  if (thr) thr.value  = String(val || 10);
-
-  // если ключей ещё нет — записываем их, чтобы рендер увидел
-  if (!hasOn || !hasThr) {
-    save({ on, thr: val || 10 });
-  }
-}
-
-
-  function bump(key){
-    try{
-      localStorage.setItem(key, Date.now().toString());
-      localStorage.removeItem(key);
-    }catch(_){}
-  }
-
-  function save(part){
-    try{
-      if (part.on  !== undefined) localStorage.setItem(K_ON,  part.on ? '1':'0');
-      if (part.thr !== undefined) localStorage.setItem(K_THRESH, String(num(part.thr)));
-      if (part.left!== undefined) localStorage.setItem(K_LEFT, String(num(part.left)));
-      bump('rt_capsules_alert_bump');
-      // перерисовать локально
-      if (window.renderStockAlert) window.renderStockAlert();
-    }catch(_){}
-  }
-
-  sw?.addEventListener('change', ()=> save({ on: !!sw.checked }));
-  thr?.addEventListener('change', ()=> save({ thr: thr.value }));
-
-  if (leftField){
-    const h = ()=> save({ left: readLeft() });
-    leftField.addEventListener?.('change', h);
-    leftField.addEventListener?.('input',  h);
-  }
-
-  // ловим изменения из других страниц (main/plan)
-  window.addEventListener('storage', (e)=>{
-    if([K_LEFT,K_THRESH,K_ON,'rt_capsules_alert_bump','rt_capsules_left_bump','rt_capsules_threshold_bump'].includes(e.key)){
-      load();
-      if (window.renderStockAlert) window.renderStockAlert();
+    if (sw)  sw.checked = !!onVal;
+    if (thr) thr.value  = String(thrVal || 10);
+    if (leftField && leftField.tagName === 'INPUT' && leftVal >= 0) {
+      leftField.value = String(leftVal);
     }
-  });
 
-  // первичная инициализация
+    // Если ключей не было — создадим, чтобы алерт сразу заработал
+    if (!hasOn || !hasThr || !hasLft) {
+      save({ on:onVal, thrVal:thrVal||10, left:leftVal||0 });
+    } else {
+      try{ window.renderStockAlert && window.renderStockAlert(); }catch(_){}
+    }
+  }
+
+  // Привязки UI
+  sw?.addEventListener('change', ()=> save({ on: !!sw.checked }));
+  thr?.addEventListener('input',  ()=> save({ thrVal: num(thr.value) }));
+  if (leftField && leftField.tagName === 'INPUT'){
+    leftField.addEventListener('input', ()=> save({ left: num(leftField.value) }));
+  }
+
+  // Старт
   load();
 })();
 </script>

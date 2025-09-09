@@ -185,8 +185,8 @@ body{
   .start{ width:92vw; }
 }
 </style>
-<script src="js/folder-router.js"></script>
-<script src="js/gates.js"></script>
+<script src="/js/folder-router.js"></script>
+<script src="/js/gates.js"></script>
 </head>
 <body>
   <main class="shell">
@@ -283,19 +283,24 @@ if (last){
 
 /* ========= start routing (DARK only) ========= */
 (async function(){
- const tg = window.Telegram?.WebApp;
+const tg = window.Telegram?.WebApp;
 const initData = tg?.initData || '';
 const API_BASE = String(window.API_BASE||'').replace(/\/$/,'');
-// берём tg только из URL, если запускаем не в Telegram
-const sp    = new URLSearchParams(location.search);
-const urlTg = sp.get('tg') || ''; 
 
-function api(path,opts={}){
-  let url=/^https?:\/\//i.test(path)?path:(API_BASE+path);
-  if(!initData && urlTg) url += (url.includes('?')?'&':'?')+'tg='+encodeURIComponent(urlTg);
-  const h={'Content-Type':'application/json'}; 
-  if(initData) h['X-Telegram-InitData']=initData;
-  return fetch(url,{...opts,headers:h});
+const sp = new URLSearchParams(location.search);
+const isDev = location.hostname === 'localhost' || location.hostname.startsWith('127.');
+const DEV_DEFAULT_TG = '1002';
+let devTg = sp.get('tg') || localStorage.getItem('rt.dev.tg') || (isDev ? DEV_DEFAULT_TG : '');
+if (devTg) { try { localStorage.setItem('rt.dev.tg', devTg); } catch(_) {} }
+
+function api(path, opts = {}){
+  let url = /^https?:\/\//i.test(path) ? path : (API_BASE + path);
+  if (!initData && devTg) {
+    url += (url.includes('?') ? '&' : '?') + 'tg=' + encodeURIComponent(devTg);
+  }
+  const headers = { 'Content-Type':'application/json' };
+  if (initData) headers['X-Telegram-InitData'] = initData; // в Telegram шлём заголовок
+  return fetch(url, { ...opts, headers });
 }
 
 
@@ -364,7 +369,7 @@ const uid = sp.get('tg') || tgInit || ''; // без дефолта
 })();
 </script>
 <!-- ======= theme toggle ======= -->
-<script src="js/app-state.js"></script>
+<script src="/js/app-state.js"></script>
 <script>
 (function () {
   var btn = document.getElementById('themeToggle');  // id твоей кнопки "Светлая тема"

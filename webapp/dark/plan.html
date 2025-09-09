@@ -335,8 +335,23 @@ body::before{
 
 <script>
   // Разрешать вызов backend-эндпоинта напоминаний только НЕ в dev
-  const ENABLE_REMINDERS_API = !(location.hostname === 'localhost' || location.hostname === '127.0.0.1');
-  const REM_API_PATH = '/api/reminders/optin';
+const ENABLE_REMINDERS_API = !(location.hostname === 'localhost' || location.hostname === '127.0.0.1');
+const REM_API_PATH = '/api/reminders/optin';
+const LOCAL_DEV = (location.hostname === 'localhost' || location.hostname === '127.0.0.1');
+const ENABLE_SEED_API = !LOCAL_DEV;
+function seedLocalDiary(iso, mg){
+  try{
+    if(!iso || !(mg>0)) return;
+    const d = JSON.parse(localStorage.getItem('rt.diary.v1')||'{}');
+    const rec = d[iso] || {};
+    const next = Math.max(0, Math.round(Number(rec.dose||rec.mg||0) + Number(mg||0)));
+    d[iso] = { ...rec, dose: next, taken:true };
+    localStorage.setItem('rt.diary.v1', JSON.stringify(d));
+    // пинок слушателям
+    localStorage.setItem('rt.diary.bump', Date.now().toString());
+    localStorage.removeItem('rt.diary.bump');
+  }catch(_){}
+}
   // Telegram WebApp (доступен после подключения SDK в <head>)
   const tgApp = (window.Telegram && window.Telegram.WebApp) ? window.Telegram.WebApp : null;
   try { tgApp?.ready?.(); tgApp?.expand?.(); } catch(_) {}
@@ -481,23 +496,43 @@ document.getElementById('btnSavePlan').addEventListener('click', async ()=>{
   return;
 }
 
-    if(alreadyOn && taken>0){
-      msg.textContent='Сохраняю учтённую дозу...'; let seeded=false;
-      try{
-        const s=await api('/api/progress/seed',{method:'POST',
-          body:JSON.stringify({ cum_mg:Math.round(taken), as_of:(start||new Date().toISOString().slice(0,10)) })});
-        if(s.ok) seeded=true;
-      }catch(_){}
-      if(!seeded){
-        const d = start ? prevDay(start) : new Date().toISOString().slice(0,10);
-        try{
-          const dres=await api('/api/dose',{method:'POST',
-            body:JSON.stringify({ mg:Math.round(taken), date:d, note:'seed:already_taken' })});
-          seeded=dres.ok;
-        }catch(_){}
-      }
-      if(!seeded){ try{ localStorage.setItem('derma_seed_cum_mg', String(Math.round(taken))); }catch(_){ } }
-    }
+    if (alreadyOn && taken > 0) {
+  msg.textContent = 'Сохраняю учтённую дозу...';
+  let seeded = false;
+
+  // 1) Прод: пробуем ручку «seed»
+  if (ENABLE_SEED_API) {
+    try {
+      const s = await api('/api/progress/seed', {
+        method: 'POST',
+        body: JSON.stringify({
+          cum_mg: Math.round(taken),
+          as_of: (start || new Date().toISOString().slice(0,10))
+        })
+      });
+      seeded = s.ok;
+    } catch(_) {}
+  }
+
+  // 2) Если нет seed-ручки или она упала — пробуем создать интейк
+  if (!seeded && ENABLE_SEED_API) {
+    const d = start ? prevDay(start) : new Date().toISOString().slice(0,10);
+    try {
+      const r = await api('/api/intakes', {
+        method: 'POST',
+        body: JSON.stringify({ mg: Math.round(taken), date: d, note: 'seed:already_taken' })
+      });
+      seeded = r.ok;
+    } catch(_) {}
+  }
+
+  // 3) Dev/offline: пишем локально в дневник, чтобы главная всё увидела без сервера
+  if (!seeded) {
+    const d = start ? prevDay(start) : new Date().toISOString().slice(0,10);
+    seedLocalDiary(d, Math.round(taken));
+    try { localStorage.setItem('derma_seed_cum_mg', String(Math.round(taken))); } catch(_) {}
+  }
+}
 
     /* Зафиксируем состояние напоминаний и время (чтобы main/myprofile подняли тумблеры) */
     const bellOn = bell.dataset.on === '1';
