@@ -673,7 +673,7 @@
   
 </head>
 <body>
-  <script>
+ <script>
 (function(){
   try{
     localStorage.setItem('rt_role','doctor');
@@ -1308,41 +1308,35 @@ document.addEventListener('DOMContentLoaded', init);
 function doDoctorReset(){
   try{
     const sp     = new URLSearchParams(location.search);
-    const tgInit = window.Telegram && Telegram.WebApp && Telegram.WebApp.initDataUnsafe && Telegram.WebApp.initDataUnsafe.user && Telegram.WebApp.initDataUnsafe.user.id;
+    const tgInit = window.Telegram?.WebApp?.initDataUnsafe?.user?.id;
     const uid    = sp.get('tg') || tgInit || null;
 
-    const del = function(k){ try{ localStorage.removeItem(k); }catch(_){ } };
+    const del = k => { try{ localStorage.removeItem(k); }catch(_){ } };
 
-    // 1) Чистим данные врача на устройстве
-    [
-      'doctorCode','doctorProfile','doctorAvatarUrl','doctorSettings',
-      'patientsList','patientsRequests'
+    // 1) данные врача
+    ['doctorCode','doctorProfile','doctorAvatarUrl','doctorSettings','patientsList','patientsRequests'].forEach(del);
+
+    // 2) флаги онбординга врача
+    ['doctorOnboarded','doctorOnboardingDone','onboardingDoctor','onboarding_done','rtOnboarding','rtOnboardingDone',
+     'welcomeSeen','welcomePassed','welcome_rt_done','rt-welcome-passed','rt-doctor-onboarded','rt_doctor_done'
     ].forEach(del);
 
-    // 2) Чистим ВСЕ возможные флаги «онбординг врача пройден»
-    [
-      'doctorOnboarded','doctorOnboardingDone','onboardingDoctor',
-      'onboarding_done','rtOnboarding','rtOnboardingDone',
-      'welcomeSeen','welcomePassed','welcome_rt_done',
-      'rt-welcome-passed','rt-doctor-onboarded','rt_doctor_done'
-    ].forEach(del);
-    // 2.1) Чистим «последнюю страницу», чтобы при новом заходе не было хвоста
-try{ localStorage.removeItem('rt_last'); }catch(_){}
+    // 2.1) чистим «последнюю страницу»
+    del('rt_last');
 
-    // Именной флаг онбординга врача — критично
+    // именной флаг и сплэш
     if (uid) del('dermaApp:'+uid+':doctor_done');
-    // Подчистим любые такие ключи
     try{
-      for (var i = localStorage.length - 1; i >= 0; i--){
-        var k = localStorage.key(i) || '';
+      for (let i=localStorage.length-1;i>=0;i--){
+        const k = localStorage.key(i)||'';
         if (/^dermaApp:\d+:doctor_done$/.test(k)) del(k);
       }
     }catch(_){}
 
-    // 3) Сбрасываем роль на «patient», чтобы дальше не залипало на кабинете
+    // 3) роль → patient, чтобы не залипать на кабинете
     try{ localStorage.setItem('rt_role','patient'); }catch(_){}
 
-    // 4) (необязательно, но полезно) позволим снова показать сплэш после обнуления
+    // 4) разрешим снова показать сплэш
     try{
       if (uid) del('dermaApp:'+uid+':splash_seen');
       del('derma_splash_seen');
@@ -1350,7 +1344,6 @@ try{ localStorage.removeItem('rt_last'); }catch(_){}
 
   }catch(_){}
 
-  // Итоговый маршрут после обнуления
   location.replace('splash-video.html?next=welcome-rt.html');
 }
 

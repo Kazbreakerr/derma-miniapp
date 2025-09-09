@@ -185,6 +185,19 @@
   </style>
 </head>
 <body>
+  <script>
+(function(){
+  function markDoctorOnboardingDone(){
+    try{
+      const tg = Telegram?.WebApp?.initDataUnsafe?.user?.id;
+      const uid = new URLSearchParams(location.search).get('tg') || tg || '';
+      if (uid) localStorage.setItem(`dermaApp:${uid}:doctor_done`, '1');
+      localStorage.setItem('rt_doctor_done','1');
+    }catch(_){}
+  }
+  window.markDoctorOnboardingDone = markDoctorOnboardingDone;
+})();
+</script>
   <div class="dr-wrap">
     <div class="dr-header">
       <div class="dr-title">Онбординг врача</div>

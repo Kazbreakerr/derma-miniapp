@@ -137,6 +137,19 @@ body::before{
 <script src="js/gates.js"></script>
 </head>
 <body>
+  <script>
+// после успешного "Принять"
+(function(){
+  const ok = true; // ← подставь свой флаг успеха
+  if (!ok) return;
+  try{
+    const tg = Telegram?.WebApp?.initDataUnsafe?.user?.id;
+    const uid = new URLSearchParams(location.search).get('tg') || tg || '';
+    if (uid) localStorage.setItem(`dermaApp:${uid}:consentAccepted`,'1');
+    localStorage.setItem('derma_consent','1');
+  }catch(_){}
+})();
+</script>
   <div class="container">
     <header>
       <h1>Derma Mini‑App</h1>

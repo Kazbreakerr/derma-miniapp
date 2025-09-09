@@ -266,11 +266,14 @@ html[data-theme="light"] .cancel{
 </style>
 </head>
 <body>
-  <script>
+<script>
 (function(){
   try{
+    const tg = window.Telegram?.WebApp?.initDataUnsafe?.user?.id;
+    const sp = new URLSearchParams(location.search);
+    const uid = sp.get('tg') || tg || '';
     localStorage.setItem('rt_role','patient');
-    localStorage.setItem('rt_last','patient:reset');
+    localStorage.setItem('rt_last','patient:' + (document.body.id || 'main'));
   }catch(_){}
 })();
 </script>

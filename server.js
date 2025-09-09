@@ -644,8 +644,8 @@ app.post('/api/doctor/code', tgAuth, async (req, res) => {
     await pool.query(`
       INSERT INTO derma.doctor_codes(doctor_id, code, active)
       VALUES ($1,$2,true)
-      ON CONFLICT (doctor_id) DO UPDATE
-        SET code=EXCLUDED.code, active=true, revoked_at=NULL
+      ON CONFLICT ON CONSTRAINT doctor_codes_one_active_per_doctor DO UPDATE
+  SET code=EXCLUDED.code, active=true, revoked_at=NULL
     `,[uid, code]);
 
     // профиль врача (нормализуем имена полей)

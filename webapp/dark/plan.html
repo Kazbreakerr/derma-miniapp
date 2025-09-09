@@ -244,6 +244,7 @@ body::before{
 
 </head>
 <body>
+
 <div class="wrap">
   <h1>Roaccutane Tracker</h1>
 
@@ -560,7 +561,23 @@ location.replace('./main.html' + qs);
   }catch(e){ msg.textContent='Ошибка сети'; }
 });
 </script>
-
+ <script>
+(function(){
+  function afterPlanSaved(startISO){
+    try{
+      const tg = Telegram?.WebApp?.initDataUnsafe?.user?.id;
+      const uid = new URLSearchParams(location.search).get('tg') || tg || '';
+      if (startISO){
+        if (uid) localStorage.setItem(`dermaApp:${uid}:plan_start`, startISO.slice(0,10));
+        localStorage.setItem('rt_startISO', startISO.slice(0,10));
+        localStorage.setItem('plan_start',  startISO.slice(0,10));
+        localStorage.setItem('rt_plan_done','1');
+      }
+    }catch(_){}
+  }
+  window.afterPlanSaved = afterPlanSaved;
+})();
+</script>
 
 
 </body></html>

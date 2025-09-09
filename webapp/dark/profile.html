@@ -230,6 +230,23 @@ body::before{
 </script>
 </head>
 <body>
+  <script>
+(function(){
+  // вызови это в том же месте, где у тебя уже "сохранено"
+  function afterProfileSaved(weightKg){
+    try{
+      const tg = Telegram?.WebApp?.initDataUnsafe?.user?.id;
+      const uid = new URLSearchParams(location.search).get('tg') || tg || '';
+      if (weightKg>0){
+        if (uid) localStorage.setItem(`dermaApp:${uid}:weight_kg`, String(weightKg));
+        localStorage.setItem('rt.weight_kg', String(weightKg));
+        localStorage.setItem('weight_kg',   String(weightKg));
+      }
+    }catch(_){}
+  }
+  window.afterProfileSaved = afterProfileSaved;
+})();
+</script>
   <div class="wrap">
         <div class="backbar">
       <button id="btnBack" class="back" type="button" aria-label="Назад">
