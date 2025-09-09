@@ -784,6 +784,14 @@ html[data-theme="light"] #hero.hero.has-bg::before{ opacity:.35; filter:saturate
 
 </head>
 <body>
+  <script>
+(function(){
+  try{
+    localStorage.setItem('rt_role','patient');
+    localStorage.setItem('rt_last','patient:myprofile');
+  }catch(_){}
+})();
+</script>
   <div class="topbar">
     <div class="brand">Roaccutane Tracker</div>
 <button id="themeToggle" class="theme-toggle small" role="switch" aria-checked="false" aria-label="Переключить тему">

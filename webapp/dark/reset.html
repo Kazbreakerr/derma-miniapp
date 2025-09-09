@@ -266,6 +266,14 @@ html[data-theme="light"] .cancel{
 </style>
 </head>
 <body>
+  <script>
+(function(){
+  try{
+    localStorage.setItem('rt_role','patient');
+    localStorage.setItem('rt_last','patient:reset');
+  }catch(_){}
+})();
+</script>
   <div class="wrap">
     <div class="topbar">
       <h1 style="margin:0">Roaccutane Tracker<span data-pill-spot></span></h1><span data-stock-spot></span>

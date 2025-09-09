@@ -642,6 +642,14 @@ html::view-transition-new(root){
 
 </head>
 <body data-theme="dark">
+  <script>
+(function(){
+  try{
+    localStorage.setItem('rt_role','patient');
+    localStorage.setItem('rt_last','patient:calendar');
+  }catch(_){}
+})();
+</script>
   <div class="brand">Roaccutane Tracker</div>
 
   <div class="app-title">Календарь<span data-pill-spot></span><span data-stock-spot></span>

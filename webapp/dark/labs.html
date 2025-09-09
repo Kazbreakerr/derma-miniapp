@@ -321,6 +321,14 @@
 
 </head>
 <body>
+  <script>
+(function(){
+  try{
+    localStorage.setItem('rt_role','patient');
+    localStorage.setItem('rt_last','patient:labs');
+  }catch(_){}
+})();
+</script>
   <header>
     <div class="app-title">Roaccutane Tracker</div>
   </header>

@@ -201,6 +201,14 @@ document.documentElement.dataset.theme = cur;
 
 </head>
 <body>
+  <script>
+(function(){
+  try{
+    localStorage.setItem('rt_role','patient');
+    localStorage.setItem('rt_last','patient:faq');
+  }catch(_){}
+})();
+</script>
   <div class="wrap">
     <div class="topbar">
       <a class="back-btn" href="/dark/main.html" id="btn-back" aria-label="Назад на главную">

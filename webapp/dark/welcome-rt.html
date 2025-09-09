@@ -308,7 +308,6 @@ function api(path, opts = {}){
   let me=null, plan=null;
   try{ const r=await api('/api/me');   if(r.ok) me  = await r.json(); }catch(_){}
   try{ const r=await api('/api/plan'); if(r.ok) plan= await r.json(); }catch(_){}
-
   const btn = document.getElementById('go-next');
   btn?.addEventListener('click', (e)=>{
     try { e.preventDefault(); } catch(_){}

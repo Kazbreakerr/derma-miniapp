@@ -105,71 +105,120 @@
     </div>
   </div>
 
-  <script>
+<script>
 // ===================== START ROUTER =====================
 (function startRouter(){
-  const isFile = location.protocol === 'file:';
-  const qs = location.search || '';
-  const sp = new URLSearchParams(qs);
+  var isFile = location.protocol === 'file:';
+  var qs = location.search || '';
+  var sp = new URLSearchParams(qs);
 
-function lsSeen(){
-  try{
-    const ls  = localStorage;
-    const uid = new URLSearchParams(location.search).get('tg')
-             || (window.Telegram?.WebApp?.initDataUnsafe?.user?.id) || '';
-    if (uid){
-      // Если знаем tg — считаем «видел» только по персональному флагу
-      return ls.getItem(`dermaApp:${uid}:splash_seen`) === '1';
-    }
-    // Если tg неизвестен — используем общий флаг
-    return ls.getItem('derma_splash_seen') === '1';
-  }catch(_){}
-  return false;
-}
-  function go(rel){ location.replace(rel + (qs || '')); }
+  function lsSeen(){
+    try{
+      var ls  = localStorage;
+      var uid = new URLSearchParams(location.search).get('tg')
+               || (window.Telegram && Telegram.WebApp && Telegram.WebApp.initDataUnsafe && Telegram.WebApp.initDataUnsafe.user && Telegram.WebApp.initDataUnsafe.user.id) || '';
+      if (uid){
+        return ls.getItem('dermaApp:'+uid+':splash_seen') === '1';
+      }
+      return ls.getItem('derma_splash_seen') === '1';
+    }catch(_){}
+    return false;
+  }
+
+  function go(rel){
+    if (!qs) { location.replace(rel); return; }
+    var q = qs.replace(/^\?/, '');            // убираем ведущий ?
+    var sep = rel.includes('?') ? '&' : '?';  // выбираем разделитель
+    location.replace(rel + sep + q);
+  }
 
   async function serverDecide(){
     try{
-      const init = window.Telegram?.WebApp?.initData || '';
-      const r = await fetch('api/state/next/index' + (qs || ''), {
-        // relative URL → работает и на http://host, и под поддиректорией
+      var init = (window.Telegram && Telegram.WebApp && Telegram.WebApp.initData) || '';
+      var r = await fetch('api/state/next/index' + (qs || ''), {
         headers: init ? { 'X-Telegram-InitData': init } : {}
       });
-      if (!r.ok) throw new Error('API ' + r.status);
-      const j = await r.json();
-      const page = (j && j.page) ? j.page : './dark/welcome-rt.html';
-      // Нормализуем в относительный путь
-      const rel = page.startsWith('/dark/') ? ('.' + page) : page;
+      if (!r.ok) throw 0;
+      var j = await r.json();
+      var page = (j && j.page) ? j.page : './dark/welcome-rt.html';
+      var rel = page.indexOf('/dark/') === 0 ? ('.' + page) : page;
       go(rel);
       return true;
-    }catch(_){
-      return false;
-    }
+    }catch(_){ return false; }
   }
 
   (async function decide(){
-    // 1) Если явно попросили сплэш для тестов
+    // 1) Принудительный сплэш (для тестов)
     if (sp.get('forceSplash') === '1'){
       go('./dark/splash-video.html?next=welcome-rt.html');
       return;
     }
 
-    // 2) Если мы открыты как file:// → нет сервера → используем localStorage
+    // 2) Если есть выбранная роль в localStorage — пробуем зайти сразу в main/cabinet
+    try{
+      var roleLS = (localStorage.getItem('rt_role') || '').toLowerCase();
+      if (roleLS){
+        var tgInit = window.Telegram && Telegram.WebApp && Telegram.WebApp.initDataUnsafe && Telegram.WebApp.initDataUnsafe.user && Telegram.WebApp.initDataUnsafe.user.id;
+        var uid    = sp.get('tg') || tgInit || '';
+
+        if (roleLS === 'doctor'){
+          // врач считается готовым, если онбординг врача завершён
+          var docDone = uid
+            ? (localStorage.getItem('dermaApp:'+uid+':doctor_done') === '1')
+            : (localStorage.getItem('rt_doctor_done') === '1' || localStorage.getItem('doctorOnboardingDone') === '1');
+
+          if (docDone) { go('./dark/doctor-cabinet-mint-rose.html'); return; }
+
+          // онбординг не закончен → welcome (через сплэш, если ещё не видели)
+          if (lsSeen()) go('./dark/welcome-rt.html');
+          else          go('./dark/splash-video.html?next=welcome-rt.html');
+          return;
+        }
+
+        // ===== Пациент =====
+        // пациент готов, если есть согласие + вес + план (хватает локальных флагов)
+        var consented = (uid
+          ? localStorage.getItem('dermaApp:'+uid+':consentAccepted') === '1'
+          : localStorage.getItem('derma_consent') === '1');
+
+        var weight = Number(
+          (uid && localStorage.getItem('dermaApp:'+uid+':weight_kg')) ||
+          localStorage.getItem('rt.weight_kg') ||
+          localStorage.getItem('weight_kg') || 0
+        );
+
+        var planReady = !!(
+          (uid && localStorage.getItem('dermaApp:'+uid+':plan_start')) ||
+          localStorage.getItem('rt_startISO') ||
+          localStorage.getItem('plan_start') ||
+          (localStorage.getItem('rt_plan_done') === '1')
+        );
+
+        if (consented && weight > 0 && planReady){
+          // прошлый раз был на любой пациентской странице → всегда в main
+          go('./dark/main.html');
+          return;
+        }
+
+        // онбординг не закончен → welcome (через сплэш, если ещё не видели)
+        if (lsSeen()) go('./dark/welcome-rt.html');
+        else          go('./dark/splash-video.html?next=welcome-rt.html');
+        return;
+      }
+    }catch(_){}
+
+    // 3) Фолбэк, если роли нет или что-то пошло не так
     if (isFile){
       if (lsSeen()) go('./dark/welcome-rt.html');
-      else go('./dark/splash-video.html?next=welcome-rt.html');
+      else          go('./dark/splash-video.html?next=welcome-rt.html');
       return;
     }
-
-    // 3) HTTP/HTTPS: пробуем сервер; если не вышло — localStorage
-    const ok = await serverDecide();
+    var ok = await serverDecide();
     if (ok) return;
-
-    // Фолбэк без сервера
     if (lsSeen()) go('./dark/welcome-rt.html');
-    else go('./dark/splash-video.html?next=welcome-rt.html');
-  })();
-})();
+    else          go('./dark/splash-video.html?next=welcome-rt.html');
+  })(); // <-- закрываем decide()
+})();   // <-- закрываем startRouter()
 // ===================== END ROUTER =====================
 </script>
 </body>

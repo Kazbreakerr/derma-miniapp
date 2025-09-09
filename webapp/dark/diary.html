@@ -929,6 +929,14 @@ header{
 </script>
 </head>
 <body>
+  <script>
+(function(){
+  try{
+    localStorage.setItem('rt_role','patient');
+    localStorage.setItem('rt_last','patient:diary');
+  }catch(_){}
+})();
+</script>
 <header>
   <div class="wrap">
     <div class="wrap topbar">
