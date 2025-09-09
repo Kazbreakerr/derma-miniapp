@@ -363,51 +363,45 @@ function api(path, opts = {}) {
   return fetch(url, { ...opts, headers });
 }
   (async function hydrateHeader(){
-    const tg = window.Telegram?.WebApp;
-    const nameEl = document.getElementById('tgName');
-    const avaEl  = document.getElementById('ava');
+  const tg = window.Telegram?.WebApp;
+  const nameEl = document.getElementById('tgName');
+  const avaEl  = document.getElementById('ava');
 
-    function setInitials(target, name){
-      if (!target) return;
-      const i = (name||'').trim().split(/\s+/).map(s=>s[0]||'').slice(0,2).join('').toUpperCase() || 'U';
-      target.textContent = i;
-    }
-    function putPhoto(target, url, fallbackName){
-      if (!target) return setInitials(target, fallbackName);
-      const img = new Image(); img.alt=''; img.src = url;
-      img.onload = ()=>{ target.innerHTML=''; img.style.width='100%'; img.style.height='100%'; img.style.objectFit='cover'; target.appendChild(img); };
-      img.onerror = ()=> setInitials(target, fallbackName);
-    }
+  function initials(n){ return (n||'U').trim().split(/\s+/).map(s=>s[0]||'').slice(0,2).join('').toUpperCase() || 'U'; }
+  function setInitials(target, name){ if (!target) return; target.textContent = initials(name); }
+  function putPhoto(target, url, fallbackName){
+    if (!target || !url) return setInitials(target, fallbackName);
+    const img = new Image();
+    img.alt = '';
+    img.referrerPolicy = 'no-referrer';
+    img.onload = ()=>{ target.innerHTML=''; Object.assign(img.style,{width:'100%',height:'100%',objectFit:'cover',display:'block'}); target.appendChild(img); };
+    img.onerror = ()=> setInitials(target, fallbackName);
+    img.src = url;
+  }
 
-    // 1) Telegram
-    let name = '', photo = '';
-    const u = tg?.initDataUnsafe?.user;
-    if (u) {
-      name  = [u.first_name, u.last_name].filter(Boolean).join(' ');
-      photo = u.photo_url || '';
-    }
+  let name = '', photo = '', handle = '';
+  const u = tg?.initDataUnsafe?.user;
+  if (u){
+    name   = [u.first_name, u.last_name].filter(Boolean).join(' ');
+    photo  = u.photo_url || '';
+    handle = u.username || '';
+  }
 
-    // 2) Dev-qs
-    if (!name) {
-      const qs = new URLSearchParams(location.search);
-      name  = qs.get('tg_name')  || '';
-      photo = qs.get('tg_photo') || '';
-    }
+  const qs = new URLSearchParams(location.search);
+  if (!name)   name   = qs.get('tg_name')   || '';
+  if (!photo)  photo  = qs.get('tg_photo')  || '';
+  if (!handle) handle = qs.get('tg_handle') || qs.get('tg_username') || '';
 
-    // 3) Фолбэк на /api/me
-    if (!name) {
-      try{
-        const r = await api('/api/me');
-        if (r.ok) {
-          const me = await r.json();
-          name = me.full_name || me.name || '';
-        }
-      }catch(_){}
-    }
+  // fallback через username (как на main/myprofile)
+  if (!photo && handle) photo = `https://unavatar.io/telegram/${encodeURIComponent(handle)}`;
 
-    if (nameEl) nameEl.textContent = name || '—';
-    if (photo) putPhoto(avaEl, photo, name); else setInitials(avaEl, name);
-  })();
+  if (nameEl) nameEl.textContent = name || '—';
+  if (photo)  putPhoto(avaEl, photo, name); else setInitials(avaEl, name);
+
+  // кеш для других страниц
+  try{ if(name)  localStorage.setItem('rt_usr_name', name); }catch(_){}
+  try{ if(photo) localStorage.setItem('rt_usr_avatar', photo); }catch(_){}
+})();
 
     // ====== Allergies UX ======
     document.getElementById('noAllergies').addEventListener('change', (e)=>{

@@ -309,32 +309,45 @@
     }
     /* MOBILE: капсула + доза снизу слева и меньше */
 @media (max-width: 520px){
-.day{ min-height: 66px; 
+  .day{ min-height: 66px; }
 
-} /* оставляем как у тебя */
-
-  /* строка меток не тянется на всю ширину и не раздвигает контент */
   .marks{
     left: 6px;
-    right: auto;              /* важно: убираем растягивание вправо */
+    right: auto;
     bottom: 6px;
     gap: 6px;
-    justify-content: flex-start; /* вместо space-between */
-    width: max-content;       /* ровно по содержимому */
+    justify-content: flex-start;
+    width: max-content;
   }
 
-  /* уменьшаем бейдж дозы */
-  .dose{ display:inline-flex; align-items:center; gap:6px; padding:0; border:0; background:none; box-shadow:none; font-weight:800; font-size:12px; line-height:1; white-space:nowrap; }
+  /* капсула над числом дозы */
+  .dose{
+    display:grid;
+    grid-template-columns:auto;
+    grid-template-rows:auto auto;
+    grid-template-areas:
+      "cap"
+      "val";
+    align-items:start;
+    justify-items:start;
+    gap:4px;
+    padding:0; border:0; background:none; box-shadow:none;
+    font-weight:800; font-size:12px; line-height:1;
+    white-space:nowrap;
+  }
   .dose .capsule{
-    width: 16px;
+    grid-area: cap;
+    width: 16px;                    /* компактнее на мобиле */
     height: 10px;
   }
+  .dose .val{
+    grid-area: val;
+    margin-top: 2px;
+  }
 
-  /* смайлик самочувствия уводим вправо, чтобы не мешал */
-  .mood{ margin-left: auto; font-size: 12px; opacity: .65; }
+  /* смайлик, если мешает, можно скрыть (у тебя уже скрывается ниже, оставляю) */
+  
 }
-
-/* при очень узких экранах можно скрыть смайлик, если нужно */
 
 
 
@@ -535,11 +548,11 @@
     linear-gradient(#0b0f16,#0b0f16);
 
   /* Правишь только эти 5 переменных */
-  --vt-out-ms: 1100ms;      /* старый экран схлопывается */
-  --vt-in-ms:  1200ms;      /* новый экран раскрывается   */
-  --vt-portal-ms: 1300ms;   /* морфинг «двери»            */
+  --vt-out-ms: 700ms;      /* старый экран схлопывается */
+  --vt-in-ms:  800ms;      /* новый экран раскрывается   */
+  --vt-portal-ms: 900ms;   /* морфинг «двери»            */
   --vt-ease: cubic-bezier(.22,.61,.36,1); /* плавная ease-in-out */
-  --vt-new-end: 160%;       /* 140–180% — больше = медленнее по краям */
+  --vt-new-end: 140%;       /* 140–180% — больше = медленнее по краям */
 
   /* не трогаем */
   --portal-x: 50vw; --portal-y: 50vh;
@@ -1490,16 +1503,21 @@ document.addEventListener('pointerup', finishDrag);
 #scrim{
   position:fixed; inset:0;
   background:rgba(0,0,0,.45);
-  opacity:0; transition:opacity .2s ease;
+  opacity:0;
+  pointer-events:none;              /* ← важно: клики проходят сквозь, пока скрыто */
+  transition:opacity .2s ease;
   z-index: 999;
 }
-#scrim.active{ opacity:1; }
+#scrim.active{
+  opacity:1;
+  pointer-events:auto;              /* ← кликается только когда шит открыт */
+}
 
 #sheet{
   position:fixed; left:0; right:0; bottom:0;
   transform: translateY(110%);
   transition: transform .28s ease;
-  z-index: 1000;
+  z-index: 1000;                    /* выше скрима */
 }
 #sheet.active{ transform: translateY(0); }
 
