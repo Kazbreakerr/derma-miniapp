@@ -3182,47 +3182,5 @@ document.addEventListener('DOMContentLoaded', syncReminderUI);
 })();
 </script>
 
-
-<!-- Avatar finalizer (runs last, unifies Telegram/unavatar/local cache across pages) -->
-<script>
-(function ensureAvatarFinal(){
-  try{
-    const tg = window.Telegram && window.Telegram.WebApp ? window.Telegram.WebApp : null;
-    const u  = tg && tg.initDataUnsafe ? (tg.initDataUnsafe.user || null) : null;
-    const initials = (n)=>{
-      try{ return (String(n||'U').trim().split(/\s+/).map(s=>s[0]||'').slice(0,2).join('')||'U').toUpperCase(); }
-      catch(_){ return 'U'; }
-    };
-    let name   = u ? [u.first_name, u.last_name].filter(Boolean).join(' ') : '';
-    let handle = u && u.username ? u.username : '';
-    if (!name)  { try{ name  = localStorage.getItem('rt_usr_name')   || ''; }catch(_){} }
-    let photo = '';
-    try{ photo = localStorage.getItem('rt_usr_avatar') || ''; }catch(_){}
-    if (!photo && u && u.photo_url) photo = u.photo_url;
-    if (!photo && handle) photo = 'https://unavatar.io/telegram/' + encodeURIComponent(handle);
-
-    const put = (host)=>{
-      if (!host) return;
-      if (photo){
-        const img = new Image();
-        img.alt=''; img.referrerPolicy='no-referrer';
-        Object.assign(img.style,{width:'100%',height:'100%',objectFit:'cover',display:'block',borderRadius:getComputedStyle(host).borderRadius||'50%'});
-        img.onload = ()=>{ host.innerHTML=''; host.appendChild(img); try{ localStorage.setItem('rt_usr_avatar', img.src); }catch(_){} };
-        img.onerror = ()=>{ host.innerHTML = '<span>'+initials(name)+'</span>'; };
-        img.src = photo;
-      } else {
-        host.innerHTML = '<span>'+initials(name)+'</span>';
-      }
-    };
-
-    const targets = document.querySelectorAll('#ava, #topAva, [data-tg-ava], [data-shared="avatar"], #smallAva, #bigAva');
-    targets.forEach(t=>{ if (!t.querySelector('img')) put(t); });
-
-    const nameTargets = document.querySelectorAll('#tgName, #topName, #fullName, [data-tg-name], #heroName, .hero-name, #profileName');
-    nameTargets.forEach(el=>{ if(el && name) el.textContent = name; });
-  }catch(_){}
-})();
-</script>
-
 </body>
 </html>
