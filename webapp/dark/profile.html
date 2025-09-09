@@ -363,44 +363,78 @@ function api(path, opts = {}) {
   return fetch(url, { ...opts, headers });
 }
   (async function hydrateHeader(){
-  const tg = window.Telegram?.WebApp;
+  const tg    = window.Telegram?.WebApp;
   const nameEl = document.getElementById('tgName');
   const avaEl  = document.getElementById('ava');
 
-  function initials(n){ return (n||'U').trim().split(/\s+/).map(s=>s[0]||'').slice(0,2).join('').toUpperCase() || 'U'; }
-  function setInitials(target, name){ if (!target) return; target.textContent = initials(name); }
-  function putPhoto(target, url, fallbackName){
-    if (!target || !url) return setInitials(target, fallbackName);
+  function initials(n){
+    return (n||'U').trim().split(/\s+/).map(s=>s[0]||'').slice(0,2).join('').toUpperCase() || 'U';
+  }
+  function setInitials(target, name){
+    if (!target) return;
+    target.textContent = initials(name);
+  }
+  function putPhotoSmart(target, primaryUrl, fallbackName, handle){
+    if (!target || !primaryUrl) return setInitials(target, fallbackName);
     const img = new Image();
     img.alt = '';
     img.referrerPolicy = 'no-referrer';
-    img.onload = ()=>{ target.innerHTML=''; Object.assign(img.style,{width:'100%',height:'100%',objectFit:'cover',display:'block'}); target.appendChild(img); };
-    img.onerror = ()=> setInitials(target, fallbackName);
-    img.src = url;
+    img.onload = () => {
+      target.innerHTML = '';
+      Object.assign(img.style, {
+        width:'100%', height:'100%', objectFit:'cover', display:'block',
+        borderRadius: getComputedStyle(target).borderRadius || '50%'
+      });
+      target.appendChild(img);
+      try{ localStorage.setItem('rt_usr_avatar', img.src); }catch(_){}
+    };
+    img.onerror = () => {
+      if (handle && !primaryUrl.includes('unavatar.io')) {
+        const url2 = `https://unavatar.io/telegram/${encodeURIComponent(handle)}`;
+        // второй заход — уже без рекурсии
+        img.onerror = () => setInitials(target, fallbackName);
+        img.src = url2;
+      } else {
+        setInitials(target, fallbackName);
+      }
+    };
+    img.src = primaryUrl;
   }
 
-  let name = '', photo = '', handle = '';
-  const u = tg?.initDataUnsafe?.user;
+  // 1) стартуем из кеша, чтобы меньше мерцало
+  let name   = localStorage.getItem('rt_usr_name')   || '';
+  let photo  = localStorage.getItem('rt_usr_avatar') || '';
+  let handle = '';
+
+  // 2) данные из Telegram
+  const u = tg?.initDataUnsafe?.user || null;
   if (u){
-    name   = [u.first_name, u.last_name].filter(Boolean).join(' ');
-    photo  = u.photo_url || '';
+    const n = [u.first_name, u.last_name].filter(Boolean).join(' ');
+    if (n) name = n;
+    if (u.photo_url) photo = u.photo_url;
     handle = u.username || '';
   }
 
+  // 3) dev-параметры из URL
   const qs = new URLSearchParams(location.search);
-  if (!name)   name   = qs.get('tg_name')   || '';
-  if (!photo)  photo  = qs.get('tg_photo')  || '';
-  if (!handle) handle = qs.get('tg_handle') || qs.get('tg_username') || '';
+  if (!name)   name   = qs.get('tg_name')     || name;
+  if (!photo)  photo  = qs.get('tg_photo')    || photo;
+  if (!handle) handle = qs.get('tg_username') || qs.get('tg_handle') || handle;
 
-  // fallback через username (как на main/myprofile)
-  if (!photo && handle) photo = `https://unavatar.io/telegram/${encodeURIComponent(handle)}`;
+  // 4) last resort для имени
+  if (!name) {
+    try{
+      const r = await api('/api/me');
+      if (r.ok) { const me = await r.json(); name = me.full_name || me.name || name; }
+    }catch(_){}
+  }
 
   if (nameEl) nameEl.textContent = name || '—';
-  if (photo)  putPhoto(avaEl, photo, name); else setInitials(avaEl, name);
+  if (photo) putPhotoSmart(avaEl, photo, name, handle);
+  else if (handle) putPhotoSmart(avaEl, `https://unavatar.io/telegram/${encodeURIComponent(handle)}`, name, '');
+  else setInitials(avaEl, name);
 
-  // кеш для других страниц
-  try{ if(name)  localStorage.setItem('rt_usr_name', name); }catch(_){}
-  try{ if(photo) localStorage.setItem('rt_usr_avatar', photo); }catch(_){}
+  try{ localStorage.setItem('rt_usr_name', name || ''); }catch(_){}
 })();
 
     // ====== Allergies UX ======

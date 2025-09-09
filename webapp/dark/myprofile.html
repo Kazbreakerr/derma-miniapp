@@ -2503,7 +2503,7 @@ body.light .neon-btn{
   if (!photo) photo = qs.get('tg_photo') || localStorage.getItem('rt_usr_avatar') || '';
 
   // если есть username и нет photo — попробуем unavatar
-  const handle = u?.username || qs.get('tg_handle') || '';
+  let handle = u?.username || qs.get('tg_handle') || '';
   if (!photo && handle) photo = `https://unavatar.io/telegram/${encodeURIComponent(handle)}`;
 
   try{ if(name)  localStorage.setItem('rt_usr_name', name); }catch(_){}
@@ -2518,19 +2518,34 @@ body.light .neon-btn{
   avaTargets.forEach(t => setAvatar(t, photo, name));
 
   function setAvatar(target, url, fallbackName){
-    if (!target) return;
-    const putInitials = () => { target.innerHTML = `<span>${initials(fallbackName)}</span>`; };
-    if (url){
-      const img = new Image();
-      img.alt=''; img.referrerPolicy='no-referrer';
-      Object.assign(img.style,{width:'100%',height:'100%',objectFit:'cover',display:'block',borderRadius:getComputedStyle(target).borderRadius||'50%'});
-      img.onload  = () => { target.innerHTML=''; target.appendChild(img); };
-      img.onerror = putInitials;
-      img.src = url;
-    } else {
-      putInitials();
-    }
-  }
+  if (!target) return;
+  const putInitials = () => { target.innerHTML = `<span>${initials(fallbackName)}</span>`; };
+
+  const tryUrl = (src) => {
+    const img = new Image();
+    img.alt = '';
+    img.referrerPolicy = 'no-referrer';
+    Object.assign(img.style, {
+      width:'100%', height:'100%', objectFit:'cover', display:'block',
+      borderRadius: getComputedStyle(target).borderRadius || '50%'
+    });
+    img.onload  = () => { target.innerHTML=''; target.appendChild(img); try{ localStorage.setItem('rt_usr_avatar', img.src); }catch(_){} };
+    img.onerror = () => {
+      if (handle && (!src || !src.includes('unavatar.io'))) {
+        const u2 = `https://unavatar.io/telegram/${encodeURIComponent(handle)}`;
+        handle = '';              // чтобы не зациклиться
+        tryUrl(u2);
+      } else {
+        putInitials();
+      }
+    };
+    img.src = src;
+  };
+
+  if (url) tryUrl(url);
+  else if (handle) tryUrl(`https://unavatar.io/telegram/${encodeURIComponent(handle)}`);
+  else putInitials();
+}
   function initials(n){ return (n||'U').trim().split(/\s+/).map(s=>s[0]||'').slice(0,2).join('').toUpperCase() || 'U';}
 })();
 </script>
