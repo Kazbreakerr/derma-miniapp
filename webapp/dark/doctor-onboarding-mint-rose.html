@@ -6,14 +6,14 @@
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>Онбординг врача — Roaccutane Tracker</title>
 
-<link rel="stylesheet" href="/css/ui-tokens.css">
+  <link rel="stylesheet" href="/css/ui-tokens.css">
 
-<script>
-  try{
-    const s = JSON.parse(localStorage.getItem('rt.settings')||'{}');
-    document.documentElement.dataset.theme = s?.theme || 'dark';
-  }catch(e){ document.documentElement.dataset.theme = 'dark'; }
-</script>
+  <script>
+    try{
+      const s = JSON.parse(localStorage.getItem('rt.settings')||'{}');
+      document.documentElement.dataset.theme = s?.theme || 'dark';
+    }catch(e){ document.documentElement.dataset.theme = 'dark'; }
+  </script>
 
   <style>
     :root{
@@ -71,122 +71,83 @@
     .dr-modal-card{background:var(--dr-card);border:1px solid var(--dr-stroke);border-radius:16px;padding:16px;width:min(92vw,360px)}
     .ava{width:32px;height:32px;border-radius:999px;overflow:hidden;border:1px solid var(--dr-stroke);display:grid;place-items:center;background:var(--dr-grad-1);color:#0b1511;font-weight:800}
     .ava img{width:100%;height:100%;object-fit:cover;display:block}
-  
-/* === Neuromorphism + seamless peach/mint/lavender gradient (LIGHT) === */
-:root{
-  --neu-dark: rgba(15,23,42,.10);
-  --neu-light: rgba(255,255,255,.80);
-  --accent: #2AD1E8; /* mint-cyan glow */
-}
 
-[data-theme="light"] body{
-  background:
-    radial-gradient(1200px 800px at -10% -10%, rgba(255,210,196,.55), transparent 60%),
-    radial-gradient(900px 700px at 110% 0%, rgba(186,242,224,.55), transparent 60%),
-    radial-gradient(1200px 900px at 50% 120%, rgba(226,212,255,.55), transparent 60%),
-    var(--dr-bg);
-  background-attachment: fixed;
-}
-
-/* Container keeps content inside; no overflow past rounded corners */
-.dr-card{ overflow:hidden; box-sizing:border-box; }
-
-/* Cards — soft dual shadows + inner highlight */
-[data-theme="light"] .dr-card{
-  border-color: rgba(15,23,42,.06);
-  box-shadow:
-    10px 10px 28px var(--neu-dark),
-    -10px -10px 28px var(--neu-light),
-    inset 0 0 0 1px rgba(255,255,255,.45);
-  background:#FFFFFF;
-}
-
-/* Header chip inside card */
-[data-theme="light"] .dr-card-head{
-  background: linear-gradient(135deg, #B8F3E4 0%, #FFD7C8 48%, #E6D6FF 100%);
-  color:#0F172A;
-}
-
-/* Grid prevents fields from sticking out on narrow screens */
-.dr-grid{ grid-template-columns: minmax(0,1fr) minmax(0,1fr); }
-.dr-field{ min-width:0; } /* allow shrink */
-
-/* Inputs/selects — neu surface; focus = soft glow */
-[data-theme="light"] .dr-input,
-[data-theme="light"] .dr-select{
-  background:#FFFFFF;
-  border:1px solid #E7EAF0;
-  box-shadow: 6px 6px 16px rgba(15,23,42,.06), -6px -6px 16px rgba(255,255,255,.75);
-}
-[data-theme="light"] .dr-input:focus,
-[data-theme="light"] .dr-select:focus{
-  border-color:#B8EAF5;
-  box-shadow:
-    8px 8px 18px rgba(15,23,42,.08),
-    -8px -8px 18px rgba(255,255,255,.85),
-    0 0 0 6px rgba(42,209,232,.12);
-}
-
-/* Code box — pill glass with volume */
-[data-theme="light"] .dr-code{
-  background: linear-gradient(180deg, #FFFFFF, #F6F8FC);
-  border:1px dashed #DDE3EF;
-  box-shadow: inset 0 1px 0 rgba(255,255,255,.85), 8px 8px 22px rgba(15,23,42,.06), -8px -8px 22px rgba(255,255,255,.8);
-  color:#0F172A;
-}
-
-/* Switch — brighter track and glow when ON */
-[data-theme="light"] .dr-toggle{
-  background:#EEF2F7;
-  border-color:#E3E8F0;
-  box-shadow: inset 4px 4px 10px rgba(15,23,42,.05), inset -4px -4px 10px rgba(255,255,255,.9);
-}
-[data-theme="light"] .dr-switch input:checked + .dr-toggle{
-  background: linear-gradient(135deg, #B8F3E4, #E6D6FF);
-  border-color:transparent;
-  box-shadow: 0 0 0 1px rgba(255,255,255,.6) inset, 0 8px 20px rgba(42,209,232,.25);
-}
-[data-theme="light"] .dr-switch input:checked + .dr-toggle .dr-knob{
-  box-shadow: 0 2px 6px rgba(15,23,42,.2), 0 0 0 3px rgba(42,209,232,.20);
-}
-
-/* Buttons — glassy with accent outline and depth */
-[data-theme="light"] .dr-btn{
-  color:#0F172A;
-  background: linear-gradient(180deg, #FFFFFF, #F2F6FB);
-  border:1.5px solid var(--accent);
-  box-shadow:
-    0 12px 28px rgba(42,209,232,.20),
-    0 0 0 6px rgba(42,209,232,.12),
-    inset 0 1px 0 rgba(255,255,255,.80);
-}
-[data-theme="light"] .dr-btn:hover{ transform: translateY(-1px); }
-[data-theme="light"] .dr-btn-ghost{
-  background: #FFFFFF;
-  border-color:#E7EAF0;
-  box-shadow: 4px 4px 12px rgba(15,23,42,.05), -4px -4px 12px rgba(255,255,255,.8);
-  color:#0F172A;
-}
-
-/* Stepper dots — subtle 3D */
-[data-theme="light"] .dr-dot{
-  background:#DCE3EE; opacity:1;
-  box-shadow: inset 2px 2px 4px rgba(15,23,42,.06), inset -2px -2px 4px rgba(255,255,255,.9);
-}
-[data-theme="light"] .dr-dot.active{
-  background: linear-gradient(135deg, #B8F3E4, #E6D6FF);
-  box-shadow: 0 2px 8px rgba(42,209,232,.25);
-}
-
-/* Prevent any child from overflowing rounded corners */
-.dr-wrap, .dr-card, .dr-card-head{ max-width:100%; }
-.dr-input, .dr-select, .dr-btn, .dr-code{ width:100%; box-sizing:border-box; }
-
+    /* === Light theme extras === */
+    :root{ --neu-dark: rgba(15,23,42,.10); --neu-light: rgba(255,255,255,.80); --accent:#2AD1E8; }
+    [data-theme="light"] body{
+      background:
+        radial-gradient(1200px 800px at -10% -10%, rgba(255,210,196,.55), transparent 60%),
+        radial-gradient(900px 700px at 110% 0%, rgba(186,242,224,.55), transparent 60%),
+        radial-gradient(1200px 900px at 50% 120%, rgba(226,212,255,.55), transparent 60%),
+        var(--dr-bg);
+      background-attachment: fixed;
+    }
+    .dr-card{ overflow:hidden; box-sizing:border-box; }
+    [data-theme="light"] .dr-card{
+      border-color: rgba(15,23,42,.06);
+      box-shadow: 10px 10px 28px var(--neu-dark), -10px -10px 28px var(--neu-light), inset 0 0 0 1px rgba(255,255,255,.45);
+      background:#FFFFFF;
+    }
+    [data-theme="light"] .dr-card-head{
+      background: linear-gradient(135deg, #B8F3E4 0%, #FFD7C8 48%, #E6D6FF 100%);
+      color:#0F172A;
+    }
+    .dr-grid{ grid-template-columns: minmax(0,1fr) minmax(0,1fr); }
+    .dr-field{ min-width:0; }
+    [data-theme="light"] .dr-input,
+    [data-theme="light"] .dr-select{
+      background:#FFFFFF; border:1px solid #E7EAF0;
+      box-shadow: 6px 6px 16px rgba(15,23,42,.06), -6px -6px 16px rgba(255,255,255,.75);
+    }
+    [data-theme="light"] .dr-input:focus,
+    [data-theme="light"] .dr-select:focus{
+      border-color:#B8EAF5;
+      box-shadow: 8px 8px 18px rgba(15,23,42,.08), -8px -8px 18px rgba(255,255,255,.85), 0 0 0 6px rgba(42,209,232,.12);
+    }
+    [data-theme="light"] .dr-code{
+      background: linear-gradient(180deg, #FFFFFF, #F6F8FC);
+      border:1px dashed #DDE3EF;
+      box-shadow: inset 0 1px 0 rgba(255,255,255,.85), 8px 8px 22px rgba(15,23,42,.06), -8px -8px 22px rgba(255,255,255,.8);
+      color:#0F172A;
+    }
+    [data-theme="light"] .dr-toggle{
+      background:#EEF2F7; border-color:#E3E8F0;
+      box-shadow: inset 4px 4px 10px rgba(15,23,42,.05), inset -4px -4px 10px rgba(255,255,255,.9);
+    }
+    [data-theme="light"] .dr-switch input:checked + .dr-toggle{
+      background: linear-gradient(135deg, #B8F3E4, #E6D6FF);
+      border-color:transparent;
+      box-shadow: 0 0 0 1px rgba(255,255,255,.6) inset, 0 8px 20px rgba(42,209,232,.25);
+    }
+    [data-theme="light"] .dr-switch input:checked + .dr-toggle .dr-knob{
+      box-shadow: 0 2px 6px rgba(15,23,42,.2), 0 0 0 3px rgba(42,209,232,.20);
+    }
+    [data-theme="light"] .dr-btn{
+      color:#0F172A; background: linear-gradient(180deg, #FFFFFF, #F2F6FB);
+      border:1.5px solid var(--accent);
+      box-shadow: 0 12px 28px rgba(42,209,232,.20), 0 0 0 6px rgba(42,209,232,.12), inset 0 1px 0 rgba(255,255,255,.80);
+    }
+    [data-theme="light"] .dr-btn:hover{ transform: translateY(-1px); }
+    [data-theme="light"] .dr-btn-ghost{
+      background:#FFFFFF; border-color:#E7EAF0;
+      box-shadow: 4px 4px 12px rgba(15,23,42,.05), -4px -4px 12px rgba(255,255,255,.8);
+      color:#0F172A;
+    }
+    [data-theme="light"] .dr-dot{
+      background:#DCE3EE; opacity:1;
+      box-shadow: inset 2px 2px 4px rgba(15,23,42,.06), inset -2px -2px 4px rgba(255,255,255,.9);
+    }
+    [data-theme="light"] .dr-dot.active{
+      background: linear-gradient(135deg, #B8F3E4, #E6D6FF);
+      box-shadow: 0 2px 8px rgba(42,209,232,.25);
+    }
+    .dr-wrap, .dr-card, .dr-card-head{ max-width:100%; }
+    .dr-input, .dr-select, .dr-btn, .dr-code{ width:100%; box-sizing:border-box; }
   </style>
 </head>
 <body>
-  <script>
-(function(){
+<script>
+(function(){ // флаг «онбординг завершён»
   function markDoctorOnboardingDone(){
     try{
       const tg = Telegram?.WebApp?.initDataUnsafe?.user?.id;
@@ -198,272 +159,310 @@
   window.markDoctorOnboardingDone = markDoctorOnboardingDone;
 })();
 </script>
-  <div class="dr-wrap">
-    <div class="dr-header">
-      <div class="dr-title">Онбординг врача</div>
-      <div class="dr-stepper" id="drStepper">
-        <div class="dr-dot active"></div><div class="dr-dot"></div><div class="dr-dot"></div>
+
+<div class="dr-wrap">
+  <div class="dr-header">
+    <div class="dr-title">Онбординг врача</div>
+    <div class="dr-stepper" id="drStepper"><div class="dr-dot active"></div><div class="dr-dot"></div><div class="dr-dot"></div></div>
+    <div class="ava" id="smallAva" title="Ваш аватар">JD</div>
+  </div>
+
+  <div class="dr-pages">
+    <!-- 1 -->
+    <section class="dr-page active" id="page1">
+      <div class="dr-card">
+        <div class="dr-card-head"><b>Кто вы и где принимаете</b><span class="dr-hint">Заполните базу</span></div>
+        <div class="dr-grid">
+          <div class="dr-field"><label class="dr-label">ФИО</label><input class="dr-input" id="fio" placeholder="Иванова Анастасия Сергеевна"></div>
+          <div class="dr-field"><label class="dr-label">Специализация</label>
+            <select class="dr-select" id="spec">
+              <option value="">Выбрать…</option><option>Дерматолог</option><option>Дерматовенеролог</option><option>Косметолог</option><option>Другая</option>
+            </select>
+          </div>
+          <div class="dr-field"><label class="dr-label">Город</label><input class="dr-input" id="city" placeholder="Москва"></div>
+          <div class="dr-field"><label class="dr-label">Клиника</label><input class="dr-input" id="clinic" placeholder="Медцентр «Скин+»"></div>
+        </div>
+        <div class="dr-grid" style="margin-top:12px">
+          <div class="dr-field"><label class="dr-label">Telegram (опц.)</label><input class="dr-input" id="tg" placeholder="@dr_skin"></div>
+          <div class="dr-field"><label class="dr-label">Телефон/сайт (опц.)</label><input class="dr-input" id="contact" placeholder="+7••• / site.ru"></div>
+        </div>
+        <div class="dr-actions" style="justify-content:space-between">
+          <a class="dr-btn-ghost" id="back1" href="welcome-rt.html">Назад</a>
+          <button class="dr-btn" id="next1" disabled>Далее</button>
+        </div>
       </div>
-      <div class="ava" id="smallAva" title="Ваш аватар">JD</div>
-    </div>
+    </section>
 
-    <div class="dr-pages">
-      <!-- 1 -->
-      <section class="dr-page active" id="page1">
-        <div class="dr-card">
-          <div class="dr-card-head"><b>Кто вы и где принимаете</b><span class="dr-hint">Заполните базу</span></div>
-          <div class="dr-grid">
-            <div class="dr-field"><label class="dr-label">ФИО</label><input class="dr-input" id="fio" placeholder="Иванова Анастасия Сергеевна"></div>
-            <div class="dr-field"><label class="dr-label">Специализация</label>
-              <select class="dr-select" id="spec">
-                <option value="">Выбрать…</option><option>Дерматолог</option><option>Дерматовенеролог</option><option>Косметолог</option><option>Другая</option>
-              </select>
-            </div>
-            <div class="dr-field"><label class="dr-label">Город</label><input class="dr-input" id="city" placeholder="Москва"></div>
-            <div class="dr-field"><label class="dr-label">Клиника</label><input class="dr-input" id="clinic" placeholder="Медцентр «Скин+»"></div>
+    <!-- 2 -->
+    <section class="dr-page" id="page2">
+      <div class="dr-card">
+        <div class="dr-card-head"><b>Приём и заявки</b><span class="dr-hint">Настройте работу</span></div>
+        <div class="dr-grid-1">
+          <label class="dr-switch"><input type="checkbox" id="accepting" checked><span class="dr-toggle"><span class="dr-knob"></span></span><span>Принимаю новых пациентов</span></label>
+          <div class="dr-field"><label class="dr-label">Способ прикрепления</label>
+            <select class="dr-select" id="attachMethod"><option value="code">По коду</option><option value="link">По ссылке (QR)</option></select>
           </div>
-          <div class="dr-grid" style="margin-top:12px">
-            <div class="dr-field"><label class="dr-label">Telegram (опц.)</label><input class="dr-input" id="tg" placeholder="@dr_skin"></div>
-            <div class="dr-field"><label class="dr-label">Телефон/сайт (опц.)</label><input class="dr-input" id="contact" placeholder="+7••• / site.ru"></div>
-          </div>
-          <div class="dr-actions" style="justify-content:space-between"><a class="dr-btn-ghost" id="back1" href="welcome-rt.html">Назад</a><button class="dr-btn" id="next1" disabled>Далее</button></div>
+          <label class="dr-switch"><input type="checkbox" id="autoAccept"><span class="dr-toggle"><span class="dr-knob"></span></span><span>Автопринятие заявок</span></label>
+          <div class="dr-hint">Автопринятие — пациенты с вашим кодом прикрепляются сразу.</div>
         </div>
-      </section>
+        <div class="dr-actions"><button class="dr-btn-ghost" id="back2">Назад</button><button class="dr-btn" id="next2">Далее</button></div>
+      </div>
+    </section>
 
-      <!-- 2 -->
-      <section class="dr-page" id="page2">
-        <div class="dr-card">
-          <div class="dr-card-head"><b>Приём и заявки</b><span class="dr-hинт">Настройте работу</span></div>
-          <div class="dr-grid-1">
-            <label class="dr-switch"><input type="checkbox" id="accepting" checked><span class="dr-toggle"><span class="dr-knob"></span></span><span>Принимаю новых пациентов</span></label>
-            <div class="dr-field"><label class="dr-label">Способ прикрепления</label>
-              <select class="dr-select" id="attachMethod"><option value="code">По коду</option><option value="link">По ссылке (QR)</option></select>
-            </div>
-            <label class="dr-switch"><input type="checkbox" id="autoAccept"><span class="dr-toggle"><span class="dr-knob"></span></span><span>Автопринятие заявок</span></label>
-            <div class="dr-hint">Автопринятие — пациенты с вашим кодом прикрепляются сразу.</div>
-          </div>
-          <div class="dr-actions"><button class="dr-btn-ghost" id="back2">Назад</button><button class="dr-btn" id="next2">Далее</button></div>
+    <!-- 3 -->
+    <section class="dr-page" id="page3">
+      <div class="dr-card">
+        <div class="dr-card-head"><b>Ваш код</b><span class="dr-hint">Поделитесь им с пациентом</span></div>
+        <div class="dr-field">
+          <div class="dr-code" id="doctorCode" aria-live="polite">AB12C</div>
+          <div class="dr-hint" style="margin-top:8px">Формат: A–Z / 0–9, 5 символов</div>
         </div>
-      </section>
-
-      <!-- 3 -->
-      <section class="dr-page" id="page3">
-        <div class="dr-card">
-          <div class="dr-card-head"><b>Ваш код</b><span class="dr-hint">Поделитесь им с пациентом</span></div>
-          <div class="dr-field">
-            <div class="dr-code" id="doctorCode" aria-live="polite">AB12C</div>
-            <div class="dr-hint" style="margin-top:8px">Формат: A–Z / 0–9, 5 символов</div>
+        <div class="dr-actions" style="justify-content:space-between;flex-wrap:wrap">
+          <div style="display:flex;gap:8px;flex-wrap:wrap">
+            <button class="dr-btn-ghost" id="copyBtn">Скопировать</button>
+            <button class="dr-btn-ghost" id="qrBtn">Показать QR</button>
+            <button class="dr-btn-ghost" id="shareBtn">Поделиться</button>
+            <button class="dr-btn-ghost" id="toggleMaskBtn" aria-pressed="false">Скрыть код</button>
           </div>
-          <div class="dr-actions" style="justify-content:space-between;flex-wrap:wrap">
-            <div style="display:flex;gap:8px;flex-wrap:wrap">
-              <button class="dr-btn-ghost" id="copyBtn">Скопировать</button>
-              <button class="dr-btn-ghost" id="qrBtn">Показать QR</button>
-              <button class="dr-btn-ghost" id="shareBtn">Поделиться</button>
-              <button class="dr-btn-ghost" id="toggleMaskBtn" aria-pressed="false">Скрыть код</button>
-            </div>
-            <button class="dr-btn" id="finishBtn">Перейти к работе</button>
-          </div>
+          <button class="dr-btn" id="finishBtn">Перейти к работе</button>
         </div>
-      </section>
-    </div>
+      </div>
+    </section>
   </div>
+</div>
 
-  <!-- QR modal -->
-  <div class="dr-modal" id="qrModal" aria-hidden="true">
-    <div class="dr-modal-card">
-      <h4 style="display:flex;justify-content:space-between;align-items:center;margin:0 0 12px">
-        <span>QR для пациента</span><button class="dr-btn-ghost" id="qrClose">Закрыть</button>
-      </h4>
-      <div id="qrBox" style="display:grid;place-items:center"></div>
-      <div class="dr-hint" style="margin-top:10px">Содержимое: ссылка с вашим кодом.</div>
-    </div>
+<!-- QR modal -->
+<div class="dr-modal" id="qrModal" aria-hidden="true">
+  <div class="dr-modal-card">
+    <h4 style="display:flex;justify-content:space-between;align-items:center;margin:0 0 12px">
+      <span>QR для пациента</span><button class="dr-btn-ghost" id="qrClose">Закрыть</button>
+    </h4>
+    <div id="qrBox" style="display:grid;place-items:center"></div>
+    <div class="dr-hint" style="margin-top:10px">Содержимое: ссылка с вашим кодом.</div>
   </div>
+</div>
 
 <script src="/js/app-state.js"></script>
 
 <script>
-  // Инициализация всех переключателей темы на странице
+  // Мини-toast, чтобы не падало, если глобальной функции нет
+  function toast(msg){
+    try{ if(window.Telegram?.WebApp?.showAlert) Telegram.WebApp.showAlert(msg); else alert(msg); }
+    catch(_){ alert(msg); }
+  }
+
+  // Тема (у тебя уже был код — оставляю)
   document.addEventListener('DOMContentLoaded', () => {
     const settings = AppState.get('settings') || {};
     const theme = (settings.theme === 'light') ? 'light' : 'dark';
     document.documentElement.dataset.theme = theme;
 
-    // найдём все тумблеры с data-role="theme-switch"
     document.querySelectorAll('[data-role="theme-switch"]').forEach(sw => {
       const isLight = (document.documentElement.dataset.theme === 'light');
       sw.setAttribute('aria-pressed', isLight ? 'true' : 'false');
-
       sw.addEventListener('click', () => {
         const cur = document.documentElement.dataset.theme === 'light' ? 'light' : 'dark';
         const next = (cur === 'light') ? 'dark' : 'light';
-        AppState.applyTheme(next);                  // сохраняем и ставим data-theme
-        // визуально обновим все тумблеры на странице
-        document.querySelectorAll('[data-role="theme-switch"]')
-          .forEach(x => x.setAttribute('aria-pressed', next === 'light' ? 'true' : 'false'));
+        AppState.applyTheme(next);
+        document.querySelectorAll('[data-role="theme-switch"]').forEach(x => x.setAttribute('aria-pressed', next === 'light' ? 'true' : 'false'));
       });
     });
   });
 </script>
 
+<script>
+  const $ = s=>document.querySelector(s); const $$=s=>Array.from(document.querySelectorAll(s));
+  const store = {set:(k,v)=>localStorage.setItem(k,JSON.stringify(v)),get:(k,d=null)=>JSON.parse(localStorage.getItem(k)||'null')??d};
 
-  <script>
-    const $ = s=>document.querySelector(s); const $$=s=>Array.from(document.querySelectorAll(s));
-    const store = {set:(k,v)=>localStorage.setItem(k,JSON.stringify(v)),get:(k,d=null)=>JSON.parse(localStorage.getItem(k)||'null')??d};
-
-    /* === Аватар: TG SDK → username → инициалы === */
-    const parseHandle = tg => { if(!tg) return null; const m=String(tg).trim().match(/@?([a-zA-Z0-9_]+)/); return m?m[1]:null; };
-    const initialsFrom = (name='') => { const p=(name||'').trim().split(/\s+/); return ((p[0]||'').charAt(0)+(p[1]||'').charAt(0)||'JD').toUpperCase(); };
-    function applySmallAvatar(url, init){
-      const box=document.getElementById('smallAva'); if(!box) return;
-      if(url){ box.innerHTML='<img alt="ava" referrerpolicy="no-referrer">'; box.querySelector('img').src=url; }
-      else { box.textContent=init||'JD'; }
-    }
-    function setAvatarUrl(url){ if(!url) return; localStorage.setItem('doctorAvatarUrl', url); applySmallAvatar(url); }
-    function tryUnavatarFromHandle(handle){
-      if(!handle) return false;
-      const url=`https://unavatar.io/telegram/${handle}`;
-      const img=new Image();
-      img.crossOrigin='anonymous';
-      img.onload=()=>setAvatarUrl(url);
-      img.onerror=()=>{};
-      img.src=url;
-      return true;
-    }
-    async function tryTGAvatar(){
-      try{
-        if(!window.Telegram || !Telegram.WebApp) return false;
-        Telegram.WebApp.ready();
-        const user=Telegram.WebApp.initDataUnsafe?.user;
-        const photo=user?.photo_url;
-        if(photo){ setAvatarUrl(photo); return true; }
-        if(user?.username){ return tryUnavatarFromHandle(user.username); }
-      }catch(e){}
-      return false;
-    }
-
-    const ABC='ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
-    const genCode=()=> Array.from({length:5},()=>ABC[Math.floor(Math.random()*ABC.length)]).join('');
-    const step=(i)=> $$('#drStepper .dr-dot').forEach((d,idx)=>d.classList.toggle('active',idx<=i));
-    const page=(i)=>['#page1','#page2','#page3'].forEach((sel,idx)=>$(sel).classList.toggle('active',idx===i))||step(i);
-    const valid1=()=>['#fio','#spec','#city','#clinic'].every(sel=>$(sel).value.trim());
-
-    // Screen 1
-    const next1=$('#next1');
-
-    document.addEventListener('DOMContentLoaded', async () => {
-      const prof = store.get('doctorProfile',{});
-      const initA = initialsFrom(prof.name||$('#fio').value);
-      let saved = localStorage.getItem('doctorAvatarUrl');
-      if(!saved){
-        const gotTG = await tryTGAvatar();
-        if(!gotTG){
-          const handle = parseHandle($('#tg').value || prof.tg);
-          if(handle) tryUnavatarFromHandle(handle);
-        }
-        saved = localStorage.getItem('doctorAvatarUrl');
-      }
-      applySmallAvatar(saved, initA);
-    });
-
-    $('#fio').addEventListener('input', ()=>{
-      if(!localStorage.getItem('doctorAvatarUrl'))
-        applySmallAvatar(null, initialsFrom($('#fio').value));
-    });
-    ['#fio','#spec','#city','#clinic'].forEach(s=>{ $(s).addEventListener('input',()=>next1.disabled=!valid1()); $(s).addEventListener('change',()=>next1.disabled=!valid1()); });
-    next1.addEventListener('click',()=>{
-      store.set('doctorProfile',{name:$('#fio').value.trim(),specialty:$('#spec').value.trim(),city:$('#city').value.trim(),clinic:$('#clinic').value.trim(),tg:$('#tg').value.trim(),contact:$('#contact').value.trim()});
-      page(1);
-      const h=parseHandle($('#tg').value);
-      if(h && !localStorage.getItem('doctorAvatarUrl')) tryUnavatarFromHandle(h);
-    });
-
-    // Screen 2
-    $('#back2').addEventListener('click',()=>page(0));
-    $('#next2').addEventListener('click',()=>{
-      store.set('doctorSettings',{accepting:$('#accepting').checked,attachMethod:$('#attachMethod').value,autoAccept:$('#autoAccept').checked});
-      let code=store.get('doctorCode'); if(!code||!/^[A-Z0-9]{5}$/.test(code)){code=genCode();store.set('doctorCode',code)}
-      $('#doctorCode').textContent=code; page(2);
-    });
-
-    // Screen 3
-    (function initCode(){ const code=store.get('doctorCode'); if(code) $('#doctorCode').textContent=code; })();
-    let masked=false; const tBtn=$('#toggleMaskBtn');
-    tBtn.addEventListener('click',()=>{
-      const el=$('#doctorCode'); const real=store.get('doctorCode')||el.textContent.trim(); masked=!masked;
-      if(masked){ el.textContent='•••••'; el.classList.add('masked'); tBtn.textContent='Показать код'; tBtn.setAttribute('aria-pressed','true'); }
-      else{ el.textContent=real; el.classList.remove('masked'); tBtn.textContent='Скрыть код'; tBtn.setAttribute('aria-pressed','false'); }
-    });
-    $('#copyBtn').addEventListener('click',async()=>{ const real=store.get('doctorCode')||$('#doctorCode').textContent.trim(); try{await navigator.clipboard.writeText(real); toast('Код скопирован');}catch(e){} });
-    const shareURL = (code)=> `${location.origin}${location.pathname}?attach=doctor&code=${code}`;
-    $('#shareBtn').addEventListener('click',async()=>{
-      const real=store.get('doctorCode')||$('#doctorCode').textContent.trim(); const url=shareURL(real);
-      if(navigator.share){ try{await navigator.share({title:'Код врача',text:`Мой код: ${real}`,url})}catch(_){} }
-      else{ try{await navigator.clipboard.writeText(url); toast('Ссылка скопирована');}catch(e){ toast('Скопируйте: '+url);} }
-    });
-    $('#qrBtn').addEventListener('click',()=>{
-      const real=store.get('doctorCode')||$('#doctorCode').textContent.trim();
-      const api='https://api.qrserver.com/v1/create-qr-code/?size=256x256&data='+encodeURIComponent(shareURL(real));
-      $('#qrBox').innerHTML=`<img alt="QR" src="${api}" loading="lazy">`; $('#qrModal').classList.add('show');
-    });
-    $('#qrClose').addEventListener('click',()=>$('#qrModal').classList.remove('show'));
-
-document.getElementById('finishBtn').addEventListener('click', async () => {
-  // Собираем данные из локалки (их сохранили на шагах 1-2)
-  const code      = store.get('doctorCode');
-  const profile   = store.get('doctorProfile', {});
-  const settings  = store.get('doctorSettings', {});
-  const avatarUrl = localStorage.getItem('doctorAvatarUrl') || null;
-
-  // Без кода сгенерируем на лету (страховка)
-  if (!code || !/^[A-Z0-9]{5}$/.test(code)) {
-    const ABC='ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
-    const genCode=()=> Array.from({length:5},()=>ABC[Math.floor(Math.random()*ABC.length)]).join('');
-    const newCode = genCode();
-    store.set('doctorCode', newCode);
+  /* === Аватар === */
+  const parseHandle = tg => { if(!tg) return null; const m=String(tg).trim().match(/@?([a-zA-Z0-9_]+)/); return m?m[1]:null; };
+  const initialsFrom = (name='') => { const p=(name||'').trim().split(/\s+/); return ((p[0]||'').charAt(0)+(p[1]||'').charAt(0)||'JD').toUpperCase(); };
+  function applySmallAvatar(url, init){
+    const box=document.getElementById('smallAva'); if(!box) return;
+    if(url){ box.innerHTML='<img alt="ava" referrerpolicy="no-referrer">'; box.querySelector('img').src=url; }
+    else { box.textContent=init||'JD'; }
+  }
+  function setAvatarUrl(url){ if(!url) return; localStorage.setItem('doctorAvatarUrl', url); applySmallAvatar(url); }
+  function tryUnavatarFromHandle(handle){
+    if(!handle) return false;
+    const url=`https://unavatar.io/telegram/${handle}`;
+    const img=new Image();
+    img.crossOrigin='anonymous';
+    img.onload=()=>setAvatarUrl(url);
+    img.onerror=()=>{};
+    img.src=url;
+    return true;
+  }
+  async function tryTGAvatar(){
+    try{
+      if(!window.Telegram || !Telegram.WebApp) return false;
+      Telegram.WebApp.ready();
+      const user=Telegram.WebApp.initDataUnsafe?.user;
+      const photo=user?.photo_url;
+      if(photo){ setAvatarUrl(photo); return true; }
+      if(user?.username){ return tryUnavatarFromHandle(user.username); }
+    }catch(e){}
+    return false;
   }
 
-  // Пытаемся сохранить на сервере, но переход в кабинет сделаем в любом случае
-  try {
+  const ABC='ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
+  const genCode=()=> Array.from({length:5},()=>ABC[Math.floor(Math.random()*ABC.length)]).join('');
+  const step=(i)=> $$('#drStepper .dr-dot').forEach((d,idx)=>d.classList.toggle('active',idx<=i));
+  const page=(i)=>['#page1','#page2','#page3'].forEach((sel,idx)=>$(sel).classList.toggle('active',idx===i))||step(i);
+  const valid1=()=>['#fio','#spec','#city','#clinic'].every(sel=>$(sel).value.trim());
+
+  // API helper с раздельным dev-tg для врача
+  function api(path, opts){
+    opts = opts || {};
     const initData = window.Telegram?.WebApp?.initData || '';
-    const devTg =
-      new URLSearchParams(location.search).get('tg') ||
-      localStorage.getItem('rt_dev_tg') || '1002';
-    try { localStorage.setItem('rt_dev_tg', devTg); } catch(_) {}
+    let url = ((window.API_BASE||'') + path);
+    const headers = {'Content-Type':'application/json'};
+    if (initData) headers['X-Telegram-InitData'] = initData;
+    if (!initData){
+      const DEV_TG_KEY = 'rt_dev_tg_doctor';
+      const devTg = new URLSearchParams(location.search).get('tg') ||
+                    localStorage.getItem(DEV_TG_KEY) || '';
+      if (devTg){
+        try { localStorage.setItem(DEV_TG_KEY, devTg); } catch(_){}
+        url += (url.includes('?')?'&':'?') + 'tg=' + encodeURIComponent(devTg);
+      }
+    }
+    return fetch(url, { ...opts, headers: { ...headers, ...(opts.headers||{}) } });
+  }
 
-    const url = (window.API_BASE||'') + '/api/doctor/code' + (initData ? '' : ('?tg=' + encodeURIComponent(devTg)));
-    await fetch(url, {
-      method: 'POST',
-      headers: {
-        'Content-Type':'application/json',
-        ...(initData ? { 'X-Telegram-InitData': initData } : {})
-      },
-      body: JSON.stringify({ code: store.get('doctorCode'), profile, settings, avatarUrl })
+  // Screen 1
+  const next1=$('#next1'); next1.disabled = !valid1();
+
+  document.addEventListener('DOMContentLoaded', async () => {
+    const prof = store.get('doctorProfile',{});
+    const initA = initialsFrom(prof.name||$('#fio').value);
+    let saved = localStorage.getItem('doctorAvatarUrl');
+    if(!saved){
+      const gotTG = await tryTGAvatar();
+      if(!gotTG){
+        const handle = parseHandle($('#tg').value || prof.tg);
+        if(handle) tryUnavatarFromHandle(handle);
+      }
+      saved = localStorage.getItem('doctorAvatarUrl');
+    }
+    applySmallAvatar(saved, initA);
+  });
+
+  $('#fio').addEventListener('input', ()=>{
+    if(!localStorage.getItem('doctorAvatarUrl'))
+      applySmallAvatar(null, initialsFrom($('#fio').value));
+  });
+  ['#fio','#spec','#city','#clinic'].forEach(s=>{
+    $(s).addEventListener('input',()=>next1.disabled=!valid1());
+    $(s).addEventListener('change',()=>next1.disabled=!valid1());
+  });
+  next1.addEventListener('click',()=>{
+    store.set('doctorProfile',{
+      name:$('#fio').value.trim(),
+      specialty:$('#spec').value.trim(),
+      city:$('#city').value.trim(),
+      clinic:$('#clinic').value.trim(),
+      tg:$('#tg').value.trim(),
+      contact:$('#contact').value.trim()
     });
-  } catch(e) {
-    console.warn('persist doctor code failed', e);
-  }
+    page(1);
+    const h=parseHandle($('#tg').value);
+    if(h && !localStorage.getItem('doctorAvatarUrl')) tryUnavatarFromHandle(h);
+  });
 
-  // Ставим флаги онбординга (именной + общий)
-  try {
-    const sp = new URLSearchParams(location.search);
-    const tgInit = window.Telegram?.WebApp?.initDataUnsafe?.user?.id;
-    const uid = sp.get('tg') || tgInit || '';
-    if (uid) localStorage.setItem(`dermaApp:${uid}:doctor_done`, '1');
-    localStorage.setItem('rt_doctor_done','1');
-    localStorage.setItem('rt_role','doctor');
-  } catch(_) {}
+  // Screen 2
+  $('#back2').addEventListener('click',()=>page(0));
+  $('#next2').addEventListener('click',()=>{
+    store.set('doctorSettings',{
+      accepting:$('#accepting').checked,
+      attachMethod:$('#attachMethod').value,
+      autoAccept:$('#autoAccept').checked
+    });
+    let code=store.get('doctorCode');
+    if(!code||!/^[A-Z0-9]{5}$/.test(code)){code=genCode();store.set('doctorCode',code)}
+    $('#doctorCode').textContent=code; page(2);
+  });
 
-  // Переход в кабинет с сохранением query и добавлением code
-  const currentQS = location.search || '';
-  const realCode = store.get('doctorCode') || (document.getElementById('doctorCode')?.textContent.trim() || '');
-  const sep = currentQS.includes('?') && currentQS.length > 0 ? '&' : (currentQS ? '?' : '?');
-  const target = 'doctor-cabinet-mint-rose.html' + (currentQS || '') + sep + 'code=' + encodeURIComponent(realCode) + '#/doctor/patients';
+  // Screen 3
+  (function initCode(){ const code=store.get('doctorCode'); if(code) $('#doctorCode').textContent=code; })();
+  let masked=false; const tBtn=$('#toggleMaskBtn');
+  tBtn.addEventListener('click',()=>{
+    const el=$('#doctorCode'); const real=store.get('doctorCode')||el.textContent.trim(); masked=!masked;
+    if(masked){ el.textContent='•••••'; el.classList.add('masked'); tBtn.textContent='Показать код'; tBtn.setAttribute('aria-pressed','true'); }
+    else{ el.textContent=real; el.classList.remove('masked'); tBtn.textContent='Скрыть код'; tBtn.setAttribute('aria-pressed','false'); }
+  });
+  $('#copyBtn').addEventListener('click',async()=>{
+    const real=store.get('doctorCode')||$('#doctorCode').textContent.trim();
+    try{await navigator.clipboard.writeText(real); toast('Код скопирован');}catch(e){ toast(real); }
+  });
 
-  // Надёжный переход
-  if (window.Telegram?.WebApp?.openLink) {
-    try { window.Telegram.WebApp.openLink(target); return; } catch(_) {}
-  }
-  location.replace(target);
-});</script>
+  // Ссылка для пациента — сразу на myprofile
+  const shareURL = (code)=> `${location.origin}/dark/myprofile.html?attach=doctor&code=${encodeURIComponent(code)}`;
+
+  $('#shareBtn').addEventListener('click',async()=>{
+    const real=store.get('doctorCode')||$('#doctorCode').textContent.trim(); const url=shareURL(real);
+    if(navigator.share){ try{await navigator.share({title:'Код врача',text:`Мой код: ${real}`,url})}catch(_){} }
+    else{ try{await navigator.clipboard.writeText(url); toast('Ссылка скопирована');}catch(e){ toast('Скопируйте: '+url);} }
+  });
+  $('#qrBtn').addEventListener('click',()=>{
+    const real=store.get('doctorCode')||$('#doctorCode').textContent.trim();
+    const api='https://api.qrserver.com/v1/create-qr-code/?size=256x256&data='+encodeURIComponent(shareURL(real));
+    $('#qrBox').innerHTML=`<img alt="QR" src="${api}" loading="lazy">`; $('#qrModal').classList.add('show');
+  });
+  $('#qrClose').addEventListener('click',()=>$('#qrModal').classList.remove('show'));
+
+  // Финал: Сохранение на сервере и переход в кабинет ТОЛЬКО при успехе
+  document.getElementById('finishBtn').addEventListener('click', async () => {
+    // Собираем данные
+    let code      = store.get('doctorCode');
+    const profile   = store.get('doctorProfile', {});
+    const settings  = store.get('doctorSettings', {});
+    const avatarUrl = localStorage.getItem('doctorAvatarUrl') || null;
+
+    // Если кода нет — сгенерим
+    if (!code || !/^[A-Z0-9]{5}$/.test(code)) {
+      code = genCode();
+      store.set('doctorCode', code);
+      $('#doctorCode').textContent = code;
+    }
+
+    try {
+      const resp = await api('/api/doctor/code', {
+        method:'POST',
+        body: JSON.stringify({ code, profile, settings, avatarUrl })
+      });
+
+      if (!resp.ok) {
+        const t = await resp.text().catch(()=> '');
+        toast('Не удалось сохранить код врача: ' + resp.status + '\n' + (t||''));
+        return; // ВАЖНО: не уходим в кабинет, пока код не сохранился
+      }
+
+      // Если сервер вернул актуальный code — синхронизируем
+      try { const j = await resp.json().catch(()=> ({})); if (j && j.code) { store.set('doctorCode', j.code); code = j.code; } } catch(_){}
+
+      // Флаги онбординга
+      try{
+        const sp = new URLSearchParams(location.search);
+        const tgInit = window.Telegram?.WebApp?.initDataUnsafe?.user?.id;
+        const uid = sp.get('tg') || tgInit || '';
+        if (uid) localStorage.setItem(`dermaApp:${uid}:doctor_done`, '1');
+        localStorage.setItem('rt_doctor_done','1');
+        localStorage.setItem('rt_role','doctor');
+      }catch(_){}
+
+      // Переход в кабинет врача (сохраняем текущие query, добавляем code)
+      const currentQS = location.search || '';
+      const sep = currentQS ? (currentQS.includes('?') ? '&' : '?') : '?';
+      const target = 'doctor-cabinet-mint-rose.html' + (currentQS || '') + sep + 'code=' + encodeURIComponent(code) + '#/doctor/patients';
+
+      if (window.Telegram?.WebApp?.openLink) { try { window.Telegram.WebApp.openLink(target); return; } catch(_) {} }
+      location.replace(target);
+
+    } catch(e) {
+      toast('Сеть недоступна. Повторите позже.');
+    }
+  });
+</script>
 </body>
 </html>

@@ -1,4 +1,5 @@
 // ====== imports / setup ======
+process.env.NODE_ENV ||= 'production';
 require('dotenv').config();
 process.on('uncaughtException', err => console.error('UNCAUGHT', err));
 process.on('unhandledRejection', err => console.error('UNHANDLED', err));
@@ -26,7 +27,8 @@ async function sendReminder(tgId, text) {
 }
 
 
-const isPooling= !process.env.WEBAPP_URL;    // локально — polling, на Render — webhook
+// локально (без WEBAPP_URL) работаем в polling, на Render — webhook
+const isPolling = !process.env.WEBAPP_URL && !process.env.TELEGRAM_WEBHOOK;
 const path = require('path');
 const express = require('express');
 const cors = require('cors');
@@ -36,14 +38,15 @@ pg.defaults.ssl = true;
 const { Pool } = pg;
 
 console.log('Boot server.js at', new Date().toISOString());
-
+// ⬇️ СНАЧАЛА создаём app
 const app = express();
+
+// ⬇️ ПОТОМ вешаем middleware
 app.use(express.json());
 app.use(cors({
   origin: true,
   credentials: true,
-  allowedHeaders: ['Content-Type', 'X-Telegram-InitData', 'tgwebappdata']
-  
+  allowedHeaders: ['Content-Type','X-Telegram-InitData','x-telegram-initdata','tgwebappdata']
 }));
 
 
@@ -56,6 +59,38 @@ const pool = new Pool({
   connectionString: dsn,
   ssl: { rejectUnauthorized: false },
 });
+// ==== helpers: нормализация дат и вставка дозы ====
+function isoTsOrZ(iso) {
+  // 'YYYY-MM-DD' => начало дня в UTC; иначе — корректный ISO
+  if (/^\d{4}-\d{2}-\d{2}$/.test(String(iso))) return `${iso}T00:00:00.000Z`;
+  const d = new Date(iso || Date.now());
+  if (Number.isNaN(d.getTime())) throw new Error('Bad date');
+  return d.toISOString();
+}
+
+async function addIntake(pool, userId, iso, mg) {
+  // сначала пробуем схему с timestamptz колонкой "at"
+  const ts = isoTsOrZ(iso);
+  try {
+    await pool.query(
+      `INSERT INTO derma.intakes (user_id, at, mg) VALUES ($1, $2::timestamptz, $3)`,
+      [userId, ts, mg]
+    );
+    return;
+  } catch (e) {
+    // если колонки "at" нет — пробуем схему с колонкой "day" (DATE)
+    if (e.code === '42703' || /column\s+"?at"?\s+does not exist/i.test(String(e.message))) {
+      const day = String(iso || '').slice(0, 10);
+      if (!/^\d{4}-\d{2}-\d{2}$/.test(day)) throw new Error('Bad date');
+      await pool.query(
+        `INSERT INTO derma.intakes (user_id, day, mg) VALUES ($1, $2::date, $3)`,
+        [userId, day, mg]
+      );
+      return;
+    }
+    throw e;
+  }
+}
 
 try { console.log('PG host:', new URL(dsn).hostname); } catch {}
 
@@ -95,58 +130,44 @@ function parseAndVerifyInitData(initData) {
 }
 
 // DEV-дружественная аутентификация: initData (Telegram) или ?tg=<num> (dev).
-async function tgAuth(req, res, next) {
-  try {
-    const initData = req.get('X-Telegram-InitData')
-                     || req.query.tgWebAppData
-                     || req.query.initData
-                     || '';
+async function tgAuth(req, res, next){
+  try{
+    let tgId = null, parsed = null;
 
-    let tgUser = null;
+    // 1) Telegram WebApp: берём initData из заголовка ИЛИ из query (?tgWebAppData / ?initData)
+    const rawHeader = req.get('X-Telegram-InitData') || req.get('x-telegram-initdata') || '';
+    const rawQuery  = req.query.tgWebAppData || req.query.initData || '';
 
-    if (initData) {
-      try {
-        const { user } = parseAndVerifyInitData(initData);
-        if (user?.id) tgUser = user;
-      } catch (e) {
-        if (process.env.ALLOW_UNVERIFIED_INIT === '1') {
-          try {
-            const sp = new URLSearchParams(initData);
-            const u = sp.get('user') ? JSON.parse(sp.get('user')) : null;
-            if (u?.id) {
-              tgUser = u;
-              console.warn('WARN: using unverified initData');
-            }
-          } catch {}
-        }
-        if (!tgUser) throw e;
-      }
+    if (rawHeader) {
+      try { parsed = parseAndVerifyInitData(rawHeader); } catch(_) {}
+    }
+    if (!parsed && rawQuery) {
+      try { parsed = parseAndVerifyInitData(rawQuery); } catch(_) {}
+    }
+    if (parsed?.user?.id) {
+      tgId = Number(parsed.user.id);
+      req.tgUser = parsed.user;
     }
 
-    // dev ?tg=... допускаем, если нет валидного initData
-    if (!tgUser) {
-      const devTg = req.query.tg;
-      if (devTg && /^\d+$/.test(String(devTg))) {
-        tgUser = { id: Number(devTg), first_name: 'Dev', last_name: 'User', username: 'dev' };
-      }
-    }
+    // 2) dev/браузер: ?tg=123
+    if (!tgId && /^\d+$/.test(String(req.query.tg||''))) tgId = Number(req.query.tg);
 
-    if (!tgUser?.id) return res.status(401).json({ error: 'BOT_INVALID' });
+    if (!tgId) return res.status(401).json({ error: 'BOT_INVALID' });
 
-    // сохраним «кто пришёл»
-    req.tg = Number(tgUser.id);
-    req.tgUser = tgUser;
+    // создать пользователя, если его ещё нет
+    await pool.query('SET search_path = derma, public');
+    const ins = await pool.query(
+      `INSERT INTO derma.users(tg_id) VALUES ($1)
+       ON CONFLICT (tg_id) DO NOTHING RETURNING id`, [tgId]);
+    req.isFreshUser = ins.rowCount > 0;
+    req.tg = tgId;
 
-    // ⬅️ КЛЮЧЕВОЕ: гарантированно апсертим пользователя
-    await ensureUser(req);
-
-    return next();
-  } catch (e) {
-    console.error('AUTH ERROR:', e?.message || e);
-    return res.status(401).json({ error: 'bad initData' });
+    next();
+  }catch(e){
+    console.error('tgAuth error', e);
+    res.status(401).json({ error: 'BOT_INVALID' });
   }
 }
-
 // ====== helpers ======
 async function ensureUser(req) {
   try {
@@ -228,19 +249,40 @@ async function decideDoctorState(uid) {
  * Ответ: { page: '/dark/splash-video.html' | '/dark/welcome-rt.html' }
  * Логика: splash показываем только при самом первом EVER заходе (req.isFreshUser).
  */
+// === FIRST ENTRY / RE-ENTRY DECISION ===
 app.get('/api/state/next/index', tgAuth, async (req, res) => {
   try {
-       // для тестов: /index.html?forceSplash=1 всегда показывает splash+   if (String(req.query.forceSplash) === '1') {+     return res.json({ ok: true, page: '/dark/splash-video.html' });
-  
-    const firstTime = !!req.isFreshUser;           // ← уже есть в твоём tgAuth
-    const page = firstTime ? '/dark/splash-video.html'
-                           : '/dark/welcome-rt.html';
-    res.json({ ok: true, page });
+    // форс-сплэш для тестов: /index.html?forceSplash=1
+    if (String(req.query.forceSplash) === '1') {
+      return res.json({ ok: true, page: '/dark/splash-video.html' });
+    }
+
+    // 1) Самый первый вход — показываем сплэш
+    if (req.isFreshUser) {
+      return res.json({ ok: true, page: '/dark/splash-video.html' });
+    }
+
+    // 2) Повторный вход — решаем по роли и статусу онбординга
+    const uid = await userIdByTg(req.tg || req.tgUser?.id);
+    let page = '/dark/main.html'; // по умолчанию — пациент
+
+    if (uid) {
+      // decideDoctorState уже есть в файле и возвращает isDoctor + onbDone
+      const { isDoctor, onbDone } = await decideDoctorState(uid);
+      if (isDoctor) {
+        page = onbDone
+          ? '/dark/doctor-cabinet-mint-rose.html'       // врач с завершённым онбордингом
+          : '/dark/doctor-onboarding-mint-rose.html';   // врач без завершённого онбординга
+      }
+    }
+
+    return res.json({ ok: true, page });
   } catch (e) {
     console.error('NEXT/INDEX ERROR:', e);
     res.status(500).json({ ok: false, error: e.message });
   }
 });
+
 
 /**
  * GET /api/state/next/welcome
@@ -275,13 +317,13 @@ app.get('/api/state/next/welcome', tgAuth, async (req, res) => {
         WHERE id = $1`,
       [uid]
     );
-    const consented  = !!u.rows[0]?.accepted_terms_at;
-    const hasProfile = u.rows[0]?.weight_kg != null;        // профиль считаем заполненным, если есть вес
+    const consented  = Boolean(u.rows[0]?.accepted_terms_at);
+    const hasProfile = Number(u.rows[0]?.weight_kg) > 0; // 0 = нет профиля      // профиль считаем заполненным, если есть вес
     const p = await pool.query(
       'SELECT 1 FROM derma.plans WHERE patient_id=$1',
       [uid]
     );
-    const hasPlan = !!p.rows[0];
+  const hasPlan    = Boolean(p.rows[0]);     
 
     const page = !consented ? '/dark/warnings.html'
                : !hasProfile ? '/dark/profile.html'
@@ -451,7 +493,7 @@ app.post('/api/dose', tgAuth, async (req, res) => {
 
 // === New endpoints for updated front ===
 
-// Aliases for intakes
+// Aliases for intakes (совместимость со старым фронтом)
 app.get('/api/intakes', tgAuth, async (req, res) => {
   try {
     const uid = await userIdByTg(req.tg);
@@ -473,25 +515,36 @@ app.get('/api/intakes', tgAuth, async (req, res) => {
   }
 });
 
+// Безопасная вставка (принимаем date = 'YYYY-MM-DD' или iso; upsert по дате)
 app.post('/api/intakes', tgAuth, async (req, res) => {
   try {
     const uid = await userIdByTg(req.tg);
-    if (!uid) return res.status(400).json({ error: 'missing tg' });
+    if (!uid) return res.status(401).json({ error: 'unauthorized' });
 
     const mg = Number(req.body?.mg);
-    if (!Number.isFinite(mg) || mg < 0) return res.status(400).json({ error: 'bad mg' });
+    if (!Number.isFinite(mg) || mg <= 0) return res.status(400).json({ error: 'mg>0 required' });
 
-    const d = req.body?.date || new Date().toISOString().slice(0,10);
+    // поддерживаем и {date:'YYYY-MM-DD'}, и {iso:'...'}
+    let d = String(req.body?.date || '').slice(0, 10);
+    if (!/^\d{4}-\d{2}-\d{2}$/.test(d)) {
+      // если прилетело iso, приведём к 'YYYY-MM-DD'
+      const iso = String(req.body?.iso || '');
+      const dt = new Date(iso || Date.now());
+      d = isNaN(dt.getTime()) ? new Date().toISOString().slice(0,10) : dt.toISOString().slice(0,10);
+    }
+
     await pool.query(
-      `INSERT INTO derma.dose_logs(patient_id,date,mg_taken)
+      `INSERT INTO derma.dose_logs (patient_id, date, mg_taken)
        VALUES ($1,$2,$3)
-       ON CONFLICT (patient_id,date) DO UPDATE SET mg_taken=EXCLUDED.mg_taken`,
+       ON CONFLICT (patient_id, date) DO UPDATE
+         SET mg_taken = EXCLUDED.mg_taken`,
       [uid, d, mg]
     );
-    res.status(201).json({ ok: true, date: d, mg });
+
+    res.json({ ok: true, date: d, mg });
   } catch (e) {
     console.error('INTAKES POST ERROR:', e);
-    res.status(500).json({ error: e.message });
+    res.status(500).json({ error: e.message || 'INTAKES_INSERT_FAILED' });
   }
 });
 
@@ -610,65 +663,112 @@ app.post('/api/me', tgAuth, async (req, res) => {
 });
 // ===== DOCTOR: code + attach API =====
 app.post('/api/doctor/code', tgAuth, async (req, res) => {
-  try {
+  try{
     await pool.query('SET search_path = derma, public');
-    const uid  = await userIdByTg(req.tg || req.tgUser?.id);
-    const code = String(req.body?.code || '').toUpperCase();
-    if (!/^[A-Z0-9]{5}$/.test(code)) return res.status(400).json({ error: 'bad code' });
+    const uid = await userIdByTg(req.tg || req.tgUser?.id);
+    const { profile = {}, code: passedCode, settings = {} } = req.body || {};
 
-    // код не должен конфликтовать с активными
-    const taken = await pool.query('SELECT 1 FROM derma.doctor_codes WHERE code=$1 AND active', [code]);
-    if (taken.rowCount) return res.status(409).json({ error: 'code taken' });
+    // 1) если у врача уже есть активный код — возвращаем его
+    const cur = await pool.query(
+      'SELECT code FROM derma.doctor_codes WHERE doctor_id=$1 AND active',
+      [uid]
+    );
+    let code = cur.rowCount ? cur.rows[0].code : (String(passedCode||'').trim().toUpperCase());
 
-    // деактивируем старый код этого врача (если был)
-    await pool.query('UPDATE derma.doctor_codes SET active=false, revoked_at=now() WHERE doctor_id=$1 AND active', [uid]);
-    await pool.query('INSERT INTO derma.doctor_codes(code, doctor_id, active) VALUES ($1,$2,true)', [code, uid]);
+    // 2) если кода нет — сгенерим новый из алфавита без похожих символов
+    if (!/^[A-Z0-9]{5}$/.test(code||'')) {
+      const alphabet = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
+      code = Array.from({length:5},()=>alphabet[Math.floor(Math.random()*alphabet.length)]).join('');
+    }
 
-    // профиль/настройки
-    const p   = req.body?.profile  || {};
-    const s   = req.body?.settings || {};
-    const ava = req.body?.avatarUrl || null;
+    await pool.query('BEGIN');
+
+    // активируем/создаём код (идемпотентно)
+    await pool.query(`
+      INSERT INTO derma.doctor_codes(doctor_id, code, active)
+      VALUES ($1,$2,true)
+      ON CONFLICT ON CONSTRAINT doctor_codes_one_active_per_doctor DO UPDATE
+  SET code=EXCLUDED.code, active=true, revoked_at=NULL
+    `,[uid, code]);
+
+    // профиль врача (нормализуем имена полей)
+    const prof = {
+      specialty:    profile.specialty ?? null,
+      clinic:       profile.clinic ?? null,
+      city:         profile.city ?? null,
+      tg:           profile.tg ?? profile.tg_handle ?? null,
+      contact:      profile.contact ?? profile.contact_text ?? null,
+      avatar_url:   profile.avatarUrl ?? profile.avatar_url ?? null,
+      accepting:    settings.accepting === true,
+      auto_accept:  settings.autoAccept === true,
+    };
+
     await pool.query(`
       INSERT INTO derma.doctor_profiles(user_id, specialty, city, clinic, tg_handle, contact_text, avatar_url, accepting, auto_accept)
-      VALUES ($1,$2,$3,$4,$5,$6,$7, COALESCE($8,true), COALESCE($9,false))
-      ON CONFLICT (user_id) DO UPDATE SET
-        specialty    = COALESCE(EXCLUDED.specialty, doctor_profiles.specialty),
-        city         = COALESCE(EXCLUDED.city,      doctor_profiles.city),
-        clinic       = COALESCE(EXCLUDED.clinic,    doctor_profiles.clinic),
-        tg_handle    = COALESCE(EXCLUDED.tg_handle, doctor_profiles.tg_handle),
-        contact_text = COALESCE(EXCLUDED.contact_text, doctor_profiles.contact_text),
-        avatar_url   = COALESCE(EXCLUDED.avatar_url,   doctor_profiles.avatar_url),
-        accepting    = EXCLUDED.accepting,
-        auto_accept  = EXCLUDED.auto_accept,
-        updated_at   = now()
-    `, [uid, p.specialty||null, p.city||null, p.clinic||null, p.tg||null, p.contact||null, ava, s.accepting===true, s.autoAccept===true]);
+      VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9)
+      ON CONFLICT (user_id) DO UPDATE
+        SET specialty    = COALESCE(EXCLUDED.specialty,    doctor_profiles.specialty),
+            city         = COALESCE(EXCLUDED.city,         doctor_profiles.city),
+            clinic       = COALESCE(EXCLUDED.clinic,       doctor_profiles.clinic),
+            tg_handle    = COALESCE(EXCLUDED.tg_handle,    doctor_profiles.tg_handle),
+            contact_text = COALESCE(EXCLUDED.contact_text, doctor_profiles.contact_text),
+            avatar_url   = COALESCE(EXCLUDED.avatar_url,   doctor_profiles.avatar_url),
+            accepting    = EXCLUDED.accepting,
+            auto_accept  = EXCLUDED.auto_accept,
+            updated_at   = now()
+    `,[uid, prof.specialty, prof.city, prof.clinic, prof.tg, prof.contact, prof.avatar_url, prof.accepting, prof.auto_accept]);
 
+    // отмечаем, что пользователь — врач
     await pool.query('UPDATE derma.users SET is_doctor = true WHERE id=$1', [uid]);
 
-    res.json({ ok: true, code });
-  } catch (e) {
+    // если передано ФИО — сохраним в users.full_name
+    if (profile.name) {
+      await pool.query('UPDATE derma.users SET full_name=$2 WHERE id=$1', [uid, String(profile.name).slice(0,180)]);
+    }
+
+    await pool.query('COMMIT');
+    res.json({ ok:true, code });
+  }catch(e){
+    try{ await pool.query('ROLLBACK'); }catch(_){}
     console.error('DOCTOR CODE ERROR:', e);
     res.status(500).json({ error: e.message });
   }
 });
-
 app.get('/api/doctor/me', tgAuth, async (req, res) => {
-  try {
+  try{
     await pool.query('SET search_path = derma, public');
     const uid = await userIdByTg(req.tg || req.tgUser?.id);
 
-    const { rows: c } = await pool.query(
-      'SELECT code FROM derma.doctor_codes WHERE doctor_id=$1 AND active', [uid]);
-    const { rows: p } = await pool.query(
-      `SELECT specialty, city, clinic, tg_handle, contact_text, avatar_url, accepting, auto_accept
-         FROM derma.doctor_profiles WHERE user_id=$1`, [uid]);
+    const u  = await pool.query('SELECT is_doctor, full_name FROM derma.users WHERE id=$1',[uid]);
+    const dc = await pool.query('SELECT code FROM derma.doctor_codes WHERE doctor_id=$1 AND active',[uid]);
+    const dp = await pool.query(`
+      SELECT specialty, city, clinic, tg_handle, contact_text, avatar_url, accepting, auto_accept
+        FROM derma.doctor_profiles WHERE user_id=$1`, [uid]);
 
-    res.json({ code: c[0]?.code || null, profile: p[0] || null });
-  } catch (e) {
+    const profRow = dp.rows[0] || {};
+    const profile = {
+      name:       u.rows?.[0]?.full_name || null,
+      specialty:  profRow.specialty ?? null,
+      clinic:     profRow.clinic ?? null,
+      city:       profRow.city ?? null,
+      tg:         profRow.tg_handle ?? null,
+      contact:    profRow.contact_text ?? null,
+      avatar_url: profRow.avatar_url ?? null,
+      accepting:  profRow.accepting ?? null,
+      auto_accept:profRow.auto_accept ?? null,
+    };
+
+    res.json({
+      is_doctor: !!u.rows?.[0]?.is_doctor,
+      code:      dc.rows?.[0]?.code || null,
+      profile
+    });
+  }catch(e){
     console.error('DOCTOR ME ERROR:', e);
     res.status(500).json({ error: e.message });
   }
 });
+
 
 app.get('/api/doctor/validate', tgAuth, async (req, res) => {
   try {
@@ -689,6 +789,32 @@ app.get('/api/doctor/validate', tgAuth, async (req, res) => {
     res.json({ ok: true, doctor: rows[0], code });
   } catch (e) {
     console.error('DOCTOR VALIDATE ERROR:', e);
+    res.status(500).json({ error: e.message });
+  }
+});
+// Список прикреплённых к врачу пациентов
+app.get('/api/doctor/patients', tgAuth, async (req, res) => {
+  try {
+    await pool.query('SET search_path = derma, public');
+    const did = await userIdByTg(req.tg || req.tgUser?.id);
+
+    // проверим, что это врач
+    const u = await pool.query('SELECT is_doctor FROM derma.users WHERE id=$1', [did]);
+    if (!u.rowCount || !u.rows[0].is_doctor) return res.status(403).json({ error:'not a doctor' });
+
+    const { rows } = await pool.query(`
+      SELECT p.id   AS patient_id,
+             COALESCE(p.full_name,'Пациент') AS patient_name,
+             p.weight_kg, p.sex,
+             (SELECT MAX(date) FROM derma.dose_logs d WHERE d.patient_id=p.id) AS last_report
+        FROM derma.patient_doctors pd
+        JOIN derma.users p ON p.id = pd.patient_id
+       WHERE pd.doctor_id=$1 AND pd.unbound_at IS NULL
+       ORDER BY patient_name NULLS LAST, p.id`, [did]);
+
+    res.json(rows);
+  } catch (e) {
+    console.error('DOCTOR PATIENTS ERROR:', e);
     res.status(500).json({ error: e.message });
   }
 });
@@ -746,6 +872,223 @@ app.get('/api/doctor/attached', tgAuth, async (req, res) => {
     res.status(500).json({ error: e.message });
   }
 });
+// ===== DOCTOR REQUESTS FLOW =====
+// Пациент создаёт заявку по коду врача
+app.post('/api/doctor/request', tgAuth, async (req, res) => {
+  try {
+    await pool.query('SET search_path = derma, public');
+    const pid  = await userIdByTg(req.tg || req.tgUser?.id);
+    const code = String(req.body?.code || '').toUpperCase();
+    if (!/^[A-Z0-9]{5}$/.test(code)) return res.status(400).json({ error:'bad code' });
+
+    // Находим врача по коду
+    const rCode = await pool.query(`
+      SELECT dc.doctor_id,
+             COALESCE(u.full_name,'Врач') AS name,
+             dp.clinic, dp.city, dp.avatar_url,
+             COALESCE(dp.auto_accept,false) AS auto_accept
+        FROM derma.doctor_codes dc
+        JOIN derma.users u ON u.id = dc.doctor_id
+        LEFT JOIN derma.doctor_profiles dp ON dp.user_id = u.id
+       WHERE dc.code=$1 AND dc.active`, [code]);
+
+    if (!rCode.rowCount) return res.status(404).json({ error:'code not found' });
+
+    const doc = rCode.rows[0];
+    const did = doc.doctor_id;
+
+    // Одна «pending» заявка на пациента
+    const rPending = await pool.query(
+      `SELECT id, status FROM derma.doctor_requests
+        WHERE patient_id=$1 AND status='pending'`,
+      [pid]
+    );
+    if (!rPending.rowCount) {
+      await pool.query(
+        `INSERT INTO derma.doctor_requests(patient_id, doctor_id, status)
+         VALUES ($1,$2,'pending')`, [pid, did]
+      );
+    } else {
+      // если уже была «pending» на другого врача — можно отменить или перекинуть, но для простоты просто сообщим
+      const old = rPending.rows[0];
+      if (old && did) {
+        await pool.query(`UPDATE derma.doctor_requests SET doctor_id=$2 WHERE id=$1`, [old.id, did]);
+      }
+    }
+
+    // Автопринятие?
+    if (doc.auto_accept) {
+      await pool.query('BEGIN');
+      // помечаем заявку «accepted»
+      await pool.query(
+        `UPDATE derma.doctor_requests
+            SET status='accepted', decided_at=now()
+          WHERE patient_id=$1 AND doctor_id=$2 AND status='pending'`,
+        [pid, did]
+      );
+      // открепляем прошлых
+      await pool.query('UPDATE derma.patient_doctors SET unbound_at=now() WHERE patient_id=$1 AND unbound_at IS NULL', [pid]);
+      // крепим текущего
+      await pool.query('INSERT INTO derma.patient_doctors(patient_id, doctor_id) VALUES ($1,$2)', [pid, did]);
+      await pool.query('COMMIT');
+
+      return res.json({
+        ok: true,
+        status: 'accepted',
+        doctor: { id: did, name: doc.name, clinic: doc.clinic, city: doc.city, avatar_url: doc.avatar_url }
+      });
+    }
+
+    // Иначе — «ожидание»
+    return res.status(202).json({
+      ok: true,
+      status: 'pending',
+      doctor: { id: did, name: doc.name, clinic: doc.clinic, city: doc.city, avatar_url: doc.avatar_url }
+    });
+  } catch (e) {
+    try { await pool.query('ROLLBACK'); } catch(_) {}
+    console.error('DOCTOR REQUEST POST ERROR:', e);
+    res.status(500).json({ error: e.message });
+  }
+});
+
+// Пациент получает статус своей заявки
+app.get('/api/doctor/request', tgAuth, async (req, res) => {
+  try {
+    await pool.query('SET search_path = derma, public');
+    const pid = await userIdByTg(req.tg || req.tgUser?.id);
+
+    // 1) есть принятый врач?
+    const acc = await pool.query(`
+      SELECT u.id AS doctor_id, COALESCE(u.full_name,'Врач') AS name,
+             dp.clinic, dp.city, dp.avatar_url
+        FROM derma.patient_doctors pd
+        JOIN derma.users u ON u.id=pd.doctor_id
+        LEFT JOIN derma.doctor_profiles dp ON dp.user_id=u.id
+       WHERE pd.patient_id=$1 AND pd.unbound_at IS NULL
+       LIMIT 1`, [pid]);
+    if (acc.rowCount) {
+      const d = acc.rows[0];
+      return res.json({ ok:true, status:'accepted',
+        doctor:{ id:d.doctor_id, name:d.name, clinic:d.clinic, city:d.city, avatar_url:d.avatar_url }});
+    }
+
+    // 2) иначе проверяем «pending»
+    const pend = await pool.query(`
+      SELECT dr.id, dr.status, u.id AS doctor_id, COALESCE(u.full_name,'Врач') AS name,
+             dp.clinic, dp.city, dp.avatar_url
+        FROM derma.doctor_requests dr
+        JOIN derma.users u ON u.id=dr.doctor_id
+        LEFT JOIN derma.doctor_profiles dp ON dp.user_id=u.id
+       WHERE dr.patient_id=$1
+       ORDER BY dr.created_at DESC
+       LIMIT 1`, [pid]);
+
+    if (!pend.rowCount) return res.json({ ok:true, status:'none' });
+
+    const r = pend.rows[0];
+    return res.json({ ok:true, status:r.status,
+      doctor:{ id:r.doctor_id, name:r.name, clinic:r.clinic, city:r.city, avatar_url:r.avatar_url },
+      request_id: r.id
+    });
+  } catch (e) {
+    console.error('DOCTOR REQUEST GET ERROR:', e);
+    res.status(500).json({ error: e.message });
+  }
+});
+
+// Отмена пациентом «pending»-заявки
+app.delete('/api/doctor/request', tgAuth, async (req, res) => {
+  try {
+    await pool.query('SET search_path = derma, public');
+    const pid = await userIdByTg(req.tg || req.tgUser?.id);
+    await pool.query(
+      `UPDATE derma.doctor_requests
+          SET status='cancelled', decided_at=now()
+        WHERE patient_id=$1 AND status='pending'`, [pid]
+    );
+    res.json({ ok:true });
+  } catch (e) {
+    console.error('DOCTOR REQUEST DELETE ERROR:', e);
+    res.status(500).json({ error: e.message });
+  }
+});
+
+// Список «pending»-заявок для врача
+app.get('/api/doctor/requests', tgAuth, async (req, res) => {
+  try {
+    await pool.query('SET search_path = derma, public');
+    const did = await userIdByTg(req.tg || req.tgUser?.id);
+
+    // проверим, что это «врач»
+    const u = await pool.query('SELECT is_doctor FROM derma.users WHERE id=$1', [did]);
+    if (!u.rowCount || !u.rows[0].is_doctor) return res.status(403).json({ error:'not a doctor' });
+
+    const { rows } = await pool.query(`
+      SELECT dr.id, dr.created_at,
+             p.id AS patient_id, COALESCE(p.full_name,'Пациент') AS patient_name
+        FROM derma.doctor_requests dr
+        JOIN derma.users p ON p.id=dr.patient_id
+       WHERE dr.doctor_id=$1 AND dr.status='pending'
+       ORDER BY dr.created_at ASC`, [did]);
+
+    res.json(rows);
+  } catch (e) {
+    console.error('DOCTOR REQUESTS LIST ERROR:', e);
+    res.status(500).json({ error: e.message });
+  }
+});
+
+// Подтвердить заявку (врач)
+app.post('/api/doctor/requests/:id/accept', tgAuth, async (req, res) => {
+  try {
+    await pool.query('SET search_path = derma, public');
+    const did = await userIdByTg(req.tg || req.tgUser?.id);
+    const id  = Number(req.params.id);
+
+    await pool.query('BEGIN');
+    const r = await pool.query(
+      `UPDATE derma.doctor_requests
+          SET status='accepted', decided_at=now()
+        WHERE id=$1 AND doctor_id=$2 AND status='pending'
+        RETURNING patient_id`, [id, did]);
+    if (!r.rowCount) { await pool.query('ROLLBACK'); return res.status(404).json({ error:'not found' }); }
+
+    const pid = r.rows[0].patient_id;
+    await pool.query('UPDATE derma.patient_doctors SET unbound_at=now() WHERE patient_id=$1 AND unbound_at IS NULL', [pid]);
+    await pool.query('INSERT INTO derma.patient_doctors(patient_id, doctor_id) VALUES ($1,$2)', [pid, did]);
+    await pool.query('COMMIT');
+
+    res.json({ ok:true });
+  } catch (e) {
+    try { await pool.query('ROLLBACK'); } catch(_){}
+    console.error('DOCTOR REQUEST ACCEPT ERROR:', e);
+    res.status(500).json({ error: e.message });
+  }
+});
+
+// Отклонить заявку (врач)
+app.post('/api/doctor/requests/:id/reject', tgAuth, async (req, res) => {
+  try {
+    await pool.query('SET search_path = derma, public');
+    const did = await userIdByTg(req.tg || req.tgUser?.id);
+    const id  = Number(req.params.id);
+
+    const r = await pool.query(
+      `UPDATE derma.doctor_requests
+          SET status='rejected', decided_at=now()
+        WHERE id=$1 AND doctor_id=$2 AND status='pending'`,
+      [id, did]
+    );
+    if (!r.rowCount) return res.status(404).json({ error:'not found' });
+
+    res.json({ ok:true });
+  } catch (e) {
+    console.error('DOCTOR REQUEST REJECT ERROR:', e);
+    res.status(500).json({ error: e.message });
+  }
+});
+
 
 app.delete('/api/doctor/attach', tgAuth, async (req, res) => {
   try {
@@ -926,9 +1269,9 @@ app.get('/api/_health', async (req, res) => {
 app.get(['/main', '/plan', '/profile'], (req, res) => {
   const q = req.originalUrl.includes('?') ? req.originalUrl.slice(req.originalUrl.indexOf('?')) : '';
   const map = {
-    '/main': '/main-dark.html',
-    '/plan': '/plan-dark.html',
-    '/profile': '/profile-dark.html',
+    '/main': '/main.html',
+    '/plan': '/plan.html',
+    '/profile': '/profile.html',
   };
   res.redirect(302, map[req.path] + q);
 });
@@ -939,49 +1282,41 @@ app.get('/faq', (req, res) => {
   res.redirect(302, '/faq.html' + q);
 });
 
-// ===== DOCTOR: code + me (минимально для кабинета) =====
-app.post('/api/doctor/code', tgAuth, async (req, res) => {
-  try {
-    await pool.query('SET search_path = derma, public');
-    const uid  = await userIdByTg(req.tg || req.tgUser?.id);
-    const code = String(req.body?.code || '').toUpperCase();
-    if (!/^[A-Z0-9]{5}$/.test(code)) return res.status(400).json({ error: 'bad code' });
+// ====== static ======                // если выше не было require('path')
 
-    // деактивируем прежний код и записываем новый
-    await pool.query('UPDATE derma.doctor_codes SET active=false, revoked_at=now() WHERE doctor_id=$1 AND active', [uid]);
-    await pool.query('INSERT INTO derma.doctor_codes(code, doctor_id, active) VALUES ($1,$2,true) ON CONFLICT (code) DO UPDATE SET doctor_id=EXCLUDED.doctor_id, active=true, revoked_at=NULL', [code, uid]);
-
-    res.json({ ok: true, code });
-  } catch (e) {
-    console.error('DOCTOR CODE ERROR:', e);
-    res.status(500).json({ error: e.message });
-  }
+// (1) Ставим CSP, который НЕ блокирует inline-скрипты и data:/blob: картинки
+app.use((req, res, next) => {
+  res.setHeader(
+    'Content-Security-Policy',
+    [
+      "default-src 'self' 'unsafe-inline' 'unsafe-eval' data: blob:",
+      // было: "script-src  'self' 'unsafe-inline' 'unsafe-eval' blob:",
+      "script-src  'self' 'unsafe-inline' 'unsafe-eval' blob: https://telegram.org https://*.telegram.org",
+      "style-src   'self' 'unsafe-inline' data:",
+      "img-src     'self' data: blob: https: http: https://unavatar.io https://*.unavatar.io https://telegram.org https://*.telegram.org https://t.me https://*.t.me",
+      "media-src   'self' data: blob:",
+      "font-src    'self' data:",
+      // было: "connect-src 'self' https: http: data: blob:"
+      "connect-src 'self' https: http: data: blob: https://telegram.org https://*.telegram.org"
+    ].join('; ')
+  );
+  next();
 });
 
-app.get('/api/doctor/me', tgAuth, async (req, res) => {
-  try {
-    await pool.query('SET search_path = derma, public');
-    const uid = await userIdByTg(req.tg || req.tgUser?.id);
-    const { rows } = await pool.query('SELECT code FROM derma.doctor_codes WHERE doctor_id=$1 AND active', [uid]);
-    res.json({ code: rows[0]?.code || null, profile: null });
-  } catch (e) {
-    console.error('DOCTOR ME ERROR:', e);
-    res.status(500).json({ error: e.message });
-  }
-});
+// (2) Вырубаем агрессивный кеш статики на время отладки
+const staticRoot = path.join(__dirname, 'webapp');
+const staticOpts = { etag: false, lastModified: false, cacheControl: true, maxAge: 0 };
 
+app.use(express.static(staticRoot, staticOpts));                       // /css, /js, /img, /index.html
+app.use('/dark',  express.static(path.join(staticRoot, 'dark'), staticOpts));
+app.use('/light', express.static(path.join(staticRoot, 'light'), staticOpts));
 
-// ====== static ======
-const staticRoot = path.join(__dirname, 'webapp'); // корень со статиками
-app.use(express.static(staticRoot));                // /css, /js, /img, /index.html
-app.use('/dark',  express.static(path.join(staticRoot, 'dark')));   // если используешь theme-папку
-app.use('/light', express.static(path.join(staticRoot, 'light')));  // если используешь theme-папку
-app.get('/', (_, res) => res.sendFile(path.join(staticRoot, 'index.html')));
+app.get('/', (_req, res) => res.sendFile(path.join(staticRoot, 'index.html')));
+// === REMINDERS v2 ============================================================
+const reminders = Object.create(null);      // приём препарата
+const stockCfg  = Object.create(null);      // напоминание "мало капсул"
 
-// В памяти: { [tgId]: { enabled, time, _date, _sentToday, _lastMs } }
-const reminders = Object.create(null);
-
-// Сохранение настроек (под tgAuth)
+// Сохранение настроек для приёма (из WebApp)
 app.post('/api/reminder', tgAuth, async (req, res) => {
   const tgId = req.tg || req.tgUser?.id;
   if (!tgId) return res.status(401).json({ error: 'unauthorized' });
@@ -990,38 +1325,74 @@ app.post('/api/reminder', tgAuth, async (req, res) => {
   reminders[tgId] = {
     ...(reminders[tgId] || {}),
     enabled: !!enabled,
-    time: String(time || '09:00').slice(0,5)
+    time: String(time || '20:30').slice(0,5),
+    _date: null, _sentToday: false, _lastMs: 0
   };
-
-  console.log('Напоминание сохранено:', tgId, reminders[tgId]);
   res.json({ ok: true, data: reminders[tgId] });
 });
+// ==== Telegram avatar proxy by tg_id ====
+// Требуется: process.env.BOT_TOKEN
+app.get('/api/tg-avatar/:id', async (req, res) => {
+  try {
+    const userId = req.params.id;
+    if (!/^\d+$/.test(userId)) return res.sendStatus(400);
 
-// ===== вспомогательные функции — ОБЯЗАТЕЛЬНО один раз, вне роутов =====
+    const r1 = await fetch(
+      `https://api.telegram.org/bot${process.env.BOT_TOKEN}/getUserProfilePhotos?user_id=${userId}&limit=1`
+    );
+    const j1 = await r1.json();
+    if (!j1.ok || (j1.result.total_count || 0) === 0) return res.sendStatus(404);
+
+    const sizes = j1.result.photos[0];
+    const best = sizes[sizes.length - 1];
+    const r2 = await fetch(
+      `https://api.telegram.org/bot${process.env.BOT_TOKEN}/getFile?file_id=${best.file_id}`
+    );
+    const j2 = await r2.json();
+    if (!j2.ok || !j2.result?.file_path) return res.sendStatus(404);
+
+    const fileUrl = `https://api.telegram.org/file/bot${process.env.BOT_TOKEN}/${j2.result.file_path}`;
+    const img = await fetch(fileUrl);
+
+    res.set('Cache-Control', 'public, max-age=86400'); // кэш на день
+    res.set('Content-Type', img.headers.get('content-type') || 'image/jpeg');
+    img.body.pipe(res);
+  } catch (e) {
+    console.error('tg-avatar proxy error', e);
+    res.sendStatus(500);
+  }
+});
+// Сохранение настроек для "мало капсул" (из WebApp)
+app.post('/api/reminder/stock', tgAuth, async (req, res) => {
+  const tgId = req.tg || req.tgUser?.id;
+  if (!tgId) return res.status(401).json({ error: 'unauthorized' });
+
+  const { enabled, time, threshold } = req.body || {};
+  stockCfg[tgId] = {
+    ...(stockCfg[tgId] || {}),
+    enabled: !!enabled,
+    time: String(time || '09:00').slice(0,5),
+    threshold: Number.isFinite(+threshold) ? +threshold : 10,
+    _date: null, _sent: false
+  };
+  res.json({ ok: true, data: stockCfg[tgId] });
+});
+
+// ---- вспомогательные
 const userTzCache = new Map();
-
 async function getUserTzByTg(tgId) {
   if (userTzCache.has(tgId)) return userTzCache.get(tgId);
   await pool.query('SET search_path = derma, public');
-  const r = await pool.query(
-    'SELECT tz FROM derma.users WHERE tg_id=$1::bigint',
-    [Number(tgId)]
-  );
+  const r = await pool.query('SELECT tz FROM derma.users WHERE tg_id=$1::bigint',[Number(tgId)]);
   const tz = r.rows[0]?.tz || 'Europe/Moscow';
   userTzCache.set(tgId, tz);
   return tz;
 }
 
 function nowParts(tz) {
-  const p = new Intl.DateTimeFormat('en-GB', {
-    timeZone: tz, year:'numeric', month:'2-digit', day:'2-digit',
-    hour:'2-digit', minute:'2-digit', hour12:false
-  }).formatToParts(new Date());
-  const get = t => p.find(x => x.type===t)?.value;
-  return { 
-    date: `${get('year')}-${get('month')}-${get('day')}`,
-    time: `${get('hour')}:${get('minute')}`
-  };
+  const p = new Intl.DateTimeFormat('en-GB',{timeZone:tz,year:'numeric',month:'2-digit',day:'2-digit',hour:'2-digit',minute:'2-digit',hour12:false}).formatToParts(new Date());
+  const g = t => p.find(x => x.type===t)?.value;
+  return { date: `${g('year')}-${g('month')}-${g('day')}`, time: `${g('hour')}:${g('minute')}` };
 }
 
 async function hasTakenToday(tgId, tz) {
@@ -1038,55 +1409,82 @@ async function hasTakenToday(tgId, tz) {
   return !!q.rowCount;
 }
 
-function appUrlFor(tgId) {
-  const base = (process.env.WEBAPP_URL || WEBAPP_URL || '').replace(/\/+$/,'');
-  return `${base}/main?tg=${tgId}`;
+// приблизительный расчёт оставшихся капсул по данным прогресса
+async function getCapsulesLeft(tgId) {
+  await pool.query('SET search_path = derma, public');
+  const q = await pool.query(`
+    SELECT vp.days_left_estimate::numeric AS days_left,
+           COALESCE(vp.daily_dose_mg,0)::numeric AS daily_mg,
+           COALESCE(p.capsule_mg,0)::numeric     AS cap_mg
+      FROM derma.v_patient_progress vp
+      JOIN derma.users u ON u.id = vp.patient_id
+      LEFT JOIN derma.plans p ON p.patient_id = u.id
+     WHERE u.tg_id = $1::bigint
+     LIMIT 1`,
+     [Number(tgId)]
+  );
+  if (!q.rowCount) return null;
+  const r = q.rows[0];
+  if (!r.cap_mg || !r.daily_mg || !r.days_left) return null;
+  const mgLeft   = Number(r.days_left) * Number(r.daily_mg);
+  const capsLeft = Math.max(0, Math.ceil(mgLeft / Number(r.cap_mg)));
+  return capsLeft;
 }
 
-async function sendReminder(tgId, text) {
-  try {
-    await bot.sendMessage(tgId, text, {
-      parse_mode: 'HTML',
-      reply_markup: {
-        inline_keyboard: [
-          [{ text: 'Отметить приём 💊', web_app: { url: appUrlFor(tgId) } }],
-          [{ text: 'Открыть в браузере', url: appUrlFor(tgId) }]
-        ]
-      }
-    });
-  } catch (e) {
-    console.error('Ошибка отправки напоминания:', e?.response?.body || e);
-  }
-}
-
-async function checkReminders() {
+// основной тикер для приёма
+async function tickDoseReminders() {
+  const REPEAT_MS = Number(process.env.REM_MS || (3*60*1000)); // дефолт 3 часа
   for (const [tgId, cfg] of Object.entries(reminders)) {
     if (!cfg?.enabled || !cfg.time) continue;
 
     const tz = await getUserTzByTg(tgId);
     const { date, time } = nowParts(tz);
 
-    // на новый день — сбрасываем флаги
+    // новый день → сброс флагов
     if (cfg._date !== date) { cfg._date = date; cfg._sentToday = false; cfg._lastMs = 0; }
 
-    // если уже отметили — пропускаем
+    // если уже отметили — не напоминаем
     if (await hasTakenToday(tgId, tz)) continue;
 
-    const THREE_HOURS_MS = Number(process.env.REM_MS || (3 * 60 * 60 * 1000));
-    const dueFirst  = !cfg._sentToday && time >= cfg.time; // первый пинг после заданного времени
-    const dueRepeat =  cfg._sentToday && (!cfg._lastMs || Date.now() - cfg._lastMs >= THREE_HOURS_MS);
+    const dueFirst  = !cfg._sentToday && time >= cfg.time;
+    const dueRepeat =  cfg._sentToday && (!cfg._lastMs || Date.now() - cfg._lastMs >= REPEAT_MS);
 
     if (dueFirst || dueRepeat) {
-      await sendReminder(tgId, 'Пора принять препарат 💊\nЕсли уже выпили — отметьте приём в трекере.');
+      await sendReminder(
+        tgId,
+        'Пора принять препарат 💊\nЕсли уже выпили — отметьте приём в трекере.'
+      );
       cfg._sentToday = true;
-      cfg._lastMs = Date.now();
+      cfg._lastMs    = Date.now();
     }
   }
 }
 
-// Проверяем раз в минуту
-setInterval(() => { checkReminders().catch(e => console.error('reminders tick error', e)); }, 60 * 1000);
+// тикер для “мало капсул”: строго 1 раз в день в своё время
+async function tickStockReminders() {
+  for (const [tgId, cfg] of Object.entries(stockCfg)) {
+    if (!cfg?.enabled || !cfg.time) continue;
 
+    const tz = await getUserTzByTg(tgId);
+    const { date, time } = nowParts(tz);
+
+    if (cfg._date !== date) { cfg._date = date; cfg._sent = false; }
+
+    if (!cfg._sent && time >= cfg.time) {
+      const left = await getCapsulesLeft(tgId);
+      if (left != null && left <= (cfg.threshold ?? 10)) {
+        await sendReminder(tgId, `⚠️ Осталось ${left} капсул. Пора закупить лекарство.`);
+      }
+      cfg._sent = true;
+    }
+  }
+}
+
+// общий тикер раз в минуту
+setInterval(() => {
+  Promise.all([ tickDoseReminders(), tickStockReminders() ])
+    .catch(e => console.error('reminders tick error', e));
+}, 3 * 60 * 60 * 1000);
 
 // ==== SET TELEGRAM WEBHOOK ON BOOT ====
 if (!isPolling) {
@@ -1108,3 +1506,8 @@ if (!isPolling) {
 } else {
   console.log('Bot started in POLLING mode');
 }
+// === START EXPRESS SERVER ===
+const PORT = process.env.PORT || 3000;
+app.listen(PORT, () => {
+  console.log('Server listening on port', PORT);
+});

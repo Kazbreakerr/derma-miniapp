@@ -669,8 +669,35 @@
   .action-row{ flex-wrap: wrap !important; }
   .action-row .hold-hint{ white-space: normal !important; }
 }
+.photo-grid{ display:grid; grid-template-columns:repeat(auto-fill,minmax(96px,1fr)); gap:8px; }
+.photo-grid img{ width:100%; height:100px; object-fit:cover; border-radius:10px; border:1px solid var(--stroke,#e7eaf0); }
+
   </style>
-  
+  <style>
+.badge{display:inline-flex;align-items:center;gap:6px;padding:6px 10px;border-radius:999px;border:1px solid var(--border,#e7eaf0);font-size:12px}
+.badge.dot::before{content:"";width:8px;height:8px;border-radius:999px;background:#9ca3af}
+.badge.ok::before{background:#22c55e}
+.badge.warn::before{background:#f59e0b}
+.badge.bad::before{background:#ef4444}
+.photo-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px}
+.photo-grid img{width:100%;height:160px;object-fit:cover;border-radius:12px;border:1px solid var(--border,#e7eaf0)}
+.section{background:var(--card,#fff);border:1px solid var(--border,#e7eaf0);border-radius:14px;padding:12px}
+.section h4{margin:0 0 8px;font-size:14px}
+
+/* Фото-сетка в карточке пациента */
+.photo-grid{
+  display:grid;
+  grid-template-columns: repeat(auto-fill, minmax(96px,1fr));
+  gap:8px;
+}
+.photo-grid img{
+  width:100%;
+  height:100px;
+  object-fit:cover;
+  border-radius:10px;
+  border:1px solid var(--stroke, #e7eaf0);
+}
+</style>
 </head>
 <body>
  <script>
@@ -875,8 +902,9 @@
     var storage={ set:function(k,v){try{localStorage.setItem(k,JSON.stringify(v))}catch(e){}},
                   get:function(k,d){var x=null;try{x=JSON.parse(localStorage.getItem(k)||'null')}catch(e){}; return (x===null||x===undefined)?d:x;} };
     function fmtDate(iso){ if(!iso) return '—'; var d=new Date(iso); function z(n){return (n<10?'0':'')+n} return z(d.getDate())+'.'+z(d.getMonth()+1)+'.'+d.getFullYear(); }
-    function shareURL(code){ return location.origin+location.pathname+'?attach=doctor&code='+code; }
-    function getQuery(name){ try{ return new URLSearchParams(location.search).get(name);}catch(e){ return null; } }
+function shareURL(code){
+  return location.origin + '/dark/myprofile.html?attach=doctor&code=' + encodeURIComponent(code);
+}    function getQuery(name){ try{ return new URLSearchParams(location.search).get(name);}catch(e){ return null; } }
 
     // Telegram init (без optional chaining)
     var tgApp = (window.Telegram && window.Telegram.WebApp) ? window.Telegram.WebApp : null;
@@ -890,44 +918,28 @@ window.RT_DEV = !((window.Telegram && Telegram.WebApp && Telegram.WebApp.initDat
 window.RT_USE_MOCK = false;
 
 // === ЗАМЕНА api(path, opts) — ПОЛНОСТЬЮ вместо старой функции
-function api(path, opts){
-  opts = opts || {};
-  var base = String(window.API_BASE || '').replace(/\/$/,'');
-  var headers = {'Content-Type':'application/json'};
+function api(path, opts = {}) {
+  const base = (window.API_BASE || '');
+  const initData = window.Telegram?.WebApp?.initData || '';
+  let url = base + path;
 
-  // Telegram заголовок (если в телеге)
-  var initData = (window.Telegram && Telegram.WebApp && Telegram.WebApp.initData) || '';
-  if (initData) headers['X-Telegram-InitData'] = initData;
-
-  // строим URL
-  var url = /^https?:\/\//i.test(path) ? path : (base + path);
-
-  // если НЕ в телеге — подставляем dev tg врача (сохраняем в LS)
-  if (!initData){
-   var devTg = new URLSearchParams(location.search).get('tg') ||
-            localStorage.getItem('rt_dev_tg') || '';
-if (devTg) {
-  try{ localStorage.setItem('rt_dev_tg', devTg); }catch(_){}
-  url += (url.indexOf('?')>-1?'&':'?') + 'tg=' + encodeURIComponent(devTg);
-}
-
-  // МОК-режим (полностью без сети, чтобы не ловить 403/401/красноту)
-  if (window.RT_DEV && window.RT_USE_MOCK){
-    var mock = __mockDoctorApi(url);
-    return Promise.resolve(new Response(JSON.stringify(mock.body), {
-      status: 200, headers: {'Content-Type':'application/json'}
-    }));
+  if (!initData) {
+    const devTg = new URLSearchParams(location.search).get('tg') || localStorage.getItem('rt_dev_tg') || '9001';
+    try { localStorage.setItem('rt_dev_tg', devTg); } catch (_){}
+    if (devTg) url += (url.includes('?') ? '&' : '?') + 'tg=' + encodeURIComponent(devTg);
   }
 
-  // Обычный fetch; в dev, если пришёл 401/403 — подменим на мок
-  var fopts = {}; for (var k in opts) fopts[k]=opts[k];
-  fopts.headers = headers; fopts.credentials = 'include';
+  const headers = { 'Content-Type': 'application/json' };
+  if (initData) headers['X-Telegram-InitData'] = initData;
 
- // только реальный запрос, без моков и подмен
-return fetch(url, fopts);}
+  const fopts = { method: (opts.method || 'GET'), headers, credentials: 'include' };
+  if (opts.body) fopts.body = (typeof opts.body === 'string') ? opts.body : JSON.stringify(opts.body);
+
+  return fetch(url, fopts);
+}
 
 // === Моки — ДОБАВИТЬ сразу под api. Остальной файл не трогаем.
-function __mockDoctorApi(){ return { body:{} }; }}
+function __mockDoctorApi(){ return { body:{} }; }
 
     // ===== Аватар
     function parseHandle(tg){ if(!tg) return null; var m=String(tg).trim().match(/@?([a-zA-Z0-9_]+)/); return m?m[1]:null; }
@@ -1027,33 +1039,45 @@ function setSmallAvatar(url, init){
     }
 
     function patientCard(p){
-      var el=document.createElement('div'); el.className='card p-card';
-      var lastDate=(p.labs && p.labs.date)?fmtDate(p.labs.date):'—';
-      el.innerHTML =
-        '<div class="p-top">'+
-        '  <div><div class="p-name">'+p.name+' <span class="muted">• '+(p.age||'—')+' • '+(p.city||'—')+'</span></div><div class="muted">'+(p.handle||'')+'</div></div>'+
-        '  <div class="pill">'+(p.newMsgs?('Новых: '+p.newMsgs):'Нет новых')+'</div>'+
-        '</div>'+
-        '<div class="p-grid">'+
-        '  <div>'+
-        '    <div class="badges">'+
-        '      <span class="badge">Курс: '+((p.course&&p.course.start)?fmtDate(p.course.start):'—')+' • '+(p.course&&p.course.dose_mg||0)+' мг/сут</span>'+
-        '      <span class="badge">Цель: '+(p.course&&p.course.target_mgkg||'-')+' мг/кг</span>'+
-        '      <span class="badge">Прогресс: '+(p.course&&p.course.progress||0)+'%</span>'+
-        '    </div>'+
-        '    <div class="prog" style="margin-top:8px"><i style="width:'+((p.course&&p.course.progress)||0)+'%"></i></div>'+
-        '  </div>'+
-        '  <div class="icons"><span title="Фото">📷</span><span title="Отчёты">📝</span><span title="Сообщения">💬</span></div>'+
-        '</div>'+
-        '<div class="labs" style="margin-top:8px">'+
-        '  <div class="lab"><span class="dot '+(((p.labs||{}).ALT||{}).status||'g')+'"></span>ALT</div>'+
-        '  <div class="lab"><span class="dot '+(((p.labs||{}).AST||{}).status||'g')+'"></span>AST</div>'+
-        '  <div class="lab"><span class="dot '+(((p.labs||{}).TG ||{}).status||'g')+'"></span>TG</div>'+
-        '  <div class="lab"><span class="dot '+(((p.labs||{}).CHOL||{}).status||'g')+'"></span>ХС</div>'+
-        '  <span class="muted" style="margin-left:auto">от '+lastDate+'</span>'+
-        '</div>';
-      return el;
-    }
+  const el = document.createElement('div');
+  el.className='card p-card';
+
+  // ← вычисляем дату последних анализов по всем показателям
+ var lastDate='—';
+try{
+  var ds = Object.values(p.labs||{}).map(v=>v&&v.date).filter(Boolean).sort();
+  if (ds.length) lastDate = fmtDate(ds[ds.length-1]);
+}catch(_){}
+
+  el.innerHTML =
+    '<div class="p-top">'+
+    '  <div><div class="p-name">'+p.name+' <span class="muted">• '+(p.age||'—')+' • '+(p.city||'—')+'</span></div><div class="muted">'+(p.handle||'')+'</div></div>'+
+    '  <div class="pill">'+(p.newMsgs?('Новых: '+p.newMsgs):'Нет новых')+'</div>'+
+    '</div>'+
+    '<div class="p-grid">'+
+    '  <div>'+
+    '    <div class="badges">'+
+    '      <span class="badge">Курс: '+((p.course&&p.course.start)?fmtDate(p.course.start):'—')+' • '+(p.course&&p.course.dose_mg||0)+' мг/сут</span>'+
+    '      <span class="badge">Цель: '+(p.course&&p.course.target_mgkg||'-')+' мг/кг</span>'+
+    '      <span class="badge">Прогресс: '+(p.course&&p.course.progress||0)+'%</span>'+
+    '    </div>'+
+    '    <div class="prog" style="margin-top:8px"><i style="width:'+((p.course&&p.course.progress)||0)+'%"></i></div>'+
+    '  </div>'+
+    '  <div class="icons"><span title="Фото">📷</span><span title="Отчёты">📝</span><span title="Сообщения">💬</span></div>'+
+    '</div>'+
+    '<div class="labs" style="margin-top:8px">'+
+    '  <div class="lab"><span class="dot '+(((p.labs||{}).ALT||{}).status||'g')+'"></span>ALT</div>'+
+    '  <div class="lab"><span class="dot '+(((p.labs||{}).AST||{}).status||'g')+'"></span>AST</div>'+
+    '  <div class="lab"><span class="dot '+(((p.labs||{}).TG ||{}).status||'g')+'"></span>TG</div>'+
+    '  <div class="lab"><span class="dot '+(((p.labs||{}).CHOL||{}).status||'g')+'"></span>ХС</div>'+
+    '  <span class="muted" style="margin-left:auto">от '+lastDate+'</span>'+
+    '</div>';
+
+  // ← открываем drawer по клику на карточку
+  el.addEventListener('click', () => window.openPatientDrawer(p));
+
+  return el;
+}
 
     function updatePatientsTips(){
       var code=storage.get('doctorCode')||'AB12C';
@@ -1077,22 +1101,45 @@ function setSmallAvatar(url, init){
       arr.forEach(function(p){ list.appendChild(patientCard(p)); });
     }
 
-    async function loadPatients(){
-      try{
-        var r = await api('/api/doctor/patients');
-        if(!r.ok) throw 0;
-        var rows = await r.json();
-        state.patients = rows.map(function(x){
-          return { id:String(x.patient_id), name:x.patient_name||'Пациент', handle:'', city:'', age:'',
-                   course:{ onCourse:true, progress:0, start:null, dose_mg:0, target_mgkg:'-' },
-                   labs:{}, lastReport:x.last_report||null, newMsgs:0, red:false };
-        });
-        storage.set('patientsList', state.patients);
-      }catch(e){
-        state.patients = storage.get('patientsList', []);
-      }
-      renderPatients();
-    }
+   async function loadPatients(){
+  try{
+    const r = await api('/api/doctor/patients');
+    if(!r.ok) throw new Error('patients ' + r.status);
+    const list = await r.json();
+
+    const mapped = list.map(x => {
+  const name = x.patient_name || (x.handle ? ('@' + x.handle) : 'Пациент');
+  const labs = x.labs || {};
+  const anyRed = ['ALT','AST','TG','CHOL'].some(k => labs[k]?.status === 'r');
+
+  return {
+    id: String(x.patient_id),
+    name,
+    handle: x.handle ? '@' + x.handle : '',
+    city: x.city || null,
+    age: x.age || null,
+    lastReport: x.last_report ? new Date(x.last_report) : null,
+    course: {
+      onCourse: !!x.on_course,
+      start: x.start_date || null,
+      dose_mg: Math.round(x.avg7 || 0),
+      target_mgkg: x.target_mgkg ?? 135,
+      // ВАЖНО: именно progress_pct, иначе 0%
+      progress: Number(x.progress_pct ?? 0)
+    },
+    labs,
+    hasRed: anyRed
+  };
+});
+
+    localStorage.setItem('patientsList', JSON.stringify(mapped));
+    state.patients = mapped;
+    renderPatients();
+    renderProfile();
+  }catch(e){
+    console.error('loadPatients error', e);
+  }
+}
 
     // ===== Заявки
     function updateRequestsTips(){
@@ -1156,7 +1203,7 @@ function setSmallAvatar(url, init){
     var copyBtn=q('#copyCode'); if(copyBtn) copyBtn.addEventListener('click', function(){ try{ navigator.clipboard.writeText(storage.get('doctorCode')||''); }catch(e){} });
     function openQR(){
       var code=storage.get('doctorCode')||'AB12C';
-      var url=location.origin+location.pathname+'?attach=doctor&code='+code;
+      var url = shareURL(code);
       var apiUrl='https://api.qrserver.com/v1/create-qr-code/?size=256x256&data='+encodeURIComponent(url);
       q('#qrBox').innerHTML='<img alt="QR" src="'+apiUrl+'" loading="lazy">';
       q('#qrModal').style.display='flex';
@@ -1394,6 +1441,108 @@ function doDoctorReset(){
   function initials(n){ return (n||'U').trim().split(/\s+/).map(s=>s[0]||'').slice(0,2).join('').toUpperCase() || 'U';}
 })();
 </script>
+<script>
+// ===== Развёрнутая карточка пациента =====
+document.addEventListener('DOMContentLoaded', function(){
+  const drawer = document.getElementById('patientDrawer');
+  const body   = document.getElementById('pdBody');
+  const title  = document.getElementById('pdTitle');
+  const lblDate= document.getElementById('pdDate');
+  const btnPrev= document.getElementById('pdPrev');
+  const btnNext= document.getElementById('pdNext');
+  const btnClose=document.getElementById('pdClose');
 
+  let current = { id:null, date: new Date() };
+
+  function fmtDate(d){ return d.toLocaleDateString(undefined,{day:'2-digit',month:'2-digit',year:'numeric'}); }
+  function isoDate(d){ return d.toISOString().slice(0,10); }
+
+async function fetchDay(pid, ds) {
+  const dsStr = (ds instanceof Date)
+    ? ds.toISOString().slice(0,10)
+    : String(ds).slice(0,10);
+
+  const resp = await api(`/api/doctor/patient/${pid}/day?date=${encodeURIComponent(dsStr)}`);
+  if (!resp.ok) throw new Error('Не удалось загрузить день');
+  return resp.json();
+}
+
+  function renderDay(data){
+    body.innerHTML = '';
+    lblDate.textContent = fmtDate(new Date(data.date));
+
+    const d = data.diary || {};
+    const sec1 = document.createElement('div');
+    sec1.className = 'section';
+    sec1.innerHTML = `
+      <h4>Самочувствие и побочки</h4>
+      <div style="display:flex;flex-wrap:wrap;gap:8px;margin-bottom:8px">
+        ${(d.side_effects?.length ? d.side_effects : []).map(se => `<span class="badge dot ${se.severity==='bad'?'bad':se.severity==='warn'?'warn':'ok'}">${se.name||'Побочка'}</span>`).join('') || '<div class="badge">Нет отмеченных побочек</div>'}
+      </div>
+      ${d.wellbeing ? `<div class="badge">Самочувствие: ${d.wellbeing}</div>` : ''}
+      ${d.symptoms ? `<div style="opacity:.7;margin-top:6px">${typeof d.symptoms==='string'?d.symptoms:JSON.stringify(d.symptoms)}</div>` : ''}
+    `;
+    body.appendChild(sec1);
+
+    const secDose = document.createElement('div');
+    secDose.className = 'section';
+    secDose.innerHTML = `<h4>Доза за день</h4><div class="badge">${Math.round(data.dose_mg||0)} мг</div>`;
+    body.appendChild(secDose);
+
+    const secNote = document.createElement('div');
+    secNote.className = 'section';
+    secNote.innerHTML = `<h4>Заметка пациента</h4><div>${(d.note && String(d.note).trim()) ? String(d.note).replace(/\n/g,'<br>') : '<span class="badge">Нет заметки</span>'}</div>`;
+    body.appendChild(secNote);
+
+    const secPhotos = document.createElement('div');
+    secPhotos.className = 'section';
+    const faces = (data.photos||[]).filter(p => p.kind==='face');
+    const bodys = (data.photos||[]).filter(p => p.kind==='body');
+    secPhotos.innerHTML = `
+      <h4>Фото</h4>
+      <div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:8px">
+        <span class="badge dot ${faces.length?'ok':''}">Лицо: ${faces.length}</span>
+        <span class="badge dot ${bodys.length?'ok':''}">Тело: ${bodys.length}</span>
+      </div>
+      <div class="photo-grid">${(data.photos||[]).map(p=>`<img src="${p.url}" alt="${p.kind}">`).join('')}</div>
+    `;
+    body.appendChild(secPhotos);
+  }
+
+  async function loadAndRender(){
+    const data = await fetchDay(current.id, current.date);
+    renderDay(data);
+  }
+
+  btnPrev?.addEventListener('click', ()=>{ current.date.setDate(current.date.getDate()-1); loadAndRender(); });
+  btnNext?.addEventListener('click', ()=>{ current.date.setDate(current.date.getDate()+1); loadAndRender(); });
+  btnClose?.addEventListener('click', ()=>{ drawer.style.display='none'; });
+
+  window.openPatientDrawer = async function(patient){
+    current.id   = patient.id || patient.patient_id || patient.user_id;
+    current.date = new Date();
+    title.textContent = patient.name || patient.patient_name || 'Пациент';
+    drawer.style.display = 'block';
+    await loadAndRender();
+  };
+});
+</script>
+
+<div id="patientDrawer" style="display:none;position:fixed;inset:0;backdrop-filter:blur(2px);background:rgba(0,0,0,.35);z-index:1000">
+  <div style="position:absolute;right:0;top:0;bottom:0;width:min(780px,100%);background:var(--card,#fff);border-left:1px solid var(--border,#e7eaf0);overflow:auto">
+    <div style="display:flex;align-items:center;gap:10px;padding:14px 16px;border-bottom:1px solid var(--border,#e7eaf0)">
+      <button id="pdClose" class="btn-ghost">Закрыть</button>
+      <div id="pdTitle" style="font-weight:800">Пациент</div>
+      <div style="margin-left:auto;display:flex;gap:8px;align-items:center">
+        <button id="pdPrev" class="btn-ghost">← день</button>
+        <div id="pdDate" style="font-weight:700"></div>
+        <button id="pdNext" class="btn-ghost">день →</button>
+      </div>
+    </div>
+    <div id="pdBody" style="padding:16px;display:grid;gap:16px">
+      <!-- сюда JS вставит секции: самочувствие/побочки/фото/заметка/доза -->
+    </div>
+  </div>
+</div>
 </body>
 </html>

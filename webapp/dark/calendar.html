@@ -668,7 +668,7 @@ html::view-transition-new(root){
 </script>
   <div class="brand">Roaccutane Tracker</div>
 
-  <div class="app-title">Календарь<span data-pill-spot></span><span data-stock-spot></span>
+  <div class="app-title">Календарь<span data-pill-spot></span><span data-stock-spot></span></div>
 
   <div class="calendar-card" id="card">
     <div class="header">
@@ -923,15 +923,21 @@ function loadDiaryV2(){
     return (v && v.version===2) ? v : {version:2, entries:{}};
   }catch(_){ return {version:2, entries:{}}; }
 }
+// единый источник правды
+const MOOD_STATES = [
+  'Очень плохо','Плохо','Ниже нормы',
+  'Нейтрально','Неплохо','Хорошо','Отлично'
+];
+
+// квантование как в дневнике: 0..100 -> 0..6 через Math.round
+function quantizeIdxFromValence(v){
+  v = Math.max(0, Math.min(100, Number(v)||0));
+  return Math.max(0, Math.min(6, Math.round((v/100)*6)));
+}
+
+// новая подпись
 function textFromV(v){
-  const s=(v-50)/50;
-  if(s<-0.66) return 'Очень плохо';
-  if(s<-0.33) return 'Плохо';
-  if(s<-0.06) return 'Ниже нормы';
-  if(s< 0.06) return 'Нейтрально';
-  if(s< 0.33) return 'Неплохо';
-  if(s< 0.66) return 'Хорошо';
-  return 'Отлично';
+  return MOOD_STATES[quantizeIdxFromValence(v)];
 }
 function firstSentenceWithEllipsis(s){
   if(!s) return '';

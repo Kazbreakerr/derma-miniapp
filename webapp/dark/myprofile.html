@@ -147,7 +147,7 @@ body.light .iconbtn.reset{
 
 :root{
   --profile-ava-size: 250px;        /* ↑ размер аватара с кольцом */
-  --profile-ring-thickness: 9px;   /* ↑ толщина кольца */
+  --profile-ring-thickness: 6px;   /* ↑ толщина кольца */
   --profile-ring-gap: 6px;          /* зазор между фото и кольцом */
 }
 
@@ -161,7 +161,7 @@ body.light .iconbtn.reset{
   overflow:visible;
 }
 
-/* фото */
+
 /* фото (круг без квадратов) */
 .avatar{
   width: calc(100% - (var(--profile-ring-thickness) + var(--profile-ring-gap)) * 2);
@@ -181,32 +181,31 @@ body.light .iconbtn.reset{
 
 /* кольцо */
 .ring{ position:absolute; inset:0; pointer-events:none; }
-.ring svg{ width:100%; height:100%; display:block;overflow: visible;    }
-.ring .track{
-  stroke: rgba(0,0,0,.35);            /* неглубокая база */
-  stroke-width: var(--profile-ring-thickness);
-}
-body.light .ring .track{ stroke: rgba(0,0,0,.12); }
+.ring svg{ width:100%; height:100%; display:block; overflow:visible; }
 
-/* активный прогресс */
+/* трек вообще не рисуем, чтобы не было серого */
+.ring .track{ stroke:transparent; }
+
+/* активная дуга */
 .ring .bar{
-  stroke-width: var(--profile-ring-thickness);
+  stroke: url(#ringGrad);
   stroke-linecap: round;
-}
-
-/* мягкое свечение вокруг кольца (создаёт «глубину») */
-.ring .halo{
   stroke-width: var(--profile-ring-thickness);
-  opacity: .35;
+  filter: url(#ring3d);
 }
 
-/* блик у кончика прогресса */
-.ring .shine{
-  stroke: #fff;
+/* мягкое свечение прямо под дугой (а не по всему кругу) */
+.ring .barG{
+  stroke: url(#ringGrad);
   stroke-linecap: round;
-  opacity: .55;
+  stroke-width: calc(var(--profile-ring-thickness) + 4);
+  opacity: .45;
+  filter: url(#softGlow);
 }
 
+/* блик и «ореолы» отключаем, чтобы не давали серых сегментов */
+.ring .shine{ display:none; }
+.ring .halo{ display:none; }
 
     .hero-name{ font-weight:700; font-size:18px; }
     .hero-meta{ color:var(--muted); font-size:13px; }
@@ -575,10 +574,11 @@ body.light .diary.is-cta{
 
     // *** Важно: добавляем ?tg=... ТОЛЬКО если НЕ в Телеге (dev-режим в браузере) ***
     if (!initData) {
-      const devTg =
-        new URLSearchParams(location.search).get('tg') ||
-        localStorage.getItem('rt_dev_tg') || '1002';     // можно поменять на свой
-      try { localStorage.setItem('rt_dev_tg', devTg); } catch(_) {}
+      const DEV_TG_KEY = 'rt_dev_tg_patient';
+const devTg =
+  new URLSearchParams(location.search).get('tg') ||
+  localStorage.getItem(DEV_TG_KEY) || '1002';
+try { localStorage.setItem(DEV_TG_KEY, devTg); } catch(_){}
       url += (url.includes('?') ? '&' : '?') + 'tg=' + encodeURIComponent(devTg);
     }
 
@@ -959,16 +959,14 @@ html[data-theme="light"] #hero.hero.has-bg::before{ opacity:.35; filter:saturate
       <circle cx="60" cy="60" r="60" fill="url(#gloss)"/>
     </g>
 
-    <g class="meter" transform="rotate(-90 60 60)">
-     <circle class="bar" cx="60" cy="60" r="56"
-             fill="none" stroke="url(#ringGrad)"
-             filter="url(#ring3d)"
-             stroke-dasharray="0 351.858" stroke-dashoffset="0"/>
-     <!-- блик на кончике дуги -->
-     <circle class="shine" cx="60" cy="60" r="56"
-             fill="none" stroke="#fff" stroke-width="calc(var(--profile-ring-thickness) - 3)"
-             stroke-dasharray="0 351.858" stroke-dashoffset="0" />
-  </g>
+  <g class="meter" transform="rotate(-90 60 60)">
+  <circle class="barG" cx="60" cy="60" r="56"
+          fill="none" stroke="url(#ringGrad)"
+          stroke-dasharray="0 351.858" stroke-dashoffset="0"/>
+  <circle class="bar"  cx="60" cy="60" r="56"
+          fill="none" stroke="url(#ringGrad)"
+          stroke-dasharray="0 351.858" stroke-dashoffset="0"/>
+</g>
   </svg>
 </div>
 
@@ -1275,28 +1273,30 @@ set('doctorMeta', [doc.name, doc.clinic, doc.phone].filter(Boolean).join(' • '
     const r = parseFloat(bar.getAttribute('r')) || 56;
     const C = 2 * Math.PI * r;
 
-    // % прогресса — возьми свою переменную; window.profilePct уже есть
-    const pct = Math.max(0, Math.min(100, Number(window.profilePct || 0)));
+    // используем уже посчитанный выше percent (pct), а не window.profilePct
+    const prog = clamp(pct, 0, 100);
+    window.profilePct = prog; // пусть будет доступен и снаружи
 
-    // длина видимой дуги (один штрих + один зазор)
-    const L = Math.max(0, Math.min(C * pct / 100, C - 0.01)); // на 100% оставим крошечный зазор, чтобы не «хлопало»
+    // длина видимой дуги: старт в «12 часов» (за счёт rotate(-90)), дальше по часовой
+    const L = Math.max(0, Math.min(C * prog / 100, C - 0.01));
     bar.setAttribute('stroke-dasharray', `${L.toFixed(3)} ${(C - L).toFixed(3)}`);
-    bar.setAttribute('stroke-dashoffset', '0'); // старт в 12 часов благодаря rotate(-90)
+    bar.setAttribute('stroke-dashoffset', '0');
 
-    // блик: короткий сегмент, «привязанный» к кончику дуги
+    // блик на кончике дуги
     if (shine) {
-      const seg = Math.max(6, Math.min(C * 0.10, 28)); // 6..28px по длине
-      const off = (C - L);                              // позиция конца дуги
+      const seg = Math.max(6, Math.min(C * 0.10, 28));
+      const off = (C - L); // позиция конца дуги
       shine.setAttribute('stroke-dasharray', `${seg.toFixed(2)} ${(C - seg).toFixed(2)}`);
       shine.setAttribute('stroke-dashoffset', off.toFixed(3));
-      shine.setAttribute('opacity', pct > 0 ? '.55' : '0');
-      // подстроим толщину блика под текущую толщину кольца
+      shine.setAttribute('opacity', prog > 0 ? '.55' : '0');
+
       const th = parseFloat(getComputedStyle(document.documentElement)
-                  .getPropertyValue('--profile-ring-thickness')) || 10;
+                    .getPropertyValue('--profile-ring-thickness')) || 10;
       shine.setAttribute('stroke-width', Math.max(2, th - 3));
     }
   }
-}}
+}
+  }
 function todayISO(){
   const d=new Date();
   d.setMinutes(d.getMinutes()-d.getTimezoneOffset());
@@ -1643,7 +1643,7 @@ function setDoctorReq(obj){ try{ if(obj) localStorage.setItem(DOCTOR_REQ_KEY, JS
     detachBtn.title = 'Открепить';
     detachBtn.textContent = 'Открепить';
     detachBtn.onclick = async () => {
-      await api('/api/doctor/attached', { method:'DELETE' });
+     await api('/api/doctor/attach', { method:'DELETE' });
       setDoctor(null);      // убираем из localStorage
       applyDoctor();        // перерисовываем UI
     };
@@ -2753,6 +2753,202 @@ if (cur && cur.complete && cur.naturalWidth > 0) return;
     if (handle) try{ localStorage.setItem('rt_usr_handle', handle); }catch(_){}
     if (tgId)   try{ localStorage.setItem('rt_usr_id', tgId); }catch(_){}
   }catch(e){ console.log('ensureAvatarFallback error', e); }
+})();
+</script>
+<script>
+(function(){
+  // ==== 0) Поиск элементов. При желании переименуй под свои id.
+  const els = {
+    input:   document.querySelector('#doctorCode, #doctor-code, [data-el="doctor-code"]'),
+    attach:  document.querySelector('#attachDoctor, #doctorAttachBtn, [data-el="doctor-attach"]'),
+    cancel:  document.querySelector('#cancelDoctorRequest, [data-el="doctor-cancel"]'),
+    preview: document.querySelector('#doctorPreview, #doctor-attach-preview, [data-el="doctor-preview"]'),
+    status:  document.querySelector('#doctorAttachMsg, #doctor-attach-msg, [data-el="doctor-msg"]'),
+    card:    document.querySelector('#doctorCard, #doctor-attached-card, [data-el="doctor-card"]'),
+    formBox: document.querySelector('#doctorAttachBox, #doctor-attach-box, [data-el="doctor-box"]')
+  };
+
+  // ==== 1) Универсальный API-хелпер (если на странице уже есть window.api — используем его)
+  const api = (typeof window.api === 'function') ? window.api : function(path, opts){
+    opts = opts || {};
+    const base = String(window.API_BASE || '').replace(/\/$/,'');
+    const headers = {'Content-Type':'application/json'};
+    const initData = (window.Telegram && Telegram.WebApp && Telegram.WebApp.initData) || '';
+    if (initData) headers['X-Telegram-InitData'] = initData;
+    let url = /^https?:\/\//i.test(path) ? path : (base + path);
+    if (!initData){
+      const devTg = new URLSearchParams(location.search).get('tg') ||
+                    localStorage.getItem('rt_dev_tg') || '1002';
+      try { localStorage.setItem('rt_dev_tg', devTg); } catch(_){}
+      url += (url.includes('?') ? '&' : '?') + 'tg=' + encodeURIComponent(devTg);
+    }
+    const fopts = { ...opts, headers: { ...headers, ...(opts.headers||{}) } };
+    return fetch(url, fopts);
+  };
+
+  // ==== 2) Утилиты UI
+  function setMsg(t){ if(els.status) els.status.textContent = t || ''; }
+  function renderPreview(doc){
+    if (!els.preview) return;
+    if (!doc){ els.preview.innerHTML=''; return; }
+    const sub = [doc.clinic, doc.city].filter(Boolean).join(' • ');
+    els.preview.innerHTML =
+      '<div class="card" style="display:flex;gap:12px;align-items:center;padding:10px 12px;">' +
+      (doc.avatar_url ? '<img src="'+doc.avatar_url+'" style="width:44px;height:44px;border-radius:999px;object-fit:cover">' :
+                        '<div style="width:44px;height:44px;border-radius:999px;background:#e6eef5"></div>') +
+      '<div><div style="font-weight:700">'+(doc.name||'Врач')+'</div>' +
+      '<div style="opacity:.7">'+(sub||'')+'</div></div></div>';
+  }
+  function renderCard(doc){
+    if (!els.card) return;
+    const sub = [doc.clinic, doc.city].filter(Boolean).join(' • ');
+    els.card.innerHTML =
+      '<div class="card" style="padding:12px;border:1px solid var(--border,#e7eaf0);border-radius:16px">' +
+      '<div style="display:flex;gap:12px;align-items:center">' +
+        (doc.avatar_url ? '<img src="'+doc.avatar_url+'" style="width:52px;height:52px;border-radius:999px;object-fit:cover">' :
+                          '<div style="width:52px;height:52px;border-radius:999px;background:#e6eef5"></div>') +
+        '<div><div style="font-weight:800">'+(doc.name||'Врач')+'</div>' +
+        '<div style="opacity:.7">'+(sub||'')+'</div></div>' +
+      '</div>' +
+      '<div style="margin-top:10px;display:flex;gap:8px;flex-wrap:wrap">' +
+        '<button id="doctorChangeBtn" class="btn-ghost">Сменить врача</button>' +
+      '</div>' +
+      '</div>';
+    // обработчик "Сменить врача" — открепление
+    const changeBtn = document.getElementById('doctorChangeBtn');
+    changeBtn?.addEventListener('click', async ()=>{
+      try{
+        await api('/api/doctor/attach', { method:'DELETE' });
+        if (els.card) els.card.innerHTML = '';
+        if (els.formBox) els.formBox.style.removeProperty('display');
+        setMsg('Врач откреплён. Введите новый код.');
+      }catch(e){ setMsg('Не удалось открепить'); }
+    });
+  }
+
+  // ==== 3) Валидация кода по вводу (показываем превью врача)
+  let lastValidated = null;
+  async function validateCode(code){
+    lastValidated = null;
+    renderPreview(null);
+    if (!/^[A-Z0-9]{5}$/.test(code||'')) { setMsg('Код из 5 символов'); return; }
+    setMsg('Проверяем код…');
+    try{
+      const r = await api('/api/doctor/validate?code='+encodeURIComponent(code));
+      if (!r.ok) throw new Error('Код не найден');
+      const j = await r.json();
+      lastValidated = j;
+      renderPreview(j.doctor);
+      setMsg('Врач найден. Нажмите «Прикрепить врача».');
+    }catch(e){ setMsg(e.message || 'Код не найден'); }
+  }
+
+  els.input?.addEventListener('input', (e)=>{
+    const v = String(e.target.value||'').toUpperCase().replace(/[^A-Z0-9]/g,'').slice(0,5);
+    if (v !== e.target.value) e.target.value = v;
+    if (v.length === 5) validateCode(v); else { setMsg(''); renderPreview(null); lastValidated = null; }
+  });
+
+  // ==== 4) Отправка заявки + опрос статуса
+  async function pollStatusUntilDone(){
+    for (let i=0;i<60;i++){ // ~3 мин
+      try{
+        const r = await api('/api/doctor/request');
+        const j = await r.json();
+        if (j?.status === 'accepted'){ return {status:'accepted', doctor:j.doctor}; }
+        if (j?.status === 'rejected'){ return {status:'rejected'}; }
+      }catch(_) {}
+      await new Promise(r => setTimeout(r, 3000));
+    }
+    return {status:'timeout'};
+  }
+
+  els.attach?.addEventListener('click', async ()=>{
+    const code = (els.input?.value||'').toUpperCase();
+    if (!/^[A-Z0-9]{5}$/.test(code)) { setMsg('Введите корректный код (5 символов)'); return; }
+    if (!lastValidated) await validateCode(code);
+    if (!lastValidated) return;
+
+    els.attach.disabled = true;
+    setMsg('Отправляем заявку…');
+    try{
+      const r = await api('/api/doctor/request', {
+        method:'POST',
+        body: JSON.stringify({ code })
+      });
+
+      // auto_accept → 200 OK + {status:'accepted'}
+      if (r.ok && r.status === 200){
+        const j = await r.json();
+        renderCard(j.doctor);
+        if (els.formBox) els.formBox.style.display = 'none';
+        setMsg('Готово! Вы прикреплены.');
+        return;
+      }
+
+      // обычный путь → 202 + pending
+      if (r.status === 202){
+        setMsg('Заявка отправлена. Ожидаем подтверждения врача…');
+        const st = await pollStatusUntilDone();
+        if (st.status === 'accepted'){
+          renderCard(st.doctor);
+          if (els.formBox) els.formBox.style.display = 'none';
+          setMsg('Готово! Вы прикреплены.');
+        } else if (st.status === 'rejected'){
+          setMsg('Врач отклонил заявку.');
+        } else {
+          setMsg('Долго нет ответа. Попробуйте позже.');
+        }
+        return;
+      }
+
+      // иные ответы
+      const err = await r.json().catch(()=>({}));
+      throw new Error(err?.error || 'Не удалось отправить заявку');
+    }catch(e){
+      setMsg(e.message || 'Ошибка');
+    }finally{
+      els.attach.disabled = false;
+    }
+  });
+
+  // ==== 5) Отмена pending-заявки
+  els.cancel?.addEventListener('click', async ()=>{
+    try{
+      await api('/api/doctor/request', { method:'DELETE' });
+      setMsg('Заявка отменена.');
+      renderPreview(null);
+      lastValidated = null;
+    }catch(_){ setMsg('Не удалось отменить.'); }
+  });
+
+  // ==== 6) Инициализация при открытии страницы
+  (async function init(){
+    try{
+      // a) Уже прикреплён врач?
+      const r = await api('/api/doctor/attached');
+      if (r.ok){
+        const j = await r.json();
+        if (j?.doctor){
+          renderCard(j.doctor);
+          if (els.formBox) els.formBox.style.display = 'none';
+          setMsg('');
+          return;
+        }
+      }
+    }catch(_){}
+
+    // b) Прилетел код в урле? (?attach=doctor&code=XXXXX)
+    try{
+      const qs = new URLSearchParams(location.search);
+      const code = qs.get('code');
+      const attach = qs.get('attach');
+      if (attach === 'doctor' && /^[A-Z0-9]{5}$/.test(code||'')){
+        if (els.input) els.input.value = code.toUpperCase();
+        await validateCode(code.toUpperCase());
+      }
+    }catch(_){}
+  })();
 })();
 </script>
 

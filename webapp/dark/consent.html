@@ -1,0 +1,175 @@
+<!doctype html>
+<html lang="ru">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Согласие на обработку персональных данных — Roaccutane Tracker</title>
+  <meta name="color-scheme" content="dark light" />
+  <style>
+    :root { --bg:#0b0f15; --fg:#e6e9ef; --muted:#9aa4b2; --card:#111622; --border:#1e2635; --primary:#14B8A6; --ok:#16a34a; --err:#ef4444; }
+    @media (prefers-color-scheme: light) {
+      :root { --bg:#f7f9fc; --fg:#0b1220; --muted:#475569; --card:#ffffff; --border:#e5e7eb; --primary:#0ea5b7; --ok:#15803d; --err:#b91c1c; }
+    }
+    body { margin:0; font:16px/1.6 system-ui,-apple-system,Inter,Segoe UI,Roboto,Arial,sans-serif; background:var(--bg); color:var(--fg); }
+    .wrap { max-width: 820px; margin: 48px auto; padding: 0 20px 96px; }
+    header { margin-bottom: 10px; }
+    h1 { font-size: 26px; line-height:1.2; margin:0 0 4px; }
+    .muted { color:var(--muted); font-size:14px; }
+    section { background:var(--card); border:1px solid var(--border); border-radius:16px; padding:20px; margin:16px 0; }
+    .row { display:flex; gap:12px; align-items:flex-start; margin:12px 0; }
+    input[type="checkbox"] { width:18px; height:18px; margin-top:2px; }
+    label { cursor:pointer; }
+    a { color:var(--primary); text-decoration:none; }
+    a:hover { text-decoration:underline; }
+    .btns { display:flex; gap:12px; margin-top:16px; flex-wrap:wrap; }
+    .btn { display:inline-flex; align-items:center; justify-content:center; height:44px; padding:0 18px; border-radius:10px; border:1px solid var(--border); background:transparent; color:var(--fg); cursor:pointer; }
+    .btn.primary { background:var(--primary); border-color:var(--primary); color:#fff; }
+    .btn[disabled] { opacity:.5; cursor:not-allowed; }
+    .small { font-size:13px; }
+    .ok { color:var(--ok); }
+    .err { color:var(--err); }
+    .hr { height:1px; background:var(--border); margin:12px 0; }
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <header>
+      <h1>Согласие на обработку персональных данных</h1>
+      <div class="muted">Версия условий: <span id="consentVersion">2025-09-10</span> · Действует с: 2025-09-10</div>
+      <div class="muted">Документ применим в РФ и РБ.</div>
+    </header>
+
+    <section aria-labelledby="intro-h">
+      <h2 id="intro-h" style="margin:0 0 8px;font-size:18px;">Краткая информация</h2>
+      <p>Roaccutane Tracker обрабатывает ваши персональные данные, включая <strong>данные о здоровье</strong>, для работы функций учёта терапии: дозировки, дневник, анализы, фото, напоминания, а также <em>опционально</em> предоставляет доступ лечащему врачу по коду. Подробно — в <a href="policy.html" target="_blank" rel="noopener">Политике</a>.</p>
+      <ul>
+        <li>Давая согласие, вы подтверждаете, что ознакомлены с Политикой и соглашаетесь с её условиями.</li>
+        <li>Вы можете <strong>отозвать согласие</strong> в любой момент через Настройки; это не влияет на законность обработки до отзыва.</li>
+        <li>Если предусмотрена трансграничная передача, вы соглашаетесь на неё в объёме, необходимом для работы сервиса (см. Политику).</li>
+      </ul>
+    </section>
+
+    <section aria-labelledby="consent-h">
+      <h2 id="consent-h" style="margin:0 0 8px;font-size:18px;">Согласия</h2>
+
+      <div class="row">
+        <input id="cbData" type="checkbox" />
+        <label for="cbData">
+          Я даю <strong>явное, информированное и добровольное согласие</strong> оператору на обработку моих персональных данных, включая специальные категории (данные о здоровье, фото), для целей и способами, указанными в Политике: учёт терапии, напоминания, визуализация прогресса, синхронизация между устройствами (если включена).
+          <div class="small muted">Без этого согласия Приложение работать не сможет.</div>
+        </label>
+      </div>
+
+      <div class="row">
+        <input id="cbDoctor" type="checkbox" />
+        <label for="cbDoctor">
+          Я <strong>разрешаю доступ лечащего врача</strong>, привязанного по моему коду, к моим данным (дозировки, дневник, анализы, фото и др.) для целей ведения терапии. Мне известно, что врач — самостоятельный оператор и действует по своей политике и законам о врачебной тайне.
+          <div class="small muted">Опционально. Доступ можно отключить в любой момент.</div>
+        </label>
+      </div>
+
+      <div class="hr"></div>
+
+      <div class="btns">
+        <button id="btnAccept" class="btn primary" disabled>Продолжить</button>
+        <button id="btnDecline" class="btn">Не согласен(на)</button>
+        <a class="btn" href="policy.html" target="_blank" rel="noopener">Открыть Политику</a>
+      </div>
+
+      <p id="status" class="small" role="status" aria-live="polite"></p>
+    </section>
+
+    <section aria-labelledby="rights-h">
+      <h2 id="rights-h" style="margin:0 0 8px;font-size:18px;">Ваши права и как их реализовать</h2>
+      <ul>
+        <li>Доступ к своим данным и сведениям об обработке; получение копии.</li>
+        <li>Исправление, удаление (блокирование), ограничение обработки; отзыв согласия.</li>
+        <li>Обращение через форму в приложении: <em>Настройки → Приватность → Запрос по ПДн</em>. Также можно написать в Telegram: <span class="badge">[[ссылка/ник]]</span></li>
+      </ul>
+    </section>
+  </div>
+
+  <script>
+  (function(){
+    const VERSION = '2025-09-10';
+
+    function loadSettings(){
+      try {
+        if (window.rt && rt.settings) return rt.settings;
+        const raw = localStorage.getItem('rt.settings');
+        return raw ? JSON.parse(raw) : {};
+      } catch(e){ return {}; }
+    }
+    function saveSettings(s){
+      try {
+        if (!window.rt) window.rt = {};
+        rt.settings = s;
+        localStorage.setItem('rt.settings', JSON.stringify(s));
+        if (typeof rt.saveSettings === 'function') rt.saveSettings(s); // серверная синхронизация, если есть
+      } catch(e){}
+    }
+
+    const cbData    = document.getElementById('cbData');
+    const cbDoctor  = document.getElementById('cbDoctor');
+    const btnAccept = document.getElementById('btnAccept');
+    const btnDecl   = document.getElementById('btnDecline');
+    const statusEl  = document.getElementById('status');
+
+    // Инициализация из сохранённого согласия (если возвращаются на страницу)
+    const st = loadSettings();
+    if (st?.consent?.flags) {
+      cbData.checked   = !!st.consent.flags.dataProcessing;
+      cbDoctor.checked = !!st.consent.flags.doctorAccess;
+    }
+    updateButton();
+
+    cbData.addEventListener('change', updateButton);
+    cbDoctor.addEventListener('change', updateButton);
+
+    function updateButton(){
+      btnAccept.disabled = !cbData.checked; // базовое согласие обязательно
+      status('');
+    }
+
+    function status(msg, type){
+      statusEl.textContent = msg || '';
+      statusEl.className = 'small ' + (type || '');
+    }
+
+    btnAccept.addEventListener('click', function(){
+      if (!cbData.checked) { status('Чтобы продолжить, требуется согласие на обработку данных.', 'err'); return; }
+      const now = new Date().toISOString();
+
+      const settings = loadSettings();
+      settings.consent = {
+        version: VERSION,
+        accepted: true,
+        at: now,
+        flags: {
+          dataProcessing: !!cbData.checked,
+          doctorAccess: !!cbDoctor.checked
+        },
+        meta: {
+          ua: navigator.userAgent || null,
+          tz: Intl.DateTimeFormat().resolvedOptions()?.timeZone || null
+        }
+      };
+      saveSettings(settings);
+
+      status('Согласие сохранено. Загружаем приложение…', 'ok');
+
+      const next = (window.rt && rt.nav && rt.nav.afterConsent) ? rt.nav.afterConsent : 'main.html';
+      setTimeout(()=>{ window.location.href = next; }, 80);
+    });
+
+    btnDecl.addEventListener('click', function(){
+      const settings = loadSettings();
+      delete settings.consent;
+      saveSettings(settings);
+      alert('Без согласия на обработку персональных данных приложение работать не сможет.');
+      window.location.href = 'policy.html';
+    });
+  })();
+  </script>
+</body>
+</html>
