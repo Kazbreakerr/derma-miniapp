@@ -233,7 +233,7 @@ body::before{
 
       <div class="actions">
         <button class="cta" id="start" disabled>Начать отслеживание</button>
-        <a class="link" href="#policy">Политика безопасности и отказ от ответственности</a>
+       <a class="link" id="policyLink">Политика безопасности и отказ от ответственности (обязательно)</a>
       </div>
     </section>
 
@@ -269,6 +269,13 @@ body::before{
   <script>
   const switchBtn = document.getElementById('switch');
   const startBtn  = document.getElementById('start');
+  // Переход в политику с возвратом обратно в warnings
+const policyLink = document.getElementById('policyLink');
+policyLink.addEventListener('click', () => {
+  const qs = new URLSearchParams(location.search);
+  qs.set('return', 'warnings.html');
+  location.href = 'policy.html?' + qs.toString();
+});
   const tgApp = window.Telegram?.WebApp || null;
 
   // tg-id берём ИЗ ?tg=... (dev) ИЛИ из Telegram.initDataUnsafe (в реальном WebApp)
@@ -290,13 +297,22 @@ body::before{
     }catch(_){}
   }
 
-  // Если согласие уже есть — включаем кнопку и ставим переключатель
-  const has = (localStorage.getItem('derma_consent') === '1') ||
-              (localStorage.getItem(nsKey('consentAccepted')) === '1');
-  if (has){
-    switchBtn.setAttribute('aria-pressed','true');
-    startBtn.disabled = false;
-  }
+ // Требуем: прочитана политика + сохранён consent + включён тумблер
+function hasPolicy(){ try{ return localStorage.getItem(nsKey('policyRead')) === '1'; }catch(_){ return false; } }
+function hasConsent(){ try{ return (localStorage.getItem('derma_consent') === '1') || (localStorage.getItem(nsKey('consentAccepted')) === '1'); }catch(_){ return false; } }
+
+function refreshUI(){
+  const switchOn = switchBtn.getAttribute('aria-pressed') === 'true';
+  startBtn.disabled = !(hasPolicy() && hasConsent() && switchOn);
+}
+
+// если уже всё выполнено — сразу включим тумблер
+if (hasPolicy() && hasConsent()){
+  switchBtn.setAttribute('aria-pressed','true');
+}
+refreshUI();
+window.addEventListener('focus', refreshUI);
+document.addEventListener('visibilitychange', refreshUI);
 
   function setEnabled(on){
     startBtn.disabled = !on;

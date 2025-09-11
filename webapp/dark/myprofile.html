@@ -795,9 +795,41 @@ html[data-theme="light"] .hero.has-bg::before{ opacity:.35; filter:saturate(1.05
   opacity: var(--hero-bg-op, .55);
   z-index:0;
 }
+/* затемняем фон плавным градиентом над инфо-блоком */
 #hero.hero.has-bg::after{
-  content:""; position:absolute; inset:0; border-radius:inherit; z-index:0; pointer-events:none;
-  background: linear-gradient(135deg, rgba(46,230,161,.18), rgba(35,227,204,.12) 40%, rgba(52,137,255,.08));
+  content:"";
+  position:absolute; inset:0; border-radius:inherit; z-index:0; pointer-events:none;
+  background:
+    /* вертикальный fade от середины карточки вверх */
+    linear-gradient(to top,
+      rgba(6,12,19,.85) 0%,
+      rgba(6,12,19,.76) 18%,
+      rgba(6,12,19,.32) 34%,
+      rgba(6,12,19,0) 55%
+    ),
+    /* мягкое затемнение эллипсом над чипами (центр ~40%) */
+    radial-gradient(90% 55% at 50% 40%,
+      rgba(6,12,19,.35) 0%,
+      rgba(6,12,19,0) 65%
+    ),
+    /* твой цветной акцент как было */
+    linear-gradient(135deg, rgba(46,230,161,.18), rgba(35,227,204,.12) 40%, rgba(52,137,255,.08));
+}
+
+/* светлая тема — вместо затемнения делаем лёгкое «молочное» */
+html[data-theme="light"] #hero.hero.has-bg::after{
+  background:
+    linear-gradient(to top,
+      rgba(255,255,255,.90) 0%,
+      rgba(255,255,255,.60) 20%,
+      rgba(255,255,255,.28) 36%,
+      rgba(255,255,255,0) 58%
+    ),
+    radial-gradient(90% 55% at 50% 40%,
+      rgba(255,255,255,.38) 0%,
+      rgba(255,255,255,0) 65%
+    ),
+    linear-gradient(135deg, rgba(94,207,200,.22), rgba(255,211,163,.18));
 }
 
 /* всё содержимое карточки поверх */
@@ -1113,6 +1145,8 @@ html[data-theme="light"] #hero.hero.has-bg::before{ opacity:.35; filter:saturate
           </label>
           <input id="remThreshold" class="num" type="number" min="1" max="200" step="1" value="10" aria-label="Порог капсул">
           <span class="unit">капсул</span>
+          <input id="capsNowProfile" class="num" type="number" min="0" step="1" placeholder="сколько сейчас" aria-label="Капсул сейчас">
+<span class="unit muted">сейчас</span>
         </div>
       </div>
     </section>
@@ -2203,11 +2237,12 @@ document.addEventListener('DOMContentLoaded', applyCapsLeftUI);
 
   // Поле "Осталось капсул" — любой из возможных id
   const leftField =
-      document.getElementById('capsLeftInput') ||
-      document.getElementById('capsLeft') ||
-      document.getElementById('pillsLeft') ||
-      document.getElementById('capsulesLeft') ||
-      document.getElementById('capsCount');
+    document.getElementById('capsNowProfile') ||  // ← добавили это
+    document.getElementById('capsLeftInput') ||
+    document.getElementById('capsLeft') ||
+    document.getElementById('pillsLeft') ||
+    document.getElementById('capsulesLeft') ||
+    document.getElementById('capsCount');
 
   const sw  = document.getElementById('remStock');     // чекбокс "показывать алерт"
   const thr = document.getElementById('remThreshold'); // порог

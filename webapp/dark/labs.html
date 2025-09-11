@@ -1038,5 +1038,65 @@ document.getElementById('navProfile').addEventListener('click', (e)=>{ e.prevent
   .pill-alert--stock{ animation:none }
 }
 </style>
+<style>
+/* фикс «выползаний» на мобильных */
+
+*,
+*::before,
+*::after { box-sizing: border-box; }
+
+.wrap { overflow-x: hidden; }            /* страховка от горизонтального скролла */
+
+/* — блоки отчётов — */
+.rep-item,
+.rep-toggle,
+.rep-panel,
+.rep-table { max-width: 100%; }
+
+.rep-toggle{
+  /* чтобы содержимое не распирало кнопку за границы */
+  overflow: hidden;
+  align-items: flex-start;
+  gap: 8px;
+}
+.rep-title{
+  flex: 1 1 auto;        /* можно сжиматься */
+  min-width: 0;          /* ВАЖНО: иначе не сжимается в flex */
+  white-space: normal; 
+  word-break: break-word;
+  overflow-wrap: anywhere;
+}
+.rep-meta,
+.chev{
+  flex: 0 0 auto;        /* фиксируем ширину справа */
+  white-space: nowrap;
+}
+
+/* таблица внутри панели — даём скролл, если не влезает */
+.rep-body{ overflow-x: auto; }
+.rep-table{
+  display: block;        /* чтобы overflow-x работал на таблице */
+  width: 100%;
+}
+
+/* чуть компактнее на совсем узких */
+@media (max-width: 420px){
+  .rep-toggle{ padding: 12px; }
+  .rep-item .badge{ font-size: 10.5px; padding: 5px 8px; }
+}
+
+/* — поля "Анализы" —: предотвращаем разъезд сетки */
+.field{
+  grid-template-columns: minmax(0,1fr) 160px max-content;
+}
+.name{ overflow-wrap: anywhere; }
+
+/* загрузчик фото — текст под кнопку на узких в столбик */
+@media (max-width: 420px){
+  .uploader .toolbar{ flex-direction: column; align-items: center; gap: 8px; }
+  .uploader .muted{ text-align: center; }
+}
+</style>
+
 </body>
 </html>

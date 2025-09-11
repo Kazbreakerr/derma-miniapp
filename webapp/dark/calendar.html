@@ -160,6 +160,10 @@
       overflow:hidden;
       cursor:pointer;
       touch-action: manipulation;
+      -webkit-touch-callout: none;
+-webkit-user-select: none;
+user-select: none;
+-webkit-tap-highlight-color: transparent;
     }
     .day:hover{ background:
       radial-gradient(120px 60px at 10% 0%, rgba(255,255,255,.06), transparent 60%),
@@ -548,9 +552,9 @@
     linear-gradient(#0b0f16,#0b0f16);
 
   /* Правишь только эти 5 переменных */
-  --vt-out-ms: 700ms;      /* старый экран схлопывается */
-  --vt-in-ms:  800ms;      /* новый экран раскрывается   */
-  --vt-portal-ms: 900ms;   /* морфинг «двери»            */
+  --vt-out-ms: 500ms;      /* старый экран схлопывается */
+  --vt-in-ms:  600ms;      /* новый экран раскрывается   */
+  --vt-portal-ms: 700ms;   /* морфинг «двери»            */
   --vt-ease: cubic-bezier(.22,.61,.36,1); /* плавная ease-in-out */
   --vt-new-end: 140%;       /* 140–180% — больше = медленнее по краям */
 
@@ -1092,43 +1096,70 @@ cell.innerHTML = `
 `;
 
 
-   // Короткий тап — снизу «краткая инфа», долгий — портал→дневник
-let pressTimer = null, longPressed = false;
+ // Короткий тап — снизу «краткая инфа», долгий — портал→дневник (c порогом движения)
+let pressTimer = null, longPressed = false, startX = 0, startY = 0, moved = false;
+const LONG_MS = 300;     // long-press в дневник
+const MOVE_TOL = 12;     // порог «это был свайп»
+
+function xy(ev){ const p = (ev.touches?.[0]) || ev; return [p.clientX ?? 0, p.clientY ?? 0]; }
 
 cell.addEventListener('pointerdown', (e)=>{
-  longPressed = false;
-  cell.classList.add('pressing');
+  if (sheet.classList.contains('active')) return;
+  longPressed = false; moved = false;
+  [startX, startY] = xy(e);
 
-  // 1) Якорим shared-element и точку портала
+  cell.classList.add('pressing');
   cell.style.viewTransitionName = 'portal';
   setPortalXYFromEvent(e);
 
-  // 2) Долгий тап — прыжок в дневник
   pressTimer = setTimeout(()=>{
     longPressed = true;
-    goDiary(id);                // навигация (мета view-transition уже включена)
-  }, 480);
+    goDiary(id);
+  }, LONG_MS);
 });
+
+function onMove(e){
+  if (longPressed || moved) return;
+  const [x,y] = xy(e);
+  if (Math.hypot(x - startX, y - startY) > MOVE_TOL){
+    moved = true;
+    clearTimeout(pressTimer);
+    cell.classList.remove('pressing');
+    cell.style.viewTransitionName = '';
+  }
+}
+cell.addEventListener('pointermove', onMove, {passive:true});
+cell.addEventListener('touchmove',   onMove, {passive:true});
 
 const clear = ()=>{
   cell.classList.remove('pressing');
   clearTimeout(pressTimer);
-  // если это был короткий тап — очищаем имя группы, чтобы не было ложных переходов
-  if(!longPressed) cell.style.viewTransitionName = '';
+  if (!longPressed) cell.style.viewTransitionName = '';
 };
-
-cell.addEventListener('pointerleave', clear);
+cell.addEventListener('pointerleave',  clear);
 cell.addEventListener('pointercancel', clear);
 
 cell.addEventListener('pointerup', (e)=>{
   clear();
-  if(!longPressed){
+  // открываем только если это короткий тап БЕЗ свайпа и не идёт выделение диапазона
+  if (!longPressed && !moved && !drag.active){
     grid.querySelectorAll('.day.selected').forEach(el => el.classList.remove('selected'));
     const cur = grid.querySelector(`.day[data-date="${id}"]`);
     if (cur) cur.classList.add('selected');
     openSheet(id, data);
   }
 });
+
+// Фолбэк «клик» — тоже только если не было свайпа/drag-range
+cell.addEventListener('click', (e)=>{
+  e.preventDefault();   
+  if (longPressed || moved || drag.active) return;
+  if (sheet.classList.contains('active')) return;
+  grid.querySelectorAll('.day.selected').forEach(el => el.classList.remove('selected'));
+  cell.classList.add('selected');
+  openSheet(id, data);
+});
+
 
 // Клик-фолбэк для некоторых мобильных WebView
 cell.addEventListener('click', (e)=>{
@@ -1208,6 +1239,7 @@ grid.appendChild(cell);
 
   openDiaryBtn.onclick = ()=> goDiary(id);
   sheet.classList.add('active'); sheet.setAttribute('aria-hidden','false');
+  document.body.classList.add('sheet-open');
 
   const scrim = document.getElementById('scrim');
   if (scrim){ scrim.classList.add('active'); scrim.setAttribute('aria-hidden','false'); scrim.onclick = closeSheet; }
@@ -1268,6 +1300,7 @@ if (btn){
     if (scrim){
       scrim.classList.remove('active'); scrim.setAttribute('aria-hidden','true');
       scrim.onclick = null;
+      document.body.classList.remove('sheet-open');
     }
   };
 
@@ -1342,39 +1375,41 @@ window.addEventListener('keydown', (e)=>{ if(e.key === 'Escape') closeSheet(); }
 window.addEventListener('focus', render);
 document.addEventListener('visibilitychange', ()=>{ if (!document.hidden) render(); });
 
-/* Надёжный короткий тап на мобильных:
-   1) запоминаем, на какой дате начался тап;
-   2) при отпускании берём элемент под пальцем (elementFromPoint)
-      и открываем шит, если это короткий тап (<480мс). */
+/* Надёжный короткий тап на мобильных — с порогом движения и без открытия во время drag-range */
 (function(){
-  let downId = null;
-  let t0 = 0;
+  let downId = null, t0 = 0, x0 = 0, y0 = 0, moved = false;
+  const TAP_MS = 300, TAP_MOVE = 12;
 
-  // старт на любом дне
   grid.addEventListener('pointerdown', (e)=>{
     const c = e.target.closest('.day[data-date]');
     if (!c) return;
     downId = c.dataset.date;
     t0 = performance.now();
+    const p = (e.touches?.[0]) || e;
+    x0 = p.clientX ?? 0; y0 = p.clientY ?? 0; moved = false;
   });
 
-  // отпускание — в любом месте документа
+  document.addEventListener('pointermove', (e)=>{
+    if (!downId || moved) return;
+    const p = (e.touches?.[0]) || e;
+    const dx = (p.clientX ?? 0) - x0, dy = (p.clientY ?? 0) - y0;
+    if (dx*dx + dy*dy > TAP_MOVE*TAP_MOVE) moved = true;
+  }, {passive:true});
+
   const onUp = (e)=>{
     if (!downId) return;
     const dt = performance.now() - t0;
-    const longPress = dt > 480;
-    t0 = 0;
+    const longPress = dt > TAP_MS;
 
-    // если уже открыт sheet или это долгий тап — выходим
-    if (sheet.classList.contains('active') || longPress){ downId = null; return; }
+    if (sheet.classList.contains('active') || longPress || moved || drag.active){
+      downId = null; return;
+    }
 
-    // координаты пальца/указателя
-    const p = (e.changedTouches && e.changedTouches[0]) || e;
+    const p = (e.changedTouches?.[0]) || e;
     const el = document.elementFromPoint(p.clientX, p.clientY);
-    const cell = el && el.closest && el.closest('.day[data-date]');
-    const id = cell ? cell.dataset.date : downId; // если вышли за сетку — берём стартовый день
+    const cell = el?.closest?.('.day[data-date]');
+    const id = cell ? cell.dataset.date : downId;
 
-    // выделение и открытие
     grid.querySelectorAll('.day.selected').forEach(el => el.classList.remove('selected'));
     const cur = grid.querySelector(`.day[data-date="${id}"]`);
     if (cur) cur.classList.add('selected');
@@ -1384,18 +1419,18 @@ document.addEventListener('visibilitychange', ()=>{ if (!document.hidden) render
   };
 
   document.addEventListener('pointerup', onUp, {passive:true});
-  document.addEventListener('touchend',  onUp, {passive:true}); // на всякий случай для старых движков
-  // Доп. делегирование: клик по любой ячейке откроет Sheet
-grid.addEventListener('click', (e)=>{
-  const c = e.target.closest('.day[data-date]');
-  if (!c) return;
-  const sheetEl = document.getElementById('sheet');
-  if (sheetEl && sheetEl.classList.contains('active')) return;
-  grid.querySelectorAll('.day.selected').forEach(el => el.classList.remove('selected'));
-  c.classList.add('selected');
-  openSheet(c.dataset.date);
-});
+  document.addEventListener('touchend',  onUp, {passive:true});
+
+  grid.addEventListener('click', (e)=>{
+    const c = e.target.closest('.day[data-date]');
+    if (!c || moved || drag.active) return;
+    if (sheet.classList.contains('active')) return;
+    grid.querySelectorAll('.day.selected').forEach(el => el.classList.remove('selected'));
+    c.classList.add('selected');
+    openSheet(c.dataset.date);
+  });
 })();
+
 
   // === RANGE SELECT (п.4): делегирование по .day ===
 grid.addEventListener('pointerdown', (e) => {
@@ -1530,5 +1565,13 @@ document.addEventListener('pointerup', finishDrag);
 /* чтобы таббар не перекрывал шит */
 nav.tabbar{ z-index: 40 !important; }
 </style>
+<style>
+  /* гарантированный верх для шита */
+  #scrim{ z-index:2147483645 !important; }
+  #sheet{ z-index:2147483646 !important; }
+  /* когда шит открыт — таббар точно ниже и некликабелен */
+  body.sheet-open nav.tabbar{ z-index:1 !important; pointer-events:none !important; }
+</style>
+
 </body>
 </html>

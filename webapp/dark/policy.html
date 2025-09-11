@@ -178,8 +178,32 @@
       <h2>14. Контакты</h2>
       <p>Для запросов субъектов ПДн используйте форму: <em>Настройки → Приватность → Запрос по ПДн</em>. Также можно написать в Telegram: <span class="badge">[[ссылка/ник]]</span></p>
       <p class="muted small">Замените плейсхолдеры на реальную информацию об операторе и провайдерах. При работе с гражданами РФ проверьте соответствие требованиям локализации.</p>
-      <p><a href="consent.html">Перейти к форме согласия</a></p>
+      <p><a href="#" id="goConsent">Перейти к форме согласия</a></p>
     </section>
   </div>
+
+  <script>
+(function(){
+  function getUid(){
+    try{
+      const qs = new URLSearchParams(location.search);
+      const dev = qs.get('tg') || '';
+      if (dev) return String(dev);
+      const u = window.Telegram?.WebApp?.initDataUnsafe?.user;
+      return (u && u.id) ? String(u.id) : 'anon';
+    }catch(_){ return 'anon'; }
+  }
+  function nsKey(k){ return `dermaApp:${getUid()}:${k}`; }
+
+  const a = document.getElementById('goConsent');
+  a.addEventListener('click', (e)=>{
+    e.preventDefault();
+    try{ localStorage.setItem(nsKey('policyRead'),'1'); }catch(_){}
+    const qs = new URLSearchParams(location.search);   // тащим tg и return дальше
+    location.href = 'consent.html?' + qs.toString();
+  }, { once:true });
+})();
+</script>
+
 </body>
 </html>

@@ -217,6 +217,25 @@ body::before{
   background-image:url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><filter id='n'><feTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='1' stitchTiles='stitch'/></filter><rect width='100%' height='100%' filter='url(%23n)'/></svg>");
   mix-blend-mode:overlay;
 }
+/* iOS Safari: делаем селект «Препарат» выше и удобнее тапом */
+#plan_drug{
+  min-height: 48px;          /* базовая высота */
+  padding-top: 12px;
+  padding-bottom: 12px;
+  font-size: 16px;           /* чтобы iOS не зумировал */
+}
+@supports (-webkit-touch-callout: none) {
+  /* страховка именно для WebKit на iOS */
+  #plan_drug{ min-height: 50px; }
+}
+
+/* мягкое появление скрытых полей */
+.field[hidden] { display:none; }
+.field._fadein { animation: reveal .18s ease-out both; }
+@keyframes reveal {
+  from { opacity:0; transform: translateY(-4px); }
+  to   { opacity:1; transform: translateY(0); }
+}
 </style>
   <!-- /* THEME_REDIRECT_INSERTED */ -->
   <script>
@@ -316,12 +335,28 @@ body::before{
         <span>Напоминать о приёме</span>
       </button>
 
-      <div class="field" style="min-width:170px">
-        <label for="remindTime" class="muted">Время:</label>
-        <input id="remindTime" type="time" value="09:00">
-        <div class="tip">Время можно будет изменить в профиле.</div>
-      </div>
-    </div>
+      <div id="remindWrap" class="field" style="min-width:170px" hidden>
+  <label for="remindTime" class="muted">Время:</label>
+  <input id="remindTime" type="time" value="09:00">
+  <div class="tip">Время можно будет изменить в профиле.</div>
+</div>
+<!-- Напоминание о закупке лекарства -->
+<div class="inline" style="margin-top:12px">
+  <button id="buyBell" class="bell" type="button" data-on="0" title="Напоминать о закупке лекарства">
+    <!-- иконка «пакет/аптека» в том же размере -->
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+      <path d="M6 7h12l-1.2 12.5a2 2 0 0 1-2 1.5H9.2a2 2 0 0 1-2-1.5L6 7Z"/>
+      <path d="M9 7V5a3 3 0 0 1 6 0v2"/>
+      <path d="M10.5 13h3M12 11.5v3"/>
+    </svg>
+    <span>Напоминать о закупке лекарства</span>
+  </button>
+
+  <div id="capsWrap" class="field" style="min-width:180px" hidden>
+  <label for="capsNow" class="muted">Капсул сейчас:</label>
+  <input id="capsNow" type="number" inputmode="numeric" min="0" step="1" placeholder="например, 30">
+  <div class="tip">Число для профиля и напоминаний.</div>
+</div>
 
     <div class="motto">Регулярность приёма — ключ к результату</div>
 
@@ -418,6 +453,69 @@ alreadyBtn.addEventListener('click', ()=>{
 /* Напоминания */
 const bell = document.getElementById('bell');
 const timeEl = document.getElementById('remindTime');
+const remindWrap = document.getElementById('remindWrap');
+/* === Напоминание о закупке лекарства === */
+const buyBell   = document.getElementById('buyBell');
+const capsNowEl = document.getElementById('capsNow');
+const capsWrap  = document.getElementById('capsWrap');
+(function initBuyUI(){
+  try{
+    // читаем существующие значения из локалки (ключи совместимы с myprofile)
+    const on  = (localStorage.getItem('rt_capsules_alert_enabled') === '1')
+                || (localStorage.getItem('derma_buy_optin') === '1');
+    const c   = parseInt(localStorage.getItem('rt_capsules_left') ??
+                         localStorage.getItem('derma_caps_now') ?? '0', 10);
+
+    buyBell.dataset.on = on ? '1' : '0';
+    capsNowEl.value = (c && c > 0) ? String(c) : '';
+    capsNowEl.disabled = !on;
+    if (capsWrap) capsWrap.hidden = !on;
+  }catch(_){}
+})();
+
+function storeBuyState(on, left){
+  try{
+    const L = Math.max(0, Math.floor(Number(left) || 0));
+
+    // ключи, которые уже использует myprofile
+    localStorage.setItem('rt_capsules_alert_enabled', on ? '1' : '0');
+    localStorage.setItem('rt_capsules_left', String(L));
+    localStorage.setItem('rt_capsules_alert_bump', Date.now().toString());
+    localStorage.removeItem('rt_capsules_alert_bump');
+    localStorage.setItem('rt_capsules_left_bump', Date.now().toString());
+    localStorage.removeItem('rt_capsules_left_bump');
+
+    // бэк-совместимость (если где-то ещё читаются старые ключи)
+    localStorage.setItem('derma_buy_optin', on ? '1' : '0');
+    localStorage.setItem('derma_caps_now', String(L));
+  }catch(_){}
+}
+
+buyBell.addEventListener('click', ()=>{
+  const on = buyBell.dataset.on !== '1';
+  buyBell.dataset.on = on ? '1' : '0';
+  capsNowEl.disabled = !on;
+
+  if (capsWrap){
+    if (on){
+      capsWrap.hidden = false;
+      capsWrap.classList.add('_fadein');
+      setTimeout(()=>capsWrap.classList.remove('_fadein'),220);
+    } else {
+      capsWrap.hidden = true;
+    }
+  }
+
+  const n = parseInt(capsNowEl.value || '0', 10) || 0;
+  storeBuyState(on, n);
+});
+
+capsNowEl.addEventListener('input', ()=>{
+  const n = parseInt(capsNowEl.value || '0', 10) || 0;
+  const on = buyBell.dataset.on === '1';
+  storeBuyState(on, n);
+});
+
 
 (function initReminderUI(){
   try{
@@ -426,6 +524,7 @@ const timeEl = document.getElementById('remindTime');
     bell.dataset.on = on ? '1' : '0';
     timeEl.value = t;
     timeEl.disabled = !on;
+   if (remindWrap) remindWrap.hidden = !on;  // ← показываем только когда «вкл.»
   }catch(_){}
 })();
 
@@ -451,6 +550,17 @@ bell.addEventListener('click', async ()=>{
   const on = bell.dataset.on !== '1';
   bell.dataset.on = on ? '1' : '0';
   timeEl.disabled = !on;
+
+  if (remindWrap){
+    if (on){
+      remindWrap.hidden = false;
+      remindWrap.classList.add('_fadein');
+      setTimeout(()=>remindWrap.classList.remove('_fadein'),220);
+    } else {
+      remindWrap.hidden = true;
+    }
+  }
+
   await syncReminder(on, timeEl.value || '09:00');
 });
 
@@ -539,6 +649,12 @@ document.getElementById('btnSavePlan').addEventListener('click', async ()=>{
     const bellOn = bell.dataset.on === '1';
     const t = timeEl.value || '09:00';
     await syncReminder(bellOn, t);
+// Сохраняем состояние напоминания о закупке + текущее количество капсул
+{
+  const buyOn = buyBell.dataset.on === '1';
+  const caps  = Math.max(0, parseInt(capsNowEl.value || '0', 10) || 0);
+  storeBuyState(buyOn, caps);
+}
 
     msg.textContent = bellOn ? ('Готово. Напоминания: ' + t) : 'Готово';
     try{ localStorage.setItem('derma_next','main'); }catch(_){}

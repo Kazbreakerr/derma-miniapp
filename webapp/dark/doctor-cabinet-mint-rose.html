@@ -698,6 +698,32 @@
   border:1px solid var(--stroke, #e7eaf0);
 }
 </style>
+<style>
+  .reset-panel .btn.btn-reset {
+  text-indent: -4px; /* двигаем текст чуть влево */
+}
+/* === OVERRIDES: крупнее «Обнуление» и без выделения текста на телефонах === */
+.reset-panel .btn.btn-reset{
+  min-height: 56px !important;
+  padding: 0 22px !important;
+  font-size: 16px !important;
+  border-radius: 14px !important;
+}
+
+/* отключаем текст-selection и системный callout на долгом тапе */
+.action-row, .action-row *{
+  user-select: none;
+  -webkit-user-select: none;
+  -ms-user-select: none;
+  -webkit-touch-callout: none;
+}
+
+/* чтоб не было «синей вспышки» и двойного клика */
+.holdable{
+  touch-action: manipulation;
+  -webkit-tap-highlight-color: transparent;
+}
+</style>
 </head>
 <body>
  <script>
@@ -1344,10 +1370,15 @@ hideSkeletons();
     btn.classList.remove('holding');
   }
 
-  btn.addEventListener('pointerdown', startHold);
-  btn.addEventListener('pointerup', cancelHold);
-  btn.addEventListener('pointerleave', cancelHold);
-  btn.addEventListener('pointercancel', cancelHold);
+  btn.addEventListener('pointerdown', function(e){ e.preventDefault(); startHold(); }, { passive:false });
+btn.addEventListener('pointerup',   function(e){ e.preventDefault(); cancelHold(); });
+btn.addEventListener('pointerleave', cancelHold);
+btn.addEventListener('pointercancel', cancelHold);
+
+/* блокируем выделение и контекстное меню на долгом тапе */
+btn.addEventListener('selectstart',  function(e){ e.preventDefault(); });
+btn.addEventListener('contextmenu',  function(e){ e.preventDefault(); });
+
 })();
 
 document.addEventListener('DOMContentLoaded', init);
