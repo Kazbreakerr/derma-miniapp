@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>Derma Mini‑App — Важные предупреждения</title>
+  <title>Roaccutane Tracker — Важные предупреждения</title>
 
 <link rel="stylesheet" href="css/ui-tokens.css">
 <script>document.documentElement.dataset.theme = 'dark';</script>
@@ -113,6 +113,30 @@ body::before{
   background-image:url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><filter id='n'><feTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='1' stitchTiles='stitch'/></filter><rect width='100%' height='100%' filter='url(%23n)'/></svg>");
   mix-blend-mode:overlay;
 }
+.policy-callout{
+  display:flex; align-items:center; gap:12px;
+  padding:14px 16px; border-radius:16px;
+  background: rgba(245,158,11,.08);            /* янтарный подсвет */
+  border:1px solid rgba(245,158,11,.35);
+  cursor:pointer; user-select:none;
+}
+.policy-callout:focus{ outline:2px solid rgba(245,158,11,.6); outline-offset:2px; }
+.policy-ico{ color:#f59e0b; flex:0 0 auto; }
+.policy-text{ flex:1 1 auto; min-width:0; }
+.policy-title{ font-weight:600; line-height:1.25; }
+.policy-desc{ opacity:.9; font-size:.95rem; }
+.badge-required{
+  display:inline-block; padding:2px 8px; margin-left:4px;
+  border-radius:999px; border:1px solid rgba(245,158,11,.55);
+  background: rgba(245,158,11,.15); color:#f59e0b; font-weight:600;
+}
+.policy-cta{
+  flex:0 0 auto; text-decoration:none;
+  padding:8px 12px; border-radius:10px;
+  background: linear-gradient(90deg,#f59e0b,#f97316);
+  color:#0b0d12; font-weight:700;
+}
+.policy-callout:hover{ background: rgba(245,158,11,.12); }
 </style>
 
   <!-- /* THEME_REDIRECT_INSERTED */ -->
@@ -137,22 +161,10 @@ body::before{
 <script src="js/gates.js"></script>
 </head>
 <body>
-  <script>
-// после успешного "Принять"
-(function(){
-  const ok = true; // ← подставь свой флаг успеха
-  if (!ok) return;
-  try{
-    const tg = Telegram?.WebApp?.initDataUnsafe?.user?.id;
-    const uid = new URLSearchParams(location.search).get('tg') || tg || '';
-    if (uid) localStorage.setItem(`dermaApp:${uid}:consentAccepted`,'1');
-    localStorage.setItem('derma_consent','1');
-  }catch(_){}
-})();
-</script>
+
   <div class="container">
     <header>
-      <h1>Derma Mini‑App</h1>
+      <h1>Roaccutane Tracker</h1>
       <svg class="shield" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
         <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10"/>
         <path d="m9 12 2 2 4-4"/>
@@ -223,7 +235,14 @@ body::before{
           </div>
         </li>
       </ul>
-
+<div class="consent">
+  <button id="switchPolicy" class="switch" aria-pressed="false" aria-label="Прочтена политика">
+    <span class="thumb"></span>
+  </button>
+  <label for="switchPolicy" id="policy-read-label">
+    Я прочитал(а) Политику безопасности и отказ от ответственности
+  </label>
+</div>
       <div class="consent">
         <button id="switch" class="switch" aria-pressed="false" aria-label="Согласие">
           <span class="thumb"></span>
@@ -233,7 +252,18 @@ body::before{
 
       <div class="actions">
         <button class="cta" id="start" disabled>Начать отслеживание</button>
-       <a class="link" id="policyLink">Политика безопасности и отказ от ответственности (обязательно)</a>
+       <div id="policyCard" class="policy-callout" role="button" tabindex="0" aria-describedby="policy-desc">
+  <svg class="policy-ico" width="20" height="20" viewBox="0 0 24 24" aria-hidden="true">
+    <path fill="currentColor" d="M12 2l7 3v6c0 5-3.5 9.7-7 11-3.5-1.3-7-6-7-11V5l7-3zm0 5a1 1 0 110 2 1 1 0 010-2zm-1 4h2v6h-2z"/>
+  </svg>
+ <div class="policy-text">
+  <div class="policy-title">Политика безопасности и отказ от ответственности</div>
+  <div id="policy-desc" class="policy-desc">
+    Прочитайте документ — это <span class="badge-required">обязательно</span> для продолжения.
+  </div>
+</div>
+  <a id="policyLink" class="policy-cta" href="#" aria-label="Открыть Политику">Открыть</a>
+</div>
       </div>
     </section>
 
@@ -265,96 +295,77 @@ body::before{
   });
 </script>
 
+<script>
+  // элементы
+  const switchRisk   = document.getElementById('switch');        // "Я понимаю риски"
+  const switchPolicy = document.getElementById('switchPolicy');  // "Я прочитал(а) Политику…"
+  const startBtn     = document.getElementById('start');
+  const policyLink   = document.getElementById('policyLink');
 
-  <script>
-  const switchBtn = document.getElementById('switch');
-  const startBtn  = document.getElementById('start');
-  // Переход в политику с возвратом обратно в warnings
-const policyLink = document.getElementById('policyLink');
-policyLink.addEventListener('click', () => {
-  const qs = new URLSearchParams(location.search);
-  qs.set('return', 'warnings.html');
-  location.href = 'policy.html?' + qs.toString();
-});
-  const tgApp = window.Telegram?.WebApp || null;
-
-  // tg-id берём ИЗ ?tg=... (dev) ИЛИ из Telegram.initDataUnsafe (в реальном WebApp)
+  // утилиты
   function getUid(){
     try{
-      const qs  = new URLSearchParams(location.search);
+      const qs = new URLSearchParams(location.search);
       const dev = qs.get('tg') || '';
       if (dev) return String(dev);
-      const u = tgApp?.initDataUnsafe?.user;
+      const u = window.Telegram?.WebApp?.initDataUnsafe?.user;
       return (u && u.id) ? String(u.id) : 'anon';
     }catch(_){ return 'anon'; }
   }
   function nsKey(k){ return `dermaApp:${getUid()}:${k}`; }
-
-  function setConsent(on){
-    try{
-      localStorage.setItem('derma_consent', on ? '1' : '0');              // глобальный флаг
-      localStorage.setItem(nsKey('consentAccepted'), on ? '1' : '0');     // именной флаг по tg-id или ?tg
-    }catch(_){}
+  function isPressed(btn){ return btn?.getAttribute('aria-pressed') === 'true'; }
+  function toggle(btn){
+    if (!btn) return;
+    btn.setAttribute('aria-pressed', isPressed(btn) ? 'false' : 'true');
   }
 
- // Требуем: прочитана политика + сохранён consent + включён тумблер
-function hasPolicy(){ try{ return localStorage.getItem(nsKey('policyRead')) === '1'; }catch(_){ return false; } }
-function hasConsent(){ try{ return (localStorage.getItem('derma_consent') === '1') || (localStorage.getItem(nsKey('consentAccepted')) === '1'); }catch(_){ return false; } }
-
-function refreshUI(){
-  const switchOn = switchBtn.getAttribute('aria-pressed') === 'true';
-  startBtn.disabled = !(hasPolicy() && hasConsent() && switchOn);
-}
-
-// если уже всё выполнено — сразу включим тумблер
-if (hasPolicy() && hasConsent()){
-  switchBtn.setAttribute('aria-pressed','true');
-}
-refreshUI();
-window.addEventListener('focus', refreshUI);
-document.addEventListener('visibilitychange', refreshUI);
-
-  function setEnabled(on){
-    startBtn.disabled = !on;
-    switchBtn.setAttribute('aria-pressed', String(on));
+  // флаги, которые ставят policy.html и consent.html
+  function hasPolicy(){
+    try { return localStorage.getItem(nsKey('policyRead')) === '1'; }
+    catch(_){ return false; }
+  }
+  function hasConsent(){
+    try {
+      return localStorage.getItem('derma_consent') === '1'
+          || localStorage.getItem(nsKey('consentAccepted')) === '1';
+    } catch(_){ return false; }
   }
 
-  switchBtn.addEventListener('click', () => {
-    const next = switchBtn.getAttribute('aria-pressed') !== 'true';
-    setEnabled(next);
+  // доступность кнопки: требуем оба тумблера + факт прочтения + согласие
+  function refreshUI(){
+    const uiRiskOn    = isPressed(switchRisk);
+    const uiPolicyOn  = isPressed(switchPolicy);
+    const policyOn    = hasPolicy();
+    const consentOn   = hasConsent();
+
+    startBtn.disabled = !(uiRiskOn && uiPolicyOn && policyOn && consentOn);
+  }
+
+  // обработчики тумблеров (оба кликабельные, никуда не переводят)
+  switchRisk?.addEventListener('click', () => { toggle(switchRisk); refreshUI(); });
+  switchPolicy?.addEventListener('click', () => { toggle(switchPolicy); refreshUI(); });
+
+  // переход к тексту политики — только по ссылке
+  policyLink?.addEventListener('click', () => {
+    const qs = new URLSearchParams(location.search);
+    qs.set('return','warnings.html');
+    location.href = 'policy.html?' + qs.toString();
   });
-
- startBtn.addEventListener('click', async () => {
-  // 1) локально зафиксировать согласие (как у тебя уже делалось)
-  setConsent(true);
-  try { localStorage.setItem('rt_seen_warnings','1'); } catch(_) {}
-
-  // 2) сказать серверу "принял"
-  try {
-    const tg = window.Telegram?.WebApp;
-    const initData = tg?.initData || '';
-    const API_BASE = String(window.API_BASE||'').replace(/\/$/,'');
-    const devTg = new URLSearchParams(location.search).get('tg') || '';
-    const url = API_BASE + '/api/me' + (!initData && devTg ? ('?tg='+encodeURIComponent(devTg)) : '');
-    const headers = {'Content-Type':'application/json'};
-    if (initData) headers['X-Telegram-InitData'] = initData;
-    await fetch(url, { method:'POST', headers, body: JSON.stringify({ accepted:true, terms_version:1 }) });
-  } catch(_) {}
-
-  // 3) для обратной совместимости — старые ключи
-  try {
-    const uid = new URLSearchParams(location.search).get('tg') || (window.Telegram?.WebApp?.initDataUnsafe?.user?.id) || '';
-    if (uid) localStorage.setItem(`dermaApp:${uid}:consentAccepted`, '1');
-    localStorage.setItem('derma_consent','1');
-  } catch(_) {}
-
-  // 4) переход в профиль (оставь свой вариант, в зависимости от имени файла)
+// Переход вперёд: только если все условия выполнены
+startBtn?.addEventListener('click', (e) => {
+  e.preventDefault();
+  if (startBtn.disabled) return;                 // защита
   const qs = location.search || '';
-  location.replace('./profile.html' + qs);
-  // если уже переименовал в папке /dark/ на profile.html — используй:
-  // location.replace('./profile.html' + qs);
-}, { once: true });
+  window.location.href = './profile.html' + qs;  // идём в профиль
+});
+  // при входе ВСЕГДА выключаем оба тумблера
+  switchRisk?.setAttribute('aria-pressed','false');
+  switchPolicy?.setAttribute('aria-pressed','false');
 
+  // пересчёт при возврате со страниц policy/consent
+  window.addEventListener('focus', refreshUI);
+  document.addEventListener('visibilitychange', refreshUI);
+  refreshUI();
 </script>
 
 

@@ -230,6 +230,28 @@ body::before{
 </script>
 </head>
 <body>
+ <script>
+(function gate(){
+  function getUid(){
+    try{
+      const qs  = new URLSearchParams(location.search);
+      const dev = qs.get('tg') || '';
+      if (dev) return String(dev);
+      const u = window.Telegram?.WebApp?.initDataUnsafe?.user;
+      return (u && u.id) ? String(u.id) : 'anon';
+    }catch(_){ return 'anon'; }
+  }
+  function nsKey(k){ return `dermaApp:${getUid()}:${k}`; }
+  const okPolicy  = localStorage.getItem(nsKey('policyRead')) === '1';
+  const okConsent = localStorage.getItem('derma_consent') === '1'
+                 || localStorage.getItem(nsKey('consentAccepted')) === '1';
+  if (!(okPolicy && okConsent)){
+    const qs = new URLSearchParams(location.search);
+    qs.set('return', location.pathname.split('/').pop() || 'profile.html');
+    location.replace('warnings.html?' + qs.toString());
+  }
+})();
+</script>
   <script>
 (function(){
   // вызови это в том же месте, где у тебя уже "сохранено"

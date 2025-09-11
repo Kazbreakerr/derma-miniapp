@@ -204,11 +204,10 @@ header::after{
   .btn-sm{ padding:8px 12px; border-radius:12px; font-size:14px }
 
   /* ===== Mood block ===== */
-  .mood{ display:grid; grid-template-columns: 1fr 360px; gap:18px; align-items:center; }
+  .mood{ display:grid; grid-template-columns: 1fr 306px; gap:16px; align-items:center; } /* -15% */
+
   @media (max-width: 900px){ .mood{ grid-template-columns: 1fr; } }
-  .mood-stage{
-    position:relative; height:360px; border-radius:22px; overflow:hidden;
-    border:1px solid var(--border);
+  .mood-stage{ position:relative; height:306px; border-radius:22px; overflow:hidden;   /* -15% */
     /* базовый фолбэк под изображением */
     background:
       radial-gradient(420px 240px at 20% 0%, color-mix(in oklab, var(--glow), transparent 60%), transparent 60%),
@@ -240,7 +239,7 @@ header::after{
   border:1px solid var(--border);
   box-shadow:0 8px 18px rgba(0,0,0,.25), inset 0 0 0 1px rgba(255,255,255,.03);
   display:flex; align-items:center;
-  cursor:pointer; user-select:none; -webkit-user-select:none; touch-action:none;
+  cursor:pointer; user-select:none; -webkit-user-select:none; touch-action: pan-x;
 }
 .bar .rail{
   position:absolute; left:14px; right:14px; top:50%;
@@ -265,10 +264,12 @@ header::after{
   background:rgba(255,255,255,.35); border-radius:2px;
 }
 .bar .knob{
-  position:absolute; top:50%;
-  width:28px; height:28px;                 /* было 42px */
-  transform:translate(-50%, -50%);
-  left: calc(14px + var(--x) * (100% - 28px)); /* под новый padding/размер */
+  position:absolute;
+  top: calc(50% - 14px);           /* центр по Y жёстко, без «прыжков» */
+  width:28px; height:28px;
+  transform: translateX(-50%);     /* только по X */
+  left: calc(14px + var(--x) * (100% - 28px));
+  /* ... остальное без изменений ... */
   border-radius:50%;
   background: radial-gradient(120% 120% at 30% 25%, #fff, #f3f6f9 40%, #e9eef3 100%);
   color:#111; display:grid; place-items:center; font-weight:800;
@@ -279,7 +280,7 @@ header::after{
 
 
   /* ===== Side effects ===== */
-  .se-list{display:grid; gap:10px}
+  .se-list{display:grid; gap:10px; grid-template-columns: repeat(2, minmax(0,1fr));}
   .se-item{display:grid; grid-template-columns: minmax(0,1fr) auto; align-items:center; gap:12px;
     padding:10px 12px; border:1px solid var(--border); border-radius:12px; background:rgba(255,255,255,.02)}
   .se-item .label{font-weight:700; min-width:0}
@@ -289,6 +290,17 @@ header::after{
   .se-badge{min-width:28px; text-align:center; padding:6px 8px; border-radius:10px; background:#0b1728; border:1px solid var(--border)}
 
   /* ===== Photos & compare ===== */
+  .drop .trash{
+  position:absolute; right:8px; bottom:8px;
+  width:34px; height:34px; border-radius:10px;
+  border:1px solid var(--border);
+  background:rgba(0,0,0,.35); color:var(--text);
+  display:grid; place-items:center;
+  box-shadow:0 8px 18px rgba(0,0,0,.35), inset 0 1px 0 rgba(255,255,255,.06);
+  cursor:pointer;
+}
+.drop .trash:hover{ filter:brightness(1.08); }
+.drop .trash:active{ transform: translateY(1px); }
   .uploader{display:grid; grid-template-columns: 1fr 1fr; gap:12px}
   .drop{position:relative; min-height:180px; border:1px dashed rgba(255,255,255,.25); border-radius:14px;
     display:grid; place-items:center; overflow:hidden; background:rgba(255,255,255,.03)}
@@ -337,8 +349,9 @@ header::after{
 
   @media (max-width: 760px){
     .uploader{ grid-template-columns: 1fr; }
-    .mood-stage{ height:300px; }
-  }
+    .mood-stage{ height:255px; } /* -15% от 300 */
+}
+  
   @media (max-width:700px){
     .se-item{ grid-template-columns: 1fr; align-items:start }
     .se-item .ctrl{ max-width:100% }
@@ -679,6 +692,34 @@ header {
 
 <!-- Neumorph seamless patch: ONLY CSS, no HTML/JS changes -->
 <style id="neumorph-patch">
+  /* Капсула для строки сравнения */
+#compareDates{
+  padding:10px 12px;
+  border-radius:16px; border:0;
+  background: linear-gradient(180deg,#101b2d,#0b1524);
+  box-shadow: 8px 10px 20px rgba(0,0,0,.35),
+              -6px -6px 12px rgba(255,255,255,.02),
+              inset 0 1px 0 rgba(255,255,255,.06);
+}
+#compareDates .chip:first-of-type{
+  font-weight:800;
+  background: linear-gradient(180deg, rgba(255,255,255,.07), rgba(255,255,255,.03));
+  border:1px solid rgba(255,255,255,.12);
+}
+#compareDates .chip:nth-of-type(2){ /* кружок "vs" */
+  display:inline-flex; align-items:center; justify-content:center;
+  width:40px; height:36px; padding:0; border-radius:999px;
+  background: radial-gradient(120% 120% at 50% -20%, rgba(255,255,255,.16), transparent 60%),
+              linear-gradient(180deg, rgba(255,255,255,.08), rgba(0,0,0,.06));
+  border:1px solid rgba(255,255,255,.12);
+  font-weight:800; letter-spacing:.3px;
+}
+#compareDates .date-input{
+  border:0; border-radius:14px; font-weight:800;
+  background: linear-gradient(180deg,#0f172a,#0b1120);
+  box-shadow: inset 0 1px 0 rgba(255,255,255,.06);
+}
+
 /* === 1) Seamless page background (no seams on color changes) === */
 html,body{ height:100% }
 body{
@@ -695,7 +736,12 @@ body::before{
     linear-gradient(180deg, var(--bgA), var(--bgB));
   filter:saturate(1.04);
 }
-
+textarea::placeholder{
+  color: color-mix(in oklab, var(--muted), #fff 12%);
+  font-style: italic;
+  letter-spacing:.2px;
+  text-shadow: 0 1px 0 rgba(0,0,0,.25);
+}
 /* === 2) Cards / panels — neumorphic look === */
 .card{
   position:relative;
@@ -755,7 +801,7 @@ body::before{
     inset 0 1px 0 rgba(255,255,255,.06),
     inset 0 -10px 20px rgba(0,0,0,.22);
   border:0;
-  user-select:none; -webkit-user-select:none; touch-action:none;
+  user-select:none; -webkit-user-select:none; touch-action: pan-x;
 }
 .bar .rail{
   position:absolute; left:14px; right:14px; top:50%; height:6px; transform:translateY(-50%);
@@ -770,23 +816,51 @@ body::before{
   -webkit-mask:linear-gradient(90deg,#000 calc(var(--x)*100%), transparent 0);
 }
 .bar .knob{
-  position:absolute; top:50%; width:28px; height:28px; border-radius:50%;
-  transform:translate(-50%,-50%); left: calc(14px + var(--x) * (100% - 28px));
-  background: radial-gradient(120% 120% at 30% 25%, #fff, #f3f6f9 40%, #e9eef3 100%);
-  box-shadow: 0 8px 18px rgba(0,0,0,.28), inset 0 0 0 1px rgba(0,0,0,.10);
+  position:absolute;
+  top: calc(50% - 14px);           /* центр по Y жёстко, без «прыжков» */
+  width:28px; height:28px;
+  transform: translateX(-50%);     /* только по X */
+  left: calc(14px + var(--x) * (100% - 28px));
+  /* ... остальное без изменений ... */
 }
 
 /* === 5) Side-effects list & controls === */
+/* карточка побочки: заголовок + бейдж вверху, слайдер на всю ширину ниже */
 .se-item{
-  display:grid; grid-template-columns:minmax(0,1fr) auto; align-items:center; gap:12px;
-  padding:12px 14px; border-radius:14px; border:0;
+  display:grid;
+  grid-template-columns: 1fr auto;
+  grid-template-areas:
+    "title badge"
+    "ctrl  ctrl";
+  align-items:center;
+  gap:10px 12px;
+  padding:14px 16px;
+  border-radius:16px; border:0;
   background: linear-gradient(180deg,#101b2d,#0b1524);
-  box-shadow: 8px 10px 20px rgba(0,0,0,.35), -6px -6px 12px rgba(255,255,255,.02), inset 0 1px 0 rgba(255,255,255,.06);
+  box-shadow: 8px 10px 20px rgba(0,0,0,.35),
+              -6px -6px 12px rgba(255,255,255,.02),
+              inset 0 1px 0 rgba(255,255,255,.06);
 }
-.se-item input[type="range"]{-webkit-appearance:none; width:100%; height:8px; border-radius:999px;
-  background:linear-gradient(90deg,#475569,#94a3b8)}
-.se-item input[type="range"]::-webkit-slider-thumb{-webkit-appearance:none; width:20px; height:20px; border-radius:50%;
-  background:#fff; border:2px solid #0003; box-shadow:0 3px 8px rgba(0,0,0,.3)}
+.se-item .label{ grid-area:title; font-weight:800; line-height:1.15; }
+.se-item .ctrl{  grid-area:ctrl;  width:100%; }
+.se-badge{ grid-area:badge; min-width:32px; text-align:center; padding:6px 8px;
+  border-radius:12px; background:#0b1728; border:1px solid rgba(255,255,255,.08) }
+/* трек берет цвет из --p (0..1) → --h(120..0) */
+.se-item input[type="range"]{
+  -webkit-appearance:none; appearance:none;
+  width:100%; height:8px; border-radius:999px;
+  --p: 0;                           /* 0..1 (ставим из JS) */
+  --h: calc(120 - var(--p)*120);    /* 120=зелёный → 0=красный */
+  background:
+    linear-gradient(90deg,
+      hsl(var(--h) 80% 45%) 0% calc(var(--p)*100%),
+      rgba(255,255,255,.10) calc(var(--p)*100%) 100%);
+  box-shadow: inset 0 0 0 1px rgba(255,255,255,.10);
+}
+.se-item input[type="range"]::-webkit-slider-thumb{
+  -webkit-appearance:none; width:20px; height:20px; border-radius:50%;
+  background:#fff; border:2px solid #0003; box-shadow:0 3px 8px rgba(0,0,0,.30)
+}
 .se-badge{min-width:28px; text-align:center; padding:6px 8px; border-radius:10px;
   background:#0b1728; border:1px solid rgba(255,255,255,.08)}
 
@@ -1045,21 +1119,30 @@ header{
   </div>
     <div class="uploader">
       <label class="drop" id="faceDrop">
-        <img class="thumb" id="faceThumb" alt="" hidden>
-        <input type="file" accept="image/*" capture="environment" id="faceInput">
-        <div class="hint"><b>Лицо (обязательно)</b><br>Сделать фото или загрузить</div>
-      </label>
-      <label class="drop" id="bodyDrop">
-        <img class="thumb" id="bodyThumb" alt="" hidden>
-        <input type="file" accept="image/*" capture="environment" id="bodyInput">
-        <div class="hint"><b>Тело (по желанию)</b><br>Сделать фото или загрузить</div>
-      </label>
+  <img class="thumb" id="faceThumb" data-kind="face" alt="" hidden>
+  <input type="file" accept="image/*" capture="environment" id="faceInput">
+  <div class="hint"><b>Лицо (обязательно)</b><br>Сделать фото или загрузить</div>
+  <button type="button" class="trash" id="delFace" aria-label="Удалить фото лица" hidden>
+    <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2">
+      <path d="M3 6h18M8 6v-2a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2M6 6l1 14a2 2 0 0 0 2 2h6a2 2 0 0 0 2-2l1-14"/>
+      <path d="M10 11v6M14 11v6"/>
+    </svg>
+  </button>
+</label>
+
+<label class="drop" id="bodyDrop">
+  <img class="thumb" id="bodyThumb" data-kind="body" alt="" hidden>
+  <input type="file" accept="image/*" capture="environment" id="bodyInput">
+  <div class="hint"><b>Тело (по желанию)</b><br>Сделать фото или загрузить</div>
+  <button type="button" class="trash" id="delBody" aria-label="Удалить фото тела" hidden>
+    <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2">
+      <path d="M3 6h18M8 6v-2a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2M6 6l1 14a2 2 0 0 0 2 2h6a2 2 0 0 0 2-2l1-14"/>
+      <path d="M10 11v6M14 11v6"/>
+    </svg>
+  </button>
+</label>
     </div>
-    <div class="actions-row" style="margin-top:10px">
-      <button class="btn btn-danger btn-sm" id="delFace">Удалить лицо</button>
-<button class="btn btn-danger btn-sm" id="delBody">Удалить тело</button>
-<button class="btn btn-primary btn-sm" id="saveAll">Сохранить запись</button>
-    </div>
+    
 <!-- Compare: choose two dates -->
 <div class="actions-row" id="compareDates" style="margin-top:6px; gap:10px; align-items:center">
   <span class="chip">Сравнить:</span>
@@ -1094,7 +1177,10 @@ header{
   <!-- Notes -->
   <section class="card">
     <h2>Заметка дня</h2>
-    <textarea id="notes" placeholder="Например: вода 2л, спорт 30 мин, губы ок..."></textarea>
+<textarea id="notes" placeholder="Например: вода 2л, спорт 30 мин, губы ок..."></textarea>
+<div class="actions-row compact" style="justify-content:flex-end; margin-top:8px">
+  <button class="btn btn-primary btn-sm" id="saveAll">Сохранить</button>
+</div>
     
   </section>
 
@@ -1514,7 +1600,7 @@ function updateColorsByValence(v){
     ['#4a2609', '#1a0d05'], // Плохо
     ['#4a3a2b', '#1e1812'], // Ниже нормы
     ['#2c3342', '#10141e'], // Нейтрально
-    ['#3d3a12', '#161306'], // Неплохо
+     ['#0f3a33', '#081c18'], // Неплохо (светло-мятный)
     ['#0e2b1b', '#081712'], // Хорошо
     ['#0a2240', '#06121e']  // Отлично
   ];
@@ -1751,15 +1837,20 @@ glintBloom(ctx, -W*0.30,  H*0.26,  W*0.16, H*0.14, pal.glintB, .48, -0.08);
 
   // события
   bar.addEventListener('pointerdown', function(e){
-    bar.classList.add('drag');
-    applyIndex(xToIdx(e.clientX));
-  });
-  window.addEventListener('pointermove', function(e){
-    if (!bar.classList.contains('drag')) return;
-    applyIndex(xToIdx(e.clientX));
-  });
-  window.addEventListener('pointerup', function(){ bar.classList.remove('drag'); });
-  bar.addEventListener('click', function(e){ applyIndex(xToIdx(e.clientX)); });
+  e.preventDefault();
+  bar.setPointerCapture?.(e.pointerId);
+  bar.classList.add('drag');
+  applyIndex(xToIdx(e.clientX));
+});
+bar.addEventListener('pointermove', function(e){
+  if (!bar.classList.contains('drag')) return;
+  e.preventDefault();
+  applyIndex(xToIdx(e.clientX));
+});
+bar.addEventListener('pointerup', function(e){
+  bar.classList.remove('drag');
+  bar.releasePointerCapture?.(e.pointerId);
+});
 
   // клавиатура
   bar.tabIndex = 0;
@@ -1808,17 +1899,40 @@ function curISO(){
 }
 
 /* ===== Side effects ===== */
-const SE_DEFS=[['lips_dry','Сухость губ'],['skin_dry','Сухость кожи'],['nose_bleed','Кровотечения из носа'],['muscle_pain','Боль в мышцах/суставах'],['headache','Головная боль'],];
-const seList=document.getElementById('seList');
+const SE_DEFS = [
+  ['lips_dry','Сухость губ'],
+  ['skin_dry','Сухость кожи'],
+  ['muscle_pain','Боль в мышцах/суставах'],
+  ['headache','Головная боль'],
+];const seList=document.getElementById('seList');
 function renderSE(entry){
   seList.innerHTML='';
   const se = entry.sideEffects || (entry.sideEffects = {});
   SE_DEFS.forEach(([key,title])=>{
     const level = se[key] ?? 0;
     const row=document.createElement('div'); row.className='se-item';
-    row.innerHTML=`<div class="label">${title}</div><div class="ctrl"><input type="range" min="0" max="3" step="1"  data-key="drySkin" value="${level}"><span class="se-badge">${level}</span></div>`;
-    const input=row.querySelector('input'); const badge=row.querySelector('.se-badge');
-    input.addEventListener('input',e=>{ const v=+e.target.value; badge.textContent=v; entry.sideEffects[key]=v; putEntry(entry); });
+row.innerHTML = `<div class="label">${title}</div>
+  <div class="ctrl">
+    <input type="range" min="0" max="3" step="1" data-key="${key}" value="${level}">
+    <span class="se-badge">${level}</span>
+  </div>`;    const input=row.querySelector('input');
+const badge=row.querySelector('.se-badge');
+
+const paint = (v)=>{
+  const p = Math.max(0, Math.min(3, v)) / 3;       // 0..1
+  input.style.setProperty('--p', p);               // трек
+  input.style.setProperty('--h', String(120 - p*120));
+};
+paint(level);
+
+input.addEventListener('input', (e)=>{
+  const v = +e.target.value;
+  badge.textContent = v;
+  entry.sideEffects[key] = v;
+  putEntry(entry);
+  paint(v);
+});
+
     seList.appendChild(row);
   });
 }
@@ -1835,19 +1949,20 @@ if (delFaceBtn) delFaceBtn.addEventListener('click', () => {
   const e = getEntry(d);
   e.photos.face = null;
   putEntry(e);
-  faceThumb.hidden = true;
-  faceThumb.src = '';
-  
+  try { localStorage.removeItem(photoKey('face', d)); } catch(_) {}
+  faceThumb.hidden = true; faceThumb.src = '';
+  delFaceBtn.hidden = true;
   refreshCompare();
 });
 
 if (delBodyBtn) delBodyBtn.addEventListener('click', () => {
-  const d = datePicker.value || todayISO();
+  const d = selectedISO();
   const e = getEntry(d);
   e.photos.body = null;
   putEntry(e);
-  bodyThumb.hidden = true;
-  bodyThumb.src = '';
+  try { localStorage.removeItem(photoKey('body', d)); } catch(_) {}
+  bodyThumb.hidden = true; bodyThumb.src = '';
+  delBodyBtn.hidden = true;
 });
 
 const compareWrap=document.getElementById('compareWrap'); const imgStart=document.getElementById('imgStart'); const imgCurrent=document.getElementById('imgCurrent'); const topWrap=document.getElementById('topWrap');
@@ -1917,6 +2032,8 @@ try{
   // UI
   thumb.src = url;
   thumb.hidden = false;
+  if (key === 'face') delFaceBtn.hidden = false;
+if (key === 'body') delBodyBtn.hidden = false;
 
 refreshCompare();}
 
@@ -2108,6 +2225,12 @@ function updateDayChip(dateISO){
 
   if (todayLabel) todayLabel.textContent = (dateISO === today ? 'Сегодня • ' : 'Выбранный день • ');
   if (dayText)    dayText.textContent    = `${weekday}, ${full}`;
+  // чип даты в блоке "Фото дня"
+const photosChip = document.getElementById('photosDateChip');
+if (photosChip){
+  const dObj = parseISO(dateISO);
+  photosChip.textContent = new Intl.DateTimeFormat('ru-RU',{day:'2-digit',month:'2-digit',year:'numeric'}).format(dObj);
+}
 }
 function loadIntoUI(dateISO){
   const entry = getEntry(dateISO);
@@ -2120,14 +2243,17 @@ function loadIntoUI(dateISO){
   const u = localStorage.getItem(photoKey('face', dateISO)) || '';
   faceThumb.src = u;
   faceThumb.hidden = !u;
+  if (delFaceBtn) delFaceBtn.hidden = !u;
   if (u) faceThumb.removeAttribute('hidden'); // ← важно!
 }
+
 
 {
   const u = localStorage.getItem(photoKey('body', dateISO)) || '';
   bodyThumb.src = u;
   bodyThumb.hidden = !u;
   if (u) bodyThumb.removeAttribute('hidden');
+  if (delBodyBtn) delBodyBtn.hidden = !u;
 }
 
   notesEl.value = entry.notes || '';
