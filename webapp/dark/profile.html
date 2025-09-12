@@ -368,7 +368,10 @@ const isTgApp = !!(tgApp && tgApp.initData);
 const isDev   = location.hostname === 'localhost' || qs.has('dev');   // дефолт только в dev
 const DEV_DEFAULT_TG = '1002';
 
-let devTg = qs.get('tg') || localStorage.getItem('rt.dev.tg') || (isDev ? DEV_DEFAULT_TG : '');
+ let devTg = qs.get('tg')
+          || localStorage.getItem('rt.dev.tg')
+          || localStorage.getItem('rt_usr_id')   // ← берём id, который уже кладём после аватара
+          || (isDev ? DEV_DEFAULT_TG : '');
 if (devTg) { try { localStorage.setItem('rt.dev.tg', devTg); } catch(_) {} }
 
 // — обёртка для API

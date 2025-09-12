@@ -719,7 +719,24 @@ header {
   background: linear-gradient(180deg,#0f172a,#0b1120);
   box-shadow: inset 0 1px 0 rgba(255,255,255,.06);
 }
-
+  /* Стек дат сравнения на телефонах */
+  @media (max-width: 520px){
+    #compareDates{
+      display: grid !important;         /* перебиваем .actions-row {display:flex} */
+      grid-template-columns: 1fr;       /* одна колонка */
+      row-gap: 8px;
+      align-items: start !important;    /* перебиваем inline align-items:center */
+      justify-items: stretch;
+    }
+    #compareDates .date-input{
+      width: 100%;
+    }
+    /* Чип "vs" – чуть ниже и по центру */
+    #compareDates .chip:nth-of-type(2){
+      justify-self: center;
+      margin-top: -2px;
+    }
+  }
 /* === 1) Seamless page background (no seams on color changes) === */
 html,body{ height:100% }
 body{
@@ -1025,6 +1042,66 @@ header{
   }catch(_){}
 })();
 </script>
+<style id="fix-capsule-overflow">
+  /* — чтобы правый столбец не распирал карточку — */
+  .reminders .field .rhs{
+    flex-wrap: wrap;              /* переносим элементы вместо выезда за край */
+    justify-content: flex-end;    /* выравниваем вправо как и было визуально */
+    max-width: 100%;
+  }
+  .reminders .field .rhs > *{ flex: 0 0 auto; } /* не тянем элементы */
+
+  /* — чуть компактнее числа на узких экранах — */
+  @media (max-width: 480px){
+    .reminders .field{ padding:12px; }          /* аккуратнее внутренние отступы */
+    .reminders .field .rhs{ gap:8px 10px; }     /* меньше зазор между элементами */
+    .reminders .field input[type=number]{
+      width: 70px; min-width: 70px;             /* было 88px — теперь влезает */
+    }
+    #capsNowProfile{ width: 72px; }             /* второй number — тоже фикс ширины */
+  }
+</style>
+<style id="fix-capsule-overflow-strong">
+  /* 1) Разрешаем блоку переноситься на 2 строки, а колонкам — сжиматься */
+  .reminders .field{
+    display:flex;
+    align-items:flex-start;
+    justify-content:space-between;
+    gap:12px 14px;
+    flex-wrap: wrap;          /* КЛЮЧ: переносим .rhs вниз на узких */
+  }
+  .reminders .field .lhs{
+    flex: 1 1 220px;          /* можно ужаться */
+    min-width: 0;
+  }
+  .reminders .field .rhs{
+    flex: 1 1 280px;          /* тоже можно ужаться */
+    min-width: 0;             /* КЛЮЧ: иначе flex-элемент не сжимается и «прёт» за край */
+    display:flex;
+    align-items:center;
+    justify-content:flex-end;
+    flex-wrap: wrap;          /* переносим содержимое внутри */
+    gap: 8px 10px;
+    max-width: 100%;
+  }
+  .reminders .field .unit{ white-space: nowrap; } /* «капсул»/«сейчас» не ломаются на слоги */
+
+  /* 2) Сжимаем числовые инпуты на мобильных */
+  .reminders .field .rhs input[type="number"]{
+    width: clamp(64px, 22vw, 88px);   /* до 64px на очень узких */
+    min-width: 64px;
+  }
+  @media (max-width: 400px){
+    .reminders .field{ gap:10px 12px; }
+    .reminders .field .rhs input[type="number"]{
+      width: 60px; min-width: 60px;    /* ещё компактнее, если нужно */
+    }
+  }
+
+  /* 3) На всякий случай скрываем визуальный «вынос» рамок */
+  .reminders .field, .reminders .card{ overflow: hidden; }
+</style>
+
 </head>
 <body>
 <script>
