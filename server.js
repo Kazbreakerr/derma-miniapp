@@ -1538,60 +1538,77 @@ const staticRoot = path.join(__dirname, 'webapp');
 const staticOpts = { etag: false, lastModified: false, cacheControl: true, maxAge: 0 };
 
 app.use(express.static(staticRoot, staticOpts));                       // /css, /js, /img, /index.html
+// Алиасы для удобных путей без /dark/
+const pagesDir = path.join(__dirname, 'webapp', 'dark');
+
+app.get(['/', '/main', '/main.html'], (req, res) =>
+  res.sendFile(path.join(pagesDir, 'main.html'))
+);
+
+app.get(['/profile', '/profile.html'], (req, res) =>
+  res.sendFile(path.join(pagesDir, 'profile.html'))
+);
+
+app.get(['/warnings', '/warnings.html'], (req, res) =>
+  res.sendFile(path.join(pagesDir, 'warnings.html'))
+);
+
+app.get(['/calendar', '/calendar.html'], (req, res) =>
+  res.sendFile(path.join(pagesDir, 'calendar.html'))
+);
+
+app.get(['/diary', '/diary.html'], (req, res) =>
+  res.sendFile(path.join(pagesDir, 'diary.html'))
+);
+
+app.get(['/labs', '/labs.html'], (req, res) =>
+  res.sendFile(path.join(pagesDir, 'labs.html'))
+);
 app.use('/dark',  express.static(path.join(staticRoot, 'dark'), staticOpts));
 app.use('/light', express.static(path.join(staticRoot, 'light'), staticOpts));
 
 app.get('/', (_req, res) => res.sendFile(path.join(staticRoot, 'index.html')));
 // === REMINDERS v2 ============================================================
-const reminders = Object.create(null);      // приём препарата
-const stockCfg  = Object.create(null);      // напоминание "мало капсул"
+// Хранилища настроек (в памяти процесса)
+const reminders = Object.create(null);      // ежедневное напоминание о приёме
+const stockCfg  = Object.create(null);      // "мало капсул"
 
-// Сохранение настроек для приёма (из WebApp)
+// Периоды
+const TICK_MS            = Number(process.env.TICK_MS || 60_000);      // частота проверки (по умолчанию 1 мин)
+const REPEAT_MS_DEFAULT  = Number(process.env.REM_MS  || 3*60*60*1000); // повтор через (по умолчанию 3 часа)
+
+// Сохранение настроек ежедневного напоминания (тумблер/время/повтор в минутах)
 app.post('/api/reminder', tgAuth, async (req, res) => {
+  console.log('[MOUNT] POST /api/reminder mounted =',
+  !!(app._router?.stack||[]).find(l => l?.route?.path === '/api/reminder'));
   const tgId = req.tg || req.tgUser?.id;
-  if (!tgId) return res.status(401).json({ error: 'unauthorized' });
+  if (!tgId) return res.status(401).json({ ok:false, error: 'unauthorized' });
 
-  const { enabled, time } = req.body || {};
+  const { enabled, time, repeat_min } = req.body || {};
   reminders[tgId] = {
     ...(reminders[tgId] || {}),
     enabled: !!enabled,
-    time: String(time || '20:30').slice(0,5),
+    time: String(time || '09:00').slice(0,5), // HH:MM
+    // если repeat_min прислали — используем его, иначе дефолт из REPEAT_MS_DEFAULT
+    repeat_min: Number.isFinite(+repeat_min) && +repeat_min > 0 ? +repeat_min : undefined,
     _date: null, _sentToday: false, _lastMs: 0
   };
-  res.json({ ok: true, data: reminders[tgId] });
+  res.json({ ok:true, data: reminders[tgId] });
 });
-// ==== Telegram avatar proxy by tg_id ====
-// Требуется: process.env.BOT_TOKEN
-app.get('/api/tg-avatar/:id', async (req, res) => {
+
+// Дев-эндпойнт: мгновенно прислать себе тестовое уведомление в TG
+app.post('/api/dev/remind-now', tgAuth, async (req, res) => {
   try {
-    const userId = req.params.id;
-    if (!/^\d+$/.test(userId)) return res.sendStatus(400);
-
-    const r1 = await fetch(
-      `https://api.telegram.org/bot${process.env.BOT_TOKEN}/getUserProfilePhotos?user_id=${userId}&limit=1`
-    );
-    const j1 = await r1.json();
-    if (!j1.ok || (j1.result.total_count || 0) === 0) return res.sendStatus(404);
-
-    const sizes = j1.result.photos[0];
-    const best = sizes[sizes.length - 1];
-    const r2 = await fetch(
-      `https://api.telegram.org/bot${process.env.BOT_TOKEN}/getFile?file_id=${best.file_id}`
-    );
-    const j2 = await r2.json();
-    if (!j2.ok || !j2.result?.file_path) return res.sendStatus(404);
-
-    const fileUrl = `https://api.telegram.org/file/bot${process.env.BOT_TOKEN}/${j2.result.file_path}`;
-    const img = await fetch(fileUrl);
-
-    res.set('Cache-Control', 'public, max-age=86400'); // кэш на день
-    res.set('Content-Type', img.headers.get('content-type') || 'image/jpeg');
-    img.body.pipe(res);
+    const tgId = req.tg || req.tgUser?.id || req.body?.tg;
+    if (!tgId) return res.status(401).json({ ok:false, error: 'unauthorized' });
+    await sendReminder(tgId, '✅ Тест напоминания: всё работает!');
+    res.json({ ok: true });
   } catch (e) {
-    console.error('tg-avatar proxy error', e);
-    res.sendStatus(500);
+    console.error('TEST-NOTIFY ERROR:', e);
+    res.status(500).json({ ok:false, error:String(e) });
   }
 });
+
 // Сохранение настроек для "мало капсул" (из WebApp)
 app.post('/api/reminder/stock', tgAuth, async (req, res) => {
   const tgId = req.tg || req.tgUser?.id;
@@ -1620,7 +1637,9 @@ async function getUserTzByTg(tgId) {
 }
 
 function nowParts(tz) {
-  const p = new Intl.DateTimeFormat('en-GB',{timeZone:tz,year:'numeric',month:'2-digit',day:'2-digit',hour:'2-digit',minute:'2-digit',hour12:false}).formatToParts(new Date());
+  const p = new Intl.DateTimeFormat('en-GB',{
+    timeZone:tz,year:'numeric',month:'2-digit',day:'2-digit',hour:'2-digit',minute:'2-digit',hour12:false
+  }).formatToParts(new Date());
   const g = t => p.find(x => x.type===t)?.value;
   return { date: `${g('year')}-${g('month')}-${g('day')}`, time: `${g('hour')}:${g('minute')}` };
 }
@@ -1661,9 +1680,8 @@ async function getCapsulesLeft(tgId) {
   return capsLeft;
 }
 
-// основной тикер для приёма
+// основной тикер для приёма (учитывает per-user repeat_min)
 async function tickDoseReminders() {
-  const REPEAT_MS = Number(process.env.REM_MS || (3*60*1000)); // дефолт 3 часа
   for (const [tgId, cfg] of Object.entries(reminders)) {
     if (!cfg?.enabled || !cfg.time) continue;
 
@@ -1676,8 +1694,12 @@ async function tickDoseReminders() {
     // если уже отметили — не напоминаем
     if (await hasTakenToday(tgId, tz)) continue;
 
+    const repeatMs = (Number.isFinite(+cfg.repeat_min) && +cfg.repeat_min > 0)
+      ? +cfg.repeat_min * 60_000
+      : REPEAT_MS_DEFAULT;
+
     const dueFirst  = !cfg._sentToday && time >= cfg.time;
-    const dueRepeat =  cfg._sentToday && (!cfg._lastMs || Date.now() - cfg._lastMs >= REPEAT_MS);
+    const dueRepeat =  cfg._sentToday && (!cfg._lastMs || Date.now() - cfg._lastMs >= repeatMs);
 
     if (dueFirst || dueRepeat) {
       await sendReminder(
@@ -1710,11 +1732,13 @@ async function tickStockReminders() {
   }
 }
 
-// общий тикер раз в минуту
+// общий таймер
 setInterval(() => {
   Promise.all([ tickDoseReminders(), tickStockReminders() ])
     .catch(e => console.error('reminders tick error', e));
-}, 3 * 60 * 60 * 1000);
+}, TICK_MS);
+
+console.log('[BOOT] TICK_MS=', TICK_MS, 'REM_MS(default)=', REPEAT_MS_DEFAULT);
 
 // ==== SET TELEGRAM WEBHOOK ON BOOT ====
 if (!isPolling) {
@@ -1736,8 +1760,10 @@ if (!isPolling) {
 } else {
   console.log('Bot started in POLLING mode');
 }
+
 // === START EXPRESS SERVER ===
 const PORT = process.env.PORT || 3000;
+
 app.listen(PORT, () => {
   console.log('Server listening on port', PORT);
 });

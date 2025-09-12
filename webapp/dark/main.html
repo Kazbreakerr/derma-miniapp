@@ -1530,24 +1530,21 @@ function _wellnessMap(){
 }
 
 // 7 состояний: 1=оч.плохо … 7=отлично
+// 7 состояний: 1=оч.плохо … 7=отлично
 function moodIndexFromDiary(rec, iso){
   const wm = _wellnessMap();
   let v = wm[iso];
 
   if (v != null && isFinite(v)) {
-    let s; // нормализуем к -1..+1
-    if (v >= -1 && v <= 1)       s = Number(v);        // уже -1..+1
-    else if (v >= 0 && v <= 1)   s = v * 2 - 1;        // 0..1 -> -1..+1
-    else if (v >= 0 && v <= 100) s = (v - 50) / 50;    // 0..100 -> -1..+1
-    else                         s = 0;
+    // v может быть в -1..1, 0..1 или 0..100 → приводим к 0..1 и квантируем
+    let v01;
+    if (v >= 0 && v <= 100)      v01 = v / 100;          // 0..100
+    else if (v >= 0 && v <= 1)   v01 = v;                // 0..1
+    else if (v >= -1 && v <= 1)  v01 = (v + 1) / 2;      // -1..1 → 0..1
+    else                         v01 = 0.5;
 
-    if (s < -0.66) return 1;
-    if (s < -0.33) return 2;
-    if (s < -0.06) return 3;
-    if (s <  0.06) return 4;
-    if (s <  0.33) return 5;   // неплохо
-    if (s <  0.66) return 6;   // хорошо
-    return 7;                  // отлично
+    // 0..1 → 1..7 (как в calendar.html: Math.round( v*6 ))
+    return Math.max(1, Math.min(7, Math.round(v01 * 6) + 1));
   }
 
   // очень старый дневник 1..6 → мягко растягиваем до 1..7

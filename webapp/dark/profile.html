@@ -240,26 +240,29 @@ body::before{
 </script>
 </head>
 <body>
- <script>
-(function gate(){
-  function getUid(){
-    try{
-      const qs  = new URLSearchParams(location.search);
-      const dev = qs.get('tg') || '';
-      if (dev) return String(dev);
-      const u = window.Telegram?.WebApp?.initDataUnsafe?.user;
-      return (u && u.id) ? String(u.id) : 'anon';
-    }catch(_){ return 'anon'; }
-  }
-  function nsKey(k){ return `dermaApp:${getUid()}:${k}`; }
-  const okPolicy  = localStorage.getItem(nsKey('policyRead')) === '1';
-  const okConsent = localStorage.getItem('derma_consent') === '1'
-                 || localStorage.getItem(nsKey('consentAccepted')) === '1';
-  if (!(okPolicy && okConsent)){
-    const qs = new URLSearchParams(location.search);
-    qs.set('return', location.pathname.split('/').pop() || 'profile.html');
-    location.replace('warnings.html?' + qs.toString());
-  }
+<script>
+/* Gate: пускаем дальше, если согласие проставлено в ЛЮБОМ из ключей */
+(function(){
+  try{
+    const qs  = new URLSearchParams(location.search);
+    const uid = qs.get('tg') || (window.Telegram?.WebApp?.initDataUnsafe?.user?.id) || 'anon';
+    const nk  = s => `dermaApp:${uid}:${s}`;
+
+    // 1) старый флаг с warnings
+    const ok1 = localStorage.getItem('derma_consent') === '1';
+    // 2) неймспейсный флаг (warnings/policy)
+    const ok2 = localStorage.getItem(nk('consentAccepted')) === '1';
+    // 3) согласие из consent.html (rt.settings.consent.accepted)
+    let ok3 = false;
+    try {
+      const st = JSON.parse(localStorage.getItem('rt.settings') || '{}');
+      ok3 = !!(st && st.consent && st.consent.accepted === true);
+    } catch(_) {}
+
+    if (!(ok1 || ok2 || ok3)) {
+      location.replace('./warnings.html' + (location.search || ''));
+    }
+  }catch(_){}
 })();
 </script>
   <script>

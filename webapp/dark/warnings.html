@@ -6,7 +6,7 @@
   <title>Roaccutane Tracker — Важные предупреждения</title>
   
 
-<link rel="stylesheet" href="css/ui-tokens.css">
+<link rel="stylesheet" href="/css/ui-tokens.css">
 <script>document.documentElement.dataset.theme = 'dark';</script>
 
   <style>
@@ -166,7 +166,7 @@ body::before{
 
 </style>
 
-<script src="js/gates.js"></script>
+<script src="/js/gates.js"></script>
 </head>
 <body>
 
@@ -278,11 +278,11 @@ body::before{
     <p class="foot">Приложение не даёт медицинских рекомендаций. Решения — только с врачом.</p>
   </div>
 
-<script src="js/app-state.js"></script>
+<script src="/js/app-state.js"></script>
 <script>
   // Инициализация всех переключателей темы на странице
   document.addEventListener('DOMContentLoaded', () => {
-    const settings = AppState.get('settings') || {};
+    const settings = (window.AppState?.get('settings')) || {};
     const theme = (settings.theme === 'light') ? 'light' : 'dark';
     document.documentElement.dataset.theme = theme;
 
@@ -294,7 +294,9 @@ body::before{
       sw.addEventListener('click', () => {
         const cur = document.documentElement.dataset.theme === 'light' ? 'light' : 'dark';
         const next = (cur === 'light') ? 'dark' : 'light';
-        AppState.applyTheme(next);                  // сохраняем и ставим data-theme
+        try { AppState.applyTheme(next); } catch(_) {
+  document.documentElement.dataset.theme = next;
+}                // сохраняем и ставим data-theme
         // визуально обновим все тумблеры на странице
         document.querySelectorAll('[data-role="theme-switch"]')
           .forEach(x => x.setAttribute('aria-pressed', next === 'light' ? 'true' : 'false'));
@@ -346,6 +348,20 @@ function hasConsent(){ try{
       || localStorage.getItem(nsKey('consentAccepted')) === '1';
 } catch(_){ return false; } }
 
+function stampConsentIfBoth(){
+    try{
+      const qs  = new URLSearchParams(location.search);
+      const uid = qs.get('tg') || (window.Telegram?.WebApp?.initDataUnsafe?.user?.id) || 'anon';
+      const k   = (s)=>`dermaApp:${uid}:${s}`;
+      const onPolicy = document.getElementById('switchPolicy')?.getAttribute('aria-pressed') === 'true';
+      const onRisk   = document.getElementById('switch')?.getAttribute('aria-pressed') === 'true';
+      if (onPolicy && onRisk) {
+        localStorage.setItem('derma_consent','1');
+        localStorage.setItem(k('consentAccepted'),'1');
+        localStorage.setItem(k('policyRead'),'1');
+      }
+    }catch(_){}
+  }
 // доступность кнопки: оба тумблера + (опционально) факт policy+consent
 function refreshUI(){
   const uiRiskOn   = isPressed(switchRisk);
