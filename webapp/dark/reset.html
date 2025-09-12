@@ -439,6 +439,8 @@ html[data-theme="light"] .cancel{
   'derma_today_mg'
 ];
 diaryKeys.forEach(k => { try { localStorage.removeItem(k); } catch(_) {} });
+try { localStorage.removeItem('rt.daySlate.last'); } catch(_) {}
+try { localStorage.setItem('rt.daySlate.force','1'); } catch(_) {}
 
 // уведомим другие открытые вкладки (main, calendar) — они перерисуются
 try {

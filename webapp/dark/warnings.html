@@ -137,27 +137,34 @@ body::before{
   color:#0b0d12; font-weight:700;
 }
 .policy-callout:hover{ background: rgba(245,158,11,.12); }
+
+/* Компактная карточка политики — удобнее на телефонах */
+.policy-callout.policy-compact{
+  display:grid;
+  grid-template-columns: 20px 1fr auto;
+  align-items:center;
+  gap:12px;
+  padding:12px 14px;
+  border-radius:14px;
+}
+.policy-callout.policy-compact .policy-title{
+  font-weight:700; font-size:15px; line-height:1.25; margin:0 0 2px 0;
+}
+.policy-callout.policy-compact .policy-desc{
+  font-size:13px; line-height:1.25; opacity:.9; margin:0;
+}
+.policy-callout.policy-compact .policy-cta{
+  padding:8px 12px; border-radius:12px; font-weight:800;
+}
+@media (max-width:480px){
+  .policy-callout.policy-compact{
+    padding:10px 12px; grid-template-columns:18px 1fr auto; gap:10px;
+  }
+  .policy-callout.policy-compact .policy-desc{ display:none; } /* экономим высоту */
+}
+
 </style>
 
-  <!-- /* THEME_REDIRECT_INSERTED */ -->
-  <script>
-    (function() {
-      var CURRENT="dark", COUNTERPART="./warnings-light.html";
-      function go(t){ var qs=location.search||""; location.replace(t+qs); }
-      function ready(f){ if(document.readyState!=="loading") f(); else document.addEventListener('DOMContentLoaded', f); }
-      ready(function(){ 
-        try{ AppState.applyTheme(CURRENT); }catch(_){
-          document.documentElement.dataset.theme=CURRENT;
-        }
-        document.documentElement.dataset.theme=CURRENT;
-        document.querySelectorAll('[data-role="theme-switch"]').forEach(function(sw){
-          sw.setAttribute('aria-pressed', CURRENT==='light'?'true':'false');
-          sw.addEventListener('click', function(e){ e.preventDefault(); try{ AppState.applyTheme(CURRENT==='light'?'dark':'light'); }catch(_){}; go(COUNTERPART); });
-        });
-      });
-    })();
-  </script>
-<script src="js/folder-router.js"></script>
 <script src="js/gates.js"></script>
 </head>
 <body>
@@ -252,7 +259,7 @@ body::before{
 
       <div class="actions">
         <button class="cta" id="start" disabled>Начать отслеживание</button>
-       <div id="policyCard" class="policy-callout" role="button" tabindex="0" aria-describedby="policy-desc">
+       <div id="policyCard" class="policy-callout policy-compact" role="button" tabindex="0" aria-describedby="policy-desc">
   <svg class="policy-ico" width="20" height="20" viewBox="0 0 24 24" aria-hidden="true">
     <path fill="currentColor" d="M12 2l7 3v6c0 5-3.5 9.7-7 11-3.5-1.3-7-6-7-11V5l7-3zm0 5a1 1 0 110 2 1 1 0 010-2zm-1 4h2v6h-2z"/>
   </svg>
@@ -296,77 +303,106 @@ body::before{
 </script>
 
 <script>
-  // элементы
-  const switchRisk   = document.getElementById('switch');        // "Я понимаю риски"
-  const switchPolicy = document.getElementById('switchPolicy');  // "Я прочитал(а) Политику…"
-  const startBtn     = document.getElementById('start');
-  const policyLink   = document.getElementById('policyLink');
-
-  // утилиты
-  function getUid(){
-    try{
-      const qs = new URLSearchParams(location.search);
-      const dev = qs.get('tg') || '';
-      if (dev) return String(dev);
-      const u = window.Telegram?.WebApp?.initDataUnsafe?.user;
-      return (u && u.id) ? String(u.id) : 'anon';
-    }catch(_){ return 'anon'; }
-  }
-  function nsKey(k){ return `dermaApp:${getUid()}:${k}`; }
-  function isPressed(btn){ return btn?.getAttribute('aria-pressed') === 'true'; }
-  function toggle(btn){
-    if (!btn) return;
-    btn.setAttribute('aria-pressed', isPressed(btn) ? 'false' : 'true');
-  }
-
-  // флаги, которые ставят policy.html и consent.html
-  function hasPolicy(){
-    try { return localStorage.getItem(nsKey('policyRead')) === '1'; }
-    catch(_){ return false; }
-  }
-  function hasConsent(){
+    // ===== ТЕМА и навигация по папкам /dark /light =====
+  function currentTheme(){
     try {
-      return localStorage.getItem('derma_consent') === '1'
-          || localStorage.getItem(nsKey('consentAccepted')) === '1';
-    } catch(_){ return false; }
+      const t = (localStorage.getItem('rt_theme') || '').toLowerCase();
+      return t === 'light' ? 'light' : 'dark';
+    } catch(_) { return 'dark'; }
   }
-
-  // доступность кнопки: требуем оба тумблера + факт прочтения + согласие
-  function refreshUI(){
-    const uiRiskOn    = isPressed(switchRisk);
-    const uiPolicyOn  = isPressed(switchPolicy);
-    const policyOn    = hasPolicy();
-    const consentOn   = hasConsent();
-
-    startBtn.disabled = !(uiRiskOn && uiPolicyOn && policyOn && consentOn);
+  function go(page, searchParams){
+    const qs = searchParams ? ('?' + searchParams.toString()) : (location.search || '');
+    const dir = '/' + currentTheme() + '/';
+    window.location.href = dir + page + '.html' + qs;
   }
+// ===== Настройки: можно пройти без policy/consent? =====
+const REQUIRE_ONBOARDING = false; // ← если true — потребуются policy+consent
 
-  // обработчики тумблеров (оба кликабельные, никуда не переводят)
-  switchRisk?.addEventListener('click', () => { toggle(switchRisk); refreshUI(); });
-  switchPolicy?.addEventListener('click', () => { toggle(switchPolicy); refreshUI(); });
+// элементы
+const switchRisk   = document.getElementById('switch');        // "Я понимаю риски"
+const switchPolicy = document.getElementById('switchPolicy');  // "Я прочитал(а) Политику…"
+const startBtn     = document.getElementById('start');
+const policyLink   = document.getElementById('policyLink');
+const policyCard   = document.getElementById('policyCard');
 
-  // переход к тексту политики — только по ссылке
-  policyLink?.addEventListener('click', () => {
+// утилиты
+function isPressed(btn){ return btn?.getAttribute('aria-pressed') === 'true'; }
+function toggle(btn){ if(!btn) return; btn.setAttribute('aria-pressed', isPressed(btn)?'false':'true'); }
+
+function getUid(){
+  try{
     const qs = new URLSearchParams(location.search);
-    qs.set('return','warnings.html');
-    location.href = 'policy.html?' + qs.toString();
-  });
-// Переход вперёд: только если все условия выполнены
-startBtn?.addEventListener('click', (e) => {
-  e.preventDefault();
-  if (startBtn.disabled) return;                 // защита
-  const qs = location.search || '';
-  window.location.href = './profile.html' + qs;  // идём в профиль
-});
-  // при входе ВСЕГДА выключаем оба тумблера
-  switchRisk?.setAttribute('aria-pressed','false');
-  switchPolicy?.setAttribute('aria-pressed','false');
+    const dev = qs.get('tg') || '';
+    if (dev) return String(dev);
+    const u = window.Telegram?.WebApp?.initDataUnsafe?.user;
+    return (u && u.id) ? String(u.id) : 'anon';
+  }catch(_){ return 'anon'; }
+}
+function nsKey(k){ return `dermaApp:${getUid()}:${k}`; }
+function hasPolicy(){ try{ return localStorage.getItem(nsKey('policyRead')) === '1'; }catch(_){ return false; } }
+function hasConsent(){ try{
+  return localStorage.getItem('derma_consent') === '1'
+      || localStorage.getItem(nsKey('consentAccepted')) === '1';
+} catch(_){ return false; } }
 
-  // пересчёт при возврате со страниц policy/consent
-  window.addEventListener('focus', refreshUI);
-  document.addEventListener('visibilitychange', refreshUI);
-  refreshUI();
+// доступность кнопки: оба тумблера + (опционально) факт policy+consent
+function refreshUI(){
+  const uiRiskOn   = isPressed(switchRisk);
+  const uiPolicyOn = isPressed(switchPolicy);
+  const okGate     = !REQUIRE_ONBOARDING || (hasPolicy() && hasConsent());
+  startBtn.disabled = !(uiRiskOn && uiPolicyOn && okGate);
+}
+
+// тумблеры (кликабельные, никуда не ведут)
+switchRisk?.addEventListener('click', ()=>{ toggle(switchRisk);  refreshUI(); });
+switchPolicy?.addEventListener('click', ()=>{ toggle(switchPolicy); refreshUI(); });
+
+// открытие policy (по карточке и ссылке)
+function openPolicy(){
+  const qs = new URLSearchParams(location.search);
+  qs.set('return','warnings.html');
+  go('policy', qs);    // открыть политику
+}
+policyLink?.addEventListener('click', (e)=>{ e.preventDefault(); openPolicy(); });
+policyCard?.addEventListener('click', openPolicy);
+policyCard?.addEventListener('keydown', (e)=>{ if(e.key==='Enter'||e.key===' '){ e.preventDefault(); openPolicy(); }});
+
+// переход вперёд
+startBtn?.addEventListener('click', (e)=>{
+  e.preventDefault();
+  if (startBtn.disabled) return;
+
+  // Если разрешён проход без онбординга, подставим флаги, чтобы guard на profile.html не вернул нас назад
+  if (!REQUIRE_ONBOARDING) {
+    try {
+      const uidKey = (k)=>`dermaApp:${(new URLSearchParams(location.search).get('tg')
+        || window.Telegram?.WebApp?.initDataUnsafe?.user?.id || 'anon')}:${k}`;
+      localStorage.setItem('derma_consent','1');
+      localStorage.setItem(uidKey('consentAccepted'),'1');
+      localStorage.setItem(uidKey('policyRead'),'1');
+    } catch(_) {}
+  }
+
+  go('profile');
+});
+// при входе — оба тумблера выключены
+switchRisk?.setAttribute('aria-pressed','false');
+switchPolicy?.setAttribute('aria-pressed','false');
+
+// пересчёты
+window.addEventListener('focus', refreshUI);
+document.addEventListener('visibilitychange', refreshUI);
+refreshUI();
+ // ===== Канонический URL только для старых суффиксов -light/-dark =====
+(function normalizeWarningsPath(){
+  const want = '/' + currentTheme() + '/warnings.html';
+  const p = location.pathname;
+  const legacy = p.endsWith('warnings-light.html') || p.endsWith('warnings-dark.html');
+  const alreadyOk = p.endsWith('/dark/warnings.html') || p.endsWith('/light/warnings.html');
+  if (legacy && !alreadyOk) location.replace(want + location.search);
+})();
 </script>
+
 
 
 </body>

@@ -914,13 +914,8 @@ html[data-theme="light"] #hero.hero.has-bg::before{ opacity:.35; filter:saturate
     <a class="iconbtn faq" href="faq.html" data-vt-link title="FAQ" aria-label="Открыть FAQ">
   <span class="txt">FAQ</span>
 </a>
-
-  <!-- refresh/rotate icon -->
-  <svg viewBox="0 0 24 24" width="20" height="20" fill="none"
-       stroke="#0d1220" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-    <polyline points="1 4 1 10 7 10"/>
-    <path d="M3.5 15a9 9 0 1 0 2.2-9.3L1 10"/>
-  </svg>
+<a class="iconbtn settings-btn" href="#" title="Настройки" aria-label="Настройки"></a>
+</a>
   </div>
 
   <main class="container">
@@ -1028,19 +1023,11 @@ html[data-theme="light"] #hero.hero.has-bg::before{ opacity:.35; filter:saturate
           <dl class="kv">
             <dt>Аллергии</dt><dd id="allergies">нет данных</dd>
             <dt>Сегодня</dt><dd id="today">— мг</dd>
-          <dt>Осталось таблеток</dt>
-<dd>
-  <div class="unit-input">
-    <input id="capsLeftInput" class="unit-input__num" type="number"
-           inputmode="numeric" min="0" step="1" placeholder="0" aria-label="Сколько осталось капсул">
-    <span class="unit-input__unit">капсул</span>
-  </div>
-  <small class="help help--caps">Укажите, сколько осталось капсул</small>
-</dd>
+          
           </dl>
         </div>
 
-        <div class="card doctor">
+        <div class="card doctor" style="flex:1; min-width:260px;">
           <div>
             <div style="font-weight:700">Лечащий врач</div>
             <div class="muted" id="doctorMeta">Врач не прикреплён</div>
@@ -2123,31 +2110,6 @@ function ddmmyyyy(iso){
 })();
 </script>
 <script>
-function applyCapsLeftUI(){
-  const inp = document.getElementById('capsLeftInput'); if(!inp) return;
-  const KEY = 'rt_capsules_left';
-
-  function refresh(){ inp.value = String(Math.max(0, Number(localStorage.getItem(KEY)||0))); }
-  refresh();
-
-  if (!inp.dataset.bound){
-    inp.dataset.bound = '1';
-    inp.addEventListener('change', ()=>{
-      const n = Math.max(0, Math.floor(Number(inp.value||0)));
-      localStorage.setItem(KEY, String(n));
-      // уведомим другие страницы
-      localStorage.setItem('rt_capsules_left_bump', String(Date.now()));
-      localStorage.removeItem('rt_capsules_left_bump');
-    });
-    // обновляться, когда Main списывает капсулы
-    window.addEventListener('storage', (e)=>{
-      if (e.key === KEY || e.key === 'rt_capsules_left_bump') refresh();
-    });
-  }
-}
-document.addEventListener('DOMContentLoaded', applyCapsLeftUI);
-</script>
-<script>
 (function(){
   const TIME_KEY  = 'derma_remind_time';
   const OPTIN_KEY = 'derma_remind_optin';
@@ -2323,6 +2285,30 @@ document.addEventListener('DOMContentLoaded', applyCapsLeftUI);
     box-shadow: 0 4px 20px rgba(16,185,129,.25);
     white-space:nowrap;
   }
+  /* Кнопка настроек — картинка как фон, без белых полей, заполняет всю кнопку */
+.settings-btn{
+  --size: 44px;        /* размер кнопки; можно 24–32px */
+  --bleed: 38%;        /* компенсация прозрачных полей PNG: 0–25% */
+  width: var(--size);
+  height: var(--size);
+  display: inline-block;
+  border-radius: 12px;
+  overflow: hidden;
+  background-position: center;
+  background-repeat: no-repeat;
+  /* cover + дополнительный zoom через --bleed, чтобы «съесть» прозрачные поля */
+  background-size: calc(100% + var(--bleed));
+  /* ретина-версии, если будут; пока подставляем обычную */
+  background-image: image-set(
+    url("../img/settings-gear.png") 1x
+    /* , url("../img/settings-gear@2x.png") 2x  ← добавишь, если сделаешь @2x */
+  );
+}
+
+/* чуть крупнее на десктопе */
+@media (min-width: 900px){
+  .settings-btn{ --size: 30px; }
+}
 </style>
 <script>
 (function(){

@@ -506,26 +506,25 @@ body.light .seg button{
 /* === Pill burst FX for "Добавить" button === */
 #save{ position:relative; overflow:hidden; isolation:isolate }
 #save .fx-pill{
-  position:fixed; left:0; top:0; z-index:9999;
-  transform:translate(-50%,-50%) scale(.4);
-  font-size:18px; line-height:1;
-  filter:drop-shadow(0 3px 6px rgba(0,0,0,.35));
-  animation:pill-up .8s cubic-bezier(.2,.9,.2,1) forwards;
+  position:fixed; left:0; top:0; z-index:9999; transform:translate(-50%,-50%) scale(.4);
+  font-size:18px; line-height:1; filter: drop-shadow(0 3px 6px rgba(0,0,0,.35));
+  animation: pill-up .8s cubic-bezier(.2,.9,.2,1) forwards;
   pointer-events:none;
 }
 @keyframes pill-up{
-  0%{   transform:translate(-50%,-50%)  scale(.4);  opacity:0 }
-  45%{  transform:translate(-50%,-90%)  scale(1.15);opacity:1 }
-  70%{  transform:translate(-50%,-72%)  scale(.95) }
-  100%{ transform:translate(-50%,-130%) scale(1);   opacity:0 }
+  0%{ transform:translate(-50%,-50%) scale(.4); opacity:0 }
+  45%{ transform:translate(-50%,-90%) scale(1.15); opacity:1 }
+  70%{ transform:translate(-50%,-72%) scale(.95) }
+  100%{ transform:translate(-50%,-130%) scale(1); opacity:0 }
 }
 #save .fx-dot{
   position:fixed; width:6px; height:6px; border-radius:50%; z-index:9999;
   left:0; top:0; transform:translate(-50%,-50%); opacity:.95;
-  animation:dot-burst .7s ease-out forwards; pointer-events:none;
+  animation: dot-burst .7s ease-out forwards;
+  pointer-events:none;
 }
 @keyframes dot-burst{
-  0%  { transform:translate(-50%,-50%) scale(.8);  opacity:.95 }
+  0%{ transform:translate(-50%,-50%) scale(.8); opacity:.95 }
   100%{ transform:translate(calc(-50% + var(--dx)), calc(-50% + var(--dy))) scale(.9); opacity:0 }
 }
 /* --- Date group keeps label and input on one line --- */
@@ -1002,6 +1001,7 @@ input[type="time"]::-webkit-calendar-picker-indicator{
   filter: invert(1) brightness(1.2);
   opacity: .95;
 }
+
 </style>
 <style id="encourage-css">
   .enc-overlay{
@@ -1027,32 +1027,6 @@ input[type="time"]::-webkit-calendar-picker-indicator{
   @keyframes encFadeOut{ to{ opacity:0 } }
 </style>
 
-
-<!-- DaySlate CSS -->
-<style id="day-slate-css">
-/* === Interstitial day slate ========================================== */
-.day-slate{position:fixed;inset:0;z-index:9999;display:grid;place-items:center;pointer-events:auto}
-.day-slate[hidden]{display:none !important;}
-.day-slate__backdrop{position:absolute;inset:0;background:
-  radial-gradient(60% 50% at 50% 50%, rgba(20,184,166,.10), transparent 70%),
-  rgba(2,6,12,.55);backdrop-filter:blur(10px)}
-.day-slate__title{position:absolute;color:#e6faff;font-weight:900;
-  font-size:clamp(28px,6.5vw,44px);letter-spacing:.2px;text-shadow:0 2px 14px rgba(0,255,210,.25)}
-.day-slate .day-in{transform:translateY(22px);opacity:0}
-.day-slate.show .day-in{animation:dsIn .6s cubic-bezier(.2,.8,.2,1) .08s forwards}
-.day-slate.show .day-out{animation:dsOut .6s cubic-bezier(.2,.8,.2,1) forwards}
-.day-slate.hiding{animation:dsFade .5s ease forwards}
-@keyframes dsIn{to{transform:translateY(0);opacity:1}}
-@keyframes dsOut{to{transform:translateY(-22px);opacity:0}}
-@keyframes dsFade{from{opacity:1}to{opacity:0}}
-@media (prefers-reduced-motion: reduce){
-  .day-slate__backdrop{backdrop-filter:none}
-  .day-slate.show .day-in,.day-slate.show .day-out,.day-slate.hiding{animation:none}
-  .day-slate{ pointer-events: none; }   /* по умолчанию не мешаем странице */
-.day-slate.show{ pointer-events: auto; }  /* кликабельно только когда показываем */
-}
-</style>
-
 </head>
 <body>
 <script>
@@ -1066,15 +1040,6 @@ input[type="time"]::-webkit-calendar-picker-indicator{
   }catch(_){}
 })();
 </script>
-<!-- Interstitial: "ДЕНЬ N КУРСА" -->
-<div id="daySlate" class="day-slate" hidden aria-hidden="true">
-  <div class="day-slate__backdrop"></div>
-  <div class="day-slate__title" style="text-align:center">
-    <div id="dsPrev" class="day-out">ДЕНЬ <span id="dsPrevNum">0</span> КУРСА</div>
-    <div id="dsNow"  class="day-in">ДЕНЬ <span id="dsNowNum">0</span> КУРСА</div>
-  </div>
-</div>
-
   <!-- defs для новых колец прогресса -->
 <svg width="0" height="0" style="position:absolute;left:-9999px;top:-9999px" aria-hidden="true" focusable="false">
   <defs>
@@ -1373,6 +1338,14 @@ input[type="time"]::-webkit-calendar-picker-indicator{
     </a>
   </nav>
     <script>
+      <!-- Interstitial: "ДЕНЬ N КУРСА" -->
+<div id="daySlate" class="day-slate" hidden aria-hidden="true">
+  <div class="day-slate__backdrop"></div>
+  <div class="day-slate__title" style="text-align:center">
+    <div id="dsPrev" class="day-out">ДЕНЬ <span id="dsPrevNum">0</span> КУРСА</div>
+    <div id="dsNow"  class="day-in">ДЕНЬ <span id="dsNowNum">0</span> КУРСА</div>
+  </div>
+</div>
 // Ensure bottom nav -> Profile passes snapshot like header block
 (function attachTabbarProfileRoute(){
   const tabbar = document.querySelector('nav.tabbar');
@@ -1471,11 +1444,9 @@ function wipeLocalDiary(reason = 'manual-reset'){
     'rt.diary.v2',     // самочувствие/фото
     'rt.diary.bump',   // служебный триггер
     'derma_today_iso',
-    'derma_today_mg',
-    'rt.daySlate.last'
+    'derma_today_mg'
   ];
   try { KEYS.forEach(k => localStorage.removeItem(k)); } catch(_) {}
-  try{ localStorage.setItem('rt.daySlate.force','1'); }catch(_){}
    // --- НОВОЕ: обнуляем «остаток капсул» и дергаем рендер ---
   try {
     localStorage.removeItem('rt_capsules_left');
@@ -2066,7 +2037,13 @@ try{
   cum += delta;
 }catch(_){}
 
-      const w = Number((ME?.weight_kg ?? ME?.weight ?? PROGRESS?.weight_kg ?? 0));
+      const w = Number(
+  ME?.weight_kg ??
+  ME?.weight ??
+  PROGRESS?.weight_kg ??
+  localStorage.getItem('rt_weightKG') ?? // ← берём вес, сохранённый на странице профиля
+  0
+);
       document.getElementById('cumMg').textContent       = fmtInt(cum);
       document.getElementById('consumedTop').textContent = fmtInt(cum);
       document.getElementById('weightLine').textContent  = w>0 ? fmtInt(w) : '—';
@@ -2264,16 +2241,19 @@ function showEncouragement(){
   document.body.appendChild(ui);
 
   // держим 1.4с, затем мягкое исчезание
-  setTimeout(()=> ui.classList.add('hide'), 1000);
-  setTimeout(()=> ui.remove(), 2200);
+  setTimeout(()=> ui.classList.add('hide'), 1300);
+  setTimeout(()=> ui.remove(), 1650);
 }
-// 💊 всплеск-капсула — рисуем в месте нажатия
+// 💊 всплеск-капсула — координаты внутри кнопки
 function spawnPillFx(btn, clientX, clientY){
   if(!btn) return;
   const r = btn.getBoundingClientRect();
-  const x = (clientX ?? r.left + r.width/2)  - r.left;
-  const y = (clientY ?? r.top  + r.height/2) - r.top;
 
+  // локальные координаты внутри кнопки
+  const x = (clientX ?? (r.left + r.width/2)) - r.left;
+  const y = (clientY ?? (r.top  + r.height/2)) - r.top;
+
+  // капсула
   const pill = document.createElement('span');
   pill.className = 'fx-pill';
   pill.textContent = '💊';
@@ -2282,7 +2262,8 @@ function spawnPillFx(btn, clientX, clientY){
   btn.appendChild(pill);
   setTimeout(()=> pill.remove(), 800);
 
-  for(let i=0;i<10;i++){
+  // точки-всплески
+  for (let i=0;i<10;i++){
     const d = document.createElement('i');
     d.className = 'fx-dot';
     d.style.left = x + 'px';
@@ -2300,11 +2281,13 @@ function spawnPillFx(btn, clientX, clientY){
 
 // save — кнопка «Добавить»
 const saveBtn = document.getElementById('save');
-// эффект СРАЗУ при нажатии (мышь/тач/клавиши)
+// эффект СРАЗУ при нажатии (мышь/тач)
 saveBtn?.addEventListener('pointerdown', (ev) => {
   if (saveBtn.disabled) return;
   spawnPillFx(saveBtn, ev.clientX, ev.clientY);
 });
+
+// эффект при клавишах Enter/Space
 saveBtn?.addEventListener('keydown', (ev) => {
   if (saveBtn.disabled) return;
   if (ev.key === 'Enter' || ev.key === ' ') spawnPillFx(saveBtn);
@@ -2479,10 +2462,7 @@ document.getElementById('resetBtn').addEventListener('click', ()=>{
   location.href = './reset.html' + (location.search || '');
 });
 
-loadAll().then(()=>{
-  try{ window.renderReminder && window.renderReminder(); }catch(_){}
- try{ window.daySlateMaybe && window.daySlateMaybe(); }catch(_){}
-});
+loadAll().then(()=>{ try{ window.renderReminder && window.renderReminder(); }catch(_){ } });
 
 document.querySelectorAll('#doseSeg button')
   .forEach(b => b.addEventListener('click', ()=> setDoseMode(b.dataset.mode)));
@@ -2770,93 +2750,6 @@ document.addEventListener('DOMContentLoaded', () => {
   try { recalcDaysPerView(); renderCalPreview(); } catch(_){}
   try { updateSummary(); updateDoseHint(); window.renderReminder && window.renderReminder(); } catch(_){}
 });
-</script>
-<script id="day-slate-js">
-(function(){
-  const _host = document.getElementById('daySlate');
-  // страховка: на старте скрыт
-  if (_host){ _host.hidden = true; _host.setAttribute('aria-hidden','true'); }
-  function planStartISO(){
-    try{
-      if (window.PLAN?.start_date) return window.PLAN.start_date;
-      const rt = JSON.parse(localStorage.getItem('rt')||'{}');
-      return rt?.plan?.start_date || rt?.plan?.startISO || localStorage.getItem('rt_startISO') || '';
-    }catch(_){ return localStorage.getItem('rt_startISO') || ''; }
-  }
-
-  // показать межсцену сегодня (дневной слайд «N-1 → N»)
-    function showDaySlate(dayNum){
-    const host = document.getElementById('daySlate');
-    if (!host || !(dayNum>0)) return;
-    const prev = Math.max(1, dayNum-1);
-    (document.getElementById('dsPrevNum')||{}).textContent = String(prev);
-    (document.getElementById('dsNowNum') ||{}).textContent = String(dayNum);
-
-    host.hidden = false;
-    host.removeAttribute('aria-hidden');
-    host.classList.add('show');
-
-    setTimeout(()=> host.classList.add('hiding'), 1400);
-    setTimeout(()=>{
-      host.hidden = true;
-      host.setAttribute('aria-hidden','true');
-      host.classList.remove('show','hiding');
-    }, 1950);
-  }
-
-  // публичный «можно вызывать когда план загружен»
-  window.daySlateMaybe = function(){
-  // локальная сегодняшняя дата (YYYY-MM-DD)
-  const d=new Date(); d.setMinutes(d.getMinutes()-d.getTimezoneOffset());
-  const today = d.toISOString().slice(0,10);
-
-  // флаг после ресета: использовать ТОЛЬКО для того, чтобы проигнорировать "last === today"
-  const force = localStorage.getItem('rt.daySlate.force') === '1';
-  if (force) { try{ localStorage.removeItem('rt.daySlate.force'); }catch(_){} }
-
-  const host = document.getElementById('daySlate');
-  const hideSlate = ()=>{ if(!host) return; host.hidden=true; host.setAttribute('aria-hidden','true'); host.classList.remove('show','hiding'); };
-
-  // читаем дату старта из плана/кэша
-  const start = planStartISO();
-
-  // если старт есть — ВСЕГДА считаем реальный номер дня
-  if (start){
-    // разница дней (UTC)
-    function daysDiffUTC(aISO,bISO){
-      try{
-        const a=new Date(aISO), b=new Date(bISO);
-        const ad=Date.UTC(a.getFullYear(),a.getMonth(),a.getDate());
-        const bd=Date.UTC(b.getFullYear(),b.getMonth(),b.getDate());
-        return Math.floor((ad-bd)/86400000);
-      }catch(_){ return 0; }
-    }
-    const diff = daysDiffUTC(today, start);
-    const day  = Math.max(1, diff + 1);
-
-    const last = localStorage.getItem('rt.daySlate.last') || '';
-
-    // показываем если первый визит за сутки ИЛИ стоит force-флаг
-    if (force || last !== today){
-      showDaySlate(day);
-      try{ localStorage.setItem('rt.daySlate.last', today); }catch(_){}
-    } else {
-      hideSlate();
-      document.body.style.visibility='visible';
-    }
-    return; // важно: дальше не идём
-  }
-
-  // если старта нет: показываем "День 1" только при форсе, иначе просто открываем main
-  if (force){
-    showDaySlate(1);
-    try{ localStorage.setItem('rt.daySlate.last', today); }catch(_){}
-  } else {
-    hideSlate();
-    document.body.style.visibility='visible';
-  }
-};
-})();
 </script>
 
 <script>
@@ -3527,68 +3420,84 @@ if (cur && cur.complete && cur.naturalWidth > 0) return;
     100%{opacity:0}
   }
 </style>
-
-<!-- DaySlate JS -->
 <script>
-/* Межсцена "ДЕНЬ N КУРСА" — один раз в день, анимация смены числа */
+/* Межсцена "ДЕНЬ N КУРСА" — показывает один раз в день, с анимацией смены числа */
 (function daySlateBoot(){
   const root = document.getElementById('daySlate');
   if (!root) return;
 
-  function todayIsoLocal(){ const d=new Date(); d.setMinutes(d.getMinutes()-d.getTimezoneOffset()); return d.toISOString().slice(0,10); }
-
-  // старт: PLAN.start_date → rt_startISO → dermaApp:${uid}:plan_start
+  // Берём старт курса из PLAN или из localStorage (как и в updateSummary)
   function getStartISO(){
-    try{
-      const tg = window.Telegram?.WebApp?.initDataUnsafe?.user?.id;
-      const uid = new URLSearchParams(location.search).get('tg') || tg || '';
-      const byUid = uid ? localStorage.getItem(`dermaApp:${uid}:plan_start`) : '';
-      return (window.PLAN && PLAN.start_date) || localStorage.getItem('rt_startISO') || byUid || '';
-    }catch(_){ return ''; }
+    try { return (window.PLAN && PLAN.start_date) || localStorage.getItem('rt_startISO') || ''; }
+    catch(_) { return ''; }
   }
-
-  function daysDiffUTC(aISO,bISO){ try{ const a=Date.parse(aISO+'T00:00:00Z'); const b=Date.parse(bISO+'T00:00:00Z'); return Math.floor((a-b)/86400000);}catch(_){return 0;} }
-
-  function calcDayState(){
+  // Сегодняшняя дата (локальная) в ISO
+  function todayIsoLocal(){
+    const d = new Date(); d.setMinutes(d.getMinutes() - d.getTimezoneOffset());
+    return d.toISOString().slice(0,10);
+  }
+  // N-й день курса (1..), 0 — если нет старта
+  function calcDayN(){
     const start = getStartISO();
-    if (!start) return { prevLabel:'Старт курса', nowLabel:'Старт курса', n:1 };
-    const n = 1 + daysDiffUTC(todayIsoLocal(), start);
-    const safeN = n > 0 ? n : 1;
-    return {
-      prevLabel: safeN>1 ? ('День '+(safeN-1)+' курса') : 'Старт курса',
-      nowLabel:  safeN>1 ? ('День '+ safeN   +' курса') : 'Старт курса',
-      n: safeN
-    };
+    if (!start) return 0;
+    try {
+      // daysDiffUTC уже объявлена в main.html — переиспользуем
+      const n = 1 + (typeof daysDiffUTC==='function' ? daysDiffUTC(todayIsoLocal(), start) : 0);
+      return n > 0 ? n : 0;
+    } catch(_) { return 0; }
   }
 
-  const SHOWN_KEY='rt.day-slate.shown.v2';
-  const isShownToday = ()=> (localStorage.getItem(SHOWN_KEY)||'')===todayIsoLocal();
-  const markShown    = ()=> localStorage.setItem(SHOWN_KEY, todayIsoLocal());
+  // Храним, что уже показывали сегодня
+  const SHOWN_KEY = 'rt.day-slate.shown';
 
-  function show(prevLabel, nowLabel){
-    root.querySelector('#dsPrev').innerHTML = prevLabel.replace('День ','ДЕНЬ ').replace(' курса',' КУРСА');
-    root.querySelector('#dsNow').innerHTML  = nowLabel .replace('День ','ДЕНЬ ').replace(' курса',' КУРСА');
-    root.hidden=false; root.removeAttribute('aria-hidden'); root.classList.add('show');
-    const hide=()=>{ root.classList.add('hiding'); setTimeout(()=>root.remove(), 550); };
-    root.addEventListener('click', hide, {once:true, passive:true});
+  function markShown(){
+    try { localStorage.setItem(SHOWN_KEY, todayIsoLocal()); } catch(_){}
+  }
+  function isShownToday(){
+    try { return (localStorage.getItem(SHOWN_KEY)||'') === todayIsoLocal(); } catch(_) { return false; }
+  }
+
+  // Показ с анимацией "старое число → новое"
+  function show(fromN, toN){
+    if (!root) return;
+    const prevNum = root.querySelector('#dsPrevNum');
+    const nowNum  = root.querySelector('#dsNowNum');
+    if (prevNum) prevNum.textContent = String(fromN);
+    if (nowNum)  nowNum.textContent  = String(toN);
+
+    root.hidden = false;
+    root.removeAttribute('aria-hidden');
+    root.classList.add('show');
+
+    // Клик — мгновенно скрыть
+    root.addEventListener('click', hide, { once:true, passive:true });
+
+    // Автозакрытие
     setTimeout(hide, 1500);
+    function hide(){
+      root.classList.add('hiding');
+      setTimeout(()=> root.remove(), 550);
+    }
   }
 
-  function tryShow(force){
-    if (!force && isShownToday()) return;
-    const {prevLabel, nowLabel, n} = calcDayState();
+  // Показываем один раз за день, когда есть N
+  function tryShow(){
+    if (isShownToday()) return;
+    const n = calcDayN();
     if (!n) return;
-    show(prevLabel, nowLabel);
+    show(Math.max(0, n-1), n);
     markShown();
   }
 
-  if (document.readyState==='loading') document.addEventListener('DOMContentLoaded', ()=>tryShow(false), {once:true});
-  else tryShow(false);
-  setTimeout(()=>tryShow(false), 600);    // на случай, если PLAN подгрузится позже
-  setTimeout(()=>tryShow(false), 1500);
+  // 1) Сразу после DOMContentLoaded
+  document.addEventListener('DOMContentLoaded', tryShow);
 
-  // отладка: ?debugSlate=1
-  try{ if(new URLSearchParams(location.search).get('debugSlate')==='1') tryShow(true); }catch(_){}
+  // 2) Повторим чуть позже — на случай, если PLAN подгрузится позже
+  setTimeout(tryShow, 600);
+  setTimeout(tryShow, 1500);
+
+  // 3) Если где-то в приложении сохранят rt_startISO — тоже попробуем показать
+  window.addEventListener('storage', (e)=>{ if (e.key === 'rt_startISO') tryShow(); });
 })();
 </script>
 

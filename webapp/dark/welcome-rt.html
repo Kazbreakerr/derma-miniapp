@@ -187,6 +187,7 @@ body{
 </style>
 <script src="/js/folder-router.js"></script>
 <script src="/js/gates.js"></script>
+<link rel="stylesheet" href="/assets/rt-skeleton.css">
 </head>
 <body>
   <main class="shell">
@@ -377,6 +378,14 @@ const uid = sp.get('tg') || tgInit || ''; // без дефолта
   });
 })();
 </script>
-
+<script src="/assets/rt-skeleton.js"></script>
+<script>
+  // пример: грузим профиль и рисуем его
+  withSkeleton(
+    fetch('/api/profile?tg=' + tgId)
+      .then(r => r.json())
+      .then(data => renderProfile(data))
+  );
+</script>
 </body>
 </html>
