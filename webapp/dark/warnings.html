@@ -4,6 +4,7 @@
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>Roaccutane Tracker — Важные предупреждения</title>
+  
 
 <link rel="stylesheet" href="css/ui-tokens.css">
 <script>document.documentElement.dataset.theme = 'dark';</script>
@@ -373,18 +374,18 @@ startBtn?.addEventListener('click', (e)=>{
   e.preventDefault();
   if (startBtn.disabled) return;
 
-  // Если разрешён проход без онбординга, подставим флаги, чтобы guard на profile.html не вернул нас назад
-  if (!REQUIRE_ONBOARDING) {
-    try {
-      const uidKey = (k)=>`dermaApp:${(new URLSearchParams(location.search).get('tg')
-        || window.Telegram?.WebApp?.initDataUnsafe?.user?.id || 'anon')}:${k}`;
-      localStorage.setItem('derma_consent','1');
-      localStorage.setItem(uidKey('consentAccepted'),'1');
-      localStorage.setItem(uidKey('policyRead'),'1');
-    } catch(_) {}
-  }
+  // 1) ВСЕГДА проставляем флаги согласия под текущего пользователя
+  try{
+    const qs  = new URLSearchParams(location.search);
+    const uid = qs.get('tg') || (window.Telegram?.WebApp?.initDataUnsafe?.user?.id) || 'anon';
+    const k   = (s)=>`dermaApp:${uid}:${s}`;
+    localStorage.setItem('derma_consent','1');
+    localStorage.setItem(k('consentAccepted'),'1');
+    localStorage.setItem(k('policyRead'),'1');
+  }catch(_){}
 
-  go('profile');
+  // 2) ЯВНЫЙ переход на profile.html (без helper'а, чтобы исключить ошибки роутера)
+  location.replace('./profile.html' + (location.search || ''));
 });
 // при входе — оба тумблера выключены
 switchRisk?.setAttribute('aria-pressed','false');
