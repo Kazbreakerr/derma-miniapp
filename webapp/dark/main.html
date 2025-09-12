@@ -39,7 +39,15 @@ document.documentElement.dataset.theme = cur;
   });
 </script>
 
-  <script>try{ if(localStorage.getItem('derma_consent')!=='1'){ location.replace('./warnings.html' + (location.search||'')); } }catch(_){}
+<script>
+try{
+  const qs = new URLSearchParams(location.search);
+  const uid = qs.get('tg') || (window.Telegram?.WebApp?.initDataUnsafe?.user?.id) || 'anon';
+  const ok =
+    localStorage.getItem('derma_consent') === '1' ||
+    localStorage.getItem(`dermaApp:${uid}:consentAccepted`) === '1';
+  if (!ok) location.replace('./warnings.html' + (location.search||''));
+}catch(_){}
 </script>
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>Roaccutane Tracker — Главная</title>
@@ -412,7 +420,7 @@ body.light .seg button{
 /* Toggle switch (for reminder enable) */
 .rem-ctrl{ display:flex; align-items:center; gap:12px; }
 .rem-ctrl .rem-label{ color:var(--text-mid); }
-.toggle{ position:relative; width:44px; height:24px; display:inline-block; }
+.toggle{ position:relative; width:52px; height:30px; display:inline-block; }
 .toggle input{ opacity:0; width:0; height:0; position:absolute; }
 .toggle .slider{
   position:absolute; inset:0; border-radius:999px;
@@ -421,7 +429,7 @@ body.light .seg button{
   transition: background .18s ease, border-color .18s ease;
 }
 .toggle .slider::after{
-  content:""; position:absolute; width:20px; height:20px; left:2px; top:1.5px;
+  content:""; position:absolute; width:26px; height:26px; left:2px; top:1.5px;
   background:#fff; border-radius:50%; box-shadow:0 1px 2px rgba(0,0,0,.25);
   transition: transform .18s ease;
 }
@@ -429,7 +437,7 @@ body.light .seg button{
   background: linear-gradient(135deg, #22D3EE 0%, #14B8A6 100%);
   border-color: transparent;
 }
-.toggle input:checked + .slider::after{ transform: translateX(20px); }
+.toggle input:checked + .slider::after{ transform: translateX(22px); }
 
 /* Brighter gradients for reminder card */
 .face-front{
@@ -2264,8 +2272,8 @@ function showEncouragement(){
   document.body.appendChild(ui);
 
   // держим 1.4с, затем мягкое исчезание
-  setTimeout(()=> ui.classList.add('hide'), 1000);
-  setTimeout(()=> ui.remove(), 2200);
+  setTimeout(()=> ui.classList.add('hide'), 1800);
+  setTimeout(()=> ui.remove(), 3000);
 }
 // 💊 всплеск-капсула — рисуем в месте нажатия
 function spawnPillFx(btn, clientX, clientY){

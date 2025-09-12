@@ -866,7 +866,36 @@ html[data-theme="light"] #hero.hero.has-bg::after{
 /* светлая тема — фон помягче */
 html[data-theme="light"] #hero.hero.has-bg::before{ opacity:.35; filter:saturate(1.05) brightness(1.05); }
 </style>
+<style id="capsule-overflow-fix">
+/* Левую и правую части разрешаем переносить, внутри справа — тоже wrap */
+.reminders .field{
+  display:flex; align-items:flex-start; justify-content:space-between;
+  gap:12px 14px; flex-wrap:wrap;
+}
+.reminders .field .lhs{ flex:1 1 220px; min-width:0; }
+.reminders .field .rhs{
+  flex:1 1 280px; min-width:0;
+  display:flex; align-items:center; justify-content:flex-end;
+  gap:8px 10px; flex-wrap:wrap; max-width:100%;
+}
+.reminders .field .unit{ white-space:nowrap; }
 
+/* Сужаем number-инпуты на мобильных */
+.reminders .field .rhs input[type="number"]{
+  width:clamp(60px,22vw,88px); min-width:60px;
+}
+
+@media (max-width:400px){
+  .reminders .field{ gap:10px 12px; }
+  .reminders .field .rhs input[type="number"]{ width:60px; }
+}
+
+/* На всякий — скрыть визуальный «вынос» рамок */
+.reminders .field, .reminders .card{ overflow:hidden; }
+
+/* И глобально убираем горизонтальный скролл страницы */
+html, body{ max-width:100vw; overflow-x:hidden; }
+</style>
 </head>
 <body>
 <script>

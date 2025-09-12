@@ -1097,6 +1097,45 @@ document.getElementById('navProfile').addEventListener('click', (e)=>{ e.prevent
   .uploader .muted{ text-align: center; }
 }
 </style>
+<style id="reports-overflow-fix">
+  /* базово отрезаем горизонтальный скролл страницы */
+  html, body { max-width: 100vw; overflow-x: hidden; }
+  *,*::before,*::after { box-sizing: border-box; }
+
+  /* блок «Внутренние отчёты» — ничего не должно выходить за контейнер */
+  .rep-list, .rep-item, .rep-toggle, .rep-panel, .rep-table { max-width: 100%; }
+
+  /* шапка отчёта: длинный заголовок сжимается, бейдж и стрелка — фикс. ширины */
+  .rep-toggle{
+    overflow: hidden;            /* на всякий, чтобы визуально не выезжало */
+    align-items: flex-start;
+    gap: 8px;
+  }
+  .rep-title{
+    flex: 1 1 auto;              /* можно сжиматься */
+    min-width: 0;                /* КЛЮЧ: без этого flex-элемент «распирает» */
+    white-space: normal;
+    word-break: break-word;
+    overflow-wrap: anywhere;
+  }
+  .rep-meta, .chev{
+    flex: 0 0 auto;              /* справа фикс. ширина, не сжимается */
+    white-space: nowrap;
+  }
+
+  /* таблица внутри — даём горизонтальный скролл, если не влезает */
+  .rep-body{ overflow-x: auto; }
+  .rep-table{
+    display: block;              /* чтобы overflow-x работал над таблицей */
+    width: 100%;
+  }
+
+  /* немного компактнее на узких телефонах */
+  @media (max-width: 420px){
+    .rep-toggle{ padding: 12px; }
+    .rep-item .badge{ font-size: 10.5px; padding: 5px 8px; }
+  }
+</style>
 
 </body>
 </html>

@@ -143,7 +143,7 @@ header::after{
   z-index: -1;
   filter: saturate(1.03);
 }
-
+html, body{ max-width:100vw; overflow-x:hidden; }
   .wrap{max-width:980px;margin:0 auto;padding:16px 18px}
   h1{margin:0;font-size:22px; letter-spacing:.2px}
   .date-row{display:flex; gap:12px; align-items:center; margin-top:8px; flex-wrap:wrap}
@@ -241,6 +241,7 @@ header::after{
   display:flex; align-items:center;
   cursor:pointer; user-select:none; -webkit-user-select:none; touch-action: pan-x;
 }
+#moodBar{ touch-action:none; user-select:none; -webkit-user-select:none; }
 .bar .rail{
   position:absolute; left:14px; right:14px; top:50%;
   height:6px; transform:translateY(-50%);   /* было 10px */
@@ -383,6 +384,13 @@ header::after{
     padding:10px 12px; border-radius:12px; font-weight:700;
     box-shadow:inset 0 0 0 1px rgba(255,255,255,.03);
   }
+  /* Центровка подписи и дат */
+#compareDates{ justify-content:center; }
+#compareDates .chip:first-of-type{
+  justify-self:center; text-align:center;
+}
+#compareDates .date-input{ text-align:center; }
+#compareDates .date-input::-webkit-datetime-edit{ text-align:center; }
   .nav-arrow{
     appearance:none; border:1px solid var(--border);
     background:linear-gradient(180deg, #0f172a, #0b1120);
@@ -1913,20 +1921,21 @@ glintBloom(ctx, -W*0.30,  H*0.26,  W*0.16, H*0.14, pal.glintB, .48, -0.08);
   }
 
   // события
-  bar.addEventListener('pointerdown', function(e){
+ bar.addEventListener('pointerdown', e=>{
   e.preventDefault();
-  bar.setPointerCapture?.(e.pointerId);
-  bar.classList.add('drag');
+  pid = e.pointerId; dragging = true;
+  bar.setPointerCapture(pid);
   applyIndex(xToIdx(e.clientX));
 });
-bar.addEventListener('pointermove', function(e){
-  if (!bar.classList.contains('drag')) return;
+window.addEventListener('pointermove', e=>{
+  if(!dragging) return;
   e.preventDefault();
   applyIndex(xToIdx(e.clientX));
-});
-bar.addEventListener('pointerup', function(e){
-  bar.classList.remove('drag');
-  bar.releasePointerCapture?.(e.pointerId);
+}, {passive:false});
+window.addEventListener('pointerup', e=>{
+  if(!dragging) return;
+  dragging = false;
+  try{ bar.releasePointerCapture(pid); }catch(_){}
 });
 
   // клавиатура

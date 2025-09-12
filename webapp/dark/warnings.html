@@ -73,11 +73,11 @@
     .badge.warning{background:rgba(245,158,11,0.12);border-color:#FBBF24;color:var(--warning)}
     .badge.info{background:rgba(96,165,250,0.12);border-color:#93C5FD;color:var(--info)}
     .consent{display:flex;align-items:flex-start;gap:12px;margin-top:16px}
-    .switch{position:relative;width:40px;height:24px;border-radius:999px;background:#152235;border:none;cursor:pointer;outline:none;transition:background .15s}
+    .switch{position:relative;width:52px;height:30px;border-radius:999px;background:#152235;border:none;cursor:pointer;outline:none;transition:background .15s}
     .switch:focus-visible{box-shadow:0 0 0 2px var(--focus-ring),0 0 0 4px rgba(11,18,32,.7)}
-    .thumb{position:absolute;top:2px;left:2px;width:20px;height:20px;border-radius:999px;background:white;transition:transform .15s}
+    .thumb{position:absolute;top:2px;left:2px;width:26px;height:26px;border-radius:999px;background:white;transition:transform .15s}
     .switch[aria-pressed='true']{background:var(--primary)}
-    .switch[aria-pressed='true'] .thumb{transform:translateX(16px)}
+    .switch[aria-pressed='true'] .thumb{transform:translateX(22px)}
     .actions{display:flex;align-items:center;gap:18px;margin-top:16px;flex-wrap:wrap}
     .cta{
   height:50px;padding:0 26px;border-radius:999px;border:0;cursor:pointer;
@@ -351,6 +351,7 @@ function refreshUI(){
   const uiPolicyOn = isPressed(switchPolicy);
   const okGate     = !REQUIRE_ONBOARDING || (hasPolicy() && hasConsent());
   startBtn.disabled = !(uiRiskOn && uiPolicyOn && okGate);
+  stampConsentIfBoth();
 }
 
 // тумблеры (кликабельные, никуда не ведут)
