@@ -421,10 +421,10 @@ app.get('/api/faq', async (_, res) => {
 app.get('/api/_routes', (req, res) => {
   const routes = [];
   (app._router?.stack || []).forEach(l => {
-    if (l && l.route && l.route.path) {
-      const methods = Object.keys(l.route.methods || {}).join('|').toUpperCase() || 'GET';
-      routes.push(`${methods} ${l.route.path}`);
-    }
+    if (!l?.route) return;
+    const methods = Object.keys(l.route.methods || {}).map(m => m.toUpperCase()).join('|') || 'GET';
+    const paths   = Array.isArray(l.route.path) ? l.route.path : [l.route.path];
+    paths.forEach(p => routes.push(`${methods} ${p}`));
   });
   res.json(routes.sort());
 });
@@ -819,121 +819,106 @@ app.get('/api/doctor/validate', tgAuth, async (req, res) => {
   }
 });
 
-// ===== DOCTOR: patients list (rich) =====
+// === PATIENTS LIST (active attachments only) ===
 app.get('/api/doctor/patients', tgAuth, async (req, res) => {
-  try{
+  try {
     await pool.query('SET search_path = derma, public');
-    const uid = await userIdByTg(req.tg || req.tgUser?.id);
+    const did = await userIdByTg(req.tg || req.tgUser?.id);
 
-    // базовый список прикреплённых
+    // активные связи (unbound_at IS NULL); берём самую свежую по bound_at
     const base = await pool.query(`
-      SELECT
-        p.id AS patient_id,
-        COALESCE(NULLIF(p.full_name,''), CASE WHEN NULLIF(p.tg_handle,'') IS NOT NULL THEN '@'||p.tg_handle ELSE NULL END, 'Пациент') AS patient_name,
-        p.tg_handle AS handle,
-        p.city,
-        p.age,
-        p.weight_kg,
-        p.sex,
-        (SELECT MAX(date) FROM derma.daily_reports r WHERE r.user_id = p.id) AS last_report
-      FROM derma.patient_doctors pd
-      JOIN derma.users p ON p.id = pd.patient_id
-      WHERE pd.doctor_id = $1 AND pd.status = 'accepted'
-    `, [uid]);
+      SELECT DISTINCT ON (p.id)
+             p.id AS patient_id,
+             COALESCE(NULLIF(p.full_name,''), NULLIF(p.tg_username,''), 'Пациент') AS patient_name,
+             p.weight_kg,
+             p.sex,
+             p.photo_url,
+             pd.bound_at
+        FROM patient_doctors pd
+        JOIN users p ON p.id = pd.patient_id
+       WHERE pd.doctor_id = $1
+         AND pd.unbound_at IS NULL
+       ORDER BY p.id, pd.bound_at DESC
+    `, [did]);
+
+    if (!base.rowCount) return res.json([]);
 
     const ids = base.rows.map(r => r.patient_id);
-    if (!ids.length) return res.json([]);
 
-    // активные планы
-    const plans = await pool.query(`
-      SELECT DISTINCT ON (user_id)
-        user_id, start_date, target_mgkg, end_date,
-        (end_date IS NULL OR end_date >= CURRENT_DATE) AS on_course
-      FROM derma.plans
-      WHERE user_id = ANY($1)
-      ORDER BY user_id, start_date DESC
-    `, [ids]);
-
-    const byPlan = new Map(plans.rows.map(x => [x.user_id, x]));
-
-    // средняя доза за 7 дней + суммарная доза
+    // дозировки: среднее за 7 дней и кумулятив
     const doses = await pool.query(`
-      WITH d AS (
-        SELECT user_id, date, dose_mg
-        FROM derma.daily_reports
-        WHERE user_id = ANY($1)
-      )
-      SELECT
-        user_id,
-        AVG(CASE WHEN date >= CURRENT_DATE - INTERVAL '6 day' THEN dose_mg END) AS avg7,
-        SUM(dose_mg) AS total_mg
-      FROM d
-      GROUP BY user_id
+      SELECT patient_id,
+             AVG(CASE WHEN date >= CURRENT_DATE - INTERVAL '6 day'
+                      THEN mg_taken END)::numeric AS avg7,
+             SUM(mg_taken)::numeric AS total_mg
+        FROM dose_logs
+       WHERE patient_id = ANY($1)
+       GROUP BY patient_id
     `, [ids]);
-
-    const byDose = new Map(doses.rows.map(x => [x.user_id, x]));
+    const doseMap = new Map(doses.rows.map(r => [r.patient_id, r]));
 
     // последние анализы ALT/AST/TG/CHOL
     const labs = await pool.query(`
       WITH latest AS (
-        SELECT DISTINCT ON (user_id, lab_code)
-               user_id, lab_code, value, unit, measured_at
-        FROM derma.lab_results
-        WHERE user_id = ANY($1) AND lab_code IN ('ALT','AST','TG','CHOL')
-        ORDER BY user_id, lab_code, measured_at DESC
+        SELECT DISTINCT ON (lr.patient_id, lt.code)
+               lr.patient_id AS user_id,
+               lt.code       AS lab_code,
+               lr.value_num  AS value,
+               lr.units_txt  AS unit,
+               lr.date       AS measured_at,
+               lr.status     AS status
+          FROM lab_results lr
+          JOIN lab_types   lt ON lt.id = lr.lab_type_id
+         WHERE lr.patient_id = ANY($1)
+           AND lt.code IN ('ALT','AST','TG','CHOL')
+         ORDER BY lr.patient_id, lt.code, lr.date DESC, lr.id DESC
       )
       SELECT user_id,
-             jsonb_object_agg(lab_code, jsonb_build_object(
-               'value', value,
-               'unit', unit,
-               'date', to_char(measured_at::date,'YYYY-MM-DD'),
-               'status', 'g'           -- если нет своей логики статусов, оставим зелёный
-             )) AS labs
-      FROM latest
-      GROUP BY user_id
+             jsonb_object_agg(
+               lab_code,
+               jsonb_build_object(
+                 'value', value,
+                 'unit',  unit,
+                 'date',  to_char(measured_at,'YYYY-MM-DD'),
+                 'status', COALESCE(status,'g')
+               )
+             ) AS labs
+        FROM latest
+       GROUP BY user_id
     `, [ids]);
+    const labsMap = new Map(labs.rows.map(r => [r.user_id, r.labs]));
 
-    const byLabs = new Map(labs.rows.map(x => [x.user_id, x.labs]));
-
-    // собрать ответ
+    // сборка под фронт (нужен progress_pct)
     const out = base.rows.map(r => {
-      const plan = byPlan.get(r.patient_id) || {};
-      const dose = byDose.get(r.patient_id) || {};
-      const weight = Number(r.weight_kg) || 0;
-      const targetMgKg = plan.target_mgkg == null ? null : Number(plan.target_mgkg);
-      // простой прогресс: сколько уже принятой суммы от целевой (целевую грубо считаем 120 мг/кг, если нет планового параметра)
-      const targetTotal = (targetMgKg || 120) * weight;
-      const totalTaken = Number(dose.total_mg) || 0;
-      const progress = targetTotal > 0 ? Math.min(100, (totalTaken / targetTotal) * 100) : 0;
+      const d = doseMap.get(r.patient_id) || {};
+      const w = Number(r.weight_kg) || 0;
+      const goal = w * 135; // дефолтная цель
+      const total = Number(d.total_mg || 0);
+      const progress_pct = goal > 0 ? Math.min(100, Math.round(total / goal * 100)) : 0;
 
       return {
-        patient_id: r.patient_id,
+        patient_id:   r.patient_id,
         patient_name: r.patient_name,
-        handle: r.handle,
-        city: r.city,
-        age: r.age,
-        last_report: r.last_report,
-
-        // курс
-        on_course: !!plan.on_course,
-        start_date: plan.start_date || null,
-        target_mgkg: targetMgKg,
-        avg7: Number(dose.avg7 || 0),
-
-        // прогресс (в процентах)
-        progress_pct: Math.round(progress * 100) / 100,
-
-        // анализы
-        labs: byLabs.get(r.patient_id) || {}
+        weight_kg:    r.weight_kg,
+        sex:          r.sex,
+        photo_url:    r.photo_url,
+        avg7:         Number(d.avg7 || 0),
+        total_mg:     total,
+        progress_pct,
+        // last_report — можно взять max(date) из dose_logs, если нужно:
+        last_report:  null,
+        labs:         labsMap.get(r.patient_id) || {}
       };
     });
 
     res.json(out);
-  }catch(e){
+  } catch (e) {
     console.error('DOCTOR PATIENTS ERROR:', e);
     res.status(500).json({ error: e.message });
   }
 });
+
+
 
 // ВРАЧ: дневной срез по пациенту
 // GET /api/doctor/patient/:pid/day?date=YYYY-MM-DD
@@ -1059,7 +1044,15 @@ app.post('/api/doctor/attach', tgAuth, async (req, res) => {
 
     const did = r.rows[0].doctor_id;
     await pool.query('UPDATE derma.patient_doctors SET unbound_at=now() WHERE patient_id=$1 AND unbound_at IS NULL', [pid]);
-    await pool.query('INSERT INTO derma.patient_doctors(patient_id, doctor_id) VALUES ($1,$2)', [pid, did]);
+    await pool.query(`
+  INSERT INTO derma.patient_doctors (patient_id, doctor_id, status, bound_at, unbound_at)
+  VALUES ($1,$2,'accepted', now(), NULL)
+  ON CONFLICT (patient_id, doctor_id)
+  DO UPDATE SET
+    status='accepted',
+    bound_at = COALESCE(patient_doctors.bound_at, EXCLUDED.bound_at),
+    unbound_at = NULL
+`, [pid, did]);
 
     const { rows } = await pool.query(`
       SELECT u.id AS doctor_id,
@@ -1145,27 +1138,36 @@ app.post('/api/doctor/request', tgAuth, async (req, res) => {
     }
 
     // Автопринятие?
-    if (doc.auto_accept) {
-      await pool.query('BEGIN');
-      // помечаем заявку «accepted»
-      await pool.query(
-        `UPDATE derma.doctor_requests
-            SET status='accepted', decided_at=now()
-          WHERE patient_id=$1 AND doctor_id=$2 AND status='pending'`,
-        [pid, did]
-      );
-      // открепляем прошлых
-      await pool.query('UPDATE derma.patient_doctors SET unbound_at=now() WHERE patient_id=$1 AND unbound_at IS NULL', [pid]);
-      // крепим текущего
-      await pool.query('INSERT INTO derma.patient_doctors(patient_id, doctor_id) VALUES ($1,$2)', [pid, did]);
-      await pool.query('COMMIT');
+    // Автопринятие
+if (doc.auto_accept) {
+  await pool.query('BEGIN');
 
-      return res.json({
-        ok: true,
-        status: 'accepted',
-        doctor: { id: did, name: doc.name, clinic: doc.clinic, city: doc.city, avatar_url: doc.avatar_url }
-      });
-    }
+  // (на всякий случай) пометить возможную pending-заявку принятой
+  await pool.query(
+    `update doctor_requests
+        set status='accepted', decided_at=now()
+      where patient_id=$1 and doctor_id=$2 and status='pending'`,
+    [pid, did]
+  );
+
+  await pool.query(`update patient_doctors
+                       set unbound_at=now()
+                     where patient_id=$1 and unbound_at is null`,
+    [pid]);
+
+  await pool.query(`
+    insert into patient_doctors (patient_id, doctor_id, status, bound_at, unbound_at)
+    values ($1,$2,'accepted', now(), null)
+    on conflict (patient_id, doctor_id)
+    do update set
+      status='accepted',
+      bound_at = coalesce(patient_doctors.bound_at, excluded.bound_at),
+      unbound_at = null
+  `, [pid, did]);
+
+  await pool.query('COMMIT');
+  return res.json({ ok:true, auto:true, status:'accepted' });
+}
 
     // Иначе — «ожидание»
     return res.status(202).json({
@@ -1242,26 +1244,24 @@ app.delete('/api/doctor/request', tgAuth, async (req, res) => {
   }
 });
 
-// Список «pending»-заявок для врача
+// === REQUESTS LIST (pending) ===
 app.get('/api/doctor/requests', tgAuth, async (req, res) => {
   try {
     await pool.query('SET search_path = derma, public');
     const did = await userIdByTg(req.tg || req.tgUser?.id);
 
-    // проверим, что это «врач»
-    const u = await pool.query('SELECT is_doctor FROM derma.users WHERE id=$1', [did]);
-    if (!u.rowCount || !u.rows[0].is_doctor) return res.status(403).json({ error:'not a doctor' });
-
-    const { rows } = await pool.query(`
-      SELECT dr.id, dr.created_at,
-             p.id AS patient_id, COALESCE(NULLIF(p.full_name,''),
-         NULLIF(p.tg_username,''),
-         'Пациент') AS patient_name
-        FROM derma.doctor_requests dr
-        JOIN derma.users p ON p.id=dr.patient_id
-       WHERE dr.doctor_id=$1 AND dr.status='pending'
-       ORDER BY dr.created_at ASC`, [did]);
-
+    const { rows } = await pool.query(
+      `SELECT dr.id,
+              dr.created_at,
+              p.id AS patient_id,
+              COALESCE(NULLIF(p.full_name,''), NULLIF(p.tg_username,''), 'Пациент') AS patient_name
+         FROM doctor_requests dr
+         JOIN users p ON p.id = dr.patient_id
+        WHERE dr.doctor_id = $1
+          AND dr.status = 'pending'
+        ORDER BY dr.created_at ASC`,
+      [did]
+    );
     res.json(rows);
   } catch (e) {
     console.error('DOCTOR REQUESTS LIST ERROR:', e);
@@ -1269,29 +1269,49 @@ app.get('/api/doctor/requests', tgAuth, async (req, res) => {
   }
 });
 
-// Подтвердить заявку (врач)
+// === ACCEPT REQUEST ===
 app.post('/api/doctor/requests/:id/accept', tgAuth, async (req, res) => {
   try {
     await pool.query('SET search_path = derma, public');
+
     const did = await userIdByTg(req.tg || req.tgUser?.id);
     const id  = Number(req.params.id);
 
     await pool.query('BEGIN');
+
+    // помечаем заявку принятой и берём пациента
     const r = await pool.query(
-      `UPDATE derma.doctor_requests
-          SET status='accepted', decided_at=now()
+      `UPDATE doctor_requests
+          SET status='accepted', decided_at = now()
         WHERE id=$1 AND doctor_id=$2 AND status='pending'
-        RETURNING patient_id`, [id, did]);
-    if (!r.rowCount) { await pool.query('ROLLBACK'); return res.status(404).json({ error:'not found' }); }
-
+        RETURNING patient_id`,
+      [id, did]
+    );
+    if (!r.rowCount) {
+      await pool.query('ROLLBACK');
+      return res.status(404).json({ error: 'not found or already decided' });
+    }
     const pid = r.rows[0].patient_id;
-    await pool.query('UPDATE derma.patient_doctors SET unbound_at=now() WHERE patient_id=$1 AND unbound_at IS NULL', [pid]);
-    await pool.query('INSERT INTO derma.patient_doctors(patient_id, doctor_id) VALUES ($1,$2)', [pid, did]);
-    await pool.query('COMMIT');
 
-    res.json({ ok:true });
+    // закрываем предыдущую активную связь (если была)
+    await pool.query(
+      `UPDATE patient_doctors
+          SET unbound_at = now()
+        WHERE patient_id = $1 AND unbound_at IS NULL`,
+      [pid]
+    );
+
+    // создаём новую активную связь (PK (patient_id,bound_at), активность = unbound_at IS NULL)
+    await pool.query(
+      `INSERT INTO patient_doctors (patient_id, doctor_id, bound_at, unbound_at)
+       VALUES ($1, $2, now(), NULL)`,
+      [pid, did]
+    );
+
+    await pool.query('COMMIT');
+    res.json({ ok: true });
   } catch (e) {
-    try { await pool.query('ROLLBACK'); } catch(_){}
+    try { await pool.query('ROLLBACK'); } catch(_) {}
     console.error('DOCTOR REQUEST ACCEPT ERROR:', e);
     res.status(500).json({ error: e.message });
   }
@@ -1539,8 +1559,16 @@ const staticOpts = { etag: false, lastModified: false, cacheControl: true, maxAg
 
 app.use(express.static(staticRoot, staticOpts));                       // /css, /js, /img, /index.html
 // Алиасы для удобных путей без /dark/
+
 const pagesDir = path.join(__dirname, 'webapp', 'dark');
 
+// ДОБАВЬ ЭТО:
+app.get(['/faq', '/faq.html'], (req, res) =>
+  res.sendFile(path.join(pagesDir, 'faq.html'))
+);
+app.get(['/reset', '/reset.html'], (req, res) =>
+  res.sendFile(path.join(pagesDir, 'reset.html'))
+);
 app.get(['/', '/main', '/main.html'], (req, res) =>
   res.sendFile(path.join(pagesDir, 'main.html'))
 );
@@ -1548,15 +1576,19 @@ app.get(['/', '/main', '/main.html'], (req, res) =>
 app.get(['/profile', '/profile.html'], (req, res) =>
   res.sendFile(path.join(pagesDir, 'profile.html'))
 );
-
-app.get(['/warnings', '/warnings.html'], (req, res) =>
-  res.sendFile(path.join(pagesDir, 'warnings.html'))
+app.get(['/plan', '/plan.html'], (req, res) =>
+  res.sendFile(path.join(pagesDir, 'plan.html'))
 );
 
+app.get(['/myprofile', '/myprofile.html'], (req, res) =>
+  res.sendFile(path.join(pagesDir, 'myprofile.html'))
+);
+app.use('/img', express.static(path.join(staticRoot, 'img'), staticOpts));
+app.use('/img', express.static(path.join(staticRoot, 'dark', 'img'), staticOpts));
+// дальше как было:
 app.get(['/calendar', '/calendar.html'], (req, res) =>
   res.sendFile(path.join(pagesDir, 'calendar.html'))
 );
-
 app.get(['/diary', '/diary.html'], (req, res) =>
   res.sendFile(path.join(pagesDir, 'diary.html'))
 );
@@ -1579,8 +1611,6 @@ const REPEAT_MS_DEFAULT  = Number(process.env.REM_MS  || 3*60*60*1000); // по�
 
 // Сохранение настроек ежедневного напоминания (тумблер/время/повтор в минутах)
 app.post('/api/reminder', tgAuth, async (req, res) => {
-  console.log('[MOUNT] POST /api/reminder mounted =',
-  !!(app._router?.stack||[]).find(l => l?.route?.path === '/api/reminder'));
   const tgId = req.tg || req.tgUser?.id;
   if (!tgId) return res.status(401).json({ ok:false, error: 'unauthorized' });
 

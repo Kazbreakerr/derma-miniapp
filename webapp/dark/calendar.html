@@ -75,7 +75,7 @@
       background: var(--bg-grad);
       min-height:100vh;
       padding: clamp(14px, 2vw, 24px);
-      padding-bottom: max(88px, calc(64px + env(safe-area-inset-bottom))); /* место под таббар */
+      padding-bottom: calc(max(88px, var(--tabbar-h)) + var(--sheet-gap));
       box-sizing: border-box;
     }
     .brand{
@@ -107,10 +107,18 @@
     .header{
       display:flex;
       align-items:center;
-      justify-content: space-between;
+      justify-content: flex-start;
       gap:12px;
       padding: 6px 4px 12px;
     }
+    /* фиксированная ширина бейджа-секции слева */
+.sheet-row .badge{ flex:0 0 auto; min-width:120px; }
+
+/* текстовые значения занимают доступное пространство рядом с бейджем */
+.sheet-row > :not(.badge):not(.right){ flex:1 1 auto; }
+
+/* кнопку уводим вправо */
+.sheet-row .right{ margin-left:auto; }
     .month-nav{
       display:flex;
       align-items:center;
@@ -283,28 +291,6 @@ user-select: none;
 
 
 
-    /* bottom sheet */
-    .sheet{ position:fixed; left:0; right:0; bottom:0; transform:translateY(100%); transition:transform .28s ease; z-index: 99; }
-    .sheet.active{ transform: translateY(0); }
-    .drag-handle{ width: 46px; height: 5px; border-radius: 12px; background: rgba(255,255,255,.2); margin: 6px auto 10px; }
-    .sheet-head{ display:flex; align-items:center; justify-content: space-between; gap:8px; margin-bottom: 8px; }
-    .sheet-title{ font-weight:800; }
-    .pill{
-      border:0; cursor:pointer; border-radius: 999px; padding:10px 14px;
-      background: linear-gradient(90deg, var(--accent-2), var(--accent));
-      color:#06131d; font-weight:800;
-      box-shadow: inset 0 0 0 1px rgba(255,255,255,.35), 0 10px 18px rgba(66,227,184,.25);
-      transition: transform .12s ease;
-    }
-    .pill:active{ transform: translateY(1px); }
-    .sheet-row{ display:flex; gap:10px; align-items:center; margin:10px 0; }
-    .badge{ padding:6px 10px; border-radius: 12px; background: rgba(255,255,255,.06); }
-    .right{ margin-left:auto; }
-    .day.pressing{ box-shadow: inset 0 6px 18px rgba(0,0,0,.35), inset 0 -6px 12px rgba(255,255,255,.03); }
-
-    
-   .scrim{ position:fixed; inset:0; background:rgba(0,0,0,.42); opacity:0; pointer-events:none; transition:opacity .2s ease; z-index: 98; }
-    .scrim.active{ opacity:1; pointer-events:auto; }
 @media (max-width: 520px){
 .day{ min-height: 66px; 
 
@@ -702,7 +688,7 @@ html::view-transition-new(root){
     <div class="drag-handle"></div>
     <div class="sheet-head">
       <div class="sheet-title" id="sheetTitle">Данные за день</div>
-      <button class="pill right" id="openDiary">Открыть дневник</button>
+      <button class="pill right" id="openDiary">📖Открыть дневник</button>
     </div>
     <div id="sheetBody"></div>
   </div>
@@ -1140,49 +1126,10 @@ cell.addEventListener('pointerleave',  clear);
 cell.addEventListener('pointercancel', clear);
 
 cell.addEventListener('pointerup', (e)=>{
+  // только чистим состояние; ОТКРЫТИЕ делает общий «короткий тап» ниже
   clear();
-  // открываем только если это короткий тап БЕЗ свайпа и не идёт выделение диапазона
-  if (!longPressed && !moved && !drag.active){
-    grid.querySelectorAll('.day.selected').forEach(el => el.classList.remove('selected'));
-    const cur = grid.querySelector(`.day[data-date="${id}"]`);
-    if (cur) cur.classList.add('selected');
-    openSheet(id, data);
-  }
 });
 
-// Фолбэк «клик» — тоже только если не было свайпа/drag-range
-cell.addEventListener('click', (e)=>{
-  e.preventDefault();   
-  if (longPressed || moved || drag.active) return;
-  if (sheet.classList.contains('active')) return;
-  grid.querySelectorAll('.day.selected').forEach(el => el.classList.remove('selected'));
-  cell.classList.add('selected');
-  openSheet(id, data);
-});
-
-
-// Клик-фолбэк для некоторых мобильных WebView
-cell.addEventListener('click', (e)=>{
-  if (longPressed) return;
-  const sheetEl = document.getElementById('sheet');
-  if (sheetEl && sheetEl.classList.contains('active')) return;
-  grid.querySelectorAll('.day.selected').forEach(el => el.classList.remove('selected'));
-  const cur = grid.querySelector(`.day[data-date="${id}"]`);
-  if (cur) cur.classList.add('selected');
-  openSheet(id, data);
-});
-
-// мобильный надёжный путь: tap → click (если long-press не сработал)
-cell.addEventListener('click', (e)=>{
-  if (longPressed) return; // уже ушли в дневник
-  // если уже открыто — не открываем второй раз (после pointerup)
-  const sheetEl = document.getElementById('sheet');
-  if (sheetEl && sheetEl.classList.contains('active')) return;
-  grid.querySelectorAll('.day.selected').forEach(el => el.classList.remove('selected'));
-  const cur = grid.querySelector(`.day[data-date="${id}"]`);
-  if (cur) cur.classList.add('selected');
-  openSheet(id, data);
-});
 grid.appendChild(cell);
   }
 }
@@ -1228,21 +1175,57 @@ grid.appendChild(cell);
     <div class="sheet-row">
       <div class="badge">Доза:</div>
       <strong id="doseVal">${doseText}</strong>
-      <button class="pill right" id="doseEdit" style="padding:8px 12px">Задать</button>
+      <button class="pill right" id="doseEdit" style="padding:8px 12px">Вписать дозировку</button>
     </div>
 
     <div class="sheet-row">
-      <div class="badge">Комментарий:</div>
+      <div class="badge">Заметка:</div>
       <div>${comment}</div>
     </div>
   `;
 
   openDiaryBtn.onclick = ()=> goDiary(id);
-  sheet.classList.add('active'); sheet.setAttribute('aria-hidden','false');
-  document.body.classList.add('sheet-open');
 
-  const scrim = document.getElementById('scrim');
-  if (scrim){ scrim.classList.add('active'); scrim.setAttribute('aria-hidden','false'); scrim.onclick = closeSheet; }
+// форсим пере-анимацию, даже если шит уже открыт
+// всегда обновляем маркеры текущего дня
+const wasOpen   = sheet.classList.contains('active');
+const isSameDay = window._currentOpenId === id;
+window._currentOpenId = id;
+
+// пере-анимация ТОЛЬКО если открываем другой день
+if (wasOpen && !isSameDay) {
+  sheet.classList.remove('active');
+  sheet.style.transition = 'none';
+  void sheet.offsetHeight;      // рефлоу
+  sheet.style.transition = '';
+}
+
+sheet.classList.add('active');
+sheet.setAttribute('aria-hidden','false');
+document.body.classList.add('sheet-open');
+
+const scrim = document.getElementById('scrim');
+ if (scrim){
+  scrim.classList.add('active');
+  scrim.setAttribute('aria-hidden','false');
+  scrim.onclick = (e) => {
+    // временно «прозрачим» скрим, чтобы узнать, что под ним
+    scrim.style.pointerEvents = 'none';
+    const under = document.elementFromPoint(e.clientX, e.clientY);
+    scrim.style.pointerEvents = '';
+
+    const day = under && under.closest ? under.closest('.day[data-date]') : null;
+    if (day) {
+      // кликнули по другому дню под скримом — сразу открываем его шит
+      grid.querySelectorAll('.day.selected').forEach(el => el.classList.remove('selected'));
+      day.classList.add('selected');
+      openSheet(day.dataset.date);
+    } else {
+      // кликнули в «пустоту» — закрываем
+      closeSheet();
+    }
+  };
+}
 
 const btn = document.getElementById('doseEdit');
 if (btn){
@@ -1293,16 +1276,17 @@ if (btn){
 }
 
   
-  const closeSheet = ()=>{
-    const scrim = document.getElementById('scrim');
-    sheet.classList.remove('active'); sheet.setAttribute('aria-hidden','true');
-    sheet.style.transition = ''; sheet.style.transform = ''; // reset after swipe
-    if (scrim){
-      scrim.classList.remove('active'); scrim.setAttribute('aria-hidden','true');
-      scrim.onclick = null;
-      document.body.classList.remove('sheet-open');
-    }
-  };
+ const closeSheet = ()=>{
+  const scrim = document.getElementById('scrim');
+  sheet.classList.remove('active'); sheet.setAttribute('aria-hidden','true');
+  sheet.style.transition = ''; sheet.style.transform = ''; // reset after swipe
+  window._currentOpenId = null;   // ← добавь
+  if (scrim){
+    scrim.classList.remove('active'); scrim.setAttribute('aria-hidden','true');
+    scrim.onclick = null;
+    document.body.classList.remove('sheet-open');
+  }
+};
 
   const goDiary = (id) => {
   try {
@@ -1347,15 +1331,17 @@ if (btn){
       if (scrim) scrim.style.opacity = String(Math.max(0, 1 - sw.dy/260));
     };
     const end = ()=>{
-      if (!sw.active) return;
-      sheet.style.transition = 'transform .25s ease';
-      if (sw.dy > 120){ closeSheet(); }
-      else {
-        sheet.style.transform = 'translateY(0)';
-        if (scrim) scrim.style.opacity = '';
-      }
-      sw.active = false;
-    };
+  if (!sw.active) return;
+  // Мягче возврат/закрытие — та же кривая, что у открытия
+  sheet.style.transition = 'transform .38s cubic-bezier(.16,1,.3,1)';
+  if (sw.dy > 120){
+    closeSheet();
+  } else {
+    sheet.style.transform = 'translateY(0)';
+    if (scrim) scrim.style.opacity = '';
+  }
+  sw.active = false;
+};
     // Pointer events
     sheet.addEventListener('pointerdown', start);
     sheet.addEventListener('pointermove', move);
@@ -1366,6 +1352,72 @@ if (btn){
     sheet.addEventListener('touchmove', move, {passive:false});
     sheet.addEventListener('touchend', end);
   })();
+  // ==== SWIPE LEFT/RIGHT TO SWITCH DAY ====
+(function(){
+  const TH_X = 80;   // порог по X
+  const TH_Y = 50;   // допуск по Y
+  let sx=0, sy=0, dx=0, dy=0, tracking=false;
+
+  function shiftISO(isoStr, delta){
+    const [Y,M,D] = isoStr.split('-').map(Number);
+    const d = new Date(Y, M-1, D + delta);
+    const y = d.getFullYear(), m = String(d.getMonth()+1).padStart(2,'0'), day = String(d.getDate()).padStart(2,'0');
+    return `${y}-${m}-${day}`;
+  }
+
+  function openRelative(delta){
+    const cur = window._currentOpenId;
+    if (!cur) return;
+    const nextId = shiftISO(cur, delta);
+
+    const openNow = () => {
+      const cell = grid.querySelector(`.day[data-date="${nextId}"]`);
+      if (cell){
+        grid.querySelectorAll('.day.selected').forEach(el => el.classList.remove('selected'));
+        cell.classList.add('selected');
+        openSheet(nextId); // пере-анимация уже в openSheet (см. п.2)
+      }
+    };
+
+    if (grid.querySelector(`.day[data-date="${nextId}"]`)) {
+      openNow();
+    } else {
+      // другой месяц: перелистываем и потом открываем
+      const d = new Date(nextId);
+      current = new Date(d.getFullYear(), d.getMonth(), 1);
+      render();
+      requestAnimationFrame(openNow);
+    }
+  }
+
+  function start(e){
+    if (!sheet.classList.contains('active')) return;
+    const p = e.touches ? e.touches[0] : e;
+    sx = p.clientX; sy = p.clientY; dx = dy = 0;
+    tracking = true;
+  }
+  function move(e){
+    if (!tracking) return;
+    const p = e.touches ? e.touches[0] : e;
+    dx = p.clientX - sx;
+    dy = p.clientY - sy;
+  }
+  function end(){
+    if (!tracking) return;
+    tracking = false;
+    if (Math.abs(dx) > TH_X && Math.abs(dy) < TH_Y){
+      openRelative(dx < 0 ? +1 : -1);  // влево → следующий день, вправо → предыдущий
+    }
+  }
+
+  sheet.addEventListener('touchstart', start, {passive:true});
+  sheet.addEventListener('touchmove',  move,  {passive:true});
+  sheet.addEventListener('touchend',   end);
+
+  sheet.addEventListener('pointerdown', start);
+  sheet.addEventListener('pointermove',  move);
+  sheet.addEventListener('pointerup',    end);
+})();
 window.addEventListener('keydown', (e)=>{ if(e.key === 'Escape') closeSheet(); });
   window.addEventListener('storage', (e)=>{
  if (e.key === 'rt.diary.v1' || e.key === 'rt.diary.bump' || e.key === 'rt.diary.v2') render();
@@ -1401,9 +1453,9 @@ document.addEventListener('visibilitychange', ()=>{ if (!document.hidden) render
     const dt = performance.now() - t0;
     const longPress = dt > TAP_MS;
 
-    if (sheet.classList.contains('active') || longPress || moved || drag.active){
-      downId = null; return;
-    }
+    if (longPress || moved || drag.active){
+  downId = null; return;
+}
 
     const p = (e.changedTouches?.[0]) || e;
     const el = document.elementFromPoint(p.clientX, p.clientY);
@@ -1424,7 +1476,6 @@ document.addEventListener('visibilitychange', ()=>{ if (!document.hidden) render
   grid.addEventListener('click', (e)=>{
     const c = e.target.closest('.day[data-date]');
     if (!c || moved || drag.active) return;
-    if (sheet.classList.contains('active')) return;
     grid.querySelectorAll('.day.selected').forEach(el => el.classList.remove('selected'));
     c.classList.add('selected');
     openSheet(c.dataset.date);
@@ -1540,37 +1591,142 @@ document.addEventListener('pointerup', finishDrag);
 @media (prefers-reduced-motion:reduce){
   .pill-alert--stock{ animation:none }
 }
-/* Поверх всего, выше таббара */
+/* Не трогаем таббар: он выше «шита» и кликается всегда */
+:root{  --tabbar-h: calc(64px + env(safe-area-inset-bottom));
+  --sheet-gap: 26px;    }
+
+/* ————— затемнение мягче и короче (не залезает под таббар) ————— */
 #scrim{
-  position:fixed; inset:0;
-  background:rgba(0,0,0,.45);
-  opacity:0;
-  pointer-events:none;              /* ← важно: клики проходят сквозь, пока скрыто */
-  transition:opacity .2s ease;
-  z-index: 999;
+  position: fixed;
+  left: 0; right: 0; top: 0;
+  bottom: calc(var(--tabbar-h) + var(--sheet-gap));
+  background: rgba(0,0,0,.28);
+  opacity: 0; pointer-events: none;
+  /* МЯГЧЕ И ДОЛЬШЕ */
+  transition: opacity .65s cubic-bezier(.16,1,.3,1);
+  z-index: 1200;
 }
-#scrim.active{
-  opacity:1;
-  pointer-events:auto;              /* ← кликается только когда шит открыт */
-}
+#scrim.active{ opacity: 1; pointer-events: auto; }
 
 #sheet{
-  position:fixed; left:0; right:0; bottom:0;
-  transform: translateY(110%);
-  transition: transform .28s ease;
-  z-index: 1000;                    /* выше скрима */
-}
-#sheet.active{ transform: translateY(0); }
+  position: fixed; left: 0; right: 0;
+  bottom: calc(var(--tabbar-h) + var(--sheet-gap));
+  z-index: 1300;
 
-/* чтобы таббар не перекрывал шит */
-nav.tabbar{ z-index: 40 !important; }
-</style>
-<style>
-  /* гарантированный верх для шита */
-  #scrim{ z-index:2147483645 !important; }
-  #sheet{ z-index:2147483646 !important; }
-  /* когда шит открыт — таббар точно ниже и некликабелен */
-  body.sheet-open nav.tabbar{ z-index:1 !important; pointer-events:none !important; }
+  opacity: 0; visibility: hidden; pointer-events: none;
+  /* Чуть больше стартовое смещение + мягче кривая */
+  transform: translateY(22px);
+  transition:
+    transform .55s cubic-bezier(.16,1,.3,1),
+    opacity   .45s cubic-bezier(.16,1,.3,1),
+    visibility 0s linear .45s;
+  will-change: transform, opacity;
+
+  background:
+    radial-gradient(120% 160% at 50% -30%, rgba(18,172,255,.10) 0%, rgba(0,0,0,0) 60%),
+    linear-gradient(180deg, rgba(16,24,36,.94) 0%, rgba(10,16,24,.96) 100%);
+  backdrop-filter: blur(14px) saturate(1.06);
+  -webkit-backdrop-filter: blur(14px) saturate(1.06);
+
+  border-top-left-radius: 22px;
+  border-top-right-radius: 22px;
+  border: 1px solid rgba(255,255,255,.06);
+  box-shadow:
+    0 -16px 34px rgba(0,0,0,.55),
+    inset 0  1px  0 rgba(255,255,255,.10),
+    inset 0 -1px  0 rgba(0,0,0,.35);
+  padding: 14px 14px 16px;
+}
+#sheet.active{
+  opacity: 1; visibility: visible; pointer-events: auto;
+  transform: translateY(0);
+  transition:
+    transform .55s cubic-bezier(.16,1,.3,1),
+    opacity   .45s cubic-bezier(.16,1,.3,1),
+    visibility 0s;
+}
+
+/* таббар поверх и кликабелен */
+nav.tabbar{ z-index: 1400 !important; }
+body.sheet-open nav.tabbar{ pointer-events: auto !important; }
+/* ——— ручка перетягивания ——— */
+.drag-handle{
+  width: 48px; height: 6px; margin: 2px auto 10px; border-radius: 999px;
+  background: linear-gradient(180deg, rgba(255,255,255,.38), rgba(255,255,255,.06));
+  box-shadow:
+    inset 0 1px 0 rgba(255,255,255,.35),
+    inset 0 -1px 0 rgba(0,0,0,.45),
+    0 8px 18px rgba(0,0,0,.35);
+}
+
+/* ——— шапка шита ——— */
+.sheet-head{
+  display:flex; align-items:center; gap:10px; padding: 4px 2px 10px;
+}
+.sheet-title{
+  flex:1; font-weight:800; letter-spacing:.2px;
+  text-shadow: 0 1px 0 rgba(255,255,255,.08);
+}
+
+/* ——— неоморфные строки ——— */
+.sheet-row{
+  display:flex; align-items:center; justify-content:space-between;
+  gap: 12px; padding: 12px 14px; margin: 10px 0;
+  border-radius: 14px;
+  background: linear-gradient(180deg, rgba(255,255,255,.03), rgba(255,255,255,.015));
+  box-shadow:
+    10px 10px 22px rgba(0,0,0,.45),               /* нижняя правая внешняя */
+    -10px -10px 22px rgba(255,255,255,.03),       /* верхняя левая подсветка */
+    inset 0 1px 0 rgba(255,255,255,.06),          /* внутренний верхний блик */
+    inset 0 -1px 0 rgba(0,0,0,.35);               /* внутренняя тень снизу */
+  border: 1px solid rgba(255,255,255,.05);
+}
+.sheet-row .label{ opacity:.85; }
+.sheet-row .value{ font-weight:700; }
+
+/* ——— бейджи ——— */
+.badge{
+  display:inline-flex; align-items:center; gap:6px;
+  padding: 6px 10px; border-radius: 999px;
+  font-weight:700; letter-spacing:.2px;
+  background: linear-gradient(180deg, rgba(255,255,255,.10), rgba(255,255,255,.02));
+  border: 1px solid rgba(255,255,255,.10);
+  box-shadow:
+    0 6px 14px rgba(0,0,0,.35),
+    inset 0 1px 0 rgba(255,255,255,.25),
+    inset 0 -1px 0 rgba(0,0,0,.35);
+}
+
+/* ——— капсульная кнопка (правая) ——— */
+.right, .pill{
+  appearance:none; border:0; cursor:pointer; user-select:none;
+  padding: 10px 14px; border-radius: 14px; font-weight:800;
+  color:#0b1620; background:
+    linear-gradient(180deg,#58edd2,#17d6c8 60%,#10c2bd);
+  box-shadow:
+    0 10px 18px rgba(8,200,180,.32),
+    inset 0 1px 0 rgba(255,255,255,.55),
+    inset 0 -1px 0 rgba(0,0,0,.25);
+  transition: transform .12s ease, box-shadow .12s ease, filter .12s ease;
+}
+.right:hover, .pill:hover{ filter: brightness(1.04); }
+.right:active, .pill:active{ transform: translateY(1px); box-shadow:
+    0 6px 12px rgba(8,200,180,.28),
+    inset 0 1px 0 rgba(255,255,255,.4),
+    inset 0 -1px 0 rgba(0,0,0,.3);
+}
+
+/* ——— светлая «вписать дозировку» ——— */
+.pill.secondary{
+  color: #dfe9f0;
+  background: linear-gradient(180deg, rgba(255,255,255,.06), rgba(255,255,255,.02));
+  box-shadow:
+    8px 8px 18px rgba(0,0,0,.45),
+    -8px -8px 18px rgba(255,255,255,.03),
+    inset 0 1px 0 rgba(255,255,255,.10),
+    inset 0 -1px 0 rgba(0,0,0,.35);
+  border: 1px solid rgba(255,255,255,.07);
+}
 </style>
 
 </body>

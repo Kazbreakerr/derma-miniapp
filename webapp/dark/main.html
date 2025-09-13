@@ -1063,6 +1063,56 @@ input[type="time"]::-webkit-calendar-picker-indicator{
 
 </head>
 <body>
+  <script>
+  // === DEV auth helper (локалка) ===
+ const DEV = /^(localhost|127\.0\.0\.1)$/.test(location.hostname);
+let DEV_TG = new URLSearchParams(location.search).get('tg')
+          || localStorage.getItem('rt.dev.tg')
+          || '';
+
+if (DEV && DEV_TG) { try{ localStorage.setItem('rt.dev.tg', DEV_TG); }catch(_){} }
+// === Глобальный суффикс ключей LS для конкретного пользователя (по tg/id) ===
+window.LS_POSTFIX = (function(){
+  try {
+    const qsId = new URLSearchParams(location.search).get('tg') || '';
+    const tgId = window.Telegram?.WebApp?.initDataUnsafe?.user?.id || '';
+    const dev  = localStorage.getItem('rt.dev.tg') || '';
+    const uid  = qsId || tgId || dev || '';
+    return uid ? (':' + uid) : '';
+  } catch(_) { return ''; }
+})();
+
+// === Хелпер KEY(): KEY('rt_usr_name') -> 'rt_usr_name:1002' (если есть uid) ===
+window.KEY = function(base){
+  return String(base || '') + (window.LS_POSTFIX || '');
+};
+window.api = function api(path, opts = {}) {
+  const url = new URL(path, location.origin);
+  if (DEV && DEV_TG && !url.searchParams.has('tg')) {
+    url.searchParams.set('tg', DEV_TG);
+  }
+  const headers = { 'Content-Type':'application/json', ...(opts.headers||{}) };
+  const initData = window.Telegram?.WebApp?.initData || '';
+  if (initData) headers['X-Telegram-InitData'] = initData;
+
+  // ВОЗВРАЩАЕМ Response, а не сразу JSON — дальше в коде есть r.ok / r.json()
+  return fetch(url.toString(), { ...opts, headers });
+};
+
+// Пробрасываем ?tg во внутренние ссылки даже если он только в localStorage
+document.addEventListener('DOMContentLoaded', () => {
+  const tg = DEV_TG || localStorage.getItem('rt.dev.tg');
+  if (!DEV || !tg) return;
+  document.querySelectorAll('a[href$=".html"], a[href^="/dark/"]').forEach(a => {
+    try {
+      const u = new URL(a.getAttribute('href'), location.href);
+      u.searchParams.set('tg', tg);
+      a.setAttribute('href', u.pathname + u.search + (u.hash || ''));
+    } catch(_) {}
+  });
+});
+</script>
+
 <script>
 (function(){
   try{
@@ -1385,12 +1435,14 @@ input[type="time"]::-webkit-calendar-picker-indicator{
 (function attachTabbarProfileRoute(){
   const tabbar = document.querySelector('nav.tabbar');
   if(!tabbar) return;
+
   tabbar.addEventListener('click', (e)=>{
     const a = e.target.closest('a.tab[href$="myprofile.html"]');
     if(!a) return;
     e.preventDefault();
+
     try{
-      // 1) быстрый снэпшот (как на верхнем блоке)
+      // 1) быстрый снапшот (как в шапке)
       const img = document.querySelector('[data-shared="avatar"] img');
       const snap = {
         name: (document.getElementById('profileName')?.textContent || '').trim() || (window.USER_NAME || ''),
@@ -1417,11 +1469,13 @@ input[type="time"]::-webkit-calendar-picker-indicator{
         sessionStorage.setItem('share:avatar', JSON.stringify(payload));
       }
 
-      // 3) переход с Fade&Slide
-      const go = ()=>{ location.href = 'myprofile.html#fx=avatar'; };
+      // 3) навигация (с сохранением ?tg)
+      const url = withTg('/dark/myprofile.html#fx=avatar');
+      const go  = ()=>{ window.location.href = url; };
       if (document.startViewTransition) document.startViewTransition(go); else go();
     }catch(_){
-      location.href = 'myprofile.html';
+      // даже в фолбэке сохраняем ?tg
+      window.location.href = withTg('/dark/myprofile.html#fx=avatar');
     }
   });
 })();
@@ -2081,10 +2135,20 @@ try{
       document.getElementById('cumPerKg').textContent = w>0 ? fmt2(perKg) : '—';
 
       const targets = { min:120, opt:135, max:150 };
-      const pcts = {};
-      ['min','opt','max'].forEach(m=>{ pcts[m] = (w>0) ? (100 * cum / (targets[m]*w)) : 0; });
+const pcts = {};
+['min','opt','max'].forEach(m=>{ pcts[m] = (w>0) ? (100 * cum / (targets[m]*w)) : 0; });
 
-      applyRingPositions(DOSE_MODE, pcts);
+/* === ДОБАВЛЕНО: экспорт в window + localStorage для myprofile === */
+window.PROFILE_TAKEN_MG  = cum;
+window.PROFILE_WEIGHT_KG = w;
+window.PROFILE_GOAL_MGKG = targets[DOSE_MODE] || 135;
+try {
+  localStorage.setItem('rt_takenMg',  String(cum));
+  localStorage.setItem('rt_weightKG', String(w));
+  localStorage.setItem('rt_goalMgKg', String(targets[DOSE_MODE] || 135));
+} catch(_) {}
+
+applyRingPositions(DOSE_MODE, pcts);
 
       const goalsSpan = document.getElementById('goalsByWeight');
       if (w>0){
@@ -2237,7 +2301,8 @@ try{
     });
   }
 }
-function showEncouragement(){
+// Показывает пузырь; считает остаток по реальному кумулятиву + текущей дозе
+function showEncouragement(addedMg = 0){
   const phrases = [
     "✅ Вы справляетесь!",
     "🌿 Сегодняшняя отметка — маленький шаг к чистой коже",
@@ -2250,27 +2315,65 @@ function showEncouragement(){
     "🔄 Маленькие действия складываются в большой результат"
   ];
 
-  // считаем, сколько осталось (N)
-  let N = 0;
+  // === 1) Кумулятив как в updateSummary, но + текущая доза ===
+  let cum = 0;
+  try { cum = parseInt(PROGRESS?.taken_mg || 0) || 0; } catch(_){}
+  if (!cum) {
+    const seen = new Set();
+    cum = (Array.isArray(window.DOSES) ? window.DOSES : []).reduce((s,d)=>{
+      const k = String(d.date||'').slice(0,10);
+      if (seen.has(k)) return s;
+      seen.add(k);
+      return s + (Number(d.mg||d.mg_taken||0) || 0);
+    }, 0) + (PROGRESS?.seed_cum_mg || 0);
+  }
+  // наложение локального дневника (как в updateSummary)
   try{
-    const w   = Number(localStorage.getItem('rt_weightKG') || (window.ME?.weight_kg||0)) || 0;
-    const cum = Number(String(document.getElementById('cumMg')?.textContent||'0').replace(/\s/g,'')) || 0;
-    const mode = (window.DOSE_MODE||'opt');
-    const perKg = (window.DOSE_PER_KG?.[mode] ?? 135);
-    const tgt = perKg * w;
-    if (tgt > 0) N = Math.max(0, Math.round(100 - (100*cum/tgt)));
+    const diary = JSON.parse(localStorage.getItem('rt.diary.v1')||'{}');
+    const srv = Object.create(null);
+    for (const d of (window.DOSES||[])) {
+      const id = String(d.date).slice(0,10);
+      srv[id] = Number(d.mg || d.mg_taken || 0) || 0;
+    }
+    let delta = 0;
+    for (const [id, rec] of Object.entries(diary)) {
+      const drop = rec?.miss === true || rec?.taken === false;
+      const mg   = Number(rec?.dose ?? rec?.mg ?? 0) || 0;
+      if (drop)       delta -= (srv[id] || 0);
+      else if (mg>0)  delta += (mg - (srv[id] || 0));
+    }
+    cum += delta;
   }catch(_){}
 
-  const txt = phrases[Math.floor(Math.random()*phrases.length)].replace('{N}', N);
+  // прибавляем мг текущего нажатия (мы ещё не дождались синков UI/сервера)
+  cum += Number(addedMg||0);
 
+  // === 2) Цель: мг/кг × вес из тех же источников, что и сводка ===
+  const w = Number((ME?.weight_kg ?? ME?.weight ?? PROGRESS?.weight_kg ?? localStorage.getItem('rt_weightKG') ?? 0)) || 0;
+  const perKg = (window.DOSE_PER_KG?.[window.DOSE_MODE||'opt'] ?? 135);
+  const target = (w > 0) ? (perKg * w) : 0;
+
+  // === 3) Остаток в % (0..99) — используем ceil, чтобы любая доза дала не 100% ===
+  let txt;
+  if (target > 0){
+    const takenPct = (100 * cum / target);
+    const leftPct  = Math.max(0, 100 - Math.ceil(takenPct));  // ключевой фикс
+    const N = Math.min(99, leftPct);                          // исключаем 100 при cum>0
+    const raw = phrases[Math.floor(Math.random()*phrases.length)];
+    txt = raw.includes("{N}") ? raw.replace("{N}", String(N)) : raw;
+  } else {
+    // веса нет — берём фразу без процентов
+    const pool = phrases.filter(p=>!p.includes("{N}"));
+    txt = pool[Math.floor(Math.random()*pool.length)];
+  }
+
+  // === 4) Пузырь ===
   const ui = document.createElement('div');
   ui.className = 'enc-overlay';
   ui.innerHTML = `<div class="enc-bubble">${txt}</div>`;
   document.body.appendChild(ui);
-
-  // держим 1.4с, затем мягкое исчезание
-  setTimeout(()=> ui.classList.add('hide'), 1800);
-  setTimeout(()=> ui.remove(), 3000);
+  setTimeout(()=> ui.classList.add('hide'), 2000);
+  setTimeout(()=> ui.remove(), 3200);
 }
 // 💊 всплеск-капсула — рисуем в месте нажатия
 function spawnPillFx(btn, clientX, clientY){
@@ -2381,7 +2484,7 @@ if (saveBtn) {
       try { window.renderPillAlert && window.renderPillAlert(); } catch(_) {}
          // <<< добавить эту строку
     spawnPillFx(saveBtn, ev.clientX, ev.clientY);
-            showEncouragement(); // ✨ мотивационное сообщение + мягкое свечение
+showEncouragement(mg); // ← передаём мг этой записи
 
       // 6) «пинок» для других вкладок/страниц
       try {
@@ -2435,8 +2538,10 @@ if (saveBtn) {
 }
 
   // 1) начинаем с кеша — меньше мерцаний
-  let name  = localStorage.getItem('rt_usr_name')   || '';
-  let photo = localStorage.getItem('rt_usr_avatar') || '';
+  let name  = localStorage.getItem('rt_usr_name'   + LS_POSTFIX) || '';
+let photo = localStorage.getItem('rt_usr_avatar' + LS_POSTFIX) || '';
+// если явно указан ?tg — старый «общий» кеш не используем
+if (DEV_TG) { name = ''; photo = ''; }
   let handle = '';
 
   // 2) Telegram initData (если есть)
@@ -2460,12 +2565,13 @@ const u = window.Telegram?.WebApp?.initDataUnsafe?.user;
   }
 
   // 5) /api/me как последний фоллбек для имени
-  if (!name) {
-    try {
-      const r = await api('/api/me');
-      if (r.ok) { const me = await r.json(); name = me.full_name || name; }
-    } catch(_) {}
-  }
+  // при ?tg всегда ходим на сервер (чтобы не залипало чужое имя)
+if (!name || DEV_TG) {
+  try {
+    const me = await api('/api/me');
+    name = me.full_name || me.name || name;
+  } catch(_){}
+}
 
   // 6) Проставляем в UI
   if (nameEl) nameEl.textContent = name || '—';
@@ -2475,8 +2581,8 @@ else setInitials(avaEl, name);
 
 
   // 7) Кешируем для других страниц
-  try { localStorage.setItem('rt_usr_name',   name  || ''); } catch(_){}
-  try { localStorage.setItem('rt_usr_avatar', photo || ''); } catch(_){}
+  try { localStorage.setItem('rt_usr_name'   + LS_POSTFIX, name  || ''); } catch(_){}
+  try { localStorage.setItem('rt_usr_avatar' + LS_POSTFIX, photo || ''); } catch(_){}
 })();
 
 /* ==== остальной инициализационный код ==== */
@@ -2865,18 +2971,22 @@ document.addEventListener('DOMContentLoaded', () => {
 </script>
 
 <script>
-// Match myprofile cross-page animation for links with data-vt-link
+function withTg(url){
+  const qs = new URLSearchParams(location.search);
+  const tg = qs.get('tg') || localStorage.getItem('rt.dev.tg') || '';
+  const u = new URL(url, location.origin);
+  if (tg) u.searchParams.set('tg', tg);
+  return u.pathname + u.search + (u.hash || '');
+}
+
+// ViewTransition для всех ссылок с data-vt-link
 document.addEventListener('click', (e)=>{
   const a = e.target.closest('a[data-vt-link]');
   if(!a) return;
   if(e.metaKey||e.ctrlKey||e.shiftKey||e.altKey||a.target==='_blank') return;
   e.preventDefault();
-  const go = ()=>{ window.location.href = a.getAttribute('href'); };
-  if (document.startViewTransition) {
-    document.startViewTransition(go);
-  } else {
-    go();
-  }
+  const go = ()=>{ window.location.href = withTg(a.getAttribute('href')); };
+  if (document.startViewTransition) document.startViewTransition(go); else go();
 });
 </script>
 
@@ -2885,6 +2995,16 @@ document.addEventListener('click', (e)=>{
   const header = document.getElementById('profileHeader');
   if(!header) return;
 
+  // локальный helper — добавляет текущий ?tg к ссылке
+  function withTg(u){
+    try{
+      const tg = new URLSearchParams(location.search).get('tg');
+      const url = new URL(u, location.origin);
+      if (tg) url.searchParams.set('tg', tg);
+      return url.pathname + url.search + (url.hash || '');
+    }catch(_){ return u; }
+  }
+
   header.addEventListener('click', () => {
     // 1) геометрия «героя»
     const av = header.querySelector('[data-shared="avatar"]');
@@ -2892,32 +3012,37 @@ document.addEventListener('click', (e)=>{
       const r = av.getBoundingClientRect();
       const img = av.querySelector('img');
       const txt = (av.querySelector('span')?.textContent || '').trim().slice(0,1).toUpperCase();
-      sessionStorage.setItem('share:avatar', JSON.stringify({
-        x: r.left, y: r.top + window.scrollY, w: r.width, h: r.height,
-        br: getComputedStyle(av).borderRadius,
-        src: img?.currentSrc || img?.src || '',
-        text: txt, bg: getComputedStyle(av).backgroundColor,
-        ts: Date.now()
-      }));
+      try{
+        sessionStorage.setItem('share:avatar', JSON.stringify({
+          x: r.left, y: r.top + window.scrollY, w: r.width, h: r.height,
+          br: getComputedStyle(av).borderRadius,
+          src: img?.currentSrc || img?.src || '',
+          text: txt, bg: getComputedStyle(av).backgroundColor,
+          ts: Date.now()
+        }));
+      }catch(_){}
     }
 
-    // 2) СНАПШОТ ДАННЫХ ДЛЯ myprofile (фолбэк, когда нет API)
-    const snap = {
-      name: (document.getElementById('profileName')?.textContent || '').trim()  // ← ваш селектор имени на главной
-            || (window.USER_NAME || ''),
-      avatarSrc: header.querySelector('[data-shared="avatar"] img')?.currentSrc
-                 || header.querySelector('[data-shared="avatar"] img')?.src || '',
-      weightKg:  Number(window.PROFILE_WEIGHT_KG || localStorage.getItem('rt_weightKG') || 0),
-      goalMgPerKg: Number(window.PROFILE_TARGET_MGKG || localStorage.getItem('rt_goalMgKg') || 135),
-      takenMg:  Number(window.PROFILE_TAKEN_MG || localStorage.getItem('rt_takenMg') || 0),
-      todayMg:  Number(window.PROFILE_TODAY_MG || localStorage.getItem('rt_todayMg') || 0),
-      drug:     String(window.PROFILE_DRUG || localStorage.getItem('rt_drug') || 'Изотретиноин'),
-      startISO: String(window.PROFILE_START_ISO || localStorage.getItem('rt_startISO') || '')
-    };
-    sessionStorage.setItem('share:user', JSON.stringify(snap));
+    // 2) снапшот данных для быстрых плейсхолдеров на myprofile
+    try{
+      const snap = {
+        name: (document.getElementById('profileName')?.textContent || '').trim() || (window.USER_NAME || ''),
+        avatarSrc: header.querySelector('[data-shared="avatar"] img')?.currentSrc
+                   || header.querySelector('[data-shared="avatar"] img')?.src || '',
+        weightKg: Number(window.PROFILE_WEIGHT_KG || localStorage.getItem('rt_weightKG') || 0),
+        goalMgPerKg: Number(window.PROFILE_TARGET_MGKG || localStorage.getItem('rt_goalMgKg') || 135),
+        takenMg: Number(window.PROFILE_TAKEN_MG || localStorage.getItem('rt_takenMg') || 0),
+        todayMg: Number(window.PROFILE_TODAY_MG || localStorage.getItem('rt_todayMg') || 0),
+        drug: String(window.PROFILE_DRUG || localStorage.getItem('rt_drug') || 'Изотретиноин'),
+        startISO: String(window.PROFILE_START_ISO || localStorage.getItem('rt_startISO') || '')
+      };
+      sessionStorage.setItem('share:user', JSON.stringify(snap));
+    }catch(_){}
 
-    // 3) навигация
-    location.href = 'myprofile.html#fx=avatar';
+    // 3) навигация С СОХРАНЕНИЕМ ?tg
+    const url = withTg('/dark/myprofile.html#fx=avatar');
+    const go  = ()=>{ location.href = url; };
+    if (document.startViewTransition) document.startViewTransition(go); else go();
   });
 })();
 </script>
@@ -3393,14 +3518,14 @@ document.addEventListener('DOMContentLoaded', syncReminderUI);
 
   // dev-режим (запуск вне Telegram): ?tg_name=...&tg_photo=...
   const qs = new URLSearchParams(location.search);
-  if (!name)  name  = qs.get('tg_name')  || localStorage.getItem('rt_usr_name')   || '';
+  if (!name)  name  = qs.get('tg_name')  || localStorage.getItem(KEY('rt_usr_name'))   || '';
   if (!photo) photo = qs.get('tg_photo') || localStorage.getItem('rt_usr_avatar') || '';
 
   // если есть username и нет photo — попробуем unavatar
   const handle = u?.username || qs.get('tg_handle') || '';
   if (!photo && handle) photo = `https://unavatar.io/telegram/${encodeURIComponent(handle)}`;
 
-  try{ if(name)  localStorage.setItem('rt_usr_name', name); }catch(_){}
+  try{ if(name)  localStorage.setItem(KEY('rt_usr_name'), name); }catch(_){}
   try{ if(photo) localStorage.setItem('rt_usr_avatar', photo); }catch(_){}
 
   // 2) поставим имя во «все подходящие места»
@@ -3496,7 +3621,7 @@ if (cur && cur.complete && cur.naturalWidth > 0) return;
     if (name){
       document.querySelectorAll('#tgName, #topName, #fullName, [data-tg-name], #heroName, .hero-name, #profileName')
         .forEach(el => el && (el.textContent = name));
-      try{ localStorage.setItem('rt_usr_name', name); }catch(_){}
+      try{ localStorage.setItem(KEY('rt_usr_name'), name); }catch(_){}
     }
     if (handle) try{ localStorage.setItem('rt_usr_handle', handle); }catch(_){}
     if (tgId)   try{ localStorage.setItem('rt_usr_id', tgId); }catch(_){}

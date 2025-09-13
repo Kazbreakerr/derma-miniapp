@@ -1417,12 +1417,56 @@ function animatePane(dir){
     }, 110);
   }
 }
+// Собираем текущее состояние побочек из DOM
+function collectSEFromDOM(){
+  const se = {};
+  document.querySelectorAll('#seList input[type="range"][data-key]').forEach(inp=>{
+    const key = inp.dataset.key;
+    const v = Number(inp.value) || 0;
+    if (v > 0) se[key] = v;   // нули не храним — как и раньше
+  });
+  return se;
+}
 
+// Форс-сейв текущего дня без debounce
+function flushCurrentEntry(){
+  try{
+    // определяем «какой день открыт сейчас»
+    const curISO = (document.getElementById('datePicker')?.value) ||
+                   window.lastDateISO ||
+                   (typeof selectedISO === 'function' ? selectedISO() : null);
+    if (!curISO) return;
+
+    // берём/обновляем entry
+    const entry = (typeof getEntry === 'function') ? getEntry(curISO) : { iso: curISO };
+    const notesEl = document.getElementById('notes');
+    // самочувствие (если используется глобальная переменная valence)
+    if (typeof window.valence !== 'undefined') entry.wellness = Math.round(Number(window.valence)||0);
+    // заметка
+    if (notesEl) entry.notes = String(notesEl.value || '').trim();
+    // побочки
+    entry.sideEffects = collectSEFromDOM();
+
+    if (typeof putEntry === 'function') putEntry(entry);
+    if (typeof saveDB === 'function'){
+      const db = (typeof loadDB === 'function') ? loadDB() : null;
+      if (db) saveDB(db);
+    }
+  }catch(_){}
+}
 function setDate(d, dir = 0){
+  // 0) Перед переключением дня досейвим текущее, иначе теряются правки
+  try { flushCurrentEntry(); } catch(_){}
+
+  // 1) Переключаем дату + анимация
   datePicker.value = d;
   animatePane(dir);
+
+  // 2) Загружаем данные нового дня в UI
   loadIntoUI(d);
   lastDateISO = d;
+
+  // 3) Память о последнем открытом дне (как у тебя было)
   try{
     localStorage.setItem('rt.diary.last_date', d);
     sessionStorage.setItem('rt.openDate', d);
@@ -1739,7 +1783,7 @@ lastMs = nowMs;
 
  // Ручки:
 const PILL_SCALE   = 1.15;  // < 1 — капсула меньше; > 1 — больше
-const PILL_THICK   = 0.80;  // > 1 — капсула толще (выше относительно длины)
+const PILL_THICK   = 0.65;  // > 1 — капсула толще (выше относительно длины)
 
 // Базовые размеры:
 const baseW = W0 * 0.60 * PILL_SCALE;
@@ -1999,7 +2043,7 @@ function renderSE(entry){
     const row=document.createElement('div'); row.className='se-item';
 row.innerHTML = `<div class="label">${title}</div>
   <div class="ctrl">
-    <input type="range" min="0" max="3" step="1" data-key="${key}" value="${level}">
+    <input type="range" min="0" max="3" step="1" data-key="${key}" data-se="${key}" value="${level}">
     <span class="se-badge">${level}</span>
   </div>`;    const input=row.querySelector('input');
 const badge=row.querySelector('.se-badge');

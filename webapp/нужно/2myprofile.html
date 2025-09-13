@@ -574,7 +574,7 @@ body.light .diary.is-cta{
 
     // *** Важно: добавляем ?tg=... ТОЛЬКО если НЕ в Телеге (dev-режим в браузере) ***
     if (!initData) {
-      const DEV_TG_KEY = 'rt_dev_tg_patient';
+      const DEV_TG_KEY = 'rt.dev.tg';
 const devTg =
   new URLSearchParams(location.search).get('tg') ||
   localStorage.getItem(DEV_TG_KEY) || '1002';
@@ -898,33 +898,7 @@ html, body{ max-width:100vw; overflow-x:hidden; }
 </style>
 </head>
 <body>
-<script>
-(function(){
-  const DEV = location.hostname === 'localhost' || location.hostname === '127.0.0.1';
-  const KEY = 'rt_dev_tg_patient';
 
-  window.api = function api(path, opts = {}) {
-    const url = new URL(path, location.origin);
-
-    if (DEV) {
-      const urlTg = new URLSearchParams(location.search).get('tg');
-      const lsTg  = localStorage.getItem(KEY);
-      const devTg = urlTg || lsTg || '';
-      if (devTg) {
-        try { localStorage.setItem(KEY, devTg); } catch(_){}
-        if (!url.searchParams.has('tg')) url.searchParams.set('tg', devTg);
-      }
-    }
-
-    const headers = { 'Content-Type':'application/json', ...(opts.headers||{}) };
-    const initData = window.Telegram?.WebApp?.initData || '';
-    if (initData) headers['X-Telegram-InitData'] = initData;
-
-    // ВОЗВРАЩАЕМ Response (как обычный fetch), без throw
-    return fetch(url.toString(), { ...opts, headers, credentials:'include' });
-  };
-})();
-</script>
 <script>
 (function(){
   try{
@@ -967,7 +941,7 @@ html, body{ max-width:100vw; overflow-x:hidden; }
       <!-- pencil icon -->
       <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20h9"/><path d="M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4 12.5-12.5z"/></svg>
     </button>
-    <a class="iconbtn faq" href="/dark/faq.html" data-vt-link title="FAQ" aria-label="Открыть FAQ">
+    <a class="iconbtn faq" href="faq.html" data-vt-link title="FAQ" aria-label="Открыть FAQ">
   <span class="txt">FAQ</span>
 </a>
 <a class="iconbtn settings-btn" href="#" title="Настройки" aria-label="Настройки"></a>
@@ -975,6 +949,7 @@ html, body{ max-width:100vw; overflow-x:hidden; }
   </div>
 
   <main class="container">
+    
       <div class="app-title">Профиль пациента<span data-pill-spot></span><span data-stock-spot></span></div>
     <section class="card hero" id="hero">
      <div class="hero-bg-switch" id="heroBgSwitch" aria-label="Фон карточки">
@@ -1101,7 +1076,7 @@ html, body{ max-width:100vw; overflow-x:hidden; }
           </div>
           <div class="doc-bind" id="docBind" style="grid-column:1/-1">
             <input id="docCodeInput" class="text-input" type="text" placeholder="Введите код врача">
-            <button class="btn primary" id="docBindBtn" type="button" disabled>Прикрепить врача</button>
+            <button class="btn primary" id="docBindBtn" disabled>Прикрепить врача</button>
             
           </div>
           <div class="err" id="docError" style="grid-column:1/-1" hidden>Код врача не найден</div>
@@ -1203,7 +1178,7 @@ html, body{ max-width:100vw; overflow-x:hidden; }
         <b>Профиль останется.</b>
       </p>
     </div>
-    <a class="btn btn-reset" href="/dark/reset.html" data-vt-link
+    <a class="btn btn-reset" href="reset.html" data-vt-link
        title="Переход на страницу сброса. Ничего не удалится без подтверждения.">
       Перейти к обнулению
     </a>
@@ -1211,7 +1186,7 @@ html, body{ max-width:100vw; overflow-x:hidden; }
 
   <!-- ПРАВАЯ половина: возврат на приветствие -->
   <section class="card welcome-panel">
-    <a class="neon-btn" href="/dark/welcome-rt.html" data-vt-link
+    <a class="neon-btn" href="welcome-rt.html" data-vt-link
        title="Вернуться на приветственную страницу выбора роли">
       <span class="neon-title">К выбору роли&nbsp;›</span>
       <span class="neon-sub">перейти на приветственную</span>
@@ -1308,15 +1283,8 @@ window.AppState = window.AppState || (function(){
 
 set('userName', STATE.name || 'Профиль');
 const av = $('#avatarImg');
-if (av) {
-  if (STATE.avatarUrl) {
-    av.src = STATE.avatarUrl;
-  } else {
-    av.remove(); // не заслоняем инициалы пустой картинкой
-  }
-}
-const af = $('#avatarFallback');
-if (af) af.textContent = ((STATE.name||'U').trim().charAt(0)||'U').toUpperCase();
+if (av && STATE.avatarUrl) { av.src = STATE.avatarUrl; }
+else { const af = $('#avatarFallback'); if (af) af.textContent = ((STATE.name||'U').trim().charAt(0)||'U').toUpperCase(); }
 
     const goalMg = Math.round(STATE.weightKg * STATE.goalMgPerKg);
     const pct = clamp(goalMg? (STATE.takenMg/goalMg*100):0, 0, 100);
@@ -1441,7 +1409,7 @@ function getLocalTodayDose(){
       if (full) STATE.name = full;
       if (u.photo_url) STATE.avatarUrl = u.photo_url;
     }
-    if (!STATE.avatarUrl && u?.id) STATE.avatarUrl = `/api/tg-avatar/${u.id}`;
+    if (!photo && u?.id) photo = `/api/tg-avatar/${u.id}`;
   }catch(_){}
 
   // Снэпшот с главной (верхний блок и нижняя кнопка кладут сюда)
@@ -1491,66 +1459,69 @@ function getLocalTodayDose(){
   if (!name)  name  = me.full_name || me.name || '';
   if (!photo) photo = me.avatar_url || '';
 
-  // 2) Сводка курса
-  let sum = {};
-  try{
-    const sumR = await api('/api/summary');
-    if (sumR.ok) sum = await sumR.json();
-  }catch(_){}
-
-  // 3) Заполняем STATE аккуратно (дополняем, не затирая уже известное)
-  // Имя/аватар
-  if (!STATE.name)      STATE.name = name || 'Профиль';
-  if (!STATE.avatarUrl) STATE.avatarUrl = photo || '';
-
-  // Вес/цель — перезаписываем ТОЛЬКО если пришло с бэка
-  if (me && (me.weight_kg || me.weight)) {
-    STATE.weightKg = Number(me.weight_kg || me.weight) || STATE.weightKg || 0;
-  } else {
-    STATE.weightKg = Number(STATE.weightKg || 0);
+ // 2) Сводка курса
+let sum = {};
+try {
+  const r = await api('/api/summary');
+  // Подстрахуемся: если локальный снэпшот больше — не затираем меньшим серверным
+try {
+  const snap = JSON.parse(sessionStorage.getItem('share:user') || '{}');
+  if (snap && typeof snap === 'object') {
+    if (Number(snap.takenMg) > Number(j?.cumulativeMg || 0)) {
+      j.cumulativeMg = Number(snap.takenMg);
+    }
+    if (Number(snap.todayMg) > Number(j?.todayMg || 0)) {
+      j.todayMg = Number(snap.todayMg);
+    }
   }
-  if (me && (me.target_mg_per_kg != null)) {
-    STATE.goalMgPerKg = Number(me.target_mg_per_kg);
-  } else {
-    STATE.goalMgPerKg = Number(STATE.goalMgPerKg || 135) || 135;
-  }
+} catch (_) {}
+  if (r.ok) sum = await r.json();
+} catch(_){}
 
-  // Препарат/старт курса
-  STATE.drug = me.drug || STATE.drug || localStorage.getItem('rt_drug') || 'Изотретиноин';
-  const startISO = me.course_start || me.start_date || STATE.startISO || localStorage.getItem('rt_startISO') || '';
-  if (startISO) STATE.startISO = String(startISO).slice(0,10);
+// 3) Мержим всё в STATE, один раз
+STATE.name      = name  || STATE.name || 'Профиль';
+STATE.avatarUrl = photo || STATE.avatarUrl || '';
 
-  // Кумулятив/сегодня — только если есть данные; иначе берём локальные
-  if (sum && typeof sum.cum_mg === 'number') {
-    STATE.takenMg = Number(sum.cum_mg);
-  } else {
-    STATE.takenMg = Number(STATE.takenMg || localStorage.getItem('rt_takenMg') || 0) || 0;
-  }
+if (me && (me.weight_kg ?? me.weight) != null)
+  STATE.weightKg = Number(me.weight_kg ?? me.weight) || 0;
 
-  const localToday = getLocalTodayDose();
-  if (sum && typeof sum.today_mg === 'number') {
-    STATE.todayMg = Number(sum.today_mg);
-  } else if (localToday > 0) {
-    STATE.todayMg = localToday;
-  } else {
-    STATE.todayMg = Number(STATE.todayMg || localStorage.getItem('rt_todayMg') || 0) || 0;
-  }
+if (me && me.target_mg_per_kg != null)
+  STATE.goalMgPerKg = Number(me.target_mg_per_kg) || 135;
 
-  const ALG_LABELS = {
-    retinoids:   'Изотретиноин/ретиноиды',
-    soy:         'Соя',
-    peanut:      'Арахис',
-    parabens:    'Парабены',
-    gelatin:     'Желатин',
-    lactose:     'Лактоза',
-    antibiotics: 'Антибиотики (тетра/докси)',
-    unknown:     'Не знаю'
-  };
+if (me && me.drug) STATE.drug = me.drug;
+
+if (me && (me.course_start || me.start_date))
+  STATE.startISO = String(me.course_start || me.start_date).slice(0,10);
+
+if (sum && sum.cum_mg != null)
+  STATE.takenMg = Number(sum.cum_mg) || 0;
+
+if (!STATE.weightKg && sum && sum.weight_kg != null)
+  STATE.weightKg = Number(sum.weight_kg) || 0;
+
+STATE.todayMg = (Number(sum?.today_mg) || getLocalTodayDose() || 0);
+
+// 4) Отрисовываем
+populate();
+
+  STATE.takenMg     = Number(sum.cum_mg || 0) || 0;
+ STATE.todayMg     = (Number(sum.today_mg) || getLocalTodayDose() || 0);
+const ALG_LABELS = {
+  retinoids:   'Изотретиноин/ретиноиды',
+  soy:         'Соя',
+  peanut:      'Арахис',
+  parabens:    'Парабены',
+  gelatin:     'Желатин',
+  lactose:     'Лактоза',
+  antibiotics: 'Антибиотики (тетра/докси)',
+  unknown:     'Не знаю'
+};
   STATE.allergies = (Array.isArray(me.allergies) && me.allergies.length)
-    ? me.allergies.map(v => ALG_LABELS[v] || (String(v).startsWith('other:') ? String(v).slice(6) : v)).join(', ')
-    : (STATE.allergies || 'Отсутствуют');
-  STATE.labs = { status: 'ok', dueISO: String(sum.eta_opt_date||'').slice(0,10) };
-// 4) Только теперь отрисовываем UI
+  ? me.allergies.map(v => ALG_LABELS[v] || (String(v).startsWith('other:') ? String(v).slice(6) : v)).join(', ')
+  : 'Отсутствуют';
+  STATE.labs        = { status: 'ok', dueISO: (sum.eta_opt_date || '').slice(0,10) };
+
+  // 4) Только теперь отрисовываем UI
   populate();
 })();
 
@@ -1845,54 +1816,54 @@ document.addEventListener('visibilitychange', ()=>{
 
   docBindBtn?.addEventListener('click', async ()=>{
   const code = (docCodeInput?.value||'').trim().toUpperCase();
-  if (!CODE_RE.test(code)) {
+  if(!CODE_RE.test(code)){
     document.getElementById('docError')?.removeAttribute('hidden');
     return;
   }
 
-  // визуально заблокируем кнопку на время запроса
-  if (docBindBtn) docBindBtn.disabled = true;
+  // Быстрая валидация кода (как и раньше)
+  const vr = await api('/api/doctor/validate?code=' + encodeURIComponent(code));
+  if(!vr.ok){ document.getElementById('docError')?.removeAttribute('hidden'); return; }
+  const vj = await vr.json();
 
-  try {
-    const r = await api('/api/doctor/request', {
-      method: 'POST',
-      body: JSON.stringify({ code })
-    });
-    const j = await r.json().catch(()=> ({}));
+  // Создаём заявку
+  const r = await api('/api/doctor/request', {
+    method:'POST',
+    body: JSON.stringify({ code })
+  });
 
-    if (r.ok && (r.status === 200 || j.status === 'accepted')) {
-      // сразу прикреплён
-      setDoctor({
-        code,
-        name: j.doctor?.name || ('Врач по коду ' + code),
-        clinic: j.doctor?.clinic || '',
-        phone: '',
-        avatarUrl: j.doctor?.avatar_url || ''
-      });
-      setDoctorReq(null);
-      applyDoctor();
-    } else if (r.status === 202 || j.status === 'pending') {
-      // заявка отправлена — ждём
-      setDoctor(null);
-      setDoctorReq({
-        doctor: {
-          code,
-          name: j.doctor?.name || 'Врач',
-          clinic: j.doctor?.clinic || '',
-          avatarUrl: j.doctor?.avatar_url || ''
-        },
-        status: 'pending',
-        ts: Date.now()
-      });
-      applyDoctor();
-      startRequestPolling();
-    } else {
-      document.getElementById('docError')?.removeAttribute('hidden');
-    }
-  } catch(_) {
+  if (!r.ok && r.status!==202){
     document.getElementById('docError')?.removeAttribute('hidden');
-  } finally {
-    if (docBindBtn) docBindBtn.disabled = false;
+    return;
+  }
+  const j = await r.json();
+
+  if (j.status === 'accepted') {
+    // автопринятие
+    setDoctor({
+      code,
+      name: j.doctor?.name || ('Врач по коду '+code),
+      clinic: j.doctor?.clinic || '',
+      phone: '',
+      avatarUrl: j.doctor?.avatar_url || ''
+    });
+    setDoctorReq(null);
+    applyDoctor();
+  } else {
+    // pending
+    setDoctor(null);       // ещё не прикреплён
+    setDoctorReq({
+      doctor: {
+        code,
+        name: vj.doctor?.name || 'Врач',
+        clinic: vj.doctor?.clinic || '',
+        avatarUrl: vj.doctor?.avatar_url || ''
+      },
+      status:'pending',
+      ts: Date.now()
+    });
+    applyDoctor();
+    startRequestPolling(); // начнём опрос статуса
   }
 });
 
@@ -2870,20 +2841,15 @@ if (cur && cur.complete && cur.naturalWidth > 0) return;
 <script>
 (function(){
   // ==== 0) Поиск элементов. При желании переименуй под свои id.
-const els = {
-  // добавили ТВОИ id первыми в списке
-  input:  document.querySelector('#docCodeInput, #doctorCode, #doctor-code, [data-el="doctor-code"]'),
-  attach: document.querySelector('#docBindBtn, #attachDoctor, #doctorAttachBtn, [data-el="doctor-attach"]'),
-  // форма у тебя с id="docBind", а не "doctorFormBox"
-  formBox: document.querySelector('#docBind, #doctorFormBox'),
-  card:   document.getElementById('doctorCard')
-};
-
-// сразу выставим корректное состояние кнопки при загрузке
-if (els.attach) {
-  const v = (els.input?.value || '').toUpperCase();
-  els.attach.disabled = !/^[A-Z0-9]{5}$/.test(v);
-}
+  const els = {
+    input:   document.querySelector('#doctorCode, #doctor-code, [data-el="doctor-code"]'),
+    attach:  document.querySelector('#attachDoctor, #doctorAttachBtn, [data-el="doctor-attach"]'),
+    cancel:  document.querySelector('#cancelDoctorRequest, [data-el="doctor-cancel"]'),
+    preview: document.querySelector('#doctorPreview, #doctor-attach-preview, [data-el="doctor-preview"]'),
+    status:  document.querySelector('#doctorAttachMsg, #doctor-attach-msg, [data-el="doctor-msg"]'),
+    card:    document.querySelector('#doctorCard, #doctor-attached-card, [data-el="doctor-card"]'),
+    formBox: document.querySelector('#doctorAttachBox, #doctor-attach-box, [data-el="doctor-box"]')
+  };
 
   // ==== 1) Универсальный API-хелпер (если на странице уже есть window.api — используем его)
   const api = (typeof window.api === 'function') ? window.api : function(path, opts){
