@@ -88,6 +88,38 @@
 
 
 <style>
+ /* === Fuzzy ball sprite (embedded) === */
+.fur2{
+  position:relative;
+  width: clamp(200px, 48%, 320px);   /* адекватный размер в карточке */
+  aspect-ratio: 1;
+  display:grid; place-items:center; margin:auto;
+  isolation:isolate;                 /* свой стек: аура с z-index:-1 не уйдёт под сцену */
+  z-index:2;                         /* поверх .mood-stage::after (у него z-index:1) */
+}
+.fur2 img{
+  position:absolute; inset:0; width:100%; height:100%;
+  object-fit: cover;                 /* равномерно заполняем круг */
+  border-radius:50%;                 /* убираем квадратные углы */
+  /* мягкая «лохматая» кромка без прозрачного PNG */
+  -webkit-mask-image: radial-gradient(circle at 50% 52%,
+                     #000 62%, rgba(0,0,0,.8) 72%, rgba(0,0,0,.3) 82%, transparent 92%);
+          mask-image: radial-gradient(circle at 50% 52%,
+                     #000 62%, rgba(0,0,0,.8) 72%, rgba(0,0,0,.3) 82%, transparent 92%);
+}
+.fur2-aura{
+  position:absolute; inset:-18%; border-radius:50%;
+  background: radial-gradient( circle at 50% 50%,
+              hsl(var(--fur-h,90) 80% 70% / .40) 0%, transparent 70%);
+  filter: blur(18px);
+  z-index:-1;                        /* под шаром, но внутри .fur2 */
+}
+.fur2-shadow{
+  position:absolute; width:62%; height:18%; left:19%; bottom:-6%;
+  background: radial-gradient(ellipse at 50% 50%,
+              rgba(0,0,0,.22), rgba(0,0,0,0) 70%);
+}
+#furTop{ transition: opacity 140ms linear; } /* кросс-фейд ступеней */
   :root{
     --bgA:#0B1220;
     --bgB:#0F1B2E;
@@ -207,7 +239,7 @@ html, body{ max-width:100vw; overflow-x:hidden; }
   .mood{ display:grid; grid-template-columns: 1fr 306px; gap:16px; align-items:center; } /* -15% */
 
   @media (max-width: 900px){ .mood{ grid-template-columns: 1fr; } }
-  .mood-stage{ position:relative; height:306px; border-radius:22px; overflow:hidden;   /* -15% */
+  .mood-stage{ display:flex; align-items:center; justify-content:center;position:relative; height:306px; border-radius:22px; overflow:hidden;   /* -15% */
     /* базовый фолбэк под изображением */
     background:
       radial-gradient(420px 240px at 20% 0%, color-mix(in oklab, var(--glow), transparent 60%), transparent 60%),
@@ -789,29 +821,30 @@ textarea::placeholder{
 }
 
 /* === 3) Capsule stage (same skin, no seams) === */
+/* Контейнер сцены */
 .mood-stage{
-  position:relative; height:360px; border-radius:22px; overflow:hidden;
-  border:0;
-  background: linear-gradient(180deg,
-              color-mix(in oklab, var(--bgA), #fff 6%),
-              color-mix(in oklab, var(--bgB), #000 6%));
-  box-shadow:
-    12px 14px 26px rgba(0,0,0,.52),
-   -10px -10px 18px rgba(255,255,255,.03),
-    inset 0  1px 0 rgba(255,255,255,.06),
-    inset 0 -10px 26px rgba(0,0,0,.26);
+  position: relative;
+  border-radius: 24px;          /* скругления, как в UI */
+  overflow: hidden;             /* картинка обрезается по радиусу */
 }
+
+/* Собственно «картина» с шариком — берём из переменной --mood-bg */
 .mood-stage::before{
-  content:""; position:absolute; inset:0; z-index:0; pointer-events:none;
-  background-image: var(--mood-bg, none);
-  background-size:cover; background-position:center;
-  filter: blur(10px) saturate(.95) brightness(1.02);
-  transform: scale(1.06);
+  content: "";
+  position: absolute;
+  inset: 12px;                  /* внутренний отступ, как на твоём скрине */
+  border-radius: 18px;          /* скругление внутренней «рамки» */
+  background: var(--mood-bg, linear-gradient(#efece6,#e7e1d8)) center/cover no-repeat;
+  box-shadow:
+    inset 0 0 0 1px rgba(255,255,255,.04),
+    0 10px 40px rgba(0,0,0,.35);
+  filter: saturate(1.02) contrast(1.03);
 }
-.mood-stage::after{
-  content:""; position:absolute; inset:0; border-radius:inherit; pointer-events:none; z-index:1;
-  box-shadow: inset 0 24px 60px rgba(0,0,0,.25), inset 0 -24px 60px rgba(0,0,0,.28);
-}
+
+/* Если у тебя был затемняющий оверлей у .mood-stage — у него должен быть меньший z-index,
+   а у .mood-stage::before — естественно выше. Обычно этого достаточно: */
+.mood-stage::after{ z-index: 1; }
+.mood-stage::before{ z-index: 2; }
 .mood-stage #pillCanvas{ position:absolute; inset:0; width:100%; height:100%; z-index:2; }
 .mood-stage .mood-video{ position:absolute; inset:0; width:100%; height:100%; object-fit:cover; z-index:2; }
 
@@ -1162,10 +1195,16 @@ header{
   </button>
 </div>
     <div class="mood">
-      <div class="mood-stage">
-  <!-- Капсула — только canvas -->
-  <canvas id="pillCanvas"></canvas>
+     <div class="mood-stage">
+  <!-- Пушистый шар (2 слоя для кросс-фейда) -->
+  <div class="fur2" id="fur">
+    <div class="fur2-aura"></div>
+    <img id="furBottom" src="../assets/mood/gray.png" alt="" width="260" height="260">
+    <img id="furTop"    src="../assets/mood/mint.png" alt="" width="260" height="260" style="opacity:0">
+    <div class="fur2-shadow"></div>
+  </div>
 </div>
+
       <div class="mood-ctrl">
         <div class="state-label" id="stateLabel">Нейтрально</div>
         <div class="bar" id="moodBar" role="slider" aria-valuemin="-100" aria-valuemax="100" aria-valuenow="0" aria-label="Самочувствие">
@@ -1491,394 +1530,7 @@ datePicker.addEventListener('change', e => {
   const dir    = dirNum > 0 ? 1 : dirNum < 0 ? -1 : 0;
   setDate(newISO, dir);
 });
-// ===== Mood PILL animation (replaces flower) =====
-const stateLabel=document.getElementById('stateLabel');
-const bar=document.getElementById('moodBar'); const knob=document.getElementById('moodKnob');
-const canvas = document.getElementById('pillCanvas');
-const ctx = canvas.getContext('2d');
 
-// Всегда используем canvas (без видео)
-canvas.hidden = false;
-requestAnimationFrame(frame);
-// --- анимация как раньше ---
-const rotationPeriod=20, breathAmp=0.03, breathPeriod=1.6, morphSpeed=1.7, morphAmpBase=0.06;
-
-// --- управление «самочувствием»: 0..100 ---
-let valence=50;                  // 0..100
-let mood01=0.5, moodVis=0.5;     // 0..1 (внутреннее)
-window.setPillMood01 = x => { mood01 = Math.max(0, Math.min(1, x)); };
-
-// — служебные —
-function fit(){
-  let dpr = Math.max(1, window.devicePixelRatio || 1);
-  const lowQ = matchMedia('(max-width: 768px)').matches ||
-               (navigator.hardwareConcurrency && navigator.hardwareConcurrency <= 6);
-  dpr = Math.min(lowQ ? 1 : 1.25, dpr); // было 1.25/1.75 — делаем ещё проще/ниже
-  const w = canvas.clientWidth, h = canvas.clientHeight;
-  canvas.width  = Math.round(w * dpr);
-  canvas.height = Math.round(h * dpr);
-  ctx.setTransform(dpr,0,0,dpr,0,0);
-}
-
-window.addEventListener('resize', fit); fit();
-// Пауза/возобновление при смене видимости вкладки
-document.addEventListener('visibilitychange', ()=>{
-  if (document.hidden) {
-    if (rafId) { cancelAnimationFrame(rafId); rafId = 0; }
-  } else if (!rafId) {
-    lastMs = 0;
-    rafId = requestAnimationFrame(frame);
-  }
-});
-function pathCapsule(c, W, H, R){
-  const r=Math.max(0, Math.min(R, Math.min(W,H)/2));
-  const x=-W/2, y=-H/2;
-  c.beginPath();
-  c.moveTo(x+r,y); c.lineTo(x+W-r,y); c.quadraticCurveTo(x+W,y,x+W,y+r);
-  c.lineTo(x+W,y+H-r); c.quadraticCurveTo(x+W,y+H,x+W-r,y+H);
-  c.lineTo(x+r,y+H); c.quadraticCurveTo(x,y+H,x,y+H-r);
-  c.lineTo(x,y+r); c.quadraticCurveTo(x,y,x+r,y); c.closePath();
-}
-const lerp=(a,b,t)=>a+(b-a)*t;
-const clamp=(x,a,b)=>Math.max(a,Math.min(b,x));
-function hexToRgb(h){ const m=/^#?([a-f\d]{2})([a-f\d]{2})([a-f\d]{2})$/i.exec(h);
-  return m?{r:parseInt(m[1],16),g:parseInt(m[2],16),b:parseInt(m[3],16)}:{r:255,g:255,b:255}; }
-function mixHex(h1,h2,t,a=1){ const A=hexToRgb(h1),B=hexToRgb(h2);
-  const r=Math.round(lerp(A.r,B.r,t)), g=Math.round(lerp(A.g,B.g,t)), b=Math.round(lerp(A.b,B.b,t));
-  return `rgba(${r},${g},${b},${a})`;
-}
-
-// Палитра капсулы: 0 — тёпло/«плохо», 1 — холодно/«отлично»
-function palette(m){
-  const PILL_TINT_STRENGTH = 9.6;
-  const warm1='#e96a5a', warm2='#ffb36b';
-  const mid1 ='#19d06a', mid2 ='#66e08f';
-  const cool1='#00d2ff', cool2='#38f9d7';
-  let cA,cB; if(m<0.5){ const t=m/0.5; cA=mixHex(warm1,mid1,t); cB=mixHex(warm2,mid2,t);}
-  else { const t=(m-0.5)/0.5; cA=mixHex(mid1,cool1,t); cB=mixHex(mid2,cool2,t); }
-  return {
-    baseDark: mixHex('#0c1322', '#0b141e', m, 1),
-    baseMid:  mixHex('#141d34', '#0f2234', m, 1),
-    tintA: cA, tintB: cB,
-    rimA: mixHex('#ff9866','#00ffee', m, .35),
-    rimB: mixHex('#ffd8a0','#a0d8ff', m, .16),
-    glintA: mixHex('#ffe5d4','#e8fbff', m, .85),
-    glintB: mixHex('#ffd0f0','#c7e6ff', m, .72)
-  };
-}
-
-// Текстуры: low-freq «бамп» + микро-поры
-function makeValueNoise(size=256, cell=16, oct=3){
-  const cnv=document.createElement('canvas'), c=cnv.getContext('2d');
-  cnv.width=cnv.height=size; const img=c.createImageData(size,size);
-  function pass(freq, amp){
-    const gx=Math.ceil(size/freq)+2, gy=Math.ceil(size/freq)+2;
-    const grid=Array.from({length:gy},()=>Array.from({length:gx},()=>Math.random()));
-    for(let y=0;y<size;y++){ const fy=y/freq, y0=Math.floor(fy), ty=fy-y0;
-      for(let x=0;x<size;x++){ const fx=x/freq, x0=Math.floor(fx), tx=fx-x0;
-        const v00=grid[y0][x0], v10=grid[y0][x0+1], v01=grid[y0+1][x0], v11=grid[y0+1][x0+1];
-        const v=((v00*(1-tx)+v10*tx)*(1-ty) + (v01*(1-tx)+v11*tx)*ty)*amp;
-        const i=(y*size+x)*4; img.data[i]+=v*255; img.data[i+1]+=v*255; img.data[i+2]+=v*255; img.data[i+3]=255;
-      }
-    }
-  }
-  for(let o=0;o<oct;o++) pass(cell/(2**o), 1/(2**(o+1)));
-  c.putImageData(img,0,0); return cnv;
-}
-function makeSpeckles(size=512, count=2200){
-  const cnv=document.createElement('canvas'), c=cnv.getContext('2d');
-  cnv.width=cnv.height=size; c.clearRect(0,0,size,size);
-  for(let i=0;i<count;i++){
-    const x=Math.random()*size, y=Math.random()*size, r=(Math.random()*1.6)+0.5, ang=Math.random()*Math.PI;
-    c.fillStyle=`rgba(0,0,0,${0.10+Math.random()*0.10})`;
-    c.beginPath(); c.ellipse(x,y,r*1.1,r*0.9,ang,0,Math.PI*2); c.fill();
-    if(Math.random()<0.25){
-      c.fillStyle=`rgba(255,255,255,${0.06+Math.random()*0.06})`;
-      c.beginPath(); c.ellipse(x+0.2,y-0.2,r*0.8,r*0.6,ang,0,Math.PI*2); c.fill();
-    }
-  }
-  return cnv;
-}
-const noiseTex = makeValueNoise(256,18,3);
-const speckleTex = makeSpeckles(512,2200);
-
-// Помощники для бликов/полос
-function glossyBand(x1,y1,x2,y2, a1, a2, alpha){
-  const g=ctx.createLinearGradient(x1,y1,x2,y2);
-  g.addColorStop(0,'rgba(255,255,255,0)'); g.addColorStop(0.35,a1);
-  g.addColorStop(0.65,a2); g.addColorStop(1,'rgba(255,255,255,0)');
-  ctx.globalCompositeOperation='screen'; ctx.globalAlpha=alpha; ctx.fillStyle=g;
-  ctx.fillRect(-9999,-9999,19999,19999);
-  ctx.globalAlpha=1; ctx.globalCompositeOperation='source-over';
-}
-function glint(cx,cy,rx,ry,color='rgba(255,255,255,.9)',a=1){
-  const gr=ctx.createRadialGradient(cx,cy,0,cx,cy,Math.max(rx,ry));
-  gr.addColorStop(0,color); gr.addColorStop(1,'rgba(255,255,255,0)');
-  ctx.globalCompositeOperation='screen'; ctx.globalAlpha=a; ctx.fillStyle=gr;
-  ctx.beginPath(); ctx.ellipse(cx,cy,rx,ry,0,0,Math.PI*2); ctx.fill();
-  ctx.globalAlpha=1; ctx.globalCompositeOperation='source-over';
-}
-// ==== depth helpers ====
-function innerAOStroke(ctx,W,H,R,alpha=0.22){
-  // мягкая внутренняя тень по контуру — усиливает толщину стенки
-  ctx.save();
-  ctx.globalCompositeOperation = 'multiply';
-  ctx.lineWidth = Math.min(W,H)*0.08;
-  const g = ctx.createRadialGradient(0,0, Math.min(W,H)*0.36, 0,0, Math.min(W,H)*0.52);
-  g.addColorStop(0,'rgba(0,0,0,0)');
-  g.addColorStop(1,`rgba(0,0,0,${alpha})`);
-  pathCapsule(ctx, W, H, R);
-  ctx.strokeStyle = g;
-  ctx.stroke();
-  ctx.restore();
-}
-
-function outerRimGlow(ctx,W,H,R,intensity=0.55){
-  // внешнее свечение по краю — даёт ощущение «стекла»
-  ctx.save();
-  ctx.globalCompositeOperation='screen';
-  ctx.shadowColor = `rgba(255,255,255,${intensity})`;
-  ctx.shadowBlur  = Math.min(W,H)*0.09;
-  ctx.lineWidth   = Math.min(W,H)/18;
-  pathCapsule(ctx,W,H,R);
-  ctx.strokeStyle = 'rgba(255,255,255,.03)';
-  ctx.stroke();
-  ctx.restore();
-}
-
-// обновлённый блик с «блумом»
-function glintBloom(ctx,x,y,w,h,color='white',alpha=.6,angle=0){
-  ctx.save();
-  ctx.translate(x,y); ctx.rotate(angle);
-  ctx.globalCompositeOperation='screen';
-
-  // центральный блик
-  ctx.globalAlpha = alpha;
-  ctx.beginPath(); ctx.ellipse(0,0,w,h,0,0,Math.PI*2);
-  ctx.fillStyle = color; ctx.fill();
-
-  // мягкое свечение вокруг
-  ctx.globalAlpha = alpha*0.45;
-  ctx.filter='blur(6px)';
-  ctx.beginPath(); ctx.ellipse(0,0,w*1.35,h*1.35,0,0,Math.PI*2); ctx.fill();
-  ctx.filter='none';
-
-  ctx.restore();
-}
-
-// === helpers for glass + liquid ===
-function fresnelEdge(t, bias=.06, pow=3){ return bias + (1-bias) * Math.pow(1-Math.abs(t), pow); }
-
-// нормализованные пузырьки в локальных координатах капсулы (x,y в -0.5..0.5)
-const BUBBLE_COUNT = 70;
-let bubbles = Array.from({length:BUBBLE_COUNT}, () => ({
-  x: (Math.random()-0.5)*0.82,
-  seed: Math.random(),
-  speed: 0.08 + Math.random()*0.12,    // чем больше — тем быстрее всплывают
-  r: 0.006 + Math.random()*0.016
-}));
-function drawBubbles(ctx, W, H, t){
-  ctx.save();
-  ctx.globalCompositeOperation = 'screen';
-  for(const b of bubbles){
-    // y бежит снизу вверх по циклу
-    const y = 0.44 - ((t*b.speed + b.seed) % 1.0) * 0.88;
-    const x = b.x + Math.sin(t*0.9 + b.seed*20)*0.02; // легкий дрейф
-    const cx = x*W, cy = y*H;
-    const r = b.r * Math.min(W,H);
-    const g = ctx.createRadialGradient(cx,cy,0, cx,cy,r);
-    g.addColorStop(0,'rgba(255,255,255,.35)');
-    g.addColorStop(0.6,'rgba(255,255,255,.08)');
-    g.addColorStop(1,'rgba(255,255,255,0)');
-    ctx.fillStyle = g;
-    ctx.beginPath(); ctx.ellipse(cx,cy, r*1.15, r*0.9, (b.seed*6.28), 0, Math.PI*2); ctx.fill();
-  }
-  ctx.restore();
-}
-
-// Текст пояснения
-// 7 подписей строго по индексам слева направо
-const MOOD_STATES = [
-  'Очень плохо','Плохо','Ниже нормы',
-  'Нейтрально','Неплохо','Хорошо','Отлично'
-];
-
-// квантование 0..100 → индекс 0..6 (именно так шагает твой слайдер)
-function quantizeIdxFromValence(v){
-  v = Math.max(0, Math.min(100, Number(v)||0));
-  return Math.max(0, Math.min(6, Math.round((v/100) * 6)));
-}
-
-// подпись теперь — просто по индексу
-function textFromV(v){
-  return MOOD_STATES[quantizeIdxFromValence(v)];
-}
-
-// ЦВЕТА и подпись — тоже по индексу
-function updateColorsByValence(v){
-  const idx = quantizeIdxFromValence(v);
-
-  // подпись состояния
-  if (typeof stateLabel !== 'undefined' && stateLabel){
-    stateLabel.textContent = MOOD_STATES[idx];
-  }
-
-  // палитры для 7 состояний (строго по индексам)
-  const THEMES = [
-    ['#3a0d1b', '#14060d'], // Очень плохо
-    ['#4a2609', '#1a0d05'], // Плохо
-    ['#4a3a2b', '#1e1812'], // Ниже нормы
-    ['#2c3342', '#10141e'], // Нейтрально
-     ['#0f3a33', '#081c18'], // Неплохо (светло-мятный)
-    ['#0e2b1b', '#081712'], // Хорошо
-    ['#0a2240', '#06121e']  // Отлично
-  ];
-  const [A,B] = THEMES[idx];
-
-  // если тумблер выключен — возвращаемся к базовой «обычной» теме
-  const on = isTintOn();
-  document.documentElement.style.setProperty('--bgA', on ? A : BASE_A);
-  document.documentElement.style.setProperty('--bgB', on ? B : BASE_B);
-
-  // трек настроения остаётся красный→зелёный
-  document.documentElement.style.setProperty('--trackA', 'hsl(10 90% 55%)');
-  document.documentElement.style.setProperty('--trackB', 'hsl(140 72% 45%)');
-
-  // капсула продолжает реагировать на настроение всегда
-  window.setPillMood01(Math.max(0, Math.min(100, v)) / 100);
-}
-
-
-
-// ===== Рендер капсулы (как был) =====
-let start=performance.now();
-let rafId = 0;     // id активного requestAnimationFrame
-// === iOS scroll fallback: держим анимацию во время скролла ===
-let __scrollTimer = 0, __scrollEndTO = 0;
-window.addEventListener('scroll', ()=>{
-  if (!__scrollTimer){
-    __scrollTimer = setInterval(()=>{ try{ frame(performance.now()); }catch(_){} }, 33);
-  }
-  clearTimeout(__scrollEndTO);
-  __scrollEndTO = setTimeout(()=>{
-    clearInterval(__scrollTimer); __scrollTimer = 0;
-    if (!rafId) rafId = requestAnimationFrame(frame);
-  }, 140);
-}, {passive:true});
-let lastMs = 0;    // метка времени предыдущего кадра (для 30 fps)
-function frame(nowMs){
-  if (nowMs - lastMs < 33) { rafId = requestAnimationFrame(frame); return; }
-lastMs = nowMs;
-  const t=(nowMs-start)/1000;
-  moodVis += (mood01 - moodVis)*0.08;
-
-  const W0=canvas.clientWidth, H0=canvas.clientHeight;
-  ctx.clearRect(0,0,W0,H0);
-  const cx=W0/2, cy=H0/2;
-
-  const rot=(2*Math.PI/rotationPeriod)*t;
-  const breath=1 + breathAmp*Math.sin(2*Math.PI*t/breathPeriod);
-  const morphAmp = morphAmpBase * (0.7 + 0.6*Math.abs(moodVis-0.5));
-  const morph=Math.sin(t*morphSpeed);
-
- // Ручки:
-const PILL_SCALE   = 1.15;  // < 1 — капсула меньше; > 1 — больше
-const PILL_THICK   = 0.65;  // > 1 — капсула толще (выше относительно длины)
-
-// Базовые размеры:
-const baseW = W0 * 0.60 * PILL_SCALE;
-const baseH = H0 * 0.34 * PILL_SCALE * PILL_THICK;
-
-  const W=baseW*(1 + morphAmp*0.52*morph) * (1 - 0.05*(moodVis-0.5));
-  const H=baseH*(1 - morphAmp*0.34*morph) * (1 + 0.05*(moodVis-0.5));
-  const PILL_ROUND = 0.99; // было 0.86 — больше = более округлые торцы
-const R = Math.min(W,H)/2 * (PILL_ROUND + 0.08*Math.sin(t*morphSpeed*1.7));
-  const pal=palette(moodVis);
-
-  /* тень и рисование пилюли — без изменений (опущено тут для краткости),
-     оставь как в твоём текущем файле, если нужно — он уже ниже полностью */ 
-  // … (ниже полный блок из твоего файла)
-
-  // Тень (капсула)
-  ctx.save();
-  ctx.translate(cx, cy + H*0.24);
-  ctx.rotate(rot + 0.5);
-  const sw = W * 0.78, sh = H * 0.24, sr = Math.min(sw, sh) / 2;
-  pathCapsule(ctx, sw, sh, sr); ctx.save(); ctx.clip();
-  let g = ctx.createLinearGradient(0, -sh/2, 0, sh/2);
-  g.addColorStop(0.00, 'rgba(0,0,0,.22)');
-  g.addColorStop(0.45, 'rgba(0,0,0,.32)');
-  g.addColorStop(1.00, 'rgba(0,0,0,0)');
-  ctx.fillStyle = g; ctx.fillRect(-sw/2, -sh/2, sw, sh);
-  ctx.filter = 'blur(3px)'; ctx.globalAlpha = 0.9; ctx.fillRect(-sw/2, -sh/2, sw, sh);
-  ctx.filter = 'none'; ctx.globalAlpha = 1; ctx.restore();
-  pathCapsule(ctx, sw * 0.72, sh * 0.64, sr * 0.64);
-  ctx.fillStyle = 'rgba(0,0,0,.18)'; ctx.filter = 'blur(1.2px)'; ctx.fill(); ctx.filter = 'none';
-  ctx.restore();
-
-  // Капсула
-  ctx.save();
-  ctx.translate(cx,cy); ctx.rotate(rot + 0.5); ctx.scale(breath,breath);
-  pathCapsule(ctx,W,H,R); ctx.save(); ctx.clip();
-
-  const base=ctx.createLinearGradient(-W/2,-H/2, W/2,H/2);
-  base.addColorStop(0.0,pal.baseDark); base.addColorStop(0.45,pal.baseMid); base.addColorStop(1.0,'#070b14');
-  ctx.fillStyle=base; ctx.fillRect(-W,-H,W*2,H*2);
-
-  glossyBand(-W*0.9,-H*0.2,  W*0.7,H*0.15, pal.tintA, pal.tintB, .95);
-  glossyBand(-W*0.2,-H*0.85, W*0.2,H*0.75, mixHex('#ffd070','#a0d8ff',moodVis,.20), mixHex('#90e0ff','#70ffd8',moodVis,.22), .38);
-
-  ctx.save(); ctx.rotate(-(rot + 0.5));
-  const light=ctx.createLinearGradient(-W,0, W,0);
-  light.addColorStop(0.0,'rgba(255,255,255,.18)');
-  light.addColorStop(0.55,'rgba(0,0,0,0)');
-  light.addColorStop(1.0,'rgba(0,0,0,.22)');
-  ctx.globalCompositeOperation='overlay'; ctx.fillStyle=light; ctx.fillRect(-W,-H,W*2,H*2);
-  ctx.globalCompositeOperation='source-over'; ctx.restore();
-
-  ctx.globalCompositeOperation='multiply'; ctx.globalAlpha=0.10; ctx.drawImage(noiseTex, -W,-H, W*2,H*2);
-  ctx.globalAlpha=0.20; ctx.drawImage(speckleTex, -W,-H, W*2,H*2);
-  ctx.globalCompositeOperation='screen'; ctx.globalAlpha=0.06; ctx.drawImage(speckleTex, -W,-H, W*2,H*2);
-  ctx.globalAlpha=1; ctx.globalCompositeOperation='source-over';
-
-  glintBloom(ctx,  W*0.26, -H*0.26,  W*0.20, H*0.18, pal.glintA, .62,  0.10);
-glintBloom(ctx, -W*0.30,  H*0.26,  W*0.16, H*0.14, pal.glintB, .48, -0.08);
-
-
-  const rimAO=ctx.createLinearGradient(-W/2,0, W/2,0);
-  rimAO.addColorStop(0.0,'rgba(0,0,0,0.16)'); rimAO.addColorStop(0.5,'rgba(0,0,0,0)');
-  rimAO.addColorStop(1.0,'rgba(0,0,0,0.16)');
-  ctx.globalCompositeOperation='multiply'; ctx.fillStyle=rimAO; ctx.fillRect(-W,-H,W*2,H*2);
-  ctx.globalCompositeOperation='source-over';
-
-  const rim=ctx.createLinearGradient(-W/2,-H/2, W/2,H/2);
-  rim.addColorStop(0,pal.rimA); rim.addColorStop(0.5,'rgba(255,255,255,.08)'); rim.addColorStop(1,pal.rimB);
-  ctx.lineWidth=Math.max(1.2, Math.min(W,H)/22); ctx.strokeStyle=rim; pathCapsule(ctx,W,H,R); ctx.stroke();
-
-  ctx.lineWidth=1.0; ctx.strokeStyle='rgba(255,255,255,.20)';
-  pathCapsule(ctx, W*0.988, H*0.988, R*0.988); ctx.stroke();
-
-  const rx=W*0.014, ry=H*0.44; const seam=ctx.createLinearGradient(-rx,0, rx,0);
-  seam.addColorStop(0, mixHex('#ffffff','#d0f0ff',moodVis,.40));
-  seam.addColorStop(0.5,'rgba(0,0,0,.18)');
-  seam.addColorStop(1, mixHex('#ffffff','#d0f0ff',moodVis,.40));
-  ctx.lineWidth=Math.max(1.4, Math.min(W,H)/50); ctx.strokeStyle=seam;
-  ctx.beginPath(); ctx.ellipse(0,0, rx,ry, 0,0,Math.PI*2); ctx.stroke();
-
-  
-  ctx.restore(); // clip
-  ctx.restore(); // transform
-
-  // Матовое отражение на «столе»
-  ctx.save();
-  ctx.translate(cx, cy + H*0.38); ctx.rotate(rot + 0.5); ctx.scale(1,-0.55);
-  pathCapsule(ctx, W*0.98, H*0.98, R*0.98); ctx.clip();
-  const refl=ctx.createLinearGradient(0,-H,0,H);
-  refl.addColorStop(0,'rgba(255,255,255,.10)'); refl.addColorStop(1,'rgba(255,255,255,0)');
-  ctx.fillStyle=refl; ctx.filter='blur(2.5px)'; ctx.fillRect(-W,-H,W*2,H*2);
-  ctx.filter='none'; ctx.restore();
-  rafId = requestAnimationFrame(frame);
-}
 
 // ==== ЛОГИКА СЛАЙДЕРА (7 шагов + анимация + хаптик) ====
 (function () {
@@ -1923,7 +1575,39 @@ glintBloom(ctx, -W*0.30,  H*0.26,  W*0.16, H*0.14, pal.glintB, .48, -0.08);
     bar.setAttribute('aria-label','Настроение'); // при желании поменяй
   }
   setAriaBase();
+// Слои изображений
+const furBottom = document.getElementById('furBottom');
+const furTop    = document.getElementById('furTop');
 
+// 7 кадров слева→вправо (как твой слайдер 0..6)
+const SPRITES = [
+  { at: 0,   src: '../assets/mood/burgundy.png', hue:   0,  label:'Очень плохо' },
+  { at: 17,  src: '../assets/mood/orange.png',   hue:  20,  label:'Плохо' },
+  { at: 33,  src: '../assets/mood/beige.png',    hue:  35,  label:'Ниже нормы' },
+  { at: 50,  src: '../assets/mood/gray.png',     hue:   0,  label:'Нейтрально' },
+  { at: 66,  src: '../assets/mood/mint.png',     hue: 150,  label:'Неплохо' },
+  { at: 83,  src: '../assets/mood/green.png',    hue: 120,  label:'Хорошо' },
+  { at: 100, src: '../assets/mood/blue.png',     hue: 210,  label:'Отлично' },
+];
+// предзагрузка
+SPRITES.forEach(s=>{ const i=new Image(); i.decoding='async'; i.src=s.src; });
+
+function updateFurByValence(v){           // v = 0..100
+  const n = SPRITES.length - 1;
+  const x = (v/100)*n;                    // 0..6
+  const i  = Math.floor(x);
+  const i2 = Math.min(i + 1, n);
+  const t  = x - i;                       // доля между кадрами
+
+  if (furBottom && furTop){
+    furBottom.src = SPRITES[i].src;
+    furTop.src    = SPRITES[i2].src;
+    furTop.style.opacity = t;             // кросс-фейд
+  }
+  // оттенок ауры
+  const hue = SPRITES[i].hue*(1-t) + SPRITES[i2].hue*t;
+  document.documentElement.style.setProperty('--fur-h', String(hue||90));
+}
   function applyIndex(i){
     i = clamp(i, 0, 6);
     var prev = curIdx;
@@ -1938,7 +1622,7 @@ glintBloom(ctx, -W*0.30,  H*0.26,  W*0.16, H*0.14, pal.glintB, .48, -0.08);
     if (typeof updateColorsByValence === 'function') {
       try { updateColorsByValence(window.valence); } catch(_) {}
     }
-
+updateFurByValence(window.valence);
     // позиция 0..1 в CSS-переменную (если используешь её в стилях)
     var x01 = window.valence / 100;
     bar.style.setProperty('--x', x01);

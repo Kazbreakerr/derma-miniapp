@@ -1,0 +1,211 @@
+<!DOCTYPE html>
+<html lang="ru"><head>
+<meta charset="utf-8"/>
+<link crossorigin="" href="https://fonts.gstatic.com/" rel="preconnect"/>
+<link as="style" href="https://fonts.googleapis.com/css2?display=swap&amp;family=Inter%3Awght%40400%3B500%3B600%3B700&amp;family=Noto+Sans%3Awght%40400%3B500%3B700%3B900" onload="this.rel='stylesheet'" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined" rel="stylesheet"/>
+<title>Stitch Design</title>
+<link href="data:image/x-icon;base64," rel="icon" type="image/x-icon"/>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<style type="text/tailwindcss">
+      :root {
+        --background: #EDF2F0;
+        --foreground: #101815;
+        --card: #FFFFFF;
+        --card-foreground: #101815;
+        --popover: #FFFFFF;
+        --popover-foreground: #101815;
+        --primary: #4ADE80;
+        --primary-foreground: #101815;
+        --secondary: #E2E8F0;
+        --secondary-foreground: #101815;
+        --muted: #F1F5F9;
+        --muted-foreground: #64748B;
+        --accent: #F1F5F9;
+        --accent-foreground: #101815;
+        --destructive: #EF4444;
+        --destructive-foreground: #FFFFFF;
+        --border: #E2E8F0;
+        --input: #E2E8F0;
+        --ring: #4ADE80;
+      }
+      .neumorphic-shadow {
+        box-shadow: 8px 8px 16px #d1d9e6, -8px -8px 16px #ffffff;
+      }
+      .neumorphic-shadow-inset {
+        box-shadow: inset 8px 8px 16px #d1d9e6, inset -8px -8px 16px #ffffff;
+      }
+      .neumorphic-card {
+          background-color: var(--background);
+          border-radius: 1.5rem;box-shadow: 6px 6px 12px #c5c5c5, -6px -6px 12px #ffffff;
+          transition: all 0.2s ease-in-out;
+      }
+      .neumorphic-card:hover {
+        box-shadow: 4px 4px 8px #c5c5c5, -4px -4px 8px #ffffff;
+      }
+      .neumorphic-button {
+          background-color: var(--background);
+          border-radius: 0.75rem;box-shadow: 4px 4px 8px #c5c5c5, -4px -4px 8px #ffffff;
+          transition: all 0.2s ease-in-out;
+      }
+      .neumorphic-button:active {
+        box-shadow: inset 2px 2px 4px #c5c5c5, inset -2px -2px 4px #ffffff;
+      }
+    </style>
+<style>
+    body {
+      min-height: max(884px, 100dvh);
+    }
+  </style>
+  </head>
+<body class="bg-[var(--background)]" style='font-family: Inter, "Noto Sans", sans-serif;'>
+<div class="relative flex h-auto min-h-screen w-full flex-col justify-between group/design-root overflow-x-hidden">
+<div class="flex-grow">
+<header class="sticky top-0 z-10 flex items-center bg-[var(--background)]/80 backdrop-blur-sm p-4 pb-2 justify-between">
+<button class="neumorphic-button flex size-11 items-center justify-center rounded-full text-[var(--foreground)]">
+<span class="material-symbols-outlined">arrow_back</span>
+</button>
+<h1 class="text-[var(--foreground)] text-xl font-bold leading-tight tracking-tight text-center">Пациент</h1>
+<div class="size-11"></div>
+</header>
+<main class="p-4 space-y-6">
+<section class="flex flex-col items-center gap-4">
+<div class="neumorphic-card p-2 rounded-full">
+<div class="bg-center bg-no-repeat aspect-square bg-cover rounded-full size-32" style='background-image: url("https://lh3.googleusercontent.com/aida-public/AB6AXuAlfZThY7F83YRozeT2ebWMYodzg09Be8rLyJUOzDxcNeWZY68JGv2uGdMxXChgI1hUJ-FReHHuTuuJfcOKdtcux446II1aTT1C4gq7Af3RJ-CcCrpaH7M-yHjLdy7UdKra72gbgO7G0FGhQVwWh2nKEJUpplurZrs16u_pscr1TMf7sdd-ukX2jaIpLITWfYa0JUqQLRRmZ2iBbo8mEAbIqWK59IuHcVego6s1laCzvPgQe8ELBVVQ1UBsWXvOuQaPrAkEFgi6Kw");'></div>
+</div>
+<div class="text-center">
+<p class="text-[var(--foreground)] text-2xl font-bold leading-tight tracking-tight">Елена К.</p>
+<p class="text-[var(--muted-foreground)] text-base">ID: 12345</p>
+</div>
+</section>
+<section class="flex justify-center gap-3 flex-wrap">
+<div class="flex h-10 shrink-0 items-center justify-center gap-x-2 rounded-full bg-gradient-to-br from-green-50 to-lime-50 px-4 neumorphic-card">
+<span class="material-symbols-outlined text-[var(--foreground)] text-xl">tag</span>
+<p class="text-[var(--foreground)] text-sm font-medium">День 30</p>
+</div>
+<div class="flex h-10 shrink-0 items-center justify-center gap-x-2 rounded-full bg-gradient-to-br from-amber-50 to-orange-50 px-4 neumorphic-card">
+<span class="material-symbols-outlined text-[var(--foreground)] text-xl">calendar_month</span>
+<p class="text-[var(--foreground)] text-sm font-medium">12 мая 2024</p>
+</div>
+<div class="flex h-10 shrink-0 items-center justify-center gap-x-2 rounded-full bg-gradient-to-br from-purple-50 to-fuchsia-50 px-4 neumorphic-card">
+<span class="material-symbols-outlined text-[var(--foreground)] text-xl">fiber_manual_record</span>
+<p class="text-[var(--foreground)] text-sm font-medium">Продолжает лечение</p>
+</div>
+</section>
+<section class="neumorphic-card p-4 space-y-4">
+<h2 class="text-[var(--foreground)] text-lg font-bold leading-tight">Симптомы</h2>
+<div class="flex gap-2 flex-wrap">
+<div class="flex h-8 shrink-0 items-center justify-center gap-x-2 rounded-full bg-red-100/70 px-3">
+<div class="size-2 rounded-full bg-red-500"></div>
+<p class="text-red-900 text-sm font-medium">Сухость кожи</p>
+</div>
+<div class="flex h-8 shrink-0 items-center justify-center gap-x-2 rounded-full bg-orange-100/70 px-3">
+<div class="size-2 rounded-full bg-orange-500"></div>
+<p class="text-orange-900 text-sm font-medium">Сухость губ</p>
+</div>
+<div class="flex h-8 shrink-0 items-center justify-center gap-x-2 rounded-full bg-amber-100/70 px-3">
+<div class="size-2 rounded-full bg-amber-500"></div>
+<p class="text-amber-900 text-sm font-medium">Высыпания</p>
+</div>
+<div class="flex h-8 shrink-0 items-center justify-center gap-x-2 rounded-full bg-lime-100/70 px-3">
+<div class="size-2 rounded-full bg-lime-500"></div>
+<p class="text-lime-900 text-sm font-medium">Кожа</p>
+</div>
+<div class="flex h-8 shrink-0 items-center justify-center gap-x-2 rounded-full bg-green-100/70 px-3">
+<div class="size-2 rounded-full bg-green-500"></div>
+<p class="text-green-900 text-sm font-medium">Губы</p>
+</div>
+</div>
+<p class="text-[var(--muted-foreground)] text-xs text-right">Обновлено 12 мая 2024</p>
+</section>
+<section class="neumorphic-card p-4 space-y-4">
+<h2 class="text-[var(--foreground)] text-lg font-bold leading-tight">Доза и прогресс</h2>
+<div class="space-y-2">
+<div class="flex justify-between items-baseline"><p class="text-[var(--muted-foreground)] text-sm">Текущая доза</p><p class="text-[var(--foreground)] text-base font-semibold">40 мг</p></div>
+<div class="flex justify-between items-baseline"><p class="text-[var(--muted-foreground)] text-sm">Планируемая доза</p><p class="text-[var(--muted-foreground)] text-base">40 мг</p></div>
+</div>
+<div class="space-y-2">
+<div class="flex justify-between items-baseline">
+<p class="text-[var(--muted-foreground)] text-sm">Прогресс лечения</p>
+<p class="text-[var(--primary)] text-sm font-bold">75%</p>
+</div>
+<div class="w-full bg-[var(--input)] rounded-full h-2.5">
+<div class="bg-gradient-to-r from-green-300 to-emerald-400 h-2.5 rounded-full" style="width: 75%"></div>
+</div>
+<div class="flex justify-between items-baseline">
+<p class="text-[var(--muted-foreground)] text-sm">Кумулятивная доза</p>
+<p class="text-[var(--foreground)] text-base font-semibold">3000 мг / <span class="text-[var(--muted-foreground)]">4000 мг</span></p>
+</div>
+</div>
+<div class="space-y-2">
+<p class="text-[var(--muted-foreground)] text-sm">История дозы (7 дней)</p>
+<div class="grid grid-cols-7 gap-3 items-end h-32 pt-4">
+<div class="flex flex-col items-center gap-2"><div class="w-full bg-[var(--input)] rounded-t-md" style="height: 10%;"></div><p class="text-[var(--muted-foreground)] text-xs">Пн</p></div>
+<div class="flex flex-col items-center gap-2"><div class="w-full bg-[var(--input)] rounded-t-md" style="height: 20%;"></div><p class="text-[var(--muted-foreground)] text-xs">Вт</p></div>
+<div class="flex flex-col items-center gap-2"><div class="w-full bg-gradient-to-b from-green-300 to-emerald-400 rounded-t-md" style="height: 70%;"></div><p class="text-[var(--muted-foreground)] text-xs">Ср</p></div>
+<div class="flex flex-col items-center gap-2"><div class="w-full bg-gradient-to-b from-green-300 to-emerald-400 rounded-t-md" style="height: 40%;"></div><p class="text-[var(--muted-foreground)] text-xs">Чт</p></div>
+<div class="flex flex-col items-center gap-2"><div class="w-full bg-[var(--input)] rounded-t-md" style="height: 10%;"></div><p class="text-[var(--muted-foreground)] text-xs">Пт</p></div>
+<div class="flex flex-col items-center gap-2"><div class="w-full bg-gradient-to-b from-green-300 to-emerald-400 rounded-t-md" style="height: 90%;"></div><p class="text-[var(--muted-foreground)] text-xs">Сб</p></div>
+<div class="flex flex-col items-center gap-2"><div class="w-full bg-gradient-to-b from-red-300 to-red-400 rounded-t-md" style="height: 90%;"><span class="text-red-500 material-symbols-outlined text-xs">priority_high</span></div><p class="text-red-500 text-xs font-bold">Вс</p></div>
+</div>
+</div>
+<button class="flex items-center justify-between w-full neumorphic-button p-3">
+<p class="text-[var(--foreground)] text-base">Лабораторные исследования</p>
+<span class="material-symbols-outlined text-[var(--muted-foreground)]">chevron_right</span>
+</button>
+</section>
+<section>
+<h2 class="text-[var(--foreground)] text-lg font-bold leading-tight mb-4 px-1">Заметка пациента</h2>
+<div class="relative rounded-2xl overflow-hidden neumorphic-card min-h-48 flex flex-col justify-end p-4 text-white">
+<div class="absolute inset-0 bg-cover bg-center" style='background-image: url("https://lh3.googleusercontent.com/aida-public/AB6AXuBWNdCe3K0REiwYRNvFyjRhOzcbUG0VeshSSW_O0J1ERK_HANMQvJX9ciiubbE1KsY8CI8bOroB6f-m9GwMePKmTtwMf1kdC9GwIs04WD1n8E3m3dzzNQ_ZCaBpcGkxDiVdlsIvYTfwMW5pMQrSlkHeC3LvWDgs3Q6K9G2iCzhtm_VQEDpGQfhnCIma8e_jJGaH9DweDu3E3StXtzP7xYjcMh9ZHj9_zb2nCP6s6Sk5vMVvj1XjcNTdQpNlAAgKN9n60vbsjm2Feg");'></div>
+<div class="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent"></div>
+<p class="relative z-10 text-xl font-bold leading-tight">Пациент жалуется на сухость губ</p>
+</div>
+</section>
+<section>
+<h2 class="text-[var(--foreground)] text-lg font-bold leading-tight mb-4 px-1">Фотографии</h2>
+<div class="grid grid-cols-2 gap-4">
+<div class="neumorphic-card rounded-2xl aspect-square bg-cover bg-center" style='background-image: url("https://lh3.googleusercontent.com/aida-public/AB6AXuB9dnzKwP-YQvC1jBBtvo6RJKKPHixNWzf-jXWRBdy-kvjXU0Xw-BHiTh3RI4BL-_oWvhtBINfn40ieKKdCDrUe1yIOJcMLkEudPUs9M8ukaIqOJ86Mpl79NBLGQLkgBNoY3sM4V3LiU906FipSt9R9FzHCPCHsMhR_wwGIL5YVcrHD2KU6I47jHbV4SzeEJakOF1svAf1OvM12oAwBr2TI5unGZ60PV4ScNDDec8oWhAafhmlHd8ttZwFK8qH4AoVTv3ta5uAmAg");'></div>
+<div class="neumorphic-card rounded-2xl aspect-square bg-cover bg-center" style='background-image: url("https://lh3.googleusercontent.com/aida-public/AB6AXuAypvuLB3zdlEztYzL-6Tdbe7WtHghH7wxcXuBbci5trUsLEyS7r9W2fFGI_kMklelN0LcTXK525hEXXTYRA_d16amM2f1y-5YjHZh5U_7MRNvPvpYqTKtCDABx31UKx5tr56luEf19fosZVfjUlEDuIkQxv-wk9ng1dpfdE0eQe8cI1DFVhChrtHmoK_mtTLLMZL26XdaSiRS6L1-38sE63Lq0y284YkfmPO_vtTat0uZjPgGZUAmbtSPuqCoDn1-IH8TkYc3nCQ");'></div>
+</div>
+</section>
+<section class="neumorphic-card p-4 space-y-4">
+<h2 class="text-[var(--foreground)] text-lg font-bold leading-tight">Действия врача</h2>
+<div class="grid grid-cols-2 gap-3">
+<button class="neumorphic-button bg-gradient-to-br from-green-300 to-emerald-400 h-12 rounded-xl text-[var(--foreground)] text-sm font-semibold">Изменить дозу</button>
+<button class="neumorphic-button h-12 rounded-xl text-[var(--foreground)] text-sm font-semibold">Отметить симптомы</button>
+</div>
+<div>
+<textarea class="form-textarea w-full resize-none rounded-xl text-[var(--foreground)] focus:outline-0 focus:ring-2 focus:ring-[var(--primary)] border-none bg-[var(--background)] neumorphic-shadow-inset min-h-32 placeholder:text-[var(--muted-foreground)] p-3 text-base" placeholder="Комментарий"></textarea>
+</div>
+<div class="flex items-center justify-between">
+<p class="text-[var(--foreground)] text-base">Отмечено как просмотренное</p>
+<label class="relative inline-flex items-center cursor-pointer">
+<input class="sr-only peer" type="checkbox" value=""/>
+<div class="w-11 h-6 bg-[var(--input)] peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-[var(--primary)] neumorphic-shadow-inset"></div>
+</label>
+</div>
+</section>
+</main>
+</div>
+<footer class="sticky bottom-0 z-10">
+<div class="bg-[var(--background)]/80 backdrop-blur-sm border-t border-[var(--border)] p-2">
+<div class="grid grid-cols-3">
+<a class="flex flex-col items-center justify-center gap-1 text-[var(--foreground)]" href="#">
+<span class="material-symbols-outlined text-2xl">groups</span>
+<p class="text-xs font-medium">Пациенты</p>
+</a>
+<a class="flex flex-col items-center justify-center gap-1 text-[var(--muted-foreground)]" href="#">
+<span class="material-symbols-outlined text-2xl">calendar_today</span>
+<p class="text-xs font-medium">Календарь</p>
+</a>
+<a class="flex flex-col items-center justify-center gap-1 text-[var(--muted-foreground)]" href="#">
+<span class="material-symbols-outlined text-2xl">settings</span>
+<p class="text-xs font-medium">Настройки</p>
+</a>
+</div>
+</div>
+</footer>
+</div>
+
+</body></html>

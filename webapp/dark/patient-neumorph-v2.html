@@ -1,0 +1,428 @@
+<!doctype html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Пациент — Neumorph v2</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;800&display=swap" rel="stylesheet">
+<style>
+  
+:root{
+  --bg:#ECEFF3;
+  --text:#3A4452;
+  --muted:#7B8794;
+  --accent:#FF8A97;
+  --accent-2:#FFB3BD;
+  --shadow-dark:#D0D6DE;
+  --shadow-light:#FFFFFF;
+  --radius:18px;
+}
+*{box-sizing:border-box}
+html,body{height:100%}
+body{
+  margin:0; font-family:Inter, system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial;
+  color:var(--text); background:var(--bg);
+}
+
+/* ===== Neumorphism helpers ===== */
+.n-raise{ box-shadow: 12px 12px 24px var(--shadow-dark), -12px -12px 24px var(--shadow-light); }
+.n-inset{ box-shadow: inset 8px 8px 16px var(--shadow-dark), inset -8px -8px 16px var(--shadow-light); }
+.n-smooth{ transition: transform .08s ease, box-shadow .12s ease, background .12s ease; }
+.n-press:active{ transform: translateY(1px); box-shadow: inset 8px 8px 16px var(--shadow-dark), inset -8px -8px 16px var(--shadow-light); }
+
+.container{ max-width: 980px; margin: 0 auto; padding: 18px; }
+
+/* ===== Header ===== */
+.hdr{ position:sticky; top:0; z-index:5; padding:14px 0 8px; backdrop-filter: blur(2px); }
+.hdr-grid{ display:grid; grid-template-columns:140px 1fr 140px; align-items:center; gap:10px; }
+.hdr-btn{ border:0; border-radius:14px; padding:10px 14px; background:var(--bg); color:var(--muted);
+          font-weight:700; cursor:pointer; box-shadow: 8px 8px 16px var(--shadow-dark), -8px -8px 16px var(--shadow-light); }
+.hdr-center{ text-align:center; }
+.hdr-day{ font-weight:800; font-size:18px; }
+.hdr-date{ font-size:13px; color:var(--muted); }
+.hdr-id{ display:grid; justify-items:center; padding:10px 0 0; gap:6px; }
+.ava{ width:60px; height:60px; border-radius:50%; object-fit:cover;
+      box-shadow: 8px 8px 16px var(--shadow-dark), -8px -8px 16px var(--shadow-light); }
+.hdr-name{ font-weight:800; }
+.badge{ font-size:12px; padding:6px 10px; border-radius:999px; background:var(--bg);
+        box-shadow: inset 6px 6px 12px var(--shadow-dark), inset -6px -6px 12px var(--shadow-light); color:var(--muted); }
+
+/* toolbar under header */
+.toolbar{display:grid; grid-template-columns:1fr 1fr; gap:12px; margin-top:12px;}
+.tb-btn{border:0; border-radius:14px; padding:10px 14px; font-weight:800; cursor:pointer; color:#3b1f22;
+        background: linear-gradient(145deg, var(--accent-2), var(--accent));
+        box-shadow: 8px 8px 16px var(--shadow-dark), -8px -8px 16px var(--shadow-light);}
+.tb-btn.ghost{background:var(--bg); color:var(--text);}
+
+/* ===== Cards ===== */
+.grid{ display:grid; gap:16px; margin-top:8px; }
+.card{ border-radius:22px; background:var(--bg); padding:16px; box-shadow: 12px 12px 24px var(--shadow-dark), -12px -12px 24px var(--shadow-light); }
+.ttl{ margin:0 0 12px; font-weight:800; }
+.meta{ margin-top:6px; font-size:12px; color:var(--muted); }
+
+/* Chips */
+.chips{ display:flex; flex-wrap:wrap; gap:10px; }
+.chip{ padding:9px 12px; border-radius:14px; background:var(--bg); box-shadow: inset 8px 8px 16px var(--shadow-dark), inset -8px -8px 16px var(--shadow-light); font-size:13px; }
+.chip.ok{ color:#6B7C6E }
+.chip.warn{ color:#8A6B2E }
+.chip.mid{ color:#8A4B3C }
+.chip.bad{ color:#9A2F3E }
+.chip.muted{ color:var(--muted) }
+/* primary mood chip */
+.chip.primary{
+  background: linear-gradient(145deg, var(--accent-2), var(--accent));
+  color: #3b1f22;
+  font-weight: 800;
+  box-shadow: 8px 8px 16px var(--shadow-dark), -8px -8px 16px var(--shadow-light);
+}
+
+/* Dose */
+.dose-num{ font-weight:900; margin-bottom:10px; }
+.progress{ height:14px; border-radius:999px; background:var(--bg); box-shadow: inset 8px 8px 16px var(--shadow-dark), inset -8px -8px 16px var(--shadow-light); overflow:hidden; }
+.progress > i{ display:block; height:100%;
+  background: radial-gradient(110% 100% at 10% 0%, var(--accent-2), var(--accent));
+  width:0%;
+  box-shadow: inset 2px 2px 4px rgba(0,0,0,.05);
+  transition: width .5s ease;
+}
+
+/* Note */
+.note{ min-height:44px; border-radius:16px; padding:12px 14px; background:var(--bg); box-shadow: inset 8px 8px 16px var(--shadow-dark), inset -8px -8px 16px var(--shadow-light); white-space:pre-wrap; color:var(--text) }
+
+/* Photos */
+.photos{ display:grid; grid-template-columns:repeat(2,1fr); gap:14px; }
+.photo{ display:grid; justify-items:center; gap:8px; }
+.photo .frame{ width:100%; aspect-ratio:1/1; border-radius:18px; background:var(--bg);
+               box-shadow: 10px 10px 20px var(--shadow-dark), -10px -10px 20px var(--shadow-light);
+               overflow:hidden; cursor:pointer; }
+.photo img{ width:100%; height:100%; object-fit:cover; display:block; }
+.photo figcaption{ font-size:12px; color:var(--muted); }
+
+/* Actions */
+.actions{ display:grid; gap:12px; }
+.btn{ border:0; border-radius:14px; padding:12px 14px; font-weight:800; cursor:pointer; color:#3b1f22;
+      background: linear-gradient(145deg, var(--accent-2), var(--accent));
+      box-shadow: 8px 8px 16px var(--shadow-dark), -8px -8px 16px var(--shadow-light);
+}
+.btn.ghost{ background:var(--bg); color:var(--text);
+            box-shadow: 8px 8px 16px var(--shadow-dark), -8px -8px 16px var(--shadow-light); }
+.controls{ display:grid; grid-template-columns:repeat(2,1fr); gap:12px; }
+.row{ display:grid; grid-template-columns:1fr auto; gap:12px; }
+.input{ border:0; border-radius:14px; padding:12px 14px; background:var(--bg); color:var(--text);
+        box-shadow: inset 8px 8px 16px var(--shadow-dark), inset -8px -8px 16px var(--shadow-light); outline:none; }
+
+/* Lightbox */
+.light{ position:fixed; inset:0; display:none; place-items:center; background:rgba(0,0,0,.5); z-index:50; }
+.light img{ max-width:92vw; max-height:92vh; border-radius:18px; box-shadow: 0 14px 40px rgba(0,0,0,.35); }
+
+@media (max-width:560px){
+  .hdr-grid{ grid-template-columns:1fr; gap:8px }
+  .toolbar{ grid-template-columns:1fr; }
+  .controls{ grid-template-columns:1fr }
+  .photos{ grid-template-columns:1fr 1fr }
+}
+/* compact toolbar buttons */
+.toolbar{ grid-template-columns:1fr 1fr; gap:10px; }
+.tb-btn{ padding:10px 12px; font-size:14px; border-radius:12px; }
+@media (max-width:560px){
+  .tb-btn{ padding:8px 10px; font-size:13px; }
+}
+
+@media (max-width:560px){
+  /* вместо одной колонки — три: слева/центр/справа */
+  .hdr-grid{ grid-template-columns:auto 1fr auto; gap:6px; }
+
+  /* ужимаем дневные кнопки, чтобы точно влезали по краям */
+  .hdr-btn{ padding:8px 10px; font-size:14px; white-space:nowrap; }
+
+  /* центр — тоже компактнее */
+  .hdr-day{ font-size:16px; }
+  .hdr-date{ font-size:12px; }
+}
+/* Палитра */
+:root{
+  --mint:#35e6c5;      /* мята */
+  --peach:#ffb895;     /* персик */
+  --lav:#b7a7ff;       /* лаванда */
+
+  --g:linear-gradient(135deg, var(--mint) 0%, var(--peach) 45%, var(--lav) 100%);
+  --g-soft:linear-gradient(180deg, rgba(255,255,255,.08), rgba(0,0,0,.18)), var(--g);
+}
+
+/* Хелперы — просто навесим классами через JS */
+.g-acc{ background:var(--g-soft)!important; color:#0b1215!important; }
+.g-acc-bar{ background:var(--g)!important; }
+</style>
+</head>
+<body>
+  <header class="container hdr">
+    <div class="hdr-grid">
+      <button class="hdr-btn n-smooth n-press" id="prevDay">← день</button>
+      <div class="hdr-center">
+        <div class="hdr-day" id="courseDay">День —</div>
+        <div class="hdr-date" id="theDate">—</div>
+      </div>
+      <button class="hdr-btn n-smooth n-press" id="nextDay">день →</button>
+    </div>
+    <div class="hdr-id">
+      <img id="ava" class="ava" alt="Аватар">
+      <div class="hdr-name" id="name">Пациент</div>
+      <div class="badge" id="pid">ID: —</div>
+    </div>
+
+    <!-- toolbar: переключение пациента и переход в профиль -->
+    <div class="toolbar">
+      <button class="tb-btn ghost n-smooth n-press" id="switchPatient">Пациенты</button>
+      <button class="tb-btn n-smooth n-press" id="openProfile">Вернуться в профиль</button>
+    </div>
+  </header>
+
+  <main class="container">
+    <section class="grid">
+      <article class="card">
+        <h3 class="ttl">Самочувствие и побочки</h3>
+        <div class="chips" id="sxWrap">
+          <span class="chip muted">Нет отмеченных побочек</span>
+        </div>
+        <div class="meta" id="sxUpd"></div>
+      </article>
+
+      <article class="card">
+        <h3 class="ttl">Доза за день</h3>
+        <div class="dose-num"><b id="doseCur">0</b> / <b id="dosePlan">0</b> мг</div>
+        <div class="progress"><i id="doseBar" style="width:0%"></i></div>
+        <div class="meta" id="doseMeta">—</div>
+      </article>
+
+      <article class="card">
+        <h3 class="ttl">Заметка пациента</h3>
+        <div class="note" id="note">Нет заметки</div>
+      </article>
+
+      <article class="card">
+        <h3 class="ttl">Фото</h3>
+        <div class="photos">
+          <figure class="photo">
+            <div class="frame"><img id="face" alt="Лицо"></div>
+            <figcaption>Лицо (сегодня)</figcaption>
+          </figure>
+          <figure class="photo">
+            <div class="frame"><img id="bodyPhoto" alt="Общий вид"></div>
+            <figcaption>Общий вид</figcaption>
+          </figure>
+        </div>
+      </article>
+
+      <article class="card actions">
+        <div class="controls">
+          <button class="btn n-smooth n-press" data-act="ok">Ок, продолжаем</button>
+          <button class="btn n-smooth n-press" style="background:linear-gradient(145deg,#FFD1B5,#FFB894);color:#3d2417" data-act="lower">Снизить дозу</button>
+          <button class="btn n-smooth n-press" style="background:linear-gradient(145deg,#D9C7FF,#B7A2FF);color:#291d3a" data-act="labs">Сдать анализы</button>
+          <button class="btn ghost n-smooth n-press" data-act="ask-photo">Запросить фото</button>
+        </div>
+        <div class="row">
+          <input id="reply" class="input" placeholder="Комментарий пациенту">
+          <button class="btn n-smooth n-press" data-act="send">Отправить</button>
+        </div>
+      </article>
+    </section>
+  </main>
+
+  <div class="light" id="lightbox"><img alt=""><div class="bg" style="position:absolute;inset:0"></div></div>
+
+<script>
+(function(){
+  const el = id => document.getElementById(id);
+  const qs = new URLSearchParams(location.search);
+  const z = n => (n<10?'0':'')+n;
+  const fmt = d => `${z(d.getDate())}.${z(d.getMonth()+1)}.${d.getFullYear()}`;
+  const iso = d => d.toISOString().slice(0,10);
+  const dayDiff = (a,b)=>Math.floor((Date.UTC(a.getFullYear(),a.getMonth(),a.getDate())-Date.UTC(b.getFullYear(),b.getMonth(),b.getDate()))/86400000);
+  const ph = ()=>'data:image/svg+xml;utf8,'+encodeURIComponent(`<svg xmlns="http://www.w3.org/2000/svg" width="600" height="600"><defs><linearGradient id="g" x1="0" x2="1"><stop stop-color="#F6F7FA"/><stop offset="1" stop-color="#FFFFFF"/></linearGradient></defs><rect width="100%" height="100%" rx="24" fill="url(#g)"/><circle cx="300" cy="260" r="90" fill="#E3E7EE"/><rect x="170" y="380" width="260" height="22" rx="11" fill="#E3E7EE"/></svg>`);
+
+  let model = {
+    id:'p_58271',
+    name:'Иван К.',
+    avatar:'',
+    course_start:'2025-06-18',
+    date:new Date(),
+    vitals:{ dry_skin:1, lips:2, mood:0, headache:0, muscle_pain:1 },
+    dose:{ current_mg:40, plan_mg:60, cumulative_mg:2020, target_mg_per_kg:135, weight_kg:62 },
+    note:'Губы сухие, настроение нормальное. Триглицериды в норме.',
+    photos:[ {kind:'face',url:''},{kind:'body',url:''} ],
+    updated_at:'сегодня 09:15'
+  };
+
+  if (qs.get('name')) model.name = qs.get('name');
+  if (qs.get('id'))   model.id   = qs.get('id');
+  if (qs.get('date')) model.date = new Date(qs.get('date'));
+
+  function orderVitals(obj){
+    const order = ['mood','dry_skin','lips','headache','muscle_pain','nose','eyes'];
+    const keys = Object.keys(obj||{});
+    const rest = keys.filter(k=>!order.includes(k)).sort();
+    return [...order.filter(k=>keys.includes(k)), ...rest];
+  }
+
+  function render(){
+    const d = (model.date instanceof Date) ? model.date : new Date(model.date);
+    el('theDate').textContent = fmt(d);
+    const start = model.course_start || model.course?.start;
+    el('courseDay').textContent = start ? `День ${Math.max(1, dayDiff(d,new Date(start))+1)}` : 'День —';
+
+    el('name').textContent = model.name || 'Пациент';
+    el('pid').textContent = 'ID: ' + (model.id || '—');
+    el('ava').src = model.avatar || ph();
+
+    // vitals: mood первым и выделен
+    const wrap = el('sxWrap'); wrap.innerHTML='';
+    const sx = model.vitals || {};
+    const keys = orderVitals(sx);
+    if (!keys.length){ wrap.innerHTML = '<span class="chip muted">Нет отмеченных побочек</span>'; }
+    else{
+      const map = {dry_skin:'Сухость кожи', lips:'Губы', mood:'Настроение', headache:'Головные боли', muscle_pain:'Мышцы/суставы', nose:'Нос', eyes:'Глаза'};
+      keys.forEach(k=>{
+        const v = +sx[k]||0;
+        const tone = (k==='mood') ? 'primary' : (v<=0?'ok':v==1?'warn':v==2?'mid':'bad');
+        wrap.insertAdjacentHTML('beforeend', `<span class="chip ${tone}">${map[k]||k}: ${v}</span>`);
+      });
+    }
+    el('sxUpd').textContent = model.updated_at ? `обновлено ${model.updated_at}` : '';
+
+    // dose
+    const cur = Math.round(model.dose?.current_mg||0);
+    const plan= Math.round(model.dose?.plan_mg||0);
+    el('doseCur').textContent = cur;
+    el('dosePlan').textContent = plan;
+    el('doseBar').style.width = (plan>0?Math.max(0,Math.min(100,Math.round(100*cur/plan))):0) + '%';
+    const cum = model.dose?.cumulative_mg, perkg = model.dose?.target_mg_per_kg, w = model.dose?.weight_kg;
+    el('doseMeta').textContent = (cum && perkg && w) ? `Кумулятивно: ${Number(cum).toLocaleString('ru-RU')} мг • Цель: ${perkg} мг/кг • Вес: ${w} кг`
+                             : (cum ? `Кумулятивно: ${Number(cum).toLocaleString('ru-RU')} мг` : '—');
+
+    // note
+    el('note').textContent = (model.note||'').trim() || 'Нет заметки';
+
+    // photos
+    const face = (model.photos||[]).find(p=>p.kind==='face');
+    const bodyP= (model.photos||[]).find(p=>p.kind==='body');
+    el('face').src = (face&&face.url)?face.url:ph();
+    el('bodyPhoto').src = (bodyP&&bodyP.url)?bodyP.url:ph();
+    const show = url => { const lb = el('lightbox'); lb.querySelector('img').src=url; lb.style.display='grid'; lb.querySelector('.bg').onclick=()=>lb.style.display='none'; };
+    el('face').onclick = ()=> show(el('face').src);
+    el('bodyPhoto').onclick = ()=> show(el('bodyPhoto').src);
+  }
+
+  // БАЗОВЫЙ путь к кабинету врача (переопредели при деплое, если нужен /dark/)
+const DOC_BASE = window.DOCTOR_PAGE_BASE || 'doctor-cabinet-mint-rose.html';
+
+// «Пациенты» — открыть вкладку Patients
+el('switchPatient').onclick = ()=>{
+  location.href = `${DOC_BASE}#/doctor/patients`;
+};
+
+// «Вернуться в профиль» — открыть вкладку Profile
+el('openProfile').onclick = ()=>{
+  location.href = `${DOC_BASE}#/doctor/profile`;
+};
+
+  // actions
+  document.querySelectorAll('[data-act]').forEach(b=>{
+    b.addEventListener('click', ()=>{
+      const action = b.getAttribute('data-act');
+      const msg = (action==='send') ? (el('reply').value||'').trim() : '';
+      document.dispatchEvent(new CustomEvent('patient:action', { detail:{ action, id:model.id, date: iso(new Date(model.date)), message: msg }}));
+      if (action==='send') el('reply').value='';
+      console.log('patient:action', action);
+    });
+  });
+
+  el('prevDay').onclick = ()=>{ const d = new Date(model.date); d.setDate(d.getDate()-1); model.date=d; render(); };
+  el('nextDay').onclick = ()=>{ const d = new Date(model.date); d.setDate(d.getDate()+1); model.date=d; render(); };
+
+  render();
+})();
+/* Автоматически красим «акцентные» элементы градиентом */
+(function(){
+  // кнопки/чипы
+  document.querySelectorAll('.chip--accent,.btn--accent,.btn-primary,.pill-accent')
+    .forEach(el=>el.classList.add('g-acc'));
+  // заливка прогресса
+  document.querySelectorAll('.progress .fill,.progress i,.bar .fill,#doseBar')
+    .forEach(el=>el.classList.add('g-acc-bar'));
+})();
+</script>
+<script>
+(async function (){
+  const $ = id => document.getElementById(id);
+
+  const qs   = new URLSearchParams(location.search);
+  const pid  = Number(qs.get('id'));
+  if (!pid) return; // проверяем до фетча
+
+  const date = qs.get('date') || new Date().toISOString().slice(0,10);
+  const tg   = qs.get('tg') || localStorage.getItem('tgDev') || '';
+  if (tg) { try{ localStorage.setItem('tgDev', tg); }catch(_){} }
+
+  const url = `/api/doctor/patient/${encodeURIComponent(pid)}/day?date=${encodeURIComponent(date)}${tg ? `&tg=${encodeURIComponent(tg)}` : ''}`;
+
+  const resp = await fetch(url, { credentials:'include' });
+  if (!resp.ok) {
+    console.warn('day fetch failed', resp.status);
+    return;
+  }
+  const d = await resp.json();
+
+  // шапка
+  $('name').textContent = d.patient?.name || 'Пациент';
+  $('pid').textContent  = 'ID: ' + (d.patient?.id ?? pid);
+  if (d.patient?.avatar_url) $('ava').src = d.patient.avatar_url;
+
+  // дата и "День N"
+  const cur = new Date(d.date);
+  $('theDate').textContent = `${String(cur.getDate()).padStart(2,'0')}.${String(cur.getMonth()+1).padStart(2,'0')}.${cur.getFullYear()}`;
+  const startParam = qs.get('start');
+  const startDate  = startParam || d.course?.start_date || null;
+  if (startDate) {
+    const s = new Date(startDate);
+    const day = Math.floor((cur - s)/86400000) + 1;
+    $('courseDay').textContent = `День ${day}`;
+  }
+
+  // самочувствие/побочки
+  const sx    = d.diary?.side_effects || {};
+  const mood  = d.diary?.feeling_score ?? 0;
+  const wrap  = $('sxWrap'); wrap.innerHTML = '';
+  const map   = {mood:'Настроение', dry_skin:'Сухость кожи', lips:'Губы', skin:'Кожа', headache:'Головные боли', muscle_pain:'Мышцы/суставы'};
+  const pairs = Object.entries({ mood, ...sx });
+  if (!pairs.length) wrap.innerHTML = '<span class="chip muted">Нет отмеченных побочек</span>';
+  else pairs.forEach(([k,v])=>{
+    const tone = (k==='mood') ? 'primary' : (v<=0?'ok':v==1?'warn':v==2?'mid':'bad');
+    wrap.insertAdjacentHTML('beforeend', `<span class="chip ${tone}">${map[k]||k}: ${v}</span>`);
+  });
+  $('sxUpd').textContent = d.diary ? '' : '';
+  // доза
+  const curMg = Number(d.dose?.current_mg || 0);
+  const plan  = Number(d.dose?.plan_mg || 0);
+  $('doseCur').textContent = curMg;
+  $('dosePlan').textContent = plan || '—';
+  $('doseBar').style.width  = (plan ? Math.min(100, Math.round(curMg/plan*100)) : 0) + '%';
+  $('doseMeta').textContent = d.dose?.cumulative_mg
+    ? `Кумулятивно: ${d.dose.cumulative_mg.toLocaleString('ru-RU')} мг • Цель: ${(d.dose.target_mg_per_kg||135)} мг/кг • Вес: ${(d.dose.weight_kg||'—')} кг`
+    : '—';
+
+  // заметка
+  $('note').textContent = (d.diary?.comment || '').trim() || 'Нет заметки';
+
+  // фото
+  const face = (d.photos||[]).find(p=>p.kind==='face')?.url || (d.photos||[])[0]?.url;
+  const body = (d.photos||[]).find(p=>p.kind==='body')?.url;
+  if (face) $('face').src = face;
+  if (body) $('bodyPhoto').src = body;
+})();
+</script>
+
+
+</body>
+</html>

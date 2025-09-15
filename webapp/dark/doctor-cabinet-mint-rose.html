@@ -724,6 +724,67 @@
   -webkit-tap-highlight-color: transparent;
 }
 </style>
+<style id="patient-drawer-css">
+  :root{
+    --pd-r:18px;
+    --pd-shadow: 8px 12px 26px rgba(24,39,75,.10);
+    --pd-bevel: inset 6px 6px 12px rgba(24,39,75,.06), inset -6px -6px 12px rgba(255,255,255,.6);
+  }
+  /* оверлей */
+  #patientDrawer{position:fixed;inset:0;backdrop-filter:blur(2px);background:rgba(0,0,0,.35);z-index:1000;display:none}
+  /* панель */
+  .pd-panel{position:absolute;right:0;top:0;bottom:0;width:min(820px,100%);background:#fff;border-left:1px solid var(--stroke,#e7eaf0);overflow:auto}
+  .pd-hdr{position:sticky;top:0;background:linear-gradient(180deg,#FAFDFF,#F6F8FB 50%,#F3F5F9);z-index:2;border-bottom:1px solid var(--stroke,#e7eaf0)}
+  .pd-hdr-top{display:grid;grid-template-columns:120px 1fr 120px;align-items:center;gap:8px;padding:12px}
+  .pd-daybtn{border:0;border-radius:999px;padding:8px 14px;background:linear-gradient(135deg,#fff,#F6F8FB);box-shadow:var(--pd-bevel);color:#667085;font-weight:600}
+  .pd-date{text-align:center}
+  .pd-course{font-weight:800;font-size:18px;color:#0F172A}
+  .pd-date-txt{font-size:13px;color:#667085}
+
+  .pd-idrow{display:grid;justify-items:center;padding:6px 12px 12px}
+  .pd-ava{width:64px;height:64px;border-radius:50%;object-fit:cover;box-shadow:0 4px 14px rgba(24,39,75,.15)}
+  .pd-name{margin-top:8px;font-weight:800}
+  .pd-chip{margin-top:6px;font-size:12px;color:#3b3f46;background:#fff;border-radius:999px;padding:6px 10px;box-shadow:var(--pd-bevel)}
+
+  .pd-body{padding:16px;display:grid;gap:14px}
+  .pd-card{background:#fff;border:1px solid var(--stroke,#e7eaf0);border-radius:var(--pd-r);padding:14px;box-shadow:var(--pd-shadow)}
+  .pd-ttl{font-weight:800;margin:0 0 10px;color:#182034}
+
+  .pd-chips{display:flex;flex-wrap:wrap;gap:8px}
+  .pd-chip-s{padding:8px 10px;border-radius:12px;background:linear-gradient(135deg,#fff,#F6F8FB);box-shadow:var(--pd-bevel);font-size:13px}
+  .pd-chip-muted{color:#667085}
+  .pd-chip-g{background:linear-gradient(135deg,#E9FFF8,#F6FFFD)}
+  .pd-chip-y{background:linear-gradient(135deg,#FFF6DA,#FFF9E8)}
+  .pd-chip-o{background:linear-gradient(135deg,#FFE6D6,#FFF0E9)}
+  .pd-chip-r{background:linear-gradient(135deg,#FFE3EC,#FFF0F5)}
+  .pd-meta{margin-top:6px;font-size:12px;color:#667085}
+
+  .pd-dose-num{font-weight:900;color:#1c2440;margin-bottom:8px}
+  .pd-bar{height:10px;border-radius:999px;background:#EEF2F6;box-shadow:var(--pd-bevel);overflow:hidden}
+  .pd-bar > i{display:block;height:100%;width:0;background:linear-gradient(90deg,#90F0D0,#5BD8C0)}
+
+  .pd-note{min-height:40px;border-radius:14px;background:linear-gradient(135deg,#fff,#F6F8FB);box-shadow:var(--pd-bevel);padding:10px 12px;color:#2d3648;white-space:pre-wrap}
+
+  .pd-photos{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+  .pd-photo{display:grid;justify-items:center;gap:6px}
+  .pd-photo img{width:100%;aspect-ratio:1/1;border-radius:16px;object-fit:cover;background:#EEF2F6;box-shadow:var(--pd-shadow);cursor:pointer}
+  .pd-photo figcaption{font-size:12px;color:#667085}
+
+  .pd-actions{display:grid;gap:10px}
+  .pd-btn{border:0;border-radius:12px;padding:10px 12px;font-weight:700;color:#0b2a23;background:linear-gradient(90deg,#90F0D0,#5BD8C0);box-shadow:var(--pd-shadow);cursor:pointer}
+  .pd-btn.peach{color:#3d2417;background:linear-gradient(90deg,#FFD1B5,#FFB894)}
+  .pd-btn.lav{color:#291d3a;background:linear-gradient(90deg,#D9C7FF,#B7A2FF)}
+  .pd-btn.ghost{background:linear-gradient(135deg,#fff,#F6F8FB);color:#223043}
+
+  .pd-comment{display:grid;grid-template-columns:1fr auto;gap:10px}
+  .pd-input{border:0;border-radius:12px;padding:10px 12px;background:linear-gradient(135deg,#fff,#F6F8FB);box-shadow:var(--pd-bevel);outline:none}
+
+  /* лайтбокс */
+  .pd-light{position:fixed;inset:0;z-index:10000;display:none;place-items:center;background:rgba(0,0,0,.5)}
+  .pd-light img{max-width:92vw;max-height:92vh;border-radius:16px;box-shadow:0 12px 32px rgba(0,0,0,.35)}
+  @media (max-width:560px){ .pd-photos{grid-template-columns:1fr 1fr} }
+</style>
+
 </head>
 <body>
  <script>
@@ -1100,7 +1161,27 @@ try{
     '</div>';
 
   // ← открываем drawer по клику на карточку
-  el.addEventListener('click', () => window.openPatientDrawer(p));
+ // СТАЛО: открываем отдельную страницу пациента
+el.addEventListener('click', () => {
+  const base = window.PATIENT_PAGE_BASE || 'patient-neumorph-v2.html';
+
+  // локальная «сегодняшняя» дата в ISO без сдвига таймзоны
+  const d = new Date(); 
+  d.setMinutes(d.getMinutes() - d.getTimezoneOffset());
+  const today = d.toISOString().slice(0,10);
+
+  const params = new URLSearchParams({
+    id:      String(p.id || p.patient_id || ''),
+    name:    p.name || p.patient_name || 'Пациент',
+    date:    today,
+    start:   (p.course && p.course.start) || p.start_date || '',
+    avatar:  p.avatar_url || p.avatarUrl || ''
+  });
+// прокидываем tg врача дальше на страницу пациента
+const tg = new URLSearchParams(location.search).get('tg') || localStorage.getItem('tgDev') || '';
+  if (tg) params.set('tg', tg);
+  location.href = `${base}?${params.toString()}`;
+});
 
   return el;
 }
@@ -1473,71 +1554,164 @@ function doDoctorReset(){
 })();
 </script>
 <script>
-// ===== Развёрнутая карточка пациента =====
+// ===== Развёрнутая карточка пациента (обновлено) =====
 document.addEventListener('DOMContentLoaded', function(){
   const drawer = document.getElementById('patientDrawer');
   const body   = document.getElementById('pdBody');
   const title  = document.getElementById('pdTitle');
   const lblDate= document.getElementById('pdDate');
+  const lblCourse = document.getElementById('pdCourse');
+  const lblId  = document.getElementById('pdId');
+  const imgAva = document.getElementById('pdAva');
   const btnPrev= document.getElementById('pdPrev');
   const btnNext= document.getElementById('pdNext');
   const btnClose=document.getElementById('pdClose');
+  const light  = document.getElementById('pdLight');
 
-  let current = { id:null, date: new Date() };
+  let current = { id:null, start:null, date:new Date() };
 
-  function fmtDate(d){ return d.toLocaleDateString(undefined,{day:'2-digit',month:'2-digit',year:'numeric'}); }
-  function isoDate(d){ return d.toISOString().slice(0,10); }
+  const z = n => (n<10?'0':'')+n;
+  const fmtDate = d => `${z(d.getDate())}.${z(d.getMonth()+1)}.${d.getFullYear()}`;
+  const isoDate = d => d.toISOString().slice(0,10);
+  const dayDiff = (a,b) => Math.floor((Date.UTC(a.getFullYear(),a.getMonth(),a.getDate()) - Date.UTC(b.getFullYear(),b.getMonth(),b.getDate()))/86400000);
 
-async function fetchDay(pid, ds) {
-  const dsStr = (ds instanceof Date)
-    ? ds.toISOString().slice(0,10)
-    : String(ds).slice(0,10);
+  function courseDay(d, startISO){
+    if (!startISO) return null;
+    const start = new Date(startISO);
+    return dayDiff(d, start) + 1; // день начала = 1
+  }
 
-  const resp = await api(`/api/doctor/patient/${pid}/day?date=${encodeURIComponent(dsStr)}`);
-  if (!resp.ok) throw new Error('Не удалось загрузить день');
-  return resp.json();
-}
+  async function fetchDay(pid, d) {
+    const ds = (d instanceof Date) ? isoDate(d) : String(d).slice(0,10);
+    const resp = await api(`/api/doctor/patient/${pid}/day?date=${encodeURIComponent(ds)}`);
+    if (!resp.ok) throw new Error('Не удалось загрузить день');
+    return resp.json();
+  }
+
+  function chipTone(v){
+    const n = Number(v||0);
+    return n<=0 ? 'pd-chip-g' : n==1 ? 'pd-chip-y' : n==2 ? 'pd-chip-o' : 'pd-chip-r';
+  }
+  function labelSymptom(key){
+    const dict = {dry_skin:'Сухость кожи', lips:'Губы', mood:'Настроение', headache:'Головные боли', muscle_pain:'Мышцы/суставы', nose:'Нос', eyes:'Глаза'};
+    return dict[key] || key;
+  }
+  function pct(cur, plan){ const c=+cur||0, p=+plan||0; return p>0 ? Math.max(0,Math.min(100,Math.round(100*c/p))) : 0; }
+
+  function showLightbox(url){
+    if (!url) return;
+    light.querySelector('img').src = url;
+    light.style.display = 'grid';
+    light.querySelector('.bg').onclick = () => { light.style.display='none'; };
+  }
 
   function renderDay(data){
     body.innerHTML = '';
-    lblDate.textContent = fmtDate(new Date(data.date));
+    const d = new Date(data.date);
+    lblDate.textContent = fmtDate(d);
+    const day = courseDay(d, current.start || data.course_start);
+    lblCourse.textContent = day ? `День ${day}` : 'День —';
 
-    const d = data.diary || {};
+    // --- Самочувствие / побочки
     const sec1 = document.createElement('div');
-    sec1.className = 'section';
-    sec1.innerHTML = `
-      <h4>Самочувствие и побочки</h4>
-      <div style="display:flex;flex-wrap:wrap;gap:8px;margin-bottom:8px">
-        ${(d.side_effects?.length ? d.side_effects : []).map(se => `<span class="badge dot ${se.severity==='bad'?'bad':se.severity==='warn'?'warn':'ok'}">${se.name||'Побочка'}</span>`).join('') || '<div class="badge">Нет отмеченных побочек</div>'}
-      </div>
-      ${d.wellbeing ? `<div class="badge">Самочувствие: ${d.wellbeing}</div>` : ''}
-      ${d.symptoms ? `<div style="opacity:.7;margin-top:6px">${typeof d.symptoms==='string'?d.symptoms:JSON.stringify(d.symptoms)}</div>` : ''}
-    `;
+    sec1.className = 'pd-card';
+    const sx = data.vitals || data.diary?.symptoms || data.diary?.side_effects || {};
+    // поддержим 2 формата: {dry_skin:1,...} и [{name, severity}, ...]
+    let chipsHTML = '';
+    if (Array.isArray(sx)) {
+      chipsHTML = sx.map(x=>{
+        const t = x.severity || x.sev || 0;
+        return `<span class="pd-chip-s ${chipTone(t)}">${x.name||'Побочка'}: ${t}</span>`;
+      }).join('');
+    } else {
+      const keys = Object.keys(sx||{});
+      chipsHTML = keys.map(k=>{
+        const t = sx[k];
+        return `<span class="pd-chip-s ${chipTone(t)}">${labelSymptom(k)}: ${t}</span>`;
+      }).join('');
+    }
+    if (!chipsHTML) chipsHTML = '<span class="pd-chip-s pd-chip-muted">Нет отмеченных побочек</span>';
+    sec1.innerHTML = `<h4 class="pd-ttl">Самочувствие и побочки</h4><div class="pd-chips">${chipsHTML}</div>
+      ${data.updated_at?`<div class="pd-meta">обновлено ${data.updated_at}</div>`:''}`;
     body.appendChild(sec1);
 
+    // --- Доза/прогресс
+    const dose = data.dose || {};
+    const cur = Math.round(dose.current_mg ?? data.dose_mg ?? 0);
+    const plan= Math.round(dose.plan_mg ?? data.plan_mg ?? 0);
+    const pbar= pct(cur, plan);
+    const meta = (()=> {
+      const c = dose.cumulative_mg ?? data.cumulative_mg;
+      const perkg = dose.target_mg_per_kg ?? data.target_mg_per_kg;
+      const w = dose.weight_kg ?? data.weight_kg;
+      if (c && perkg && w) return `Кумулятивно: ${Number(c).toLocaleString('ru-RU')} мг • Цель: ${perkg} мг/кг • Вес: ${w} кг`;
+      if (c) return `Кумулятивно: ${Number(c).toLocaleString('ru-RU')} мг`;
+      return '—';
+    })();
     const secDose = document.createElement('div');
-    secDose.className = 'section';
-    secDose.innerHTML = `<h4>Доза за день</h4><div class="badge">${Math.round(data.dose_mg||0)} мг</div>`;
+    secDose.className = 'pd-card';
+    secDose.innerHTML = `
+      <h4 class="pd-ttl">Доза за день</h4>
+      <div class="pd-dose-num"><b id="pdDoseCur">${cur}</b> / <b id="pdDosePlan">${plan}</b> мг</div>
+      <div class="pd-bar"><i style="width:${pbar}%"></i></div>
+      <div class="pd-meta">${meta}</div>`;
     body.appendChild(secDose);
 
+    // --- Заметка
+    const note = (data.note ?? data.diary?.note ?? '').toString().trim();
     const secNote = document.createElement('div');
-    secNote.className = 'section';
-    secNote.innerHTML = `<h4>Заметка пациента</h4><div>${(d.note && String(d.note).trim()) ? String(d.note).replace(/\n/g,'<br>') : '<span class="badge">Нет заметки</span>'}</div>`;
+    secNote.className = 'pd-card';
+    secNote.innerHTML = `<h4 class="pd-ttl">Заметка пациента</h4><div class="pd-note">${note || 'Нет заметки'}</div>`;
     body.appendChild(secNote);
 
+    // --- Фото
+    const photos = data.photos || [];
+    const face = photos.find(p=>p.kind==='face');
+    const bodyP = photos.find(p=>p.kind==='body');
     const secPhotos = document.createElement('div');
-    secPhotos.className = 'section';
-    const faces = (data.photos||[]).filter(p => p.kind==='face');
-    const bodys = (data.photos||[]).filter(p => p.kind==='body');
+    secPhotos.className = 'pd-card';
     secPhotos.innerHTML = `
-      <h4>Фото</h4>
-      <div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:8px">
-        <span class="badge dot ${faces.length?'ok':''}">Лицо: ${faces.length}</span>
-        <span class="badge dot ${bodys.length?'ok':''}">Тело: ${bodys.length}</span>
-      </div>
-      <div class="photo-grid">${(data.photos||[]).map(p=>`<img src="${p.url}" alt="${p.kind}">`).join('')}</div>
-    `;
+      <h4 class="pd-ttl">Фото</h4>
+      <div class="pd-photos">
+        <figure class="pd-photo">
+          <img id="pdFace" alt="Лицо" src="${face?face.url:ph()}"><figcaption>Лицо (сегодня)</figcaption>
+        </figure>
+        <figure class="pd-photo">
+          <img id="pdBodyPhoto" alt="Общий вид" src="${bodyP?bodyP.url:ph()}"><figcaption>Общий вид</figcaption>
+        </figure>
+      </div>`;
     body.appendChild(secPhotos);
+    // клики
+    const f = document.getElementById('pdFace');
+    const b = document.getElementById('pdBodyPhoto');
+    if (face?.url) f.onclick = ()=> showLightbox(face.url);
+    if (bodyP?.url) b.onclick = ()=> showLightbox(bodyP.url);
+
+    // --- Действия врача
+    const secAct = document.createElement('div');
+    secAct.className = 'pd-card pd-actions';
+    secAct.innerHTML = `
+      <button class="pd-btn" data-act="ok">Ок, продолжаем</button>
+      <button class="pd-btn peach" data-act="lower">Снизить дозу</button>
+      <button class="pd-btn lav" data-act="labs">Сдать анализы</button>
+      <button class="pd-btn ghost" data-act="ask-photo">Запросить фото</button>
+      <div class="pd-comment">
+        <input id="pdReply" class="pd-input" placeholder="Комментарий врачу → пациенту">
+        <button class="pd-btn" data-act="send">Отправить</button>
+      </div>`;
+    body.appendChild(secAct);
+    body.querySelectorAll('[data-act]').forEach(b=>{
+      b.onclick = ()=>{
+        const action = b.getAttribute('data-act');
+        const msg = (action==='send') ? (document.getElementById('pdReply').value||'').trim() : '';
+        document.dispatchEvent(new CustomEvent('patient:action',{ detail:{ action, id:current.id, date: isoDate(current.date), message: msg } }));
+        if (action==='send') document.getElementById('pdReply').value='';
+      };
+    });
+  }
+
+  function ph(){ // простой placeholder 1:1
+    return 'data:image/svg+xml;utf8,'+encodeURIComponent(`<svg xmlns="http://www.w3.org/2000/svg" width="600" height="600"><defs><linearGradient id="g" x1="0" x2="1"><stop stop-color="#EAF3FF"/><stop offset="1" stop-color="#F7F2FF"/></linearGradient></defs><rect width="100%" height="100%" rx="20" fill="url(#g)"/><circle cx="300" cy="260" r="88" fill="#D9E2F2"/><rect x="180" y="380" width="240" height="20" rx="10" fill="#D9E2F2"/></svg>`);
   }
 
   async function loadAndRender(){
@@ -1545,35 +1719,61 @@ async function fetchDay(pid, ds) {
     renderDay(data);
   }
 
+  // Навигация по дням
   btnPrev?.addEventListener('click', ()=>{ current.date.setDate(current.date.getDate()-1); loadAndRender(); });
   btnNext?.addEventListener('click', ()=>{ current.date.setDate(current.date.getDate()+1); loadAndRender(); });
-  btnClose?.addEventListener('click', ()=>{ drawer.style.display='none'; });
+  btnClose?.addEventListener('click', ()=>{ drawer.style.display='none'; drawer.setAttribute('aria-hidden','true'); });
 
+  // Публичный метод, вызывается из patientCard(...)
   window.openPatientDrawer = async function(patient){
     current.id   = patient.id || patient.patient_id || patient.user_id;
-    current.date = new Date();
+    current.start= patient.course?.start || patient.start_date || null;
+    current.date = new Date(); // сегодня
     title.textContent = patient.name || patient.patient_name || 'Пациент';
+    lblId.textContent = 'ID: ' + (current.id ?? '—');
+
+    // аватар (есть ли в списке пациентов? если нет — пусть пустышка)
+    try{
+      const url = patient.avatar_url || patient.avatarUrl || '';
+      if (url){ imgAva.src = url; imgAva.style.display='block'; }
+      else { imgAva.src = ph(); imgAva.style.display='block'; }
+    }catch(_){}
+
     drawer.style.display = 'block';
+    drawer.setAttribute('aria-hidden','false');
     await loadAndRender();
   };
 });
 </script>
 
-<div id="patientDrawer" style="display:none;position:fixed;inset:0;backdrop-filter:blur(2px);background:rgba(0,0,0,.35);z-index:1000">
-  <div style="position:absolute;right:0;top:0;bottom:0;width:min(780px,100%);background:var(--card,#fff);border-left:1px solid var(--border,#e7eaf0);overflow:auto">
-    <div style="display:flex;align-items:center;gap:10px;padding:14px 16px;border-bottom:1px solid var(--border,#e7eaf0)">
-      <button id="pdClose" class="btn-ghost">Закрыть</button>
-      <div id="pdTitle" style="font-weight:800">Пациент</div>
-      <div style="margin-left:auto;display:flex;gap:8px;align-items:center">
-        <button id="pdPrev" class="btn-ghost">← день</button>
-        <div id="pdDate" style="font-weight:700"></div>
-        <button id="pdNext" class="btn-ghost">день →</button>
+
+<div id="patientDrawer" aria-hidden="true" style="display:none">
+  <div class="pd-panel">
+    <header class="pd-hdr">
+      <div class="pd-hdr-top">
+        <button class="pd-daybtn" id="pdPrev">← день</button>
+        <div class="pd-date">
+          <div class="pd-course" id="pdCourse">День —</div>
+          <div class="pd-date-txt" id="pdDate">—</div>
+        </div>
+        <button class="pd-daybtn" id="pdNext">день →</button>
       </div>
-    </div>
-    <div id="pdBody" style="padding:16px;display:grid;gap:16px">
-      <!-- сюда JS вставит секции: самочувствие/побочки/фото/заметка/доза -->
+      <div class="pd-idrow">
+        <img id="pdAva" class="pd-ava" alt="">
+        <div class="pd-name" id="pdTitle">Пациент</div>
+        <div class="pd-chip" id="pdId">ID: —</div>
+        <button class="pd-daybtn" id="pdClose" style="position:absolute;right:12px;top:12px">Закрыть</button>
+      </div>
+    </header>
+
+    <div class="pd-body" id="pdBody">
+      <!-- сюда JS вставит секции -->
     </div>
   </div>
+
+  <!-- лайтбокс -->
+  <div class="pd-light" id="pdLight"><img alt=""><div class="bg" style="position:absolute;inset:0"></div></div>
 </div>
+
 </body>
 </html>

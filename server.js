@@ -804,8 +804,16 @@ app.get('/api/doctor/validate', tgAuth, async (req, res) => {
 
     const { rows } = await pool.query(`
       SELECT u.id AS doctor_id,
-             COALESCE(u.full_name,'Врач') AS name,
-             dp.clinic, dp.city, dp.avatar_url
+       COALESCE(u.full_name,'Врач') AS name,
+       dp.clinic, dp.city,
+       COALESCE(
+         dp.avatar_url,
+         NULLIF(u.tg_photo_url,''),
+         CASE WHEN NULLIF(u.tg_username,'') IS NOT NULL
+              THEN 'https://unavatar.io/telegram/' || u.tg_username
+              ELSE NULL
+         END
+       ) AS avatar_url
         FROM derma.doctor_codes dc
         JOIN derma.users u ON u.id = dc.doctor_id
         LEFT JOIN derma.doctor_profiles dp ON dp.user_id = u.id
@@ -925,42 +933,80 @@ app.get('/api/doctor/patients', tgAuth, async (req, res) => {
 app.get('/api/doctor/patient/:pid/day', tgAuth, async (req, res) => {
   try {
     await pool.query('SET search_path = derma, public');
+
     const did  = await userIdByTg(req.tg || req.tgUser?.id);
     const pid  = Number(req.params.pid);
     const ds   = (req.query.date || new Date().toISOString().slice(0,10));
 
-    // проверка доступа врача к пациенту
+    // доступ врача к пациенту
     const ok = await pool.query(
-      `select 1 from patient_doctors where doctor_id=$1 and patient_id=$2 and unbound_at is null`,
+      `select 1 from patient_doctors
+        where doctor_id=$1 and patient_id=$2 and unbound_at is null`,
       [did, pid]
     );
     if (!ok.rowCount) return res.status(403).json({ error:'forbidden' });
 
-    const diary = await pool.query(`
-      select mood, wellbeing, side_effects, symptoms, note
-        from diary_entries
-       where patient_id=$1 and day=$2::date
-       order by created_at desc limit 1
-    `, [pid, ds]).catch(()=>({ rows:[] }));
+    // параллельные запросы под твою схему
+    const [pat, diary, dose, photos, prog] = await Promise.all([
+      pool.query(`
+        select u.id,
+               coalesce(nullif(u.full_name,''), nullif(u.tg_username,''), 'Пациент') as name,
+               coalesce(nullif(u.photo_url,''), nullif(u.tg_photo_url,''))           as avatar_url,
+               u.weight_kg, u.sex,
+               p.start_date
+          from derma.users u
+          left join derma.plans p on p.patient_id = u.id
+         where u.id = $1
+         limit 1`, [pid]),
 
-    const dose = await pool.query(`
-      select coalesce(sum(mg_taken),0)::numeric as mg
-        from dose_logs
-       where patient_id=$1 and date=$2::date
-    `, [pid, ds]).catch(()=>({ rows:[{mg:0}] }));
+      pool.query(`
+        select
+          feeling_score              as mood,
+          side_effects               as side_effects,
+          comment                    as note
+        from derma.diary
+        where patient_id=$1 and at_date=$2::date
+        order by id desc
+        limit 1`, [pid, ds]).catch(()=>({rows:[]})),
 
-    const photos = await pool.query(`
-      select id, url, coalesce(kind, type, 'face') as kind, coalesce(taken_at, created_at, now()) as taken_at
-        from photos
-       where user_id=$1
-         and coalesce(taken_at::date, created_at::date)=$2::date
-         and coalesce(kind, type, 'face') in ('face','body')
-       order by taken_at desc, id desc
-    `, [pid, ds]).catch(()=>({ rows:[] }));
+      pool.query(`
+        select coalesce(sum(mg_taken),0)::numeric as mg
+          from derma.dose_logs
+         where patient_id=$1 and date=$2::date`, [pid, ds]).catch(()=>({rows:[{mg:0}]})),
+
+      pool.query(`
+        select id, url,
+               coalesce(meta->>'kind','face') as kind,
+               at_date                         as taken_at
+          from derma.photos
+         where patient_id=$1 and at_date=$2::date
+         order by id desc`, [pid, ds]).catch(()=>({rows:[]})),
+
+      pool.query(`
+        select daily_dose_mg, cum_mg, weight_kg,
+               target_opt_cum_mg_per_kg as target_mg_per_kg
+          from derma.v_patient_progress
+         where patient_id=$1
+         limit 1`, [pid]).catch(()=>({rows:[]}))
+    ]);
+
+    const p = pat.rows?.[0] || {};
+    const pr = prog.rows?.[0] || {};
 
     res.json({
       date: ds,
-      dose_mg: Number(dose.rows?.[0]?.mg || 0),
+      patient: {
+        id: p.id, name: p.name, avatar_url: p.avatar_url,
+        weight_kg: p.weight_kg, sex: p.sex
+      },
+      course: { start_date: p.start_date || null },
+      dose: {
+        current_mg: Number(dose.rows?.[0]?.mg || 0),
+        plan_mg: Number(pr.daily_dose_mg || 0),
+        cumulative_mg: Number(pr.cum_mg || 0),
+        weight_kg: Number(pr.weight_kg || p.weight_kg || 0),
+        target_mg_per_kg: Number(pr.target_mg_per_kg || 135)
+      },
       diary: diary.rows?.[0] || null,
       photos: photos.rows.map(r => ({ id:r.id, url:r.url, kind:r.kind, taken_at:r.taken_at }))
     });
@@ -1056,8 +1102,16 @@ app.post('/api/doctor/attach', tgAuth, async (req, res) => {
 
     const { rows } = await pool.query(`
       SELECT u.id AS doctor_id,
-             COALESCE(u.full_name,'Врач') AS name,
-             dp.clinic, dp.city, dp.avatar_url
+       COALESCE(u.full_name,'Врач') AS name,
+       dp.clinic, dp.city,
+       COALESCE(
+         dp.avatar_url,
+         NULLIF(u.tg_photo_url,''),
+         CASE WHEN NULLIF(u.tg_username,'') IS NOT NULL
+              THEN 'https://unavatar.io/telegram/' || u.tg_username
+              ELSE NULL
+         END
+       ) AS avatar_url
         FROM derma.users u
         LEFT JOIN derma.doctor_profiles dp ON dp.user_id=u.id
        WHERE u.id=$1`, [did]);
@@ -1075,10 +1129,17 @@ app.get('/api/doctor/attached', tgAuth, async (req, res) => {
     const pid = await userIdByTg(req.tg || req.tgUser?.id);
 
     const { rows } = await pool.query(`
-      SELECT dc.code,
-             u.id AS doctor_id,
-             COALESCE(u.full_name,'Врач') AS name,
-             dp.clinic, dp.city, dp.avatar_url
+      SELECT u.id AS doctor_id,
+       COALESCE(u.full_name,'Врач') AS name,
+       dp.clinic, dp.city,
+       COALESCE(
+         dp.avatar_url,
+         NULLIF(u.tg_photo_url,''),
+         CASE WHEN NULLIF(u.tg_username,'') IS NOT NULL
+              THEN 'https://unavatar.io/telegram/' || u.tg_username
+              ELSE NULL
+         END
+       ) AS avatar_url
         FROM derma.patient_doctors pd
         JOIN derma.users u ON u.id = pd.doctor_id
         LEFT JOIN derma.doctor_profiles dp ON dp.user_id = u.id
@@ -1104,10 +1165,17 @@ app.post('/api/doctor/request', tgAuth, async (req, res) => {
 
     // Находим врача по коду
     const rCode = await pool.query(`
-      SELECT dc.doctor_id,
-             COALESCE(u.full_name,'Врач') AS name,
-             dp.clinic, dp.city, dp.avatar_url,
-             COALESCE(dp.auto_accept,false) AS auto_accept
+      SELECT u.id AS doctor_id,
+       COALESCE(u.full_name,'Врач') AS name,
+       dp.clinic, dp.city,
+       COALESCE(
+         dp.avatar_url,
+         NULLIF(u.tg_photo_url,''),
+         CASE WHEN NULLIF(u.tg_username,'') IS NOT NULL
+              THEN 'https://unavatar.io/telegram/' || u.tg_username
+              ELSE NULL
+         END
+       ) AS avatar_url
         FROM derma.doctor_codes dc
         JOIN derma.users u ON u.id = dc.doctor_id
         LEFT JOIN derma.doctor_profiles dp ON dp.user_id = u.id
@@ -1542,10 +1610,10 @@ app.use((req, res, next) => {
       "default-src 'self' 'unsafe-inline' 'unsafe-eval' data: blob:",
       // было: "script-src  'self' 'unsafe-inline' 'unsafe-eval' blob:",
       "script-src  'self' 'unsafe-inline' 'unsafe-eval' blob: https://telegram.org https://*.telegram.org",
-      "style-src   'self' 'unsafe-inline' data:",
+      "style-src   'self' 'unsafe-inline' data: https://fonts.googleapis.com",
       "img-src     'self' data: blob: https: http: https://unavatar.io https://*.unavatar.io https://telegram.org https://*.telegram.org https://t.me https://*.t.me",
       "media-src   'self' data: blob:",
-      "font-src    'self' data:",
+      "font-src    'self' data: https://fonts.gstatic.com",
       // было: "connect-src 'self' https: http: data: blob:"
       "connect-src 'self' https: http: data: blob: https://telegram.org https://*.telegram.org"
     ].join('; ')
