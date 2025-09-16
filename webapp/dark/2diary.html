@@ -4,7 +4,12 @@
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
 <meta name="view-transition" content="same-origin">
-<title>Дневник — запись дня</title><script>
+<title>Дневник — запись дня</title>
+<script>
+  // DEV: куда слать API (бэк у тебя на 3000)
+  window.RT_API_BASE = 'http://localhost:3000';
+</script>
+<script>
 (function(){
   try{
     const xy = sessionStorage.getItem('portalXY');
@@ -88,38 +93,6 @@
 
 
 <style>
- /* === Fuzzy ball sprite (embedded) === */
-.fur2{
-  position:relative;
-  width: clamp(200px, 48%, 320px);   /* адекватный размер в карточке */
-  aspect-ratio: 1;
-  display:grid; place-items:center; margin:auto;
-  isolation:isolate;                 /* свой стек: аура с z-index:-1 не уйдёт под сцену */
-  z-index:2;                         /* поверх .mood-stage::after (у него z-index:1) */
-}
-.fur2 img{
-  position:absolute; inset:0; width:100%; height:100%;
-  object-fit: cover;                 /* равномерно заполняем круг */
-  border-radius:50%;                 /* убираем квадратные углы */
-  /* мягкая «лохматая» кромка без прозрачного PNG */
-  -webkit-mask-image: radial-gradient(circle at 50% 52%,
-                     #000 62%, rgba(0,0,0,.8) 72%, rgba(0,0,0,.3) 82%, transparent 92%);
-          mask-image: radial-gradient(circle at 50% 52%,
-                     #000 62%, rgba(0,0,0,.8) 72%, rgba(0,0,0,.3) 82%, transparent 92%);
-}
-.fur2-aura{
-  position:absolute; inset:-18%; border-radius:50%;
-  background: radial-gradient( circle at 50% 50%,
-              hsl(var(--fur-h,90) 80% 70% / .40) 0%, transparent 70%);
-  filter: blur(18px);
-  z-index:-1;                        /* под шаром, но внутри .fur2 */
-}
-.fur2-shadow{
-  position:absolute; width:62%; height:18%; left:19%; bottom:-6%;
-  background: radial-gradient(ellipse at 50% 50%,
-              rgba(0,0,0,.22), rgba(0,0,0,0) 70%);
-}
-#furTop{ transition: opacity 140ms linear; } /* кросс-фейд ступеней */
   :root{
     --bgA:#0B1220;
     --bgB:#0F1B2E;
@@ -196,15 +169,6 @@ html, body{ max-width:100vw; overflow-x:hidden; }
   .card{background:var(--card); border:1px solid var(--border); border-radius:var(--radius); padding:16px; margin:16px 0; box-shadow:0 10px 30px rgba(0,0,0,.35)}
   .card h2{font-size:18px; margin:0 0 12px 0}
 .card h2{ text-align:center; }
-/* Карточка "Оценка самочувствия" уже на ~40% */
-#moodSection{
-  width: 60%;
-  margin-left:auto; margin-right:auto;  /* по центру */
-  min-width: 420px;                     /* чтобы не ломалось на узких */
-}
-@media (max-width: 900px){
-  #moodSection{ width: 100%; min-width: 0; }
-}
   /* === App button styles === */
   .btn{
     appearance:none; border:0; border-radius:14px;
@@ -245,23 +209,10 @@ html, body{ max-width:100vw; overflow-x:hidden; }
   .btn-sm{ padding:8px 12px; border-radius:12px; font-size:14px }
 
   /* ===== Mood block ===== */
- .mood{
-  --mood-size: clamp(360px, 82vw, 600px); /* РАЗМЕР СЦЕНЫ и ширина контролов */
-  display:grid;
-  grid-template-columns: 1fr;
-  justify-items:center;
-  align-items:center;
-  gap:16px;
-}
+  .mood{ display:grid; grid-template-columns: 1fr 306px; gap:16px; align-items:center; } /* -15% */
 
   @media (max-width: 900px){ .mood{ grid-template-columns: 1fr; } }
-  .mood-stage{
-    
-  position:relative;
-  border-radius:22px;
-  overflow:hidden;
-  aspect-ratio: 1 / 1;     /* всегда квадрат */
-  min-height: 260px;       /* чтобы на узких экранах не схлопывалось */
+  .mood-stage{ position:relative; height:280px; border-radius:22px; overflow:hidden;   /* -15% */
     /* базовый фолбэк под изображением */
     background:
       radial-gradient(420px 240px at 20% 0%, color-mix(in oklab, var(--glow), transparent 60%), transparent 60%),
@@ -279,15 +230,7 @@ html, body{ max-width:100vw; overflow-x:hidden; }
   }
   .mood-stage #pillCanvas{ position:absolute; inset:0; width:100%; height:100%; display:block; z-index:2; }
   .mood-stage svg{ position:absolute; inset:0; width:100%; height:100% }
-  .mood-ctrl{
-  display:grid;
-  gap:16px;
-  align-content:center;
-  justify-items:stretch;  /* важное — даёт 100% ширины детям */
-  width: 100%;            /* ширина = ширине карточки */
-}
-/* Полоска самочувствия — на всю ширину .mood-ctrl */
-.mood-ctrl .bar{ width:100%; }
+  .mood-ctrl{ display:grid; gap:14px; align-content:center; justify-items:stretch; }
   .state-label{ text-align:center; font-weight:800; letter-spacing:.3px }
 
  /* — современный компактный слайдер — */
@@ -303,7 +246,7 @@ html, body{ max-width:100vw; overflow-x:hidden; }
   display:flex; align-items:center;
   cursor:pointer; user-select:none; -webkit-user-select:none; touch-action: pan-x;
 }
-#moodBar{ touch-action: pan-x; user-select:none; -webkit-user-select:none; }
+#moodBar{ touch-action:none; user-select:none; -webkit-user-select:none; }
 .bar .rail{
   position:absolute; left:14px; right:14px; top:50%;
   height:6px; transform:translateY(-50%);   /* было 10px */
@@ -849,54 +792,31 @@ textarea::placeholder{
   background: radial-gradient(140% 160% at 12% -10%, rgba(255,255,255,.08), transparent 45%);
   mix-blend-mode:soft-light;
 }
-/* слой с картинками */
-.mood-scene{ position:absolute; inset:5px; border-radius:20px; overflow:hidden; z-index:2; }
-.mood-scene img{
-  position:absolute; inset:0; width:100%; height:100%;
-  object-fit: cover;                 /* занимает всю сцену */
-  object-position: 50% 56%;          /* базовый фокус – можно править */
-  transform-origin: 50% 50%;
-  transition: opacity .35s linear;   /* кросс-фейд */
-  will-change: transform, opacity, object-position;
-}
 
-/* чтобы ничто не «подкрашивало» под твоими PNG */
-.mood-stage::before{ content:none !important; }
 /* === 3) Capsule stage (same skin, no seams) === */
-/* Контейнер сцены */
 .mood-stage{
-  position: relative;
-  border-radius: 24px;          /* скругления, как в UI */
-  overflow: hidden;             /* картинка обрезается по радиусу */
-}
-/* Цветное внешнее свечение сцены по текущему настроению */
-#moodSection .mood-stage{
-  /* читаем H/S/L, задаём адекватные фолбэки */
-  --mood-h: var(--fur-h, 210);
-  --mood-s: var(--fur-s, 80%);
-  --mood-l: var(--fur-l, 55%);
+  position:relative; height:360px; border-radius:22px; overflow:hidden;
+  border:0;
+  background: linear-gradient(180deg,
+              color-mix(in oklab, var(--bgA), #fff 6%),
+              color-mix(in oklab, var(--bgB), #000 6%));
   box-shadow:
-    0 0 128px hsl(var(--mood-h) var(--mood-s) var(--mood-l) / .70),
-    0 0 160px hsl(var(--mood-h) var(--mood-s) var(--mood-l) / .40);
+    12px 14px 26px rgba(0,0,0,.52),
+   -10px -10px 18px rgba(255,255,255,.03),
+    inset 0  1px 0 rgba(255,255,255,.06),
+    inset 0 -10px 26px rgba(0,0,0,.26);
 }
-
-/* Собственно «картина» с шариком — берём из переменной --mood-bg */
 .mood-stage::before{
-  content: "";
-  position: absolute;
-  inset: 6px;                  /* внутренний отступ, как на твоём скрине */
-  border-radius: 15px;          /* скругление внутренней «рамки» */
-  background: var(--mood-bg, linear-gradient(#efece6,#e7e1d8)) center/cover no-repeat;
-  box-shadow:
-    inset 0 0 0 1px rgba(255,255,255,.04),
-    0 10px 40px rgba(0,0,0,.35);
-  filter: saturate(1.02) contrast(1.03);
+  content:""; position:absolute; inset:0; z-index:0; pointer-events:none;
+  background-image: var(--mood-bg, none);
+  background-size:cover; background-position:center;
+  filter: blur(10px) saturate(.95) brightness(1.02);
+  transform: scale(1.06);
 }
-
-/* Если у тебя был затемняющий оверлей у .mood-stage — у него должен быть меньший z-index,
-   а у .mood-stage::before — естественно выше. Обычно этого достаточно: */
-.mood-stage::after{ z-index: 1; }
-.mood-stage::before{ z-index: 2; }
+.mood-stage::after{
+  content:""; position:absolute; inset:0; border-radius:inherit; pointer-events:none; z-index:1;
+  box-shadow: inset 0 24px 60px rgba(0,0,0,.25), inset 0 -24px 60px rgba(0,0,0,.28);
+}
 .mood-stage #pillCanvas{ position:absolute; inset:0; width:100%; height:100%; z-index:2; }
 .mood-stage .mood-video{ position:absolute; inset:0; width:100%; height:100%; object-fit:cover; z-index:2; }
 
@@ -920,16 +840,7 @@ textarea::placeholder{
 }
 .bar::before{
   content:""; position:absolute; left:14px; right:14px; top:50%; height:6px; transform:translateY(-50%);
-  background: linear-gradient(
-  90deg,
-  #ef4444 0%,      /* красный   */
-  #f59e0b 16.66%,  /* оранжевый */
-  #e7d5b1 33.33%,  /* бежевый   */
-  #9ca3af 50%,     /* серый     */
-  #2dd4bf 66.66%,  /* мятный    */
-  #22c55e 83.33%,  /* зелёный   */
-  #3b82f6 100%     /* синий     */
-);
+  background:linear-gradient(90deg, var(--trackA), var(--trackB));
   border-radius:999px;
   mask:linear-gradient(90deg,#000 calc(var(--x)*100%), transparent 0);
   -webkit-mask:linear-gradient(90deg,#000 calc(var(--x)*100%), transparent 0);
@@ -1256,14 +1167,10 @@ header{
   </button>
 </div>
     <div class="mood">
-   <div class="mood-stage">
-  <!-- Полноэкранная сцена с фоном и шаром (2 слоя для кросс-фейда) -->
-  <div class="mood-scene" id="moodScene">
-    <img id="sceneBottom" alt="" decoding="async">
-    <img id="sceneTop"    alt="" decoding="async" style="opacity:0">
-  </div>
+      <div class="mood-stage">
+  <!-- Капсула — только canvas -->
+  <canvas id="pillCanvas"></canvas>
 </div>
-
       <div class="mood-ctrl">
         <div class="state-label" id="stateLabel">Нейтрально</div>
         <div class="bar" id="moodBar" role="slider" aria-valuemin="-100" aria-valuemax="100" aria-valuenow="0" aria-label="Самочувствие">
@@ -1527,57 +1434,31 @@ function collectSEFromDOM(){
 }
 
 // Форс-сейв текущего дня без debounce
-// Форс-сейв текущего дня + отправка на сервер
-async function flushCurrentEntry(){
+function flushCurrentEntry(){
   try{
-    const curISO =
-      (document.getElementById('datePicker')?.value) ||
-      window.lastDateISO ||
-      (typeof selectedISO === 'function' ? selectedISO() : null);
+    // определяем «какой день открыт сейчас»
+    const curISO = (document.getElementById('datePicker')?.value) ||
+                   window.lastDateISO ||
+                   (typeof selectedISO === 'function' ? selectedISO() : null);
     if (!curISO) return;
 
+    // берём/обновляем entry
     const entry = (typeof getEntry === 'function') ? getEntry(curISO) : { iso: curISO };
-
-    // собираем из UI
     const notesEl = document.getElementById('notes');
+    // самочувствие (если используется глобальная переменная valence)
     if (typeof window.valence !== 'undefined') entry.wellness = Math.round(Number(window.valence)||0);
+    // заметка
     if (notesEl) entry.notes = String(notesEl.value || '').trim();
+    // побочки
     entry.sideEffects = collectSEFromDOM();
 
-    // локально
     if (typeof putEntry === 'function') putEntry(entry);
     if (typeof saveDB === 'function'){
       const db = (typeof loadDB === 'function') ? loadDB() : null;
       if (db) saveDB(db);
     }
-
-    // на сервер (не блочим UI)
-    upsertDiaryOnServer(entry);
-  }catch(e){ console.warn(e); }
-}
-function beaconSave(){
-  try{
-    const iso = (document.getElementById('datePicker')?.value) || window.lastDateISO;
-    if (!iso) return;
-    const e = getEntry(iso);
-    const payload = JSON.stringify({
-      date: iso,
-      feeling_score: Math.round(e.wellness ?? 0),
-      side_effects: e.sideEffects || {},
-      comment: e.notes || ''
-    });
-    const url = withAuthQS('/api/diary/day');
-    if (navigator.sendBeacon) {
-      const blob = new Blob([payload], {type:'application/json'});
-      navigator.sendBeacon(url, blob);
-    } else {
-      // запасной вариант
-      fetch(url, {method:'POST', headers:authHeaders(), credentials:'same-origin', body:payload});
-    }
   }catch(_){}
 }
-window.addEventListener('pagehide', beaconSave);
-window.addEventListener('beforeunload', beaconSave);
 function setDate(d, dir = 0){
   // 0) Перед переключением дня досейвим текущее, иначе теряются правки
   try { flushCurrentEntry(); } catch(_){}
@@ -1589,15 +1470,7 @@ function setDate(d, dir = 0){
   // 2) Загружаем данные нового дня в UI
   loadIntoUI(d);
   lastDateISO = d;
-  // 2) Загружаем данные нового дня в UI
-  loadIntoUI(d);
-  lastDateISO = d;
 
-  // 3) Догружаем актуальные данные с бэка и ещё раз мягко обновляем UI
-  hydrateDiaryFromServer(d).then(snap => {
-    mergeServerDiary(snap);
-    loadIntoUI(d);
-  });
   // 3) Память о последнем открытом дне (как у тебя было)
   try{
     localStorage.setItem('rt.diary.last_date', d);
@@ -1623,7 +1496,394 @@ datePicker.addEventListener('change', e => {
   const dir    = dirNum > 0 ? 1 : dirNum < 0 ? -1 : 0;
   setDate(newISO, dir);
 });
+// ===== Mood PILL animation (replaces flower) =====
+const stateLabel=document.getElementById('stateLabel');
+const bar=document.getElementById('moodBar'); const knob=document.getElementById('moodKnob');
+const canvas = document.getElementById('pillCanvas');
+const ctx = canvas.getContext('2d');
 
+// Всегда используем canvas (без видео)
+canvas.hidden = false;
+requestAnimationFrame(frame);
+// --- анимация как раньше ---
+const rotationPeriod=20, breathAmp=0.03, breathPeriod=1.6, morphSpeed=1.7, morphAmpBase=0.06;
+
+// --- управление «самочувствием»: 0..100 ---
+let valence=50;                  // 0..100
+let mood01=0.5, moodVis=0.5;     // 0..1 (внутреннее)
+window.setPillMood01 = x => { mood01 = Math.max(0, Math.min(1, x)); };
+
+// — служебные —
+function fit(){
+  let dpr = Math.max(1, window.devicePixelRatio || 1);
+  const lowQ = matchMedia('(max-width: 768px)').matches ||
+               (navigator.hardwareConcurrency && navigator.hardwareConcurrency <= 6);
+  dpr = Math.min(lowQ ? 1 : 1.25, dpr); // было 1.25/1.75 — делаем ещё проще/ниже
+  const w = canvas.clientWidth, h = canvas.clientHeight;
+  canvas.width  = Math.round(w * dpr);
+  canvas.height = Math.round(h * dpr);
+  ctx.setTransform(dpr,0,0,dpr,0,0);
+}
+
+window.addEventListener('resize', fit); fit();
+// Пауза/возобновление при смене видимости вкладки
+document.addEventListener('visibilitychange', ()=>{
+  if (document.hidden) {
+    if (rafId) { cancelAnimationFrame(rafId); rafId = 0; }
+  } else if (!rafId) {
+    lastMs = 0;
+    rafId = requestAnimationFrame(frame);
+  }
+});
+function pathCapsule(c, W, H, R){
+  const r=Math.max(0, Math.min(R, Math.min(W,H)/2));
+  const x=-W/2, y=-H/2;
+  c.beginPath();
+  c.moveTo(x+r,y); c.lineTo(x+W-r,y); c.quadraticCurveTo(x+W,y,x+W,y+r);
+  c.lineTo(x+W,y+H-r); c.quadraticCurveTo(x+W,y+H,x+W-r,y+H);
+  c.lineTo(x+r,y+H); c.quadraticCurveTo(x,y+H,x,y+H-r);
+  c.lineTo(x,y+r); c.quadraticCurveTo(x,y,x+r,y); c.closePath();
+}
+const lerp=(a,b,t)=>a+(b-a)*t;
+const clamp=(x,a,b)=>Math.max(a,Math.min(b,x));
+function hexToRgb(h){ const m=/^#?([a-f\d]{2})([a-f\d]{2})([a-f\d]{2})$/i.exec(h);
+  return m?{r:parseInt(m[1],16),g:parseInt(m[2],16),b:parseInt(m[3],16)}:{r:255,g:255,b:255}; }
+function mixHex(h1,h2,t,a=1){ const A=hexToRgb(h1),B=hexToRgb(h2);
+  const r=Math.round(lerp(A.r,B.r,t)), g=Math.round(lerp(A.g,B.g,t)), b=Math.round(lerp(A.b,B.b,t));
+  return `rgba(${r},${g},${b},${a})`;
+}
+
+// Палитра капсулы: 0 — тёпло/«плохо», 1 — холодно/«отлично»
+function palette(m){
+  const PILL_TINT_STRENGTH = 9.6;
+  const warm1='#e96a5a', warm2='#ffb36b';
+  const mid1 ='#19d06a', mid2 ='#66e08f';
+  const cool1='#00d2ff', cool2='#38f9d7';
+  let cA,cB; if(m<0.5){ const t=m/0.5; cA=mixHex(warm1,mid1,t); cB=mixHex(warm2,mid2,t);}
+  else { const t=(m-0.5)/0.5; cA=mixHex(mid1,cool1,t); cB=mixHex(mid2,cool2,t); }
+  return {
+    baseDark: mixHex('#0c1322', '#0b141e', m, 1),
+    baseMid:  mixHex('#141d34', '#0f2234', m, 1),
+    tintA: cA, tintB: cB,
+    rimA: mixHex('#ff9866','#00ffee', m, .35),
+    rimB: mixHex('#ffd8a0','#a0d8ff', m, .16),
+    glintA: mixHex('#ffe5d4','#e8fbff', m, .85),
+    glintB: mixHex('#ffd0f0','#c7e6ff', m, .72)
+  };
+}
+
+// Текстуры: low-freq «бамп» + микро-поры
+function makeValueNoise(size=256, cell=16, oct=3){
+  const cnv=document.createElement('canvas'), c=cnv.getContext('2d');
+  cnv.width=cnv.height=size; const img=c.createImageData(size,size);
+  function pass(freq, amp){
+    const gx=Math.ceil(size/freq)+2, gy=Math.ceil(size/freq)+2;
+    const grid=Array.from({length:gy},()=>Array.from({length:gx},()=>Math.random()));
+    for(let y=0;y<size;y++){ const fy=y/freq, y0=Math.floor(fy), ty=fy-y0;
+      for(let x=0;x<size;x++){ const fx=x/freq, x0=Math.floor(fx), tx=fx-x0;
+        const v00=grid[y0][x0], v10=grid[y0][x0+1], v01=grid[y0+1][x0], v11=grid[y0+1][x0+1];
+        const v=((v00*(1-tx)+v10*tx)*(1-ty) + (v01*(1-tx)+v11*tx)*ty)*amp;
+        const i=(y*size+x)*4; img.data[i]+=v*255; img.data[i+1]+=v*255; img.data[i+2]+=v*255; img.data[i+3]=255;
+      }
+    }
+  }
+  for(let o=0;o<oct;o++) pass(cell/(2**o), 1/(2**(o+1)));
+  c.putImageData(img,0,0); return cnv;
+}
+function makeSpeckles(size=512, count=2200){
+  const cnv=document.createElement('canvas'), c=cnv.getContext('2d');
+  cnv.width=cnv.height=size; c.clearRect(0,0,size,size);
+  for(let i=0;i<count;i++){
+    const x=Math.random()*size, y=Math.random()*size, r=(Math.random()*1.6)+0.5, ang=Math.random()*Math.PI;
+    c.fillStyle=`rgba(0,0,0,${0.10+Math.random()*0.10})`;
+    c.beginPath(); c.ellipse(x,y,r*1.1,r*0.9,ang,0,Math.PI*2); c.fill();
+    if(Math.random()<0.25){
+      c.fillStyle=`rgba(255,255,255,${0.06+Math.random()*0.06})`;
+      c.beginPath(); c.ellipse(x+0.2,y-0.2,r*0.8,r*0.6,ang,0,Math.PI*2); c.fill();
+    }
+  }
+  return cnv;
+}
+const noiseTex = makeValueNoise(256,18,3);
+const speckleTex = makeSpeckles(512,2200);
+
+// Помощники для бликов/полос
+function glossyBand(x1,y1,x2,y2, a1, a2, alpha){
+  const g=ctx.createLinearGradient(x1,y1,x2,y2);
+  g.addColorStop(0,'rgba(255,255,255,0)'); g.addColorStop(0.35,a1);
+  g.addColorStop(0.65,a2); g.addColorStop(1,'rgba(255,255,255,0)');
+  ctx.globalCompositeOperation='screen'; ctx.globalAlpha=alpha; ctx.fillStyle=g;
+  ctx.fillRect(-9999,-9999,19999,19999);
+  ctx.globalAlpha=1; ctx.globalCompositeOperation='source-over';
+}
+function glint(cx,cy,rx,ry,color='rgba(255,255,255,.9)',a=1){
+  const gr=ctx.createRadialGradient(cx,cy,0,cx,cy,Math.max(rx,ry));
+  gr.addColorStop(0,color); gr.addColorStop(1,'rgba(255,255,255,0)');
+  ctx.globalCompositeOperation='screen'; ctx.globalAlpha=a; ctx.fillStyle=gr;
+  ctx.beginPath(); ctx.ellipse(cx,cy,rx,ry,0,0,Math.PI*2); ctx.fill();
+  ctx.globalAlpha=1; ctx.globalCompositeOperation='source-over';
+}
+// ==== depth helpers ====
+function innerAOStroke(ctx,W,H,R,alpha=0.22){
+  // мягкая внутренняя тень по контуру — усиливает толщину стенки
+  ctx.save();
+  ctx.globalCompositeOperation = 'multiply';
+  ctx.lineWidth = Math.min(W,H)*0.08;
+  const g = ctx.createRadialGradient(0,0, Math.min(W,H)*0.36, 0,0, Math.min(W,H)*0.52);
+  g.addColorStop(0,'rgba(0,0,0,0)');
+  g.addColorStop(1,`rgba(0,0,0,${alpha})`);
+  pathCapsule(ctx, W, H, R);
+  ctx.strokeStyle = g;
+  ctx.stroke();
+  ctx.restore();
+}
+
+function outerRimGlow(ctx,W,H,R,intensity=0.55){
+  // внешнее свечение по краю — даёт ощущение «стекла»
+  ctx.save();
+  ctx.globalCompositeOperation='screen';
+  ctx.shadowColor = `rgba(255,255,255,${intensity})`;
+  ctx.shadowBlur  = Math.min(W,H)*0.09;
+  ctx.lineWidth   = Math.min(W,H)/18;
+  pathCapsule(ctx,W,H,R);
+  ctx.strokeStyle = 'rgba(255,255,255,.03)';
+  ctx.stroke();
+  ctx.restore();
+}
+
+// обновлённый блик с «блумом»
+function glintBloom(ctx,x,y,w,h,color='white',alpha=.6,angle=0){
+  ctx.save();
+  ctx.translate(x,y); ctx.rotate(angle);
+  ctx.globalCompositeOperation='screen';
+
+  // центральный блик
+  ctx.globalAlpha = alpha;
+  ctx.beginPath(); ctx.ellipse(0,0,w,h,0,0,Math.PI*2);
+  ctx.fillStyle = color; ctx.fill();
+
+  // мягкое свечение вокруг
+  ctx.globalAlpha = alpha*0.45;
+  ctx.filter='blur(6px)';
+  ctx.beginPath(); ctx.ellipse(0,0,w*1.35,h*1.35,0,0,Math.PI*2); ctx.fill();
+  ctx.filter='none';
+
+  ctx.restore();
+}
+
+// === helpers for glass + liquid ===
+function fresnelEdge(t, bias=.06, pow=3){ return bias + (1-bias) * Math.pow(1-Math.abs(t), pow); }
+
+// нормализованные пузырьки в локальных координатах капсулы (x,y в -0.5..0.5)
+const BUBBLE_COUNT = 70;
+let bubbles = Array.from({length:BUBBLE_COUNT}, () => ({
+  x: (Math.random()-0.5)*0.82,
+  seed: Math.random(),
+  speed: 0.08 + Math.random()*0.12,    // чем больше — тем быстрее всплывают
+  r: 0.006 + Math.random()*0.016
+}));
+function drawBubbles(ctx, W, H, t){
+  ctx.save();
+  ctx.globalCompositeOperation = 'screen';
+  for(const b of bubbles){
+    // y бежит снизу вверх по циклу
+    const y = 0.44 - ((t*b.speed + b.seed) % 1.0) * 0.88;
+    const x = b.x + Math.sin(t*0.9 + b.seed*20)*0.02; // легкий дрейф
+    const cx = x*W, cy = y*H;
+    const r = b.r * Math.min(W,H);
+    const g = ctx.createRadialGradient(cx,cy,0, cx,cy,r);
+    g.addColorStop(0,'rgba(255,255,255,.35)');
+    g.addColorStop(0.6,'rgba(255,255,255,.08)');
+    g.addColorStop(1,'rgba(255,255,255,0)');
+    ctx.fillStyle = g;
+    ctx.beginPath(); ctx.ellipse(cx,cy, r*1.15, r*0.9, (b.seed*6.28), 0, Math.PI*2); ctx.fill();
+  }
+  ctx.restore();
+}
+
+// Текст пояснения
+// 7 подписей строго по индексам слева направо
+const MOOD_STATES = [
+  'Очень плохо','Плохо','Ниже нормы',
+  'Нейтрально','Неплохо','Хорошо','Отлично'
+];
+
+// квантование 0..100 → индекс 0..6 (именно так шагает твой слайдер)
+function quantizeIdxFromValence(v){
+  v = Math.max(0, Math.min(100, Number(v)||0));
+  return Math.max(0, Math.min(6, Math.round((v/100) * 6)));
+}
+
+// подпись теперь — просто по индексу
+function textFromV(v){
+  return MOOD_STATES[quantizeIdxFromValence(v)];
+}
+
+// ЦВЕТА и подпись — тоже по индексу
+function updateColorsByValence(v){
+  const idx = quantizeIdxFromValence(v);
+
+  // подпись состояния
+  if (typeof stateLabel !== 'undefined' && stateLabel){
+    stateLabel.textContent = MOOD_STATES[idx];
+  }
+
+  // палитры для 7 состояний (строго по индексам)
+  const THEMES = [
+    ['#3a0d1b', '#14060d'], // Очень плохо
+    ['#4a2609', '#1a0d05'], // Плохо
+    ['#4a3a2b', '#1e1812'], // Ниже нормы
+    ['#2c3342', '#10141e'], // Нейтрально
+     ['#0f3a33', '#081c18'], // Неплохо (светло-мятный)
+    ['#0e2b1b', '#081712'], // Хорошо
+    ['#0a2240', '#06121e']  // Отлично
+  ];
+  const [A,B] = THEMES[idx];
+
+  // если тумблер выключен — возвращаемся к базовой «обычной» теме
+  const on = isTintOn();
+  document.documentElement.style.setProperty('--bgA', on ? A : BASE_A);
+  document.documentElement.style.setProperty('--bgB', on ? B : BASE_B);
+
+  // трек настроения остаётся красный→зелёный
+  document.documentElement.style.setProperty('--trackA', 'hsl(10 90% 55%)');
+  document.documentElement.style.setProperty('--trackB', 'hsl(140 72% 45%)');
+
+  // капсула продолжает реагировать на настроение всегда
+  window.setPillMood01(Math.max(0, Math.min(100, v)) / 100);
+}
+
+
+
+// ===== Рендер капсулы (как был) =====
+let start=performance.now();
+let rafId = 0;     // id активного requestAnimationFrame
+// === iOS scroll fallback: держим анимацию во время скролла ===
+let __scrollTimer = 0, __scrollEndTO = 0;
+window.addEventListener('scroll', ()=>{
+  if (!__scrollTimer){
+    __scrollTimer = setInterval(()=>{ try{ frame(performance.now()); }catch(_){} }, 33);
+  }
+  clearTimeout(__scrollEndTO);
+  __scrollEndTO = setTimeout(()=>{
+    clearInterval(__scrollTimer); __scrollTimer = 0;
+    if (!rafId) rafId = requestAnimationFrame(frame);
+  }, 140);
+}, {passive:true});
+let lastMs = 0;    // метка времени предыдущего кадра (для 30 fps)
+function frame(nowMs){
+  if (nowMs - lastMs < 33) { rafId = requestAnimationFrame(frame); return; }
+lastMs = nowMs;
+  const t=(nowMs-start)/1000;
+  moodVis += (mood01 - moodVis)*0.08;
+
+  const W0=canvas.clientWidth, H0=canvas.clientHeight;
+  ctx.clearRect(0,0,W0,H0);
+  const cx=W0/2, cy=H0/2;
+
+  const rot=(2*Math.PI/rotationPeriod)*t;
+  const breath=1 + breathAmp*Math.sin(2*Math.PI*t/breathPeriod);
+  const morphAmp = morphAmpBase * (0.7 + 0.6*Math.abs(moodVis-0.5));
+  const morph=Math.sin(t*morphSpeed);
+
+ // Ручки:
+const PILL_SCALE   = 1.10;  // < 1 — капсула меньше; > 1 — больше
+const PILL_THICK   = 0.60;  // > 1 — капсула толще (выше относительно длины)
+
+// Базовые размеры:
+const baseW = W0 * 0.60 * PILL_SCALE;
+const baseH = H0 * 0.34 * PILL_SCALE * PILL_THICK;
+
+  const W=baseW*(1 + morphAmp*0.52*morph) * (1 - 0.05*(moodVis-0.5));
+  const H=baseH*(1 - morphAmp*0.34*morph) * (1 + 0.05*(moodVis-0.5));
+  const PILL_ROUND = 0.99; // было 0.86 — больше = более округлые торцы
+const R = Math.min(W,H)/2 * (PILL_ROUND + 0.08*Math.sin(t*morphSpeed*1.7));
+  const pal=palette(moodVis);
+
+  /* тень и рисование пилюли — без изменений (опущено тут для краткости),
+     оставь как в твоём текущем файле, если нужно — он уже ниже полностью */ 
+  // … (ниже полный блок из твоего файла)
+
+  // Тень (капсула)
+  ctx.save();
+  ctx.translate(cx, cy + H*0.24);
+  ctx.rotate(rot + 0.5);
+  const sw = W * 0.78, sh = H * 0.24, sr = Math.min(sw, sh) / 2;
+  pathCapsule(ctx, sw, sh, sr); ctx.save(); ctx.clip();
+  let g = ctx.createLinearGradient(0, -sh/2, 0, sh/2);
+  g.addColorStop(0.00, 'rgba(0,0,0,.22)');
+  g.addColorStop(0.45, 'rgba(0,0,0,.32)');
+  g.addColorStop(1.00, 'rgba(0,0,0,0)');
+  ctx.fillStyle = g; ctx.fillRect(-sw/2, -sh/2, sw, sh);
+  ctx.filter = 'blur(3px)'; ctx.globalAlpha = 0.9; ctx.fillRect(-sw/2, -sh/2, sw, sh);
+  ctx.filter = 'none'; ctx.globalAlpha = 1; ctx.restore();
+  pathCapsule(ctx, sw * 0.72, sh * 0.64, sr * 0.64);
+  ctx.fillStyle = 'rgba(0,0,0,.18)'; ctx.filter = 'blur(1.2px)'; ctx.fill(); ctx.filter = 'none';
+  ctx.restore();
+
+  // Капсула
+  ctx.save();
+  ctx.translate(cx,cy); ctx.rotate(rot + 0.5); ctx.scale(breath,breath);
+  pathCapsule(ctx,W,H,R); ctx.save(); ctx.clip();
+
+  const base=ctx.createLinearGradient(-W/2,-H/2, W/2,H/2);
+  base.addColorStop(0.0,pal.baseDark); base.addColorStop(0.45,pal.baseMid); base.addColorStop(1.0,'#070b14');
+  ctx.fillStyle=base; ctx.fillRect(-W,-H,W*2,H*2);
+
+  glossyBand(-W*0.9,-H*0.2,  W*0.7,H*0.15, pal.tintA, pal.tintB, .95);
+  glossyBand(-W*0.2,-H*0.85, W*0.2,H*0.75, mixHex('#ffd070','#a0d8ff',moodVis,.20), mixHex('#90e0ff','#70ffd8',moodVis,.22), .38);
+
+  ctx.save(); ctx.rotate(-(rot + 0.5));
+  const light=ctx.createLinearGradient(-W,0, W,0);
+  light.addColorStop(0.0,'rgba(255,255,255,.18)');
+  light.addColorStop(0.55,'rgba(0,0,0,0)');
+  light.addColorStop(1.0,'rgba(0,0,0,.22)');
+  ctx.globalCompositeOperation='overlay'; ctx.fillStyle=light; ctx.fillRect(-W,-H,W*2,H*2);
+  ctx.globalCompositeOperation='source-over'; ctx.restore();
+
+  ctx.globalCompositeOperation='multiply'; ctx.globalAlpha=0.10; ctx.drawImage(noiseTex, -W,-H, W*2,H*2);
+  ctx.globalAlpha=0.20; ctx.drawImage(speckleTex, -W,-H, W*2,H*2);
+  ctx.globalCompositeOperation='screen'; ctx.globalAlpha=0.06; ctx.drawImage(speckleTex, -W,-H, W*2,H*2);
+  ctx.globalAlpha=1; ctx.globalCompositeOperation='source-over';
+
+  glintBloom(ctx,  W*0.26, -H*0.26,  W*0.20, H*0.18, pal.glintA, .62,  0.10);
+glintBloom(ctx, -W*0.30,  H*0.26,  W*0.16, H*0.14, pal.glintB, .48, -0.08);
+
+
+  const rimAO=ctx.createLinearGradient(-W/2,0, W/2,0);
+  rimAO.addColorStop(0.0,'rgba(0,0,0,0.16)'); rimAO.addColorStop(0.5,'rgba(0,0,0,0)');
+  rimAO.addColorStop(1.0,'rgba(0,0,0,0.16)');
+  ctx.globalCompositeOperation='multiply'; ctx.fillStyle=rimAO; ctx.fillRect(-W,-H,W*2,H*2);
+  ctx.globalCompositeOperation='source-over';
+
+  const rim=ctx.createLinearGradient(-W/2,-H/2, W/2,H/2);
+  rim.addColorStop(0,pal.rimA); rim.addColorStop(0.5,'rgba(255,255,255,.08)'); rim.addColorStop(1,pal.rimB);
+  ctx.lineWidth=Math.max(1.2, Math.min(W,H)/22); ctx.strokeStyle=rim; pathCapsule(ctx,W,H,R); ctx.stroke();
+
+  ctx.lineWidth=1.0; ctx.strokeStyle='rgba(255,255,255,.20)';
+  pathCapsule(ctx, W*0.988, H*0.988, R*0.988); ctx.stroke();
+
+  const rx=W*0.014, ry=H*0.44; const seam=ctx.createLinearGradient(-rx,0, rx,0);
+  seam.addColorStop(0, mixHex('#ffffff','#d0f0ff',moodVis,.40));
+  seam.addColorStop(0.5,'rgba(0,0,0,.18)');
+  seam.addColorStop(1, mixHex('#ffffff','#d0f0ff',moodVis,.40));
+  ctx.lineWidth=Math.max(1.4, Math.min(W,H)/50); ctx.strokeStyle=seam;
+  ctx.beginPath(); ctx.ellipse(0,0, rx,ry, 0,0,Math.PI*2); ctx.stroke();
+
+  
+  ctx.restore(); // clip
+  ctx.restore(); // transform
+
+  // Матовое отражение на «столе»
+  ctx.save();
+  ctx.translate(cx, cy + H*0.38); ctx.rotate(rot + 0.5); ctx.scale(1,-0.55);
+  pathCapsule(ctx, W*0.98, H*0.98, R*0.98); ctx.clip();
+  const refl=ctx.createLinearGradient(0,-H,0,H);
+  refl.addColorStop(0,'rgba(255,255,255,.10)'); refl.addColorStop(1,'rgba(255,255,255,0)');
+  ctx.fillStyle=refl; ctx.filter='blur(2.5px)'; ctx.fillRect(-W,-H,W*2,H*2);
+  ctx.filter='none'; ctx.restore();
+  rafId = requestAnimationFrame(frame);
+}
 
 // ==== ЛОГИКА СЛАЙДЕРА (7 шагов + анимация + хаптик) ====
 (function () {
@@ -1633,9 +1893,8 @@ datePicker.addEventListener('change', e => {
   var knob  = document.getElementById('moodKnob');                 // может отсутствовать — ок
   var fill  = document.getElementById('moodFill') ||               // если есть заполнение трека
               (bar.querySelector ? bar.querySelector('.mood-fill') : null);
-  var label = document.getElementById('stateLabel')
-      || document.getElementById('moodLabel')
-      || document.querySelector('[data-role="mood-label"]');
+  var label = document.getElementById('moodLabel') ||
+              document.querySelector('[data-role="mood-label"]');
 
   // 7 состояний слева направо
   var STATES = ['Очень плохо','Плохо','Ниже нормы','Нейтрально','Неплохо','Хорошо','Отлично'];
@@ -1669,156 +1928,36 @@ datePicker.addEventListener('change', e => {
     bar.setAttribute('aria-label','Настроение'); // при желании поменяй
   }
   setAriaBase();
-// Слои изображений
-const furBottom = document.getElementById('furBottom');
-const furTop    = document.getElementById('furTop');
-
-// 7 кадров слева→вправо (как твой слайдер 0..6)
-const SPRITES = [
-  { at: 0,   src: '../assets/mood/11.webp', hue:   0, sat: 90, light: 55, label:'Очень плохо' }, // красный
-  { at: 17,  src: '../assets/mood/7.webp',  hue:  20, sat: 92, light: 58, label:'Плохо' },       // оранжевый
-  { at: 33,  src: '../assets/mood/33.webp', hue:  35, sat: 55, light: 72, label:'Ниже нормы' },  // бежевый
-  { at: 50,  src: '../assets/mood/55.webp', hue:   0, sat:  0, light: 62, label:'Нейтрально' },  // СЕРЫЙ
-  { at: 66,  src: '../assets/mood/44.webp', hue: 150, sat: 70, light: 60, label:'Неплохо' },     // мятный
-  { at: 83,  src: '../assets/mood/66.webp', hue: 120, sat: 85, light: 55, label:'Хорошо' },      // зелёный
-  { at: 100, src: '../assets/mood/22.webp', hue: 210, sat: 85, light: 60, label:'Отлично' }      // синий
-];
-// предзагрузка
-SPRITES.forEach(s=>{ const i=new Image(); i.decoding='async'; i.src=s.src; });
-
-// Полные сцены (фон + шар) слева→вправо + калибровка «камеры»
-const SCENES = [
-  // x/y — фокус (проценты object-position), zoom — общий масштаб (оставил =1.00, ниже 1 не ставим)
-  { at: 0,   src: '../assets/mood/11.webp', x:50, y:58, zoom:1.02 }, // бордовый — шар крупнее
-  { at: 17,  src: '../assets/mood/77.webp', x:50, y:58, zoom:1.00 }, // оранжевый
-  { at: 33,  src: '../assets/mood/33.webp', x:50, y:58, zoom:1.00 }, // бежевый
-  { at: 50,  src: '../assets/mood/55.webp', x:50, y:56, zoom:1.00 }, // серый
-  { at: 66,  src: '../assets/mood/44.webp', x:50, y:56, zoom:1.00 }, // мятный
-  { at: 83,  src: '../assets/mood/66.webp', x:50, y:56, zoom:1.00 }, // зелёный
-  { at: 100, src: '../assets/mood/22.webp', x:50, y:56, zoom:1.02 }, // синий — тоже крупнее
-];
-// предзагрузка (оставляем как было)
-SCENES.forEach(s=>{ const i=new Image(); i.decoding='async'; i.src=s.src; });
-
-// Ссылки на <img> сцен (нижний слой + верхний для кросс-фейда)
-const sceneBottom = document.getElementById('sceneBottom');
-const sceneTop    = document.getElementById('sceneTop');
-
-// Линейная интерполяция
-function lerp(a,b,t){ return a + (b-a)*t; }
-
-// Обновление сцены по значению 0..100 (гладкий фокус и масштаб)
-function updateSceneByValence(v){            // v = 0..100
-  const n = SCENES.length - 1;
-  const x = (v/100)*n;                       // 0..6
-  const i  = Math.floor(x);
-  const i2 = Math.min(i + 1, n);
-  const t  = x - i;                          // доля между кадрами
-
-  const s1 = SCENES[i], s2 = SCENES[i2];
-
-  // источники кадров
-  if (sceneBottom && sceneTop){
-    if (sceneBottom.src !== s1.src) sceneBottom.src = s1.src;
-    if (sceneTop.src    !== s2.src) sceneTop.src    = s2.src;
-    sceneTop.style.opacity = t;              // кросс-фейд соседей
-  }
-
-  // сглаженный «взгляд камеры»
-  const cx = lerp(s1.x,    s2.x,    t);
-  const cy = lerp(s1.y,    s2.y,    t);
-  const cz = lerp(s1.zoom, s2.zoom, t);      // всегда ≥ 1.00, чтобы не появлялись поля
-
-  const pos = `${cx}% ${cy}%`;
-  if (sceneBottom) sceneBottom.style.objectPosition = pos;
-  if (sceneTop)    sceneTop.style.objectPosition    = pos;
-
-  const sc = `scale(${cz})`;
-  if (sceneBottom) sceneBottom.style.transform = sc;
-  if (sceneTop)    sceneTop.style.transform    = sc;
-}
-function updateFurByValence(v){           // v = 0..100
-  const n = SPRITES.length - 1;
-  const x = (v/100)*n;                    // 0..6
-  const i  = Math.floor(x);
-  const i2 = Math.min(i + 1, n);
-  const t  = x - i;                       // доля между кадрами
-
-  if (furBottom && furTop){
-    furBottom.src = SPRITES[i].src;
-    furTop.src    = SPRITES[i2].src;
-    furTop.style.opacity = t;             // кросс-фейд
-  }
-  // оттенок ауры
-    // оттенок/насыщенность/светлота ауры
-  const h = SPRITES[i].hue  * (1 - t) + SPRITES[i2].hue  * t;
-  const s = SPRITES[i].sat  * (1 - t) + SPRITES[i2].sat  * t;
-  const l = SPRITES[i].light* (1 - t) + SPRITES[i2].light* t;
-
-  // пишем и на :root, и прямо на сцену — чтобы точно перебить фолбэки
-  const stage = document.querySelector('#moodSection .mood-stage');
-  document.documentElement.style.setProperty('--fur-h', String(h));
-  document.documentElement.style.setProperty('--fur-s', s + '%');
-  document.documentElement.style.setProperty('--fur-l', l + '%');
-  if (stage){
-    stage.style.setProperty('--mood-h', String(h));
-    stage.style.setProperty('--mood-s', s + '%');
-    stage.style.setProperty('--mood-l', l + '%');
-  }
-}
-let __valRaf = 0;
-function tweenValence(from, to, ms = 220){
-  cancelAnimationFrame(__valRaf);
-  const t0 = performance.now();
-  const step = (now) => {
-    const p = Math.min(1, (now - t0) / ms);
-    const v = from + (to - from) * p;
-
-    // обновляем текущее "непрерывное" значение
-    window.valence = v;
-
-    // двигаем ручку/прогресс и перерисовываем сцену
-    const x01 = v / 100;
-    const bar = document.getElementById('moodBar');
-    if (bar) bar.style.setProperty('--x', x01);
-
-    const knob = document.getElementById('moodKnob');
-    if (knob) knob.style.left = v + '%';
-
-    const fill = document.getElementById('moodFill') || document.querySelector('.mood-fill');
-    if (fill) fill.style.width = v + '%';
-
-    // кросс-фейд и "камера" (центр/зум)
-    updateFurByValence(v);
-    updateSceneByValence(v);
-
-    if (p < 1) __valRaf = requestAnimationFrame(step);
-  };
-  __valRaf = requestAnimationFrame(step);
-}
 
   function applyIndex(i){
     i = clamp(i, 0, 6);
     var prev = curIdx;
     curIdx = i;
 
-    const from = (typeof window.valence === 'number') ? window.valence : idxToPercent(prev);
-const to   = idxToPercent(curIdx);
+    // сохраняем совместимое значение 0..100
+    window.valence = idxToPercent(curIdx);
+    
+     try{ putV2Wellness(selectedISO(), window.valence); }catch(_){}
 
-// сохраняем цель (для БД/календаря)
-try{ putV2Wellness(selectedISO(), to); }catch(_){}
+    // сначала — твои цвета/темы (если функция есть)
+    if (typeof updateColorsByValence === 'function') {
+      try { updateColorsByValence(window.valence); } catch(_) {}
+    }
 
-// если есть подстройка цвета страницы — обновим целевым значением
-if (typeof updateColorsByValence === 'function') {
-  try { updateColorsByValence(to); } catch(_) {}
-}
+    // позиция 0..1 в CSS-переменную (если используешь её в стилях)
+    var x01 = window.valence / 100;
+    bar.style.setProperty('--x', x01);
 
-// ПЛАВНО идём от from к to (даёт ровный фэйд и «камеру» даже 83 ↔ 100)
-tweenValence(from, to, 260);
-
-// aria + подпись шага
-bar.setAttribute('aria-valuenow', String(curIdx));
-if (label) label.textContent = STATES[curIdx];
+    // анимация ручки/заливки (если элементы есть)
+    if (fill){
+      // width в % — будет плавно анимироваться по CSS (см. блок стилей ниже)
+      fill.style.width = window.valence + '%';
+    }
+    if (knob){
+      // left в % + CSS transition — аккуратный «щелчок» между шагами
+      knob.style.left = window.valence + '%';
+      bar.setAttribute('aria-valuenow', String(curIdx));
+    }
 
     // обновляем подпись последней, чтобы её ничто не перетёрло
     if (label) label.textContent = STATES[curIdx];
@@ -1829,45 +1968,23 @@ if (label) label.textContent = STATES[curIdx];
 
     if (curIdx !== prev) haptic();
   }
-// --- плавный drag без дёрганий, снап на отпускании ---
-let sdrag = false, spid = 0;
 
-function clientToX01(cx){
-  const r = bar.getBoundingClientRect();
-  const left  = r.left + 14;
-  const right = r.right - 14;
-  const x = (cx - left) / (right - left);
-  return Math.max(0, Math.min(1, x));
-}
-function previewValence(x01){
-  const v = x01 * 100;
-  window.valence = v;
-  bar.style.setProperty('--x', x01);
-  if (knob) knob.style.left = `calc(14px + ${x01} * (100% - 28px))`;
-  updateFurByValence(v);
-  updateSceneByValence(v);
-}
-
-bar.addEventListener('pointerdown', e => {
+  // события
+ bar.addEventListener('pointerdown', e=>{
   e.preventDefault();
-  spid = e.pointerId;
-  sdrag = true;
-  bar.classList.add('drag');
-  bar.setPointerCapture(spid);
-  previewValence(clientToX01(e.clientX));
+  pid = e.pointerId; dragging = true;
+  bar.setPointerCapture(pid);
+  applyIndex(xToIdx(e.clientX));
 });
-window.addEventListener('pointermove', e => {
-  if (!sdrag) return;
+window.addEventListener('pointermove', e=>{
+  if(!dragging) return;
   e.preventDefault();
-  previewValence(clientToX01(e.clientX));
+  applyIndex(xToIdx(e.clientX));
 }, {passive:false});
-window.addEventListener('pointerup', e => {
-  if (!sdrag) return;
-  sdrag = false;
-  bar.classList.remove('drag');
-  try{ bar.releasePointerCapture(spid); }catch(_){}
-  const idx = Math.round(clientToX01(e.clientX) * 6);
-  applyIndex(idx);                           // мягкий твининг к ближайшему шагу
+window.addEventListener('pointerup', e=>{
+  if(!dragging) return;
+  dragging = false;
+  try{ bar.releasePointerCapture(pid); }catch(_){}
 });
 
   // клавиатура
@@ -2189,66 +2306,7 @@ function refreshMoodSaveIndicator(){
   }catch(_){}
 }
 function debounce(fn, ms){ let t; return (...args)=>{ clearTimeout(t); t=setTimeout(()=>fn(...args), ms); }; }
-// === API helpers (добавить перед /* ===== Notes ===== */) ===
-const _qs = new URLSearchParams(location.search);
 
-function authHeaders(){
-  const h = { 'Content-Type': 'application/json' };
-  const init = window.Telegram?.WebApp?.initData;
-  if (init) h['X-Telegram-InitData'] = init;     // прод: телеграм-инит
-  return h;
-}
-function withAuthQS(url){
-  // дев-режим: если страница открыта с ?tg=..., прокидываем его в API
-  const tg = _qs.get('tg');
-  if (!tg) return url;
-  const u = new URL(url, location.origin);
-  u.searchParams.set('tg', tg);
-  return u.toString();
-}
-
-async function upsertDiaryOnServer(entry){
-  if (!entry?.iso) return false;
-  const body = {
-    date: entry.iso,
-    feeling_score: Math.round(entry.wellness ?? 0),
-    side_effects: entry.sideEffects || {},
-    comment: entry.notes || ''
-  };
-  try{
-    const res = await fetch(withAuthQS('/api/diary/day'), {
-      method: 'POST',
-      headers: authHeaders(),
-      credentials: 'same-origin',
-      body: JSON.stringify(body)
-    });
-    return res.ok;
-  }catch(e){
-    console.warn('upsertDiaryOnServer failed', e);
-    return false;
-  }
-}
-
-async function hydrateDiaryFromServer(dateISO){
-  try{
-    const res = await fetch(withAuthQS('/api/diary/day?date=' + encodeURIComponent(dateISO)), {
-      headers: authHeaders(),
-      credentials: 'same-origin'
-    });
-    if (!res.ok) return null;
-    return await res.json(); // {date, diary, photos}
-  }catch(e){ return null; }
-}
-
-function mergeServerDiary(snap){
-  if (!snap?.diary) return;
-  const e = getEntry(snap.date);
-  const d = snap.diary;
-  if (typeof d.feeling_score === 'number') e.wellness = d.feeling_score;
-  if (d.comment != null) e.notes = d.comment || '';
-  if (d.side_effects && typeof d.side_effects === 'object') e.sideEffects = d.side_effects;
-  putEntry(e);
-}
 /* ===== Notes ===== */
 const notesEl = document.getElementById('notes');
 
@@ -2259,6 +2317,12 @@ function persistNotes(){
   if (entry.notes !== text){
     entry.notes = text;
     putEntry(entry); // сохраняет в rt.diary.v2
+     syncDiaryToServer(iso).catch(()=>{});   // ← ДОБАВИТЬ ЭТУ СТРОКУ
+    try{
+      localStorage.setItem('rt.diary.bump', Date.now().toString());
+      localStorage.removeItem('rt.diary.bump');
+    }catch(_){}
+
     try{
       // пинаем другие вкладки/календарь
       localStorage.setItem('rt.diary.bump', Date.now().toString());
@@ -2352,15 +2416,13 @@ confirmMood.addEventListener('click', ()=>{
   const iso = selectedISO();
   const v = Math.round(Math.max(0, Math.min(100, Number(window.valence)||0)));
 
-  // 1) новая БД дневника — всегда нужна календарю и главной
   putV2Wellness(iso, v);
-
-  // 2) старое локальное хранилище — чтобы остальной UI у тебя не сломался
   const entry = getEntry(iso);
   entry.wellness = v;
   entry.wellnessSaved = true;
   putEntry(entry);
 
+  syncDiaryToServer(iso).catch(()=>{});  // ← ДОБАВЛЕНО
   setMoodSavedUI(true);
 });
 const exportBtn = document.getElementById('exportJSON');
@@ -2369,6 +2431,7 @@ saveAll.addEventListener('click', ()=>{
   const entry = getEntry(date);
   entry.notes = (notesEl.value||'').trim();
   putEntry(entry);
+  syncDiaryToServer(date).catch(()=>{});
   try{
     const old = saveAll.textContent; saveAll.textContent = 'Сохранено ✓';
     setTimeout(()=>{ saveAll.textContent = old; }, 1200);
@@ -2385,6 +2448,7 @@ if (exportBtn) exportBtn.addEventListener('click', ()=>{
 function init(){
   const d = getStartISO();         // ?date=..., #date=..., иначе сегодня
   setDate(d, 0);                    // выставит datePicker + заполнит чип
+   hydrateFromServer(d).catch(()=>{}); 
   sessionStorage.removeItem('rt.openDate');
 
   // гарантируем, что baseline установлен (если ещё не был)
@@ -2730,6 +2794,90 @@ window.addEventListener('beforeunload', __flushEntryNow, {capture:true});
 window.addEventListener('pagehide',      __flushEntryNow, {capture:true});
 // Если вкладка сворачивается — тоже сохраняем
 document.addEventListener('visibilitychange', ()=>{ if (document.hidden) __flushEntryNow(); });
+</script>
+<!-- removed broken sync block -->
+
+<script id="rt-sync">
+/* === Dev TG: читаем tg из ?tg=... / localStorage / Telegram === */
+function __readDevTg(){
+  try{
+    const qs = new URLSearchParams(location.search);
+    const tgQ = qs.get('tg');
+    if (tgQ) { localStorage.setItem('rt_dev_tg', tgQ); return tgQ; }
+    const saved = localStorage.getItem('rt_dev_tg');
+    if (saved) return saved;
+    const t = window.Telegram?.WebApp?.initDataUnsafe?.user?.id;
+    return t ? String(t) : '';
+  }catch(_){ return ''; }
+}
+
+/* === fetch-обёртка: всегда бьём в бэк (порт 3000) и приклеиваем tg === */
+async function api(path, opts = {}) {
+  const API_BASE = window.RT_API_BASE || 'http://localhost:3000';
+  const url = new URL(path, API_BASE);
+  const tg = __readDevTg();
+  if (tg) url.searchParams.set('tg', tg);
+
+  const o = { keepalive: true, credentials: 'include', ...opts };
+  if (o.body && typeof o.body === 'object' && !(o.body instanceof FormData)) {
+    o.headers = { 'Content-Type': 'application/json', ...(o.headers||{}) };
+    o.body = JSON.stringify(o.body);
+  }
+  const r = await fetch(url.toString(), o);
+  return r;
+}
+
+/* === Что сохраняем за день === */
+function buildDayPayload(dateISO){
+  const e = getEntry(dateISO); // уже есть в файле
+  const wellness = Math.round(Number(e.wellness ?? 50));
+  return {
+    date: dateISO,
+    wellness,                                // 0..100
+    feeling_score: Math.round(wellness/20),  // 0..5 — если бэку нужно
+    side_effects: e.sideEffects || {},
+    comment: e.notes || ''
+  };
+}
+
+/* === Сохранить день на сервере === */
+async function syncDiaryToServer(dateISO){
+  try{
+    const body = buildDayPayload(dateISO);
+    const r = await api('/api/diary/day', { method:'POST', body });
+    if (!r.ok) console.warn('day sync failed', await r.text());
+  }catch(e){ console.warn('day sync error', e); }
+}
+
+/* === Подтянуть день с сервера → в localStorage → в UI === */
+async function hydrateFromServer(dateISO){
+  try{
+    const r = await api('/api/diary/day?date=' + encodeURIComponent(dateISO));
+    if (!r.ok) return;
+    const data = await r.json();            // {date, wellness|feeling_score, side_effects, comment}
+    if (!data) return;
+
+    const e = getEntry(dateISO);
+    if (typeof data.wellness === 'number') e.wellness = Math.round(data.wellness);
+    else if (typeof data.feeling_score === 'number') e.wellness = Math.round(data.feeling_score*20);
+    if (data.side_effects && typeof data.side_effects === 'object') e.sideEffects = data.side_effects;
+    if (typeof data.comment === 'string') e.notes = data.comment;
+
+    putEntry(e);              // сохранит в rt.diary.v2
+    loadIntoUI(dateISO);      // перерисовать экран
+  }catch(e){ console.warn('hydrate error', e); }
+}
+
+/* === На выходе со страницы — синк с keepalive === */
+async function __syncOnExit(){
+  try{
+    const iso = (document.getElementById('datePicker')?.value || '').slice(0,10)
+              || new Date().toISOString().slice(0,10);
+    await syncDiaryToServer(iso);
+  }catch(_){}
+}
+window.addEventListener('pagehide', __syncOnExit, {capture:true});
+window.addEventListener('beforeunload', __syncOnExit, {capture:true});
 </script>
 
 </body>

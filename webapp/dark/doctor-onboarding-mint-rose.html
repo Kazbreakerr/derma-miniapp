@@ -9,10 +9,8 @@
   <link rel="stylesheet" href="/css/ui-tokens.css">
 
   <script>
-    try{
-      const s = JSON.parse(localStorage.getItem('rt.settings')||'{}');
-      document.documentElement.dataset.theme = s?.theme || 'dark';
-    }catch(e){ document.documentElement.dataset.theme = 'dark'; }
+  // Стартуем всегда в светлой теме
+  document.documentElement.dataset.theme = 'light';
   </script>
 
   <style>
@@ -200,7 +198,9 @@
         <div class="dr-grid-1">
           <label class="dr-switch"><input type="checkbox" id="accepting" checked><span class="dr-toggle"><span class="dr-knob"></span></span><span>Принимаю новых пациентов</span></label>
           <div class="dr-field"><label class="dr-label">Способ прикрепления</label>
-            <select class="dr-select" id="attachMethod"><option value="code">По коду</option><option value="link">По ссылке (QR)</option></select>
+           <select class="dr-select" id="attachMethod">
+  <option value="code">По коду</option>
+</select>
           </div>
           <label class="dr-switch"><input type="checkbox" id="autoAccept"><span class="dr-toggle"><span class="dr-knob"></span></span><span>Автопринятие заявок</span></label>
           <div class="dr-hint">Автопринятие — пациенты с вашим кодом прикрепляются сразу.</div>
@@ -219,11 +219,9 @@
         </div>
         <div class="dr-actions" style="justify-content:space-between;flex-wrap:wrap">
           <div style="display:flex;gap:8px;flex-wrap:wrap">
-            <button class="dr-btn-ghost" id="copyBtn">Скопировать</button>
-            <button class="dr-btn-ghost" id="qrBtn">Показать QR</button>
-            <button class="dr-btn-ghost" id="shareBtn">Поделиться</button>
-            <button class="dr-btn-ghost" id="toggleMaskBtn" aria-pressed="false">Скрыть код</button>
-          </div>
+  <button class="dr-btn-ghost" id="copyBtn">Скопировать</button>
+  <button class="dr-btn-ghost" id="toggleMaskBtn" aria-pressed="false">Скрыть код</button>
+</div>
           <button class="dr-btn" id="finishBtn">Перейти к работе</button>
         </div>
       </div>
@@ -252,10 +250,10 @@
   }
 
   // Тема (у тебя уже был код — оставляю)
-  document.addEventListener('DOMContentLoaded', () => {
-    const settings = AppState.get('settings') || {};
-    const theme = (settings.theme === 'light') ? 'light' : 'dark';
-    document.documentElement.dataset.theme = theme;
+ document.addEventListener('DOMContentLoaded', () => {
+  document.documentElement.dataset.theme = 'light';
+  try { AppState.applyTheme && AppState.applyTheme('light'); } catch (_) {}
+
 
     document.querySelectorAll('[data-role="theme-switch"]').forEach(sw => {
       const isLight = (document.documentElement.dataset.theme === 'light');
@@ -396,20 +394,31 @@
     try{await navigator.clipboard.writeText(real); toast('Код скопирован');}catch(e){ toast(real); }
   });
 
-  // Ссылка для пациента — сразу на myprofile
-  const shareURL = (code)=> `${location.origin}/dark/myprofile.html?attach=doctor&code=${encodeURIComponent(code)}`;
+  // ссылка/шаринг — теперь опционально (кнопок может не быть)
+const shareBtn = document.querySelector('#shareBtn');
+if (shareBtn) {
+  shareBtn.addEventListener('click', async () => {
+    const real = store.get('doctorCode') || document.querySelector('#doctorCode').textContent.trim();
+    const url  = `${location.origin}/dark/myprofile.html?attach=doctor&code=${encodeURIComponent(real)}`;
+    if (navigator.share) { try { await navigator.share({ title:'Код врача', text:`Мой код: ${real}`, url }); } catch(_){} }
+    else { try { await navigator.clipboard.writeText(url); toast('Ссылка скопирована'); } catch(e) { toast('Скопируйте: ' + url); } }
+  });
+}
 
-  $('#shareBtn').addEventListener('click',async()=>{
-    const real=store.get('doctorCode')||$('#doctorCode').textContent.trim(); const url=shareURL(real);
-    if(navigator.share){ try{await navigator.share({title:'Код врача',text:`Мой код: ${real}`,url})}catch(_){} }
-    else{ try{await navigator.clipboard.writeText(url); toast('Ссылка скопирована');}catch(e){ toast('Скопируйте: '+url);} }
+const qrBtn = document.querySelector('#qrBtn');
+if (qrBtn) {
+  qrBtn.addEventListener('click', () => {
+    const real = store.get('doctorCode') || document.querySelector('#doctorCode').textContent.trim();
+    const api  = 'https://api.qrserver.com/v1/create-qr-code/?size=256x256&data=' +
+                 encodeURIComponent(`${location.origin}/dark/myprofile.html?attach=doctor&code=${encodeURIComponent(real)}`);
+    document.querySelector('#qrBox').innerHTML = `<img alt="QR" src="${api}" loading="lazy">`;
+    document.querySelector('#qrModal').classList.add('show');
   });
-  $('#qrBtn').addEventListener('click',()=>{
-    const real=store.get('doctorCode')||$('#doctorCode').textContent.trim();
-    const api='https://api.qrserver.com/v1/create-qr-code/?size=256x256&data='+encodeURIComponent(shareURL(real));
-    $('#qrBox').innerHTML=`<img alt="QR" src="${api}" loading="lazy">`; $('#qrModal').classList.add('show');
-  });
-  $('#qrClose').addEventListener('click',()=>$('#qrModal').classList.remove('show'));
+}
+
+const qrClose = document.querySelector('#qrClose');
+if (qrClose) qrClose.addEventListener('click', () => document.querySelector('#qrModal').classList.remove('show'));
+
 
   // Финал: Сохранение на сервере и переход в кабинет ТОЛЬКО при успехе
   document.getElementById('finishBtn').addEventListener('click', async () => {

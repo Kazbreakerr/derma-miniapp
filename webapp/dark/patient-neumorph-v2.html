@@ -362,8 +362,16 @@ el('openProfile').onclick = ()=>{
   if (!pid) return; // проверяем до фетча
 
   const date = qs.get('date') || new Date().toISOString().slice(0,10);
-  const tg   = qs.get('tg') || localStorage.getItem('tgDev') || '';
-  if (tg) { try{ localStorage.setItem('tgDev', tg); }catch(_){} }
+  const tg = qs.get('tg')
+          || localStorage.getItem('rt_dev_tg')
+           || localStorage.getItem('tgDev')
+           || '';
+ if (tg) {
+  try {
+     localStorage.setItem('rt_dev_tg', tg);
+     localStorage.setItem('tgDev', tg); // на всякий, для обратной совместимости
+   } catch (_) {}
+ }
 
   const url = `/api/doctor/patient/${encodeURIComponent(pid)}/day?date=${encodeURIComponent(date)}${tg ? `&tg=${encodeURIComponent(tg)}` : ''}`;
 
@@ -392,7 +400,7 @@ el('openProfile').onclick = ()=>{
 
   // самочувствие/побочки
   const sx    = d.diary?.side_effects || {};
-  const mood  = d.diary?.feeling_score ?? 0;
+  const mood  = (d.diary?.mood ?? d.diary?.feeling_score ?? 0);
   const wrap  = $('sxWrap'); wrap.innerHTML = '';
   const map   = {mood:'Настроение', dry_skin:'Сухость кожи', lips:'Губы', skin:'Кожа', headache:'Головные боли', muscle_pain:'Мышцы/суставы'};
   const pairs = Object.entries({ mood, ...sx });
@@ -413,7 +421,7 @@ el('openProfile').onclick = ()=>{
     : '—';
 
   // заметка
-  $('note').textContent = (d.diary?.comment || '').trim() || 'Нет заметки';
+  $('note').textContent = ((d.diary?.note ?? d.diary?.comment) || '').trim() || 'Нет заметки';
 
   // фото
   const face = (d.photos||[]).find(p=>p.kind==='face')?.url || (d.photos||[])[0]?.url;

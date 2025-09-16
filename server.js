@@ -42,7 +42,16 @@ console.log('Boot server.js at', new Date().toISOString());
 const app = express();
 
 // ⬇️ ПОТОМ вешаем middleware
-app.use(express.json());
+app.use(express.json({ limit: '10mb' }));
+app.use(express.text({ type: 'text/plain', limit: '10mb' }));
+app.use((req, _res, next) => {
+  // Если пришёл text/plain, а внутри JSON — аккуратно распарсим в объект
+  if (typeof req.body === 'string' &&
+      (req.headers['content-type'] || '').startsWith('text/plain')) {
+    try { req.body = JSON.parse(req.body); } catch (_) {}
+  }
+  next();
+});
 app.use(cors({
   origin: true,
   credentials: true,
@@ -1042,17 +1051,17 @@ app.get('/api/doctor/patient/:pid/timeline', tgAuth, async (req, res) => {
         select generate_series($2::date, $3::date, interval '1 day')::date as day
       ),
       diary as (
-        select day, 1 as has_diary
-          from diary_entries
-         where patient_id=$1 and day between $2::date and $3::date
-         group by day
+        select at_date::date as day, 1 as has_diary
+          from derma.diary
+         where patient_id=$1 and at_date between $2::date and $3::date
+         group by 1
       ),
       shot as (
-        select coalesce(taken_at::date, created_at::date) as day, count(*) as photos
-          from photos
-         where user_id=$1
-           and coalesce(taken_at::date, created_at::date) between $2::date and $3::date
-           and coalesce(kind, type, 'face') in ('face','body')
+        select at_date::date as day, count(*) as photos
+          from derma.photos
+         where patient_id=$1
+           and at_date between $2::date and $3::date
+           and coalesce(meta->>'kind','face') in ('face','body')
          group by 1
       ),
       dose as (
@@ -1508,6 +1517,106 @@ app.get('/api/labs', tgAuth, async (req, res) => {
     res.json(rows);
   } catch (e) { console.error('LABS GET ERROR:', e); res.status(500).json({ error: e.message }); }
 });
+// === GET дневника (гидратация)
+app.get('/api/diary/day', tgAuth, async (req, res) => {
+  try {
+    await pool.query('SET search_path = derma, public');
+    const uid = await userIdByTg(req.tg || req.tgUser?.id);
+    if (!uid) return res.status(401).json({ error: 'unauthorized' });
+
+    const ds = String(req.query.date || new Date().toISOString().slice(0,10)).slice(0,10);
+
+    const { rows } = await pool.query(`
+      select at_date::date as date, feeling_score, side_effects, comment
+        from diary
+       where patient_id=$1 and at_date=$2::date
+       order by id desc
+       limit 1`, [uid, ds]);
+
+    const photos = await pool.query(`
+      select id, url, coalesce(meta->>'kind','face') as kind, at_date
+        from photos
+       where patient_id=$1 and at_date=$2::date
+       order by id desc
+    `, [uid, ds]);
+
+    res.json({ date: ds, diary: rows[0] || null, photos: photos.rows });
+  } catch (e) {
+    console.error('DIARY GET ERROR:', e);
+    res.status(500).json({ error: e.message });
+  }
+});
+
+// === UPSERT дневника
+app.post('/api/diary/day', tgAuth, async (req, res) => {
+  try {
+    const uid = await userIdByTg(req.tgUser?.id || req.tg);
+    if (!uid) return res.status(401).json({ error: 'unauthorized' });
+
+    const dateISO  = String(req.body?.date || '').slice(0, 10);
+    const score    = Number(req.body?.feeling_score || 0);
+    const effects  = req.body?.side_effects || {};
+    const comment  = String(req.body?.comment || '');
+
+    await pool.query('SET search_path = derma, public');
+
+    const sql = `
+      WITH upd AS (
+        UPDATE diary
+           SET feeling_score = $3,
+               side_effects  = COALESCE($4::jsonb, '{}'::jsonb),
+               comment       = $5
+         WHERE patient_id = $1 AND at_date = $2::date
+         RETURNING id
+      )
+      INSERT INTO diary (patient_id, at_date, feeling_score, side_effects, comment)
+      SELECT $1, $2::date, $3, COALESCE($4::jsonb, '{}'::jsonb), $5
+      WHERE NOT EXISTS (SELECT 1 FROM upd)
+      RETURNING id;
+    `;
+    await pool.query(sql, [uid, dateISO, score, effects, comment]);
+    res.json({ ok: true });
+  } catch (err) {
+    console.error('DIARY UPSERT ERROR', err);
+    res.status(500).json({ error: 'server_error', details: String(err.message || err) });
+  }
+});
+
+
+// === UPSERT фото дня (по patient_id + date + kind)
+app.post('/api/diary/photo', tgAuth, async (req, res) => {
+  try {
+    const uid = await userIdByTg(req.tg || req.tgUser?.id);
+    if (!uid) return res.status(401).json({ error:'unauthorized' });
+
+    const ds   = String(req.body?.date || new Date().toISOString().slice(0,10)).slice(0,10);
+    let kind   = String(req.body?.kind || 'face').toLowerCase();
+    if (!['face','body'].includes(kind)) kind = 'face';
+
+    const url  = String(req.body?.data_url || req.body?.url || '').trim();
+    if (!url) return res.status(400).json({ error: 'url_or_data_url_required' });
+
+    const meta = (req.body?.meta && typeof req.body.meta === 'object') ? req.body.meta : {};
+    meta.kind  = kind;
+
+    const { rows } = await pool.query(
+      `INSERT INTO derma.photos (patient_id, at_date, kind, url, meta)
+       VALUES ($1, $2::date, $3, $4, $5::jsonb)
+       ON CONFLICT (patient_id, at_date, kind)
+       DO UPDATE SET url  = EXCLUDED.url,
+                     meta = EXCLUDED.meta
+       RETURNING id`,
+      [uid, ds, kind, url, meta]
+    );
+
+    res.json({ ok: true, id: rows[0]?.id, date: ds, kind });
+  } catch (e) {
+    console.error('PHOTO UPSERT ERROR:', e);
+    res.status(500).json({ error: e.message });
+  }
+});
+
+
 
 app.post('/api/labs', tgAuth, async (req, res) => {
   try {

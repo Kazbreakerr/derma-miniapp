@@ -196,6 +196,15 @@ html, body{ max-width:100vw; overflow-x:hidden; }
   .card{background:var(--card); border:1px solid var(--border); border-radius:var(--radius); padding:16px; margin:16px 0; box-shadow:0 10px 30px rgba(0,0,0,.35)}
   .card h2{font-size:18px; margin:0 0 12px 0}
 .card h2{ text-align:center; }
+/* Карточка "Оценка самочувствия" уже на ~40% */
+#moodSection{
+  width: 60%;
+  margin-left:auto; margin-right:auto;  /* по центру */
+  min-width: 420px;                     /* чтобы не ломалось на узких */
+}
+@media (max-width: 900px){
+  #moodSection{ width: 100%; min-width: 0; }
+}
   /* === App button styles === */
   .btn{
     appearance:none; border:0; border-radius:14px;
@@ -236,10 +245,23 @@ html, body{ max-width:100vw; overflow-x:hidden; }
   .btn-sm{ padding:8px 12px; border-radius:12px; font-size:14px }
 
   /* ===== Mood block ===== */
-  .mood{ display:grid; grid-template-columns: 1fr 306px; gap:16px; align-items:center; } /* -15% */
+ .mood{
+  --mood-size: clamp(360px, 82vw, 600px); /* РАЗМЕР СЦЕНЫ и ширина контролов */
+  display:grid;
+  grid-template-columns: 1fr;
+  justify-items:center;
+  align-items:center;
+  gap:16px;
+}
 
   @media (max-width: 900px){ .mood{ grid-template-columns: 1fr; } }
-  .mood-stage{ display:flex; align-items:center; justify-content:center;position:relative; height:306px; border-radius:22px; overflow:hidden;   /* -15% */
+  .mood-stage{
+    
+  position:relative;
+  border-radius:22px;
+  overflow:hidden;
+  aspect-ratio: 1 / 1;     /* всегда квадрат */
+  min-height: 260px;       /* чтобы на узких экранах не схлопывалось */
     /* базовый фолбэк под изображением */
     background:
       radial-gradient(420px 240px at 20% 0%, color-mix(in oklab, var(--glow), transparent 60%), transparent 60%),
@@ -257,7 +279,15 @@ html, body{ max-width:100vw; overflow-x:hidden; }
   }
   .mood-stage #pillCanvas{ position:absolute; inset:0; width:100%; height:100%; display:block; z-index:2; }
   .mood-stage svg{ position:absolute; inset:0; width:100%; height:100% }
-  .mood-ctrl{ display:grid; gap:14px; align-content:center; justify-items:stretch; }
+  .mood-ctrl{
+  display:grid;
+  gap:16px;
+  align-content:center;
+  justify-items:stretch;  /* важное — даёт 100% ширины детям */
+  width: 100%;            /* ширина = ширине карточки */
+}
+/* Полоска самочувствия — на всю ширину .mood-ctrl */
+.mood-ctrl .bar{ width:100%; }
   .state-label{ text-align:center; font-weight:800; letter-spacing:.3px }
 
  /* — современный компактный слайдер — */
@@ -273,7 +303,7 @@ html, body{ max-width:100vw; overflow-x:hidden; }
   display:flex; align-items:center;
   cursor:pointer; user-select:none; -webkit-user-select:none; touch-action: pan-x;
 }
-#moodBar{ touch-action:none; user-select:none; -webkit-user-select:none; }
+#moodBar{ touch-action: pan-x; user-select:none; -webkit-user-select:none; }
 .bar .rail{
   position:absolute; left:14px; right:14px; top:50%;
   height:6px; transform:translateY(-50%);   /* было 10px */
@@ -819,7 +849,19 @@ textarea::placeholder{
   background: radial-gradient(140% 160% at 12% -10%, rgba(255,255,255,.08), transparent 45%);
   mix-blend-mode:soft-light;
 }
+/* слой с картинками */
+.mood-scene{ position:absolute; inset:4px; border-radius:30px; overflow:hidden; z-index:2; }
+.mood-scene img{
+  position:absolute; inset:0; width:100%; height:100%;
+  object-fit: cover;                 /* занимает всю сцену */
+  object-position: 50% 56%;          /* базовый фокус – можно править */
+  transform-origin: 50% 50%;
+  transition: opacity .35s linear;   /* кросс-фейд */
+  will-change: transform, opacity, object-position;
+}
 
+/* чтобы ничто не «подкрашивало» под твоими PNG */
+.mood-stage::before{ content:none !important; }
 /* === 3) Capsule stage (same skin, no seams) === */
 /* Контейнер сцены */
 .mood-stage{
@@ -827,13 +869,23 @@ textarea::placeholder{
   border-radius: 24px;          /* скругления, как в UI */
   overflow: hidden;             /* картинка обрезается по радиусу */
 }
+/* Цветное внешнее свечение сцены по текущему настроению */
+#moodSection .mood-stage{
+  /* читаем H/S/L, задаём адекватные фолбэки */
+  --mood-h: var(--fur-h, 210);
+  --mood-s: var(--fur-s, 80%);
+  --mood-l: var(--fur-l, 55%);
+  box-shadow:
+    0 0 128px hsl(var(--mood-h) var(--mood-s) var(--mood-l) / .70),
+    0 0 160px hsl(var(--mood-h) var(--mood-s) var(--mood-l) / .40);
+}
 
 /* Собственно «картина» с шариком — берём из переменной --mood-bg */
 .mood-stage::before{
   content: "";
   position: absolute;
-  inset: 12px;                  /* внутренний отступ, как на твоём скрине */
-  border-radius: 18px;          /* скругление внутренней «рамки» */
+  inset: 2px;                  /* внутренний отступ, как на твоём скрине */
+  border-radius: 25px;          /* скругление внутренней «рамки» */
   background: var(--mood-bg, linear-gradient(#efece6,#e7e1d8)) center/cover no-repeat;
   box-shadow:
     inset 0 0 0 1px rgba(255,255,255,.04),
@@ -868,7 +920,16 @@ textarea::placeholder{
 }
 .bar::before{
   content:""; position:absolute; left:14px; right:14px; top:50%; height:6px; transform:translateY(-50%);
-  background:linear-gradient(90deg, var(--trackA), var(--trackB));
+  background: linear-gradient(
+  90deg,
+  #ef4444 0%,      /* красный   */
+  #f59e0b 16.66%,  /* оранжевый */
+  #e7d5b1 33.33%,  /* бежевый   */
+  #9ca3af 50%,     /* серый     */
+  #2dd4bf 66.66%,  /* мятный    */
+  #22c55e 83.33%,  /* зелёный   */
+  #3b82f6 100%     /* синий     */
+);
   border-radius:999px;
   mask:linear-gradient(90deg,#000 calc(var(--x)*100%), transparent 0);
   -webkit-mask:linear-gradient(90deg,#000 calc(var(--x)*100%), transparent 0);
@@ -1195,13 +1256,11 @@ header{
   </button>
 </div>
     <div class="mood">
-     <div class="mood-stage">
-  <!-- Пушистый шар (2 слоя для кросс-фейда) -->
-  <div class="fur2" id="fur">
-    <div class="fur2-aura"></div>
-    <img id="furBottom" src="../assets/mood/gray.png" alt="" width="260" height="260">
-    <img id="furTop"    src="../assets/mood/mint.png" alt="" width="260" height="260" style="opacity:0">
-    <div class="fur2-shadow"></div>
+   <div class="mood-stage">
+  <!-- Полноэкранная сцена с фоном и шаром (2 слоя для кросс-фейда) -->
+  <div class="mood-scene" id="moodScene">
+    <img id="sceneBottom" alt="" decoding="async">
+    <img id="sceneTop"    alt="" decoding="async" style="opacity:0">
   </div>
 </div>
 
@@ -1540,8 +1599,9 @@ datePicker.addEventListener('change', e => {
   var knob  = document.getElementById('moodKnob');                 // может отсутствовать — ок
   var fill  = document.getElementById('moodFill') ||               // если есть заполнение трека
               (bar.querySelector ? bar.querySelector('.mood-fill') : null);
-  var label = document.getElementById('moodLabel') ||
-              document.querySelector('[data-role="mood-label"]');
+  var label = document.getElementById('stateLabel')
+      || document.getElementById('moodLabel')
+      || document.querySelector('[data-role="mood-label"]');
 
   // 7 состояний слева направо
   var STATES = ['Очень плохо','Плохо','Ниже нормы','Нейтрально','Неплохо','Хорошо','Отлично'];
@@ -1581,17 +1641,68 @@ const furTop    = document.getElementById('furTop');
 
 // 7 кадров слева→вправо (как твой слайдер 0..6)
 const SPRITES = [
-  { at: 0,   src: '../assets/mood/burgundy.png', hue:   0,  label:'Очень плохо' },
-  { at: 17,  src: '../assets/mood/orange.png',   hue:  20,  label:'Плохо' },
-  { at: 33,  src: '../assets/mood/beige.png',    hue:  35,  label:'Ниже нормы' },
-  { at: 50,  src: '../assets/mood/gray.png',     hue:   0,  label:'Нейтрально' },
-  { at: 66,  src: '../assets/mood/mint.png',     hue: 150,  label:'Неплохо' },
-  { at: 83,  src: '../assets/mood/green.png',    hue: 120,  label:'Хорошо' },
-  { at: 100, src: '../assets/mood/blue.png',     hue: 210,  label:'Отлично' },
+  { at: 0,   src: '../assets/mood/11.webp', hue:   0, sat: 90, light: 55, label:'Очень плохо' }, // красный
+  { at: 17,  src: '../assets/mood/77.webp',  hue:  20, sat: 92, light: 58, label:'Плохо' },       // оранжевый
+  { at: 33,  src: '../assets/mood/33.webp', hue:  35, sat: 55, light: 72, label:'Ниже нормы' },  // бежевый
+  { at: 50,  src: '../assets/mood/55.webp', hue:   0, sat:  0, light: 62, label:'Нейтрально' },  // СЕРЫЙ
+  { at: 66,  src: '../assets/mood/44.webp', hue: 150, sat: 70, light: 60, label:'Неплохо' },     // мятный
+  { at: 83,  src: '../assets/mood/66.webp', hue: 120, sat: 85, light: 55, label:'Хорошо' },      // зелёный
+  { at: 100, src: '../assets/mood/22.webp', hue: 210, sat: 85, light: 60, label:'Отлично' }      // синий
 ];
 // предзагрузка
 SPRITES.forEach(s=>{ const i=new Image(); i.decoding='async'; i.src=s.src; });
 
+// Полные сцены (фон + шар) слева→вправо + калибровка «камеры»
+const SCENES = [
+  // x/y — фокус (проценты object-position), zoom — общий масштаб (оставил =1.00, ниже 1 не ставим)
+  { at: 0,   src: '../assets/mood/11.webp', x:50, y:58, zoom:1.02 }, // бордовый — шар крупнее
+  { at: 17,  src: '../assets/mood/77.webp', x:50, y:58, zoom:1.00 }, // оранжевый
+  { at: 33,  src: '../assets/mood/33.webp', x:50, y:58, zoom:1.00 }, // бежевый
+  { at: 50,  src: '../assets/mood/55.webp', x:50, y:56, zoom:1.00 }, // серый
+  { at: 66,  src: '../assets/mood/44.webp', x:50, y:56, zoom:1.00 }, // мятный
+  { at: 83,  src: '../assets/mood/66.webp', x:50, y:56, zoom:1.00 }, // зелёный
+  { at: 100, src: '../assets/mood/22.webp', x:50, y:56, zoom:1.02 }, // синий — тоже крупнее
+];
+// предзагрузка (оставляем как было)
+SCENES.forEach(s=>{ const i=new Image(); i.decoding='async'; i.src=s.src; });
+
+// Ссылки на <img> сцен (нижний слой + верхний для кросс-фейда)
+const sceneBottom = document.getElementById('sceneBottom');
+const sceneTop    = document.getElementById('sceneTop');
+
+// Линейная интерполяция
+function lerp(a,b,t){ return a + (b-a)*t; }
+
+// Обновление сцены по значению 0..100 (гладкий фокус и масштаб)
+function updateSceneByValence(v){            // v = 0..100
+  const n = SCENES.length - 1;
+  const x = (v/100)*n;                       // 0..6
+  const i  = Math.floor(x);
+  const i2 = Math.min(i + 1, n);
+  const t  = x - i;                          // доля между кадрами
+
+  const s1 = SCENES[i], s2 = SCENES[i2];
+
+  // источники кадров
+  if (sceneBottom && sceneTop){
+    if (sceneBottom.src !== s1.src) sceneBottom.src = s1.src;
+    if (sceneTop.src    !== s2.src) sceneTop.src    = s2.src;
+    sceneTop.style.opacity = t;              // кросс-фейд соседей
+  }
+
+  // сглаженный «взгляд камеры»
+  const cx = lerp(s1.x,    s2.x,    t);
+  const cy = lerp(s1.y,    s2.y,    t);
+  const cz = lerp(s1.zoom, s2.zoom, t);      // всегда ≥ 1.00, чтобы не появлялись поля
+
+  const pos = `${cx}% ${cy}%`;
+  if (sceneBottom) sceneBottom.style.objectPosition = pos;
+  if (sceneTop)    sceneTop.style.objectPosition    = pos;
+
+  const sc = `scale(${cz})`;
+  if (sceneBottom) sceneBottom.style.transform = sc;
+  if (sceneTop)    sceneTop.style.transform    = sc;
+}
 function updateFurByValence(v){           // v = 0..100
   const n = SPRITES.length - 1;
   const x = (v/100)*n;                    // 0..6
@@ -1605,38 +1716,75 @@ function updateFurByValence(v){           // v = 0..100
     furTop.style.opacity = t;             // кросс-фейд
   }
   // оттенок ауры
-  const hue = SPRITES[i].hue*(1-t) + SPRITES[i2].hue*t;
-  document.documentElement.style.setProperty('--fur-h', String(hue||90));
+    // оттенок/насыщенность/светлота ауры
+  const h = SPRITES[i].hue  * (1 - t) + SPRITES[i2].hue  * t;
+  const s = SPRITES[i].sat  * (1 - t) + SPRITES[i2].sat  * t;
+  const l = SPRITES[i].light* (1 - t) + SPRITES[i2].light* t;
+
+  // пишем и на :root, и прямо на сцену — чтобы точно перебить фолбэки
+  const stage = document.querySelector('#moodSection .mood-stage');
+  document.documentElement.style.setProperty('--fur-h', String(h));
+  document.documentElement.style.setProperty('--fur-s', s + '%');
+  document.documentElement.style.setProperty('--fur-l', l + '%');
+  if (stage){
+    stage.style.setProperty('--mood-h', String(h));
+    stage.style.setProperty('--mood-s', s + '%');
+    stage.style.setProperty('--mood-l', l + '%');
+  }
 }
+let __valRaf = 0;
+function tweenValence(from, to, ms = 220){
+  cancelAnimationFrame(__valRaf);
+  const t0 = performance.now();
+  const step = (now) => {
+    const p = Math.min(1, (now - t0) / ms);
+    const v = from + (to - from) * p;
+
+    // обновляем текущее "непрерывное" значение
+    window.valence = v;
+
+    // двигаем ручку/прогресс и перерисовываем сцену
+    const x01 = v / 100;
+    const bar = document.getElementById('moodBar');
+    if (bar) bar.style.setProperty('--x', x01);
+
+    const knob = document.getElementById('moodKnob');
+    if (knob) knob.style.left = v + '%';
+
+    const fill = document.getElementById('moodFill') || document.querySelector('.mood-fill');
+    if (fill) fill.style.width = v + '%';
+
+    // кросс-фейд и "камера" (центр/зум)
+    updateFurByValence(v);
+    updateSceneByValence(v);
+
+    if (p < 1) __valRaf = requestAnimationFrame(step);
+  };
+  __valRaf = requestAnimationFrame(step);
+}
+
   function applyIndex(i){
     i = clamp(i, 0, 6);
     var prev = curIdx;
     curIdx = i;
 
-    // сохраняем совместимое значение 0..100
-    window.valence = idxToPercent(curIdx);
-    
-     try{ putV2Wellness(selectedISO(), window.valence); }catch(_){}
+    const from = (typeof window.valence === 'number') ? window.valence : idxToPercent(prev);
+const to   = idxToPercent(curIdx);
 
-    // сначала — твои цвета/темы (если функция есть)
-    if (typeof updateColorsByValence === 'function') {
-      try { updateColorsByValence(window.valence); } catch(_) {}
-    }
-updateFurByValence(window.valence);
-    // позиция 0..1 в CSS-переменную (если используешь её в стилях)
-    var x01 = window.valence / 100;
-    bar.style.setProperty('--x', x01);
+// сохраняем цель (для БД/календаря)
+try{ putV2Wellness(selectedISO(), to); }catch(_){}
 
-    // анимация ручки/заливки (если элементы есть)
-    if (fill){
-      // width в % — будет плавно анимироваться по CSS (см. блок стилей ниже)
-      fill.style.width = window.valence + '%';
-    }
-    if (knob){
-      // left в % + CSS transition — аккуратный «щелчок» между шагами
-      knob.style.left = window.valence + '%';
-      bar.setAttribute('aria-valuenow', String(curIdx));
-    }
+// если есть подстройка цвета страницы — обновим целевым значением
+if (typeof updateColorsByValence === 'function') {
+  try { updateColorsByValence(to); } catch(_) {}
+}
+
+// ПЛАВНО идём от from к to (даёт ровный фэйд и «камеру» даже 83 ↔ 100)
+tweenValence(from, to, 260);
+
+// aria + подпись шага
+bar.setAttribute('aria-valuenow', String(curIdx));
+if (label) label.textContent = STATES[curIdx];
 
     // обновляем подпись последней, чтобы её ничто не перетёрло
     if (label) label.textContent = STATES[curIdx];
@@ -1647,23 +1795,45 @@ updateFurByValence(window.valence);
 
     if (curIdx !== prev) haptic();
   }
+// --- плавный drag без дёрганий, снап на отпускании ---
+let sdrag = false, spid = 0;
 
-  // события
- bar.addEventListener('pointerdown', e=>{
+function clientToX01(cx){
+  const r = bar.getBoundingClientRect();
+  const left  = r.left + 14;
+  const right = r.right - 14;
+  const x = (cx - left) / (right - left);
+  return Math.max(0, Math.min(1, x));
+}
+function previewValence(x01){
+  const v = x01 * 100;
+  window.valence = v;
+  bar.style.setProperty('--x', x01);
+  if (knob) knob.style.left = `calc(14px + ${x01} * (100% - 28px))`;
+  updateFurByValence(v);
+  updateSceneByValence(v);
+}
+
+bar.addEventListener('pointerdown', e => {
   e.preventDefault();
-  pid = e.pointerId; dragging = true;
-  bar.setPointerCapture(pid);
-  applyIndex(xToIdx(e.clientX));
+  spid = e.pointerId;
+  sdrag = true;
+  bar.classList.add('drag');
+  bar.setPointerCapture(spid);
+  previewValence(clientToX01(e.clientX));
 });
-window.addEventListener('pointermove', e=>{
-  if(!dragging) return;
+window.addEventListener('pointermove', e => {
+  if (!sdrag) return;
   e.preventDefault();
-  applyIndex(xToIdx(e.clientX));
+  previewValence(clientToX01(e.clientX));
 }, {passive:false});
-window.addEventListener('pointerup', e=>{
-  if(!dragging) return;
-  dragging = false;
-  try{ bar.releasePointerCapture(pid); }catch(_){}
+window.addEventListener('pointerup', e => {
+  if (!sdrag) return;
+  sdrag = false;
+  bar.classList.remove('drag');
+  try{ bar.releasePointerCapture(spid); }catch(_){}
+  const idx = Math.round(clientToX01(e.clientX) * 6);
+  applyIndex(idx);                           // мягкий твининг к ближайшему шагу
 });
 
   // клавиатура
