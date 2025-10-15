@@ -34,7 +34,6 @@ const express = require('express');
 const cors = require('cors');
 const crypto = require('crypto');
 const pg = require('pg');
-pg.defaults.ssl = true;
 const { Pool } = pg;
 
 console.log('Boot server.js at', new Date().toISOString());
@@ -64,10 +63,9 @@ app.use(cors({
 const dsn = process.env.DATABASE_URL;
 if (!dsn) throw new Error('DATABASE_URL is empty');
 
-const pool = new Pool({
-  connectionString: dsn,
-  ssl: { rejectUnauthorized: false },
-});
+ const pool = new Pool({
+   connectionString: dsn
+ });
 // ==== helpers: нормализация дат и вставка дозы ====
 function isoTsOrZ(iso) {
   // 'YYYY-MM-DD' => начало дня в UTC; иначе — корректный ISO
