@@ -2,3 +2,8 @@
 .env
 .DS_Store
 dist/
+dbdumps/
+*.zip
+*.custom
+*.sql
+*.log

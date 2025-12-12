@@ -1482,35 +1482,36 @@ document.addEventListener('DOMContentLoaded', () => {
 </script>
 
   <script>
-    // Telegram context
-  const tgApp = (window.Telegram && window.Telegram.WebApp) ? window.Telegram.WebApp : null;
-  tgApp?.ready?.(); tgApp?.expand?.();
-  const initUser = tgApp?.initDataUnsafe?.user || null;
-  const initData = tgApp?.initData || '';
+  // Telegram context
+  const tgApp   = window.Telegram?.WebApp || null;
+  const initData= tgApp?.initData || '';
+  const isTgApp = !!initData;
 
-  // API helper base
-  const API_BASE = String(window.API_BASE||'').replace(/\/$/, '');
-
-  // Unified dev mode
-  const qs = new URLSearchParams(location.search);
-  const isTgApp = !!(tgApp && tgApp.initData);
-  const isDev   = location.hostname === 'localhost' || qs.has('dev'); // дефолт только в dev
+  // Единый дефолт tg для браузера
   const DEV_DEFAULT_TG = '1002';
-
-  let devTg = qs.get('tg') || localStorage.getItem('rt.dev.tg') || (isDev ? DEV_DEFAULT_TG : '');
-  if (devTg) { try { localStorage.setItem('rt.dev.tg', devTg); } catch(_) {} }
+  let devTg = new URLSearchParams(location.search).get('tg')
+           || localStorage.getItem('rt.dev.tg')
+           || (isTgApp ? '' : DEV_DEFAULT_TG);
+  try{ if (devTg) localStorage.setItem('rt.dev.tg', devTg); }catch(_){}
 
   function api(path, opts = {}) {
-    let url = /^https?:\/\//i.test(path) ? path : (API_BASE + path);
-    const params = [];
-    if (!isTgApp && devTg) params.push('tg=' + encodeURIComponent(devTg)); // браузер: шлём tg
-    params.push('v=main-2025-08-27b');
-    url += (url.includes('?') ? '&' : '?') + params.join('&');
+    const API_BASE = String(window.API_BASE||'').replace(/\/$/, '');
+    const u = new URL(/^https?:/i.test(path) ? path : (API_BASE + path), location.origin);
+
+    // В браузере без Telegram всегда шлём tg
+    if (!isTgApp && devTg && !u.searchParams.has('tg')) u.searchParams.set('tg', devTg);
+
+    // таймзона + версионирование запроса
+    try {
+      const tz = Intl.DateTimeFormat().resolvedOptions().timeZone;
+      if (tz && !u.searchParams.has('tz')) u.searchParams.set('tz', tz);
+    } catch(_){}
+    u.searchParams.set('v', '2025-11-03-unified-api');
 
     const headers = { 'Content-Type':'application/json', ...(opts.headers||{}) };
-    if (isTgApp && initData) headers['X-Telegram-InitData'] = initData; // в Telegram: initData
+    if (isTgApp && initData) headers['X-Telegram-InitData'] = initData;
 
-    return fetch(url, { ...opts, headers });
+    return fetch(u.toString(), { ...opts, headers });
   }
 
     // Utils

@@ -231,7 +231,10 @@ html, body{ max-width:100vw; overflow-x:hidden; }
     inset 0 1px 3px rgba(255,255,255,.25),
     inset 0 -2px 4px rgba(0,0,0,.3);
 }
-
+  /* Кнопка подтверждения настроения скрыта, но остаётся в разметке */
+  #confirmMood{
+    display:none !important;
+  }
   .btn-secondary{
     background:rgba(255,255,255,.06);
     color:#E6EDF3;
@@ -371,6 +374,25 @@ html, body{ max-width:100vw; overflow-x:hidden; }
   .drop .hint{color:var(--muted); text-align:center; padding:12px}
   .thumb{width:100%; height:100%; object-fit:cover}
   .actions-row{display:flex; gap:10px; flex-wrap:wrap}
+    .cmp-kind-switch{
+    display:flex;
+    gap:6px;
+    flex-wrap:wrap;
+  }
+  .cmp-kind-btn{
+    border:1px solid var(--border);
+    background:rgba(255,255,255,.04);
+    color:var(--text);
+    border-radius:999px;
+    padding:6px 12px;
+    font-size:13px;
+    cursor:pointer;
+  }
+  .cmp-kind-btn.is-active{
+    background:linear-gradient(180deg,#22e6a1,#10b981);
+    color:#04160f;
+    border-color:rgba(255,255,255,.35);
+  }
   .outline{background:transparent; border:1px solid var(--border); color:var(--text)}
   /* Стабильный контейнер с динамическим соотношением сторон */
 .compare{
@@ -920,15 +942,15 @@ textarea::placeholder{
 }
 .bar::before{
   content:""; position:absolute; left:14px; right:14px; top:50%; height:6px; transform:translateY(-50%);
-  background: linear-gradient(
+ background: linear-gradient(
   90deg,
-  #ef4444 0%,      /* красный   */
-  #f59e0b 16.66%,  /* оранжевый */
-  #e7d5b1 33.33%,  /* бежевый   */
-  #9ca3af 50%,     /* серый     */
-  #2dd4bf 66.66%,  /* мятный    */
-  #22c55e 83.33%,  /* зелёный   */
-  #3b82f6 100%     /* синий     */
+  #7f1d1d 0%,      /* бордовое */
+  #f59e0b 16.66%,  /* оранжевое */
+  #e7d5b1 33.33%,  /* бежевое   */
+  #9ca3af 50%,     /* серое     */
+  #3b82f6 66.66%,  /* СИНЕЕ     */
+  #2dd4bf 83.33%,  /* МЯТНОЕ    */
+  #22c55e 100%     /* ЗЕЛЁНОЕ   */
 );
   border-radius:999px;
   mask:linear-gradient(90deg,#000 calc(var(--x)*100%), transparent 0);
@@ -1327,8 +1349,15 @@ header{
     </div>
     
 <!-- Compare: choose two dates -->
-<div class="actions-row" id="compareDates" style="margin-top:6px; gap:10px; align-items:center">
+<div class="actions-row" id="compareDates" style="margin-top:6px; gap:10px; align-items:center; flex-wrap:wrap">
   <span class="chip">Сравнить:</span>
+
+  <!-- что сравниваем: лицо / тело -->
+  <div class="cmp-kind-switch">
+    <button type="button" class="cmp-kind-btn is-active" data-cmp-kind="face">Лицо</button>
+    <button type="button" class="cmp-kind-btn" data-cmp-kind="body">Тело</button>
+  </div>
+
   <input id="cmpLeft"  class="date-input" type="date">
   <span class="chip" style="opacity:.7">vs</span>
   <input id="cmpRight" class="date-input" type="date">
@@ -1414,11 +1443,22 @@ function saveDB(db){
 }
 function getEntry(date){
   const db = loadDB();
-  const base = db.entries[date] || {date, wellness:50, sideEffects:{}, photos:{face:null, body:null}, notes:''};
-  if (!base.sideEffects) base.sideEffects = {};
-  if (!base.photos)      base.photos = {face:null, body:null};
-  if (typeof base.notes !== 'string') base.notes = '';
-  if (typeof base.wellness !== 'number') base.wellness = 50;
+  let base = db.entries[date];
+
+  // новой записи нет – создаём без wellness
+  if (!base){
+    base = {
+      date,
+      sideEffects: {},
+      photos: { face: null, body: null },
+      notes: ''
+    };
+  } else {
+    if (!base.sideEffects) base.sideEffects = {};
+    if (!base.photos)      base.photos = { face: null, body: null };
+    if (typeof base.notes !== 'string') base.notes = '';
+    // wellness оставляем как есть, если его нет – это «нет настроения»
+  }
   return base;
 }function putEntry(entry){ const db=loadDB(); db.entries[entry.date]=entry; if(!db.baseline) db.baseline = entry.date; saveDB(db); return db; }
 // Текущая выбранная дата в дневнике (YYYY-MM-DD)
@@ -1536,11 +1576,17 @@ async function flushCurrentEntry(){
       (typeof selectedISO === 'function' ? selectedISO() : null);
     if (!curISO) return;
 
-    const entry = (typeof getEntry === 'function') ? getEntry(curISO) : { iso: curISO };
+     const entry = (typeof getEntry === 'function') ? getEntry(curISO) : { iso: curISO };
 
-    // собираем из UI
     const notesEl = document.getElementById('notes');
-    if (typeof window.valence !== 'undefined') entry.wellness = Math.round(Number(window.valence)||0);
+
+    // обновляем wellness только если:
+    // 1) ползунок трогали в этом дне, ИЛИ
+    // 2) в записи уже был wellness (старые сохранённые дни)
+    const hasExistingWellness = typeof entry.wellness === 'number';
+    if (typeof window.valence !== 'undefined' && (moodTouched || hasExistingWellness)){
+      entry.wellness = Math.round(Number(window.valence)||0);
+    }
     if (notesEl) entry.notes = String(notesEl.value || '').trim();
     entry.sideEffects = collectSEFromDOM();
 
@@ -1555,6 +1601,7 @@ async function flushCurrentEntry(){
     upsertDiaryOnServer(entry);
   }catch(e){ console.warn(e); }
 }
+var moodTouched = false; // двигали ли ползунок в этот день
 function beaconSave(){
   try{
     const iso = (document.getElementById('datePicker')?.value) || window.lastDateISO;
@@ -1679,9 +1726,9 @@ const SPRITES = [
   { at: 17,  src: '../assets/mood/7.webp',  hue:  20, sat: 92, light: 58, label:'Плохо' },       // оранжевый
   { at: 33,  src: '../assets/mood/33.webp', hue:  35, sat: 55, light: 72, label:'Ниже нормы' },  // бежевый
   { at: 50,  src: '../assets/mood/55.webp', hue:   0, sat:  0, light: 62, label:'Нейтрально' },  // СЕРЫЙ
-  { at: 66,  src: '../assets/mood/44.webp', hue: 150, sat: 70, light: 60, label:'Неплохо' },     // мятный
-  { at: 83,  src: '../assets/mood/66.webp', hue: 120, sat: 85, light: 55, label:'Хорошо' },      // зелёный
-  { at: 100, src: '../assets/mood/22.webp', hue: 210, sat: 85, light: 60, label:'Отлично' }      // синий
+    { at: 66,  src: '../assets/mood/44.webp', hue: 210, sat: 85, light: 60, label:'Неплохо' }, // СИНЕЕ свечение
+  { at: 83,  src: '../assets/mood/66.webp', hue: 150, sat: 70, light: 60, label:'Хорошо' },  // МЯТНОЕ свечение
+  { at: 100, src: '../assets/mood/22.webp', hue: 120, sat: 85, light: 55, label:'Отлично' }  // ЗЕЛЁНОЕ свечение
 ];
 // предзагрузка
 SPRITES.forEach(s=>{ const i=new Image(); i.decoding='async'; i.src=s.src; });
@@ -1797,38 +1844,49 @@ function tweenValence(from, to, ms = 220){
   __valRaf = requestAnimationFrame(step);
 }
 
-  function applyIndex(i){
+   function applyIndex(i, fromUser){
     i = clamp(i, 0, 6);
     var prev = curIdx;
     curIdx = i;
 
     const from = (typeof window.valence === 'number') ? window.valence : idxToPercent(prev);
-const to   = idxToPercent(curIdx);
+    const to   = idxToPercent(curIdx);
 
-// сохраняем цель (для БД/календаря)
-try{ putV2Wellness(selectedISO(), to); }catch(_){}
+    // если это именно действие пользователя – фиксируем настроение
+    if (fromUser){
+      moodTouched = true;
+      const iso = (typeof selectedISO === 'function') ? selectedISO() : currentISO();
 
-// если есть подстройка цвета страницы — обновим целевым значением
-if (typeof updateColorsByValence === 'function') {
-  try { updateColorsByValence(to); } catch(_) {}
-}
+      // V2 — для календаря и главной
+      try {
+        putV2Wellness(iso, to);
+      } catch(_) {}
 
-// ПЛАВНО идём от from к to (даёт ровный фэйд и «камеру» даже 83 ↔ 100)
-tweenValence(from, to, 260);
-
-// aria + подпись шага
-bar.setAttribute('aria-valuenow', String(curIdx));
-if (label) label.textContent = STATES[curIdx];
-
-    // обновляем подпись последней, чтобы её ничто не перетёрло
-    if (label) label.textContent = STATES[curIdx];
-
-    if (typeof refreshMoodSaveIndicator === 'function') {
-      try { refreshMoodSaveIndicator(); } catch(_) {}
+      // локальная запись дня
+      try {
+        const entry = getEntry(iso);
+        entry.wellness = to;
+        entry.wellnessSaved = true;
+        putEntry(entry);
+        if (typeof syncDiaryDebounced === 'function') syncDiaryDebounced();
+      } catch(_) {}
     }
+
+    // подстраиваем фон под настроение (работает и при начальной загрузке)
+    if (typeof updateColorsByValence === 'function') {
+      try { updateColorsByValence(to); } catch(_) {}
+    }
+
+    // плавная анимация шарика/сцены
+    tweenValence(from, to, 260);
+
+    // ARIA + подпись
+    bar.setAttribute('aria-valuenow', String(curIdx));
+    if (label) label.textContent = STATES[curIdx];
 
     if (curIdx !== prev) haptic();
   }
+
 // --- плавный drag без дёрганий, снап на отпускании ---
 let sdrag = false, spid = 0;
 
@@ -1866,30 +1924,31 @@ window.addEventListener('pointerup', e => {
   sdrag = false;
   bar.classList.remove('drag');
   try{ bar.releasePointerCapture(spid); }catch(_){}
-  const idx = Math.round(clientToX01(e.clientX) * 6);
-  applyIndex(idx);                           // мягкий твининг к ближайшему шагу
+    const idx = Math.round(clientToX01(e.clientX) * 6);
+  applyIndex(idx, true);                    // фиксируем настроение
 });
 
   // клавиатура
   bar.tabIndex = 0;
   bar.addEventListener('keydown', function(e){
-    if (e.key === 'ArrowLeft')  { applyIndex(curIdx - 1); e.preventDefault(); }
-    if (e.key === 'ArrowRight') { applyIndex(curIdx + 1); e.preventDefault(); }
+    if (e.key === 'ArrowLeft')  { applyIndex(curIdx - 1, true); e.preventDefault(); }
+  if (e.key === 'ArrowRight') { applyIndex(curIdx + 1, true); e.preventDefault(); }
   });
 
   // ШИМЫ для старого API — если где-то зовёшь проценты
-  window.applyValence = function(v){
+    window.applyValence = function(v, isInitial){
     v = Math.max(0, Math.min(100, Number(v)||0));
     var i = Math.round((v/100) * 6);
-    applyIndex(i);
+    // при isInitial=true мы только двигаем UI, но НЕ записываем в БД
+    applyIndex(i, !isInitial);
   };
   window.clientToValence = function(xClient){
     return idxToPercent(xToIdx(xClient));
   };
 
-  // стартовое положение: из window.valence, если уже есть
   var startIdx = Math.round(((typeof window.valence==='number'?window.valence:50)/100) * 6);
-  applyIndex(startIdx);
+  // начальное положение — только для отображения, без записи
+  applyIndex(startIdx, false);
 })();
 const DB_KEY_V2 = 'rt.diary.v2';
 
@@ -1947,7 +2006,8 @@ input.addEventListener('input', (e)=>{
   const v = +e.target.value;
   badge.textContent = v;
   entry.sideEffects[key] = v;
-  putEntry(entry);
+  putEntry(entry);      // локально ок
+  syncDiaryDebounced(); // и мягко на сервер
   paint(v);
 });
 
@@ -1961,6 +2021,33 @@ const faceThumb=document.getElementById('faceThumb'); const bodyThumb=document.g
 // правильные id из разметки
 const delFaceBtn = document.getElementById('delFace');
 const delBodyBtn = document.getElementById('delBody');
+// непрозрачная заглушка того же цвета, что фон карточки сравнения
+const COMPARE_BLANK =
+  'data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="1" height="1"><rect width="1" height="1" fill="%230b1524"/></svg>';
+
+
+// что сейчас сравниваем: 'face' или 'body'
+let compareKind = 'face';
+
+// переключатель "Лицо / Тело" в UI
+const cmpKindButtons = document.querySelectorAll('[data-cmp-kind]');
+if (cmpKindButtons.length){
+  // восстановим последний выбор
+  const storedKind = localStorage.getItem('rt.cmp.kind');
+  if (storedKind === 'body') compareKind = 'body';
+
+  cmpKindButtons.forEach(btn=>{
+    const kind = btn.dataset.cmpKind === 'body' ? 'body' : 'face';
+    if (kind === compareKind) btn.classList.add('is-active');
+
+    btn.addEventListener('click', ()=>{
+      compareKind = kind;
+      try{ localStorage.setItem('rt.cmp.kind', compareKind); }catch(_){}
+      cmpKindButtons.forEach(b => b.classList.toggle('is-active', b === btn));
+      if (typeof refreshCompare === 'function') refreshCompare();
+    });
+  });
+}
 
 if (delFaceBtn) delFaceBtn.addEventListener('click', () => {
   const d = selectedISO();
@@ -1986,16 +2073,16 @@ if (delBodyBtn) delBodyBtn.addEventListener('click', () => {
 const compareWrap=document.getElementById('compareWrap'); const imgStart=document.getElementById('imgStart'); const imgCurrent=document.getElementById('imgCurrent'); const topWrap=document.getElementById('topWrap');
 const compareRange=document.getElementById('compareRange');
 
-// все даты, где вообще есть фото лица (отсортированы по возрастанию)
-function listFaceDates(db){
-  return Object.values(db.entries)
-    .filter(e => e?.photos?.face)
+// все даты, где вообще есть фото нужного типа (лицо/тело), отсортированы
+function listPhotoDates(db, kind){
+  return Object.values(db.entries || {})
+    .filter(e => e?.photos?.[kind])
     .map(e => e.date)
     .sort();
 }
-// самая ранняя дата, где есть фото лица
-function firstFaceDate(db){
-  const list = listFaceDates(db);
+// самая ранняя дата, где есть фото нужного типа
+function firstPhotoDate(db, kind){
+  const list = listPhotoDates(db, kind);
   return list.length ? list[0] : null;
 }
 function readImageFile(file, max=1200, quality=0.72){
@@ -2069,15 +2156,22 @@ function setSplit(p){
 
 
 function refreshCompare(){
-  const db = loadDB();
+  const db   = loadDB();
+  const kind = compareKind || 'face';
 
-  // выбор дат: слева — старт курса/самая ранняя с фото, справа — выбранный день
-  const leftPicked  = (document.getElementById('cmpLeft')?.value  || '').slice(0,10);
-  const rightPicked = (document.getElementById('cmpRight')?.value || '').slice(0,10) || (datePicker?.value||'').slice(0,10);
+  const leftInput  = document.getElementById('cmpLeft');
+  const rightInput = document.getElementById('cmpRight');
 
+  // даты, которые выбрал пользователь
+  const leftPicked  = (leftInput ?.value || '').slice(0,10);
+  const rightPicked = (rightInput?.value || '').slice(0,10) || (datePicker?.value||'').slice(0,10);
+
+  // авто-подбор для левой, если ничего не выбрано
   const courseStart = localStorage.getItem('rt_startISO') || '';
   let leftAuto = courseStart;
-  if (leftAuto && !db.entries[leftAuto]?.photos?.face) leftAuto = firstFaceDate(db) || leftAuto;
+  if (leftAuto && !db.entries[leftAuto]?.photos?.[kind]) {
+    leftAuto = firstPhotoDate(db, kind) || leftAuto;
+  }
   if (!leftAuto) leftAuto = todayISO();
 
   const L = leftPicked  || leftAuto;
@@ -2085,50 +2179,57 @@ function refreshCompare(){
 
   try{ localStorage.setItem('rt.cmp.left',  L); }catch(_){}
   try{ localStorage.setItem('rt.cmp.right', R); }catch(_){}
+  try{ localStorage.setItem('rt.cmp.kind',  kind); }catch(_){}
 
-    const leftImg  = localStorage.getItem(photoKey('face', L)) || '';
-  const rightImg = localStorage.getItem(photoKey('face', R)) || '';
+  // грузим нужный тип фото (лицо/тело) для каждой даты
+  const leftImg  = localStorage.getItem(photoKey(kind, L)) || '';
+  const rightImg = localStorage.getItem(photoKey(kind, R)) || '';
 
   const wrap = document.getElementById('compareWrap');
-  const imgL = document.getElementById('imgStart');
-  const imgR = document.getElementById('imgCurrent');
-  const leftInput  = document.getElementById('cmpLeft');
-  const rightInput = document.getElementById('cmpRight');
+  const imgL = document.getElementById('imgStart');   // левое (верхний слой)
+  const imgR = document.getElementById('imgCurrent'); // правое (нижний слой)
 
-  // ничего нет — прячем
-  if (!leftImg && !rightImg){ wrap.hidden = true; return; }
+  // совсем нет фоток — прячем блок
+  if (!leftImg && !rightImg){
+    wrap.hidden = true;
+    return;
+  }
   wrap.hidden = false;
 
-  // если есть только одно фото — дублируем его в обе стороны
+  // если по одной стороне нет фото — делаем её пустой, без дублирования
+  let srcL = leftImg;
+  let srcR = rightImg;
+
   if (!leftImg && rightImg){
-    imgL.src = rightImg;
-    imgR.src = rightImg;
-    if (leftInput && !leftInput.value) leftInput.value = R;
+    srcL = COMPARE_BLANK;  // слева пусто, справа фото
+    srcR = rightImg;
   } else if (leftImg && !rightImg){
-    imgL.src = leftImg;
-    imgR.src = leftImg;
-    if (rightInput && !rightInput.value) rightInput.value = L;
-  } else {
-    imgL.src = leftImg;
-    imgR.src = rightImg;
+    srcL = leftImg;        // слева фото, справа пусто
+    srcR = COMPARE_BLANK;
   }
 
-  // подписи дат
-  const fmt = s => new Date(s+'T00:00:00').toLocaleDateString('ru-RU',{day:'2-digit',month:'2-digit',year:'numeric'});
+  imgL.src = srcL;
+  imgR.src = srcR;
+
+  // подписи дат (даже если фото нет, дата всё равно показывается)
+  const fmt = s => new Date(s+'T00:00:00').toLocaleDateString('ru-RU',{
+    day:'2-digit',month:'2-digit',year:'numeric'
+  });
   document.querySelector('.compare .label.start').textContent   = fmt(L);
   document.querySelector('.compare .label.current').textContent = fmt(R);
 
-  // ждём загрузку, ставим корректное соотношение сторон по правой картинке
+  // подгоняем соотношение сторон под правое изображение (или левое, если правого нет)
   const wait = el => (el.complete && el.naturalWidth) ? Promise.resolve() :
                      new Promise(res => el.addEventListener('load', res, {once:true}));
   Promise.all([wait(imgL), wait(imgR)]).then(()=>{
-    const w = imgR.naturalWidth  || 4;
-    const h = imgR.naturalHeight || 3;
+    const w = imgR.naturalWidth  || imgL.naturalWidth  || 4;
+    const h = imgR.naturalHeight || imgL.naturalHeight || 3;
     wrap.style.setProperty('--cmp-w', w);
     wrap.style.setProperty('--cmp-h', h);
     setSplit(50);
   });
 }
+
 
 
 // инициализация дат в контролах
@@ -2189,32 +2290,63 @@ function refreshMoodSaveIndicator(){
   }catch(_){}
 }
 function debounce(fn, ms){ let t; return (...args)=>{ clearTimeout(t); t=setTimeout(()=>fn(...args), ms); }; }
-// === API helpers (добавить перед /* ===== Notes ===== */) ===
+// === Server sync toggle (временный флаг) ===
+const ENABLE_SERVER_SYNC = false; // пока backend даёт 500 — работаем оффлайн
+// === API helpers (положи ПЕРЕД /* ===== Notes ===== */) ===
 const _qs = new URLSearchParams(location.search);
+const isLocal = ['localhost','127.0.0.1'].includes(location.hostname);
+
+// dev TG id: берём из ?tg, иначе (на localhost) — из localStorage или дефолт
+const devTg = _qs.get('tg') || (isLocal ? (localStorage.getItem('rt.dev.tg') || '1001') : '');
+
+// если на localhost в URL нет ?tg — допишем его один раз,
+if (isLocal && !_qs.get('tg')) {
+  const url = new URL(location.href);
+  url.searchParams.set('tg', devTg);
+  history.replaceState({}, '', url); // чтобы перезагрузки/навигация не теряли tg
+}
 
 function authHeaders(){
   const h = { 'Content-Type': 'application/json' };
   const init = window.Telegram?.WebApp?.initData;
-  if (init) h['X-Telegram-InitData'] = init;     // прод: телеграм-инит
+  if (init) {
+    h['X-Telegram-InitData'] = init;          // прод через Telegram
+  } else if (isLocal && devTg) {
+    h['X-Dev-TG'] = devTg;                     // dev-режим: сервер это понимает
+  }
   return h;
 }
-function withAuthQS(url){
-  // дев-режим: если страница открыта с ?tg=..., прокидываем его в API
-  const tg = _qs.get('tg');
-  if (!tg) return url;
-  const u = new URL(url, location.origin);
-  u.searchParams.set('tg', tg);
+
+function withAuthQS(path){
+  const u = new URL(path, location.origin);
+  // Всегда подмешиваем tg в dev; в проде — только если он уже есть в URL
+  if (isLocal && devTg)      u.searchParams.set('tg', devTg);
+  else if (_qs.has('tg'))    u.searchParams.set('tg', _qs.get('tg'));
   return u.toString();
 }
 
 async function upsertDiaryOnServer(entry){
-  if (!entry?.iso) return false;
+  if (!ENABLE_SERVER_SYNC) return false;   // ← временно режем сеть
+
+  const dateISO = entry?.date || entry?.iso || (typeof selectedISO==='function' ? selectedISO() : null);
+  if (!dateISO) return false;
+
+  // Санитизируем побочки: только whitelisted ключи и только значения 1..3
+  const ALLOWED = ['lips_dry','skin_dry','muscle_pain','headache'];
+  const seIn = entry?.sideEffects || {};
+  const seOut = {};
+  ALLOWED.forEach(k => {
+    const v = Number(seIn[k] || 0);
+    if (v > 0 && v <= 3) seOut[k] = v;
+  });
+
   const body = {
-    date: entry.iso,
-    feeling_score: Math.round(entry.wellness ?? 0),
-    side_effects: entry.sideEffects || {},
-    comment: entry.notes || ''
+    date: dateISO,
+    feeling_score: Math.max(0, Math.min(100, Math.round(entry?.wellness ?? 0))),
+    side_effects: Object.keys(seOut).length ? seOut : null,
+    comment: String(entry?.notes || '').trim()
   };
+
   try{
     const res = await fetch(withAuthQS('/api/diary/day'), {
       method: 'POST',
@@ -2222,12 +2354,17 @@ async function upsertDiaryOnServer(entry){
       credentials: 'same-origin',
       body: JSON.stringify(body)
     });
-    return res.ok;
+    if (!res.ok){
+      const text = await res.text().catch(()=> '');
+      console.error('POST /api/diary/day failed:', res.status, text);
+      return false;
+    }
+    return true;
   }catch(e){
     console.warn('upsertDiaryOnServer failed', e);
     return false;
   }
-}
+} 
 
 async function hydrateDiaryFromServer(dateISO){
   try{
@@ -2244,11 +2381,30 @@ function mergeServerDiary(snap){
   if (!snap?.diary) return;
   const e = getEntry(snap.date);
   const d = snap.diary;
+
+  // wellness можно перетирать всегда, это число
   if (typeof d.feeling_score === 'number') e.wellness = d.feeling_score;
-  if (d.comment != null) e.notes = d.comment || '';
-  if (d.side_effects && typeof d.side_effects === 'object') e.sideEffects = d.side_effects;
+
+  // заметки — только если с сервера пришёл НЕпустой текст
+  if (typeof d.comment === 'string' && d.comment.trim().length > 0) {
+    e.notes = d.comment;
+  }
+
+  // побочки — только если объект непустой
+  if (d.side_effects && typeof d.side_effects === 'object' &&
+      Object.keys(d.side_effects).length > 0) {
+    e.sideEffects = d.side_effects;
+  }
+
   putEntry(e);
 }
+const syncDiaryDebounced = (window.debounce || function(fn,ms){let t;return (...a)=>{clearTimeout(t);t=setTimeout(()=>fn(...a),ms)}})
+  (()=>{
+    const iso = (typeof selectedISO==='function') ? selectedISO() : null;
+    if (!iso) return;
+    const e = getEntry(iso);
+    upsertDiaryOnServer(e);
+  }, 450);
 /* ===== Notes ===== */
 const notesEl = document.getElementById('notes');
 
@@ -2259,6 +2415,7 @@ function persistNotes(){
   if (entry.notes !== text){
     entry.notes = text;
     putEntry(entry); // сохраняет в rt.diary.v2
+      syncDiaryDebounced(); // ← новое
     try{
       // пинаем другие вкладки/календарь
       localStorage.setItem('rt.diary.bump', Date.now().toString());
@@ -2290,7 +2447,6 @@ if (notesEl){
 
 
 /* ===== Load/Save UI ===== */
-const confirmMood=document.getElementById('confirmMood'); const saveAll=document.getElementById('saveAll');
 function updateDayChip(dateISO){
   const today = todayISO();
   const d = parseISO(dateISO);
@@ -2310,6 +2466,7 @@ if (photosChip){
 }
 }
 function loadIntoUI(dateISO){
+  moodTouched = false;  // новый день — считаем, что ползунок пока не трогали
   const entry = getEntry(dateISO);
   updateDayChip(dateISO);
   applyValence(entry.wellness ?? 50, true);
@@ -2348,21 +2505,25 @@ function selectedISO(){
   return (dp || last || q || ss || todayISO()).slice(0,10);
 }
 
-confirmMood.addEventListener('click', ()=>{
-  const iso = selectedISO();
-  const v = Math.round(Math.max(0, Math.min(100, Number(window.valence)||0)));
+const confirmMood = document.getElementById('confirmMood');
+const saveAll     = document.getElementById('saveAll');
 
-  // 1) новая БД дневника — всегда нужна календарю и главной
-  putV2Wellness(iso, v);
+// кнопки может не быть — тогда просто ничего не делаем
+if (confirmMood){
+  confirmMood.addEventListener('click', ()=>{
+    const iso = selectedISO();
+    const v = Math.round(Math.max(0, Math.min(100, Number(window.valence)||0)));
 
-  // 2) старое локальное хранилище — чтобы остальной UI у тебя не сломался
-  const entry = getEntry(iso);
-  entry.wellness = v;
-  entry.wellnessSaved = true;
-  putEntry(entry);
+    putV2Wellness(iso, v);
+    const entry = getEntry(iso);
+    entry.wellness = v;
+    entry.wellnessSaved = true;
+    putEntry(entry);
 
-  setMoodSavedUI(true);
-});
+    setMoodSavedUI(true);
+  });
+}
+
 const exportBtn = document.getElementById('exportJSON');
 saveAll.addEventListener('click', ()=>{
   const date = selectedISO();
@@ -2698,8 +2859,11 @@ function __flushEntryNow(){
     const notesEl = document.getElementById('notes');
     if (notesEl) entry.notes = (notesEl.value || '').trim();
 
-    // самочувствие
-    if (typeof window.valence === 'number') entry.wellness = window.valence;
+      // самочувствие: не создаём новое, если ползунок не двигали и раньше его не было
+    const hadWellness = typeof entry.wellness === 'number';
+    if (typeof window.valence === 'number' && (moodTouched || hadWellness)){
+      entry.wellness = window.valence;
+    }
 
     // побочки (input[type=range] с data-key)
     document.querySelectorAll('#seList input[type="range"][data-key]').forEach(inp=>{

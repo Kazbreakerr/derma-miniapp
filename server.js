@@ -63,9 +63,9 @@ app.use(cors({
 const dsn = process.env.DATABASE_URL;
 if (!dsn) throw new Error('DATABASE_URL is empty');
 
- const pool = new Pool({
-   connectionString: dsn
- });
+const pool = new Pool({
+  connectionString: dsn
+});
 // ==== helpers: нормализация дат и вставка дозы ====
 function isoTsOrZ(iso) {
   // 'YYYY-MM-DD' => начало дня в UTC; иначе — корректный ISO
@@ -138,56 +138,80 @@ function parseAndVerifyInitData(initData) {
 
 // DEV-дружественная аутентификация: initData (Telegram) или ?tg=<num> (dev).
 // DEV-дружественная аутентификация: initData (Telegram) или ?tg=<num> (dev).
-async function tgAuth(req, res, next){
-  // ⬇️ dev-ветка ДОЛЖНА зеркалить обычную по части БД
-  const isLocal = req.hostname === 'localhost' || req.hostname === '127.0.0.1';
-  const devTg   = req.query.tg || req.header('X-Dev-TG');
+async function tgAuth(req, res, next) {
+  try {
+    const isLocal = req.hostname === 'localhost' || req.hostname === '127.0.0.1';
 
-  if (isLocal && devTg) {
-    try {
-      const tgId = Number(devTg);
-      if (!tgId || Number.isNaN(tgId)) return res.status(401).json({ error: 'BOT_INVALID' });
+    // Всегда фиксируем schema
+    await pool.query('SET search_path = derma, public');
 
-      // как в «боевой» ветке: фиксируем search_path и создаём пользователя
-      await pool.query('SET search_path = derma, public');
-      const ins = await pool.query(
-        `INSERT INTO derma.users(tg_id) VALUES ($1)
-         ON CONFLICT (tg_id) DO NOTHING RETURNING id`, [tgId]
-      );
+    // 1) Пытаемся достать пользователя из initData (Telegram WebApp)
+    let tgId = null, fullName = null;
+    let parsed = null;
 
-      req.isFreshUser = ins.rowCount > 0;
-      req.tg = tgId;
-      req.tgUser = { id: tgId };   // чтобы ниже по коду было одинаково
-      return next();
-    } catch (e) {
-      console.error('tgAuth DEV error', e);
-      return res.status(401).json({ error: 'BOT_INVALID' });
-    }
-  }
-
-  // ⬇️ дальше — как у тебя было (обычная ветка с initData/проверкой хэша)
-  try{
-    let tgId = null, parsed = null;
     const rawHeader = req.get('X-Telegram-InitData') || req.get('x-telegram-initdata') || '';
     const rawQuery  = req.query.tgWebAppData || req.query.initData || '';
 
-    if (rawHeader) { try { parsed = parseAndVerifyInitData(rawHeader); } catch(_) {} }
-    if (!parsed && rawQuery) { try { parsed = parseAndVerifyInitData(rawQuery); } catch(_) {} }
-    if (parsed?.user?.id) { tgId = Number(parsed.user.id); req.tgUser = parsed.user; }
-    if (!tgId && /^\d+$/.test(String(req.query.tg||''))) tgId = Number(req.query.tg);
-    if (!tgId) return res.status(401).json({ error: 'BOT_INVALID' });
+    if (rawHeader) { try { parsed = parseAndVerifyInitData(rawHeader); } catch (_) {} }
+    if (!parsed && rawQuery) { try { parsed = parseAndVerifyInitData(rawQuery); } catch (_) {} }
 
-    await pool.query('SET search_path = derma, public');
+    if (parsed?.user?.id) {
+      const u = parsed.user;
+      tgId = Number(u.id);
+      fullName = [u.first_name, u.last_name].filter(Boolean).join(' ').trim()
+              || u.username
+              || `User ${u.id}`;
+      req.tgUser = u;
+    }
+
+    // 2) DEV: из ?tg=… или X-Dev-TG (локальная разработка)
+    if (!tgId) {
+      const devTg = req.query.tg || req.header('X-Dev-TG');
+      if (devTg && (isLocal || process.env.ALLOW_DEV_TG === '1')) {
+        const n = Number(devTg);
+        if (!n || Number.isNaN(n)) return res.status(401).json({ error: 'BOT_INVALID' });
+        tgId = n;
+        fullName = fullName || `Dev User ${tgId}`;
+        req.tgUser = { id: tgId };
+      }
+    }
+
+    // 3) Фолбэк: просто цифра в ?tg=… (для запуска в браузере без Telegram)
+    if (!tgId && /^\d+$/.test(String(req.query.tg || ''))) {
+      tgId = Number(req.query.tg);
+      fullName = fullName || `Web User ${tgId}`;
+      req.tgUser = { id: tgId };
+    }
+
+    if (!tgId) return res.status(401).json({ error: 'BOT_INVALID' });
+    fullName = (fullName && fullName.trim()) || `User ${tgId}`;
+
+    // 4) Создаём пользователя с обязательным full_name
     const ins = await pool.query(
-      `INSERT INTO derma.users(tg_id) VALUES ($1)
-       ON CONFLICT (tg_id) DO NOTHING RETURNING id`, [tgId]
+      `INSERT INTO derma.users (tg_id, role, full_name)
+       VALUES ($1, 'patient', $2)
+       ON CONFLICT (tg_id) DO NOTHING
+       RETURNING id`,
+      [tgId, fullName]
     );
+
+    // 5) Если пользователь уже существовал — подстрахуем, чтобы full_name не оставался NULL
+    if (ins.rowCount === 0) {
+      await pool.query(
+        `UPDATE derma.users
+           SET full_name = COALESCE(full_name, $2)
+         WHERE tg_id = $1`,
+        [tgId, fullName]
+      );
+    }
+
     req.isFreshUser = ins.rowCount > 0;
     req.tg = tgId;
-    next();
-  } catch(e) {
+    return next();
+
+  } catch (e) {
     console.error('tgAuth error', e);
-    res.status(401).json({ error: 'BOT_INVALID' });
+    return res.status(500).json({ error: 'BOT_INVALID' });
   }
 }
 // ====== helpers ======

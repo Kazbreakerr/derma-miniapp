@@ -365,40 +365,62 @@ body::before{
   </div>
 
   <script>
-  // ====== TG user / avatar ======
-const tgApp = (window.Telegram && window.Telegram.WebApp) ? window.Telegram.WebApp : null;
-if (tgApp && tgApp.ready) tgApp.ready();
-if (tgApp && tgApp.expand) tgApp.expand();
+   // ==== Unified API helper (profile) ====
+const tgApp   = window.Telegram?.WebApp || null;
+const initData= tgApp?.initData || '';
+const isTgApp = !!initData;
 
-const initUser = (tgApp && tgApp.initDataUnsafe && tgApp.initDataUnsafe.user) ? tgApp.initDataUnsafe.user : null;
-const initData = (tgApp && tgApp.initData) ? tgApp.initData : '';
-const API_BASE = String(window.API_BASE||'').replace(/\/$/, '');
-
-// — универсальный dev-режим
-const qs = new URLSearchParams(location.search);
-const isTgApp = !!(tgApp && tgApp.initData);
-const isDev   = location.hostname === 'localhost' || qs.has('dev');   // дефолт только в dev
 const DEV_DEFAULT_TG = '1002';
-
- let devTg = qs.get('tg')
+let devTg = new URLSearchParams(location.search).get('tg')
           || localStorage.getItem('rt.dev.tg')
-          || localStorage.getItem('rt_usr_id')   // ← берём id, который уже кладём после аватара
-          || (isDev ? DEV_DEFAULT_TG : '');
-if (devTg) { try { localStorage.setItem('rt.dev.tg', devTg); } catch(_) {} }
+          || localStorage.getItem('rt_usr_id')
+          || (isTgApp ? '' : DEV_DEFAULT_TG);
+try{ if (devTg) localStorage.setItem('rt.dev.tg', devTg); }catch(_){}
 
-// — обёртка для API
 function api(path, opts = {}) {
-  let url = /^https?:\/\//i.test(path) ? path : (API_BASE + path);
-  const params = [];
-  if (!isTgApp && devTg) params.push('tg=' + encodeURIComponent(devTg)); // браузер: передаём tg
-  params.push('v=profile-2025-08-24');
-  url += (url.includes('?') ? '&' : '?') + params.join('&');
+  const API_BASE = String(window.API_BASE||'').replace(/\/$/, '');
+  const u = new URL(/^https?:/i.test(path) ? path : (API_BASE + path), location.origin);
+
+  // в браузере всегда шлём tg
+  if (!isTgApp && devTg && !u.searchParams.has('tg')) u.searchParams.set('tg', devTg);
+
+  // таймзона + cache-buster
+  try {
+    const tz = Intl.DateTimeFormat().resolvedOptions().timeZone;
+    if (tz) u.searchParams.set('tz', tz);
+  } catch(_){}
+  u.searchParams.set('v','2025-11-03-unified-api');
 
   const headers = { 'Content-Type':'application/json', ...(opts.headers||{}) };
-  if (isTgApp && initData) headers['X-Telegram-InitData'] = initData;  // в телеграме: initData
+  if (isTgApp && initData) headers['X-Telegram-InitData'] = initData;
 
-  return fetch(url, { ...opts, headers });
+  return fetch(u.toString(), { ...opts, headers });
 }
+
+  function api(path, opts = {}) {
+    const API_BASE = String(window.API_BASE||'').replace(/\/$/, '');
+    let url = /^https?:\/\//i.test(path) ? path : (API_BASE + path);
+    const params = [];
+
+    // Всегда указываем бота
+    params.push('bot=' + encodeURIComponent(BOT));
+
+    // В браузере без Telegram — подкладываем тестовый tg
+    if (!isTgApp && devTg) params.push('tg=' + encodeURIComponent(devTg));
+
+    // cache-buster
+    params.push('v=profile-2025-10-21');
+    url += (url.includes('?') ? '&' : '?') + params.join('&');
+    try {
+  const tz = Intl.DateTimeFormat().resolvedOptions().timeZone;
+  if (tz) params.push('tz=' + encodeURIComponent(tz));
+} catch (_){}
+
+    const headers = { 'Content-Type':'application/json', ...(opts.headers||{}) };
+    if (isTgApp && initData) headers['X-Telegram-InitData'] = initData;
+
+    return fetch(url, { ...opts, headers });
+  }
   (async function hydrateHeader(){
   const tg    = window.Telegram?.WebApp;
   const nameEl = document.getElementById('tgName');
