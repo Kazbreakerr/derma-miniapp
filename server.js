@@ -1471,27 +1471,33 @@ app.post('/api/plan', tgAuth, async (req, res) => {
     await pool.query('SET search_path = derma, public');
 
     const { drug, capsule_mg, start_date } = req.body || {};
-    // drug обязателен; допускаем roaccutane/aknekutan/other
-    if (!['roaccutane','aknekutan','other'].includes(drug || '')) {
-      return res.status(400).json({ error:'bad drug' });
+
+    // 1) Разрешённые препараты
+    const allowedDrugs = ['roaccutane', 'aknekutan', 'sotret', 'verocutan', 'other'];
+    if (!allowedDrugs.includes(drug || '')) {
+      return res.status(400).json({ error: 'bad drug' });
     }
 
-    // capsule_mg теперь опционален
+    // 2) Капсулы: опционально, но если пришли — валидируем
     let cap = null;
     if (capsule_mg !== undefined && capsule_mg !== null && String(capsule_mg) !== '') {
       cap = Number(capsule_mg);
-      const allowed = drug === 'roaccutane' ? [10,20]
-                    : drug === 'aknekutan'  ? [8,16]
-                    : [];
-      if (allowed.length && !allowed.includes(cap)) {
-        return res.status(400).json({ error:'bad capsule_mg' });
+
+      const allowedCaps =
+        drug === 'aknekutan'
+          ? [8, 16]
+          : ['roaccutane', 'sotret', 'verocutan'].includes(drug)
+          ? [10, 20]
+          : [];
+
+      if (allowedCaps.length && !allowedCaps.includes(cap)) {
+        return res.status(400).json({ error: 'bad capsule_mg' });
       }
     }
 
     const patientId = await userIdByTg(req.tg || req.tgUser?.id);
-    if (!patientId) return res.status(400).json({ error:'no user' });
+    if (!patientId) return res.status(400).json({ error: 'no user' });
 
-    // ⬇️ ВАЖНО: используем patient_id (НЕ user_id) и не требуем created_at/updated_at
     const sql = `
       INSERT INTO derma.plans (patient_id, drug, capsule_mg, start_date)
       VALUES ($1,$2,$3,$4)
@@ -1505,9 +1511,10 @@ app.post('/api/plan', tgAuth, async (req, res) => {
     return res.json(rows[0]);
   } catch (e) {
     console.error('PLAN POST ERROR:', e);
-    return res.status(500).json({ error:'server' });
+    return res.status(500).json({ error: 'server' });
   }
 });
+
 
 
 

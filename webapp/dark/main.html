@@ -901,12 +901,19 @@ function setupCapsulesUI(forceDrug){
   const drug = String(drugRaw).toLowerCase().trim();
 
   // 2) распознаём названия (учёл варианты написания)
-  const isAkne   = /(акнекутан|акнеккутан|aknekutan)/i.test(drug);
-  const isRoacc  = /(роаккутан|роакутан|roaccutane)/i.test(drug);
+  const isAkne      = /(акнекутан|акнеккутан|aknekutan)/i.test(drug);
+  const isRoacc     = /(роаккутан|роакутан|roaccutane|roacc)/i.test(drug);
+  const isSotret    = /(sotret|сотрет)/i.test(drug);
+  const isVerocutan = /(verocutan|verokutan|верокутан|верокут)/i.test(drug);
 
   let opts = null;
-  if (isAkne)  opts = [8, 16];
-  if (isRoacc) opts = [10, 20];
+  if (isAkne) {
+    // как у тебя было: 8 и 16 мг
+    opts = [8, 16];
+  } else if (isRoacc || isSotret || isVerocutan) {
+    // Роаккутан, Сотрет, Верокутан — 10 и 20 мг
+    opts = [10, 20];
+  }
 
   if (!opts) {
     wrap.hidden = true;
@@ -919,10 +926,11 @@ function setupCapsulesUI(forceDrug){
   seg.innerHTML = opts.map(mg =>
     `<button type="button" data-mg="${mg}" class="seg-btn ${saved===mg?'active':''}">${mg} мг</button>`
   ).join('');
+
   wrap.hidden = false;
 
   function select(mg){
-    localStorage.setItem('rt.capsule_mg', String(mg));
+    try { localStorage.setItem('rt.capsule_mg', String(mg)); } catch(_) {}
     seg.querySelectorAll('button').forEach(b=>{
       b.classList.toggle('active', Number(b.dataset.mg) === mg);
     });
@@ -933,6 +941,7 @@ function setupCapsulesUI(forceDrug){
     b.addEventListener('click', ()=> select(Number(b.dataset.mg)));
   });
 }
+
 </script>
 
 
@@ -1820,26 +1829,6 @@ updateSegLabels();
   setTimeout(()=>{ location.assign(url); }, DUR);
 }
 
-    // Header user
-  (function fillHeader(){
-  const name = initUser ? [initUser.first_name, initUser.last_name].filter(Boolean).join(' ') : '—';
-  document.getElementById('fullName').textContent = name;
-
-  const ava = document.getElementById('ava');
-  if (!ava) return;
-
-  let url = '';
-  if (initUser){
-    url = initUser.photo_url || (initUser.username ? ('https://unavatar.io/telegram/' + encodeURIComponent(initUser.username)) : '');
-  }
-
-  if (url){
-    ava.innerHTML = '<img alt="" referrerpolicy="no-referrer" src="'+url+'">';
-  } else {
-    ava.textContent = (name||'U').trim().split(/\s+/).map(s=>s[0]||'').slice(0,2).join('').toUpperCase();
-  }
-})();
-
     // State
     let ME=null, PLAN=null, DOSES=[], PROGRESS=null;
     const DOSE_PER_KG = { min:120, opt:135, max:150 };
@@ -2607,19 +2596,23 @@ window.todayIsoFn = window.todayIsoFn || function(){
   d.setMinutes(d.getMinutes() - d.getTimezoneOffset());
   return d.toISOString().slice(0,10);
 };
-
 function setReminderTexts(){
-  const front = document.getElementById('remFront')?.querySelector('.msg');
-  const back  = document.getElementById('remBack')?.querySelector('.msg');
+  const rawDrug = window.PLAN?.drug || localStorage.getItem('rt_drug') || '';
+  let drugName = 'препарат';
 
-  const raw = String(window.PLAN?.drug || '').toLowerCase();
-  const drug =
-    /акнек|aknek/.test(raw) ? 'акнеккутан' :
-    /роакк|roacc/.test(raw) ? 'роаккутан'  : 'препарат';
+  if (/акнек|aknek/i.test(rawDrug)) {
+    drugName = 'акнеккутан';
+  } else if (/роакк|roacc/i.test(rawDrug)) {
+    drugName = 'роаккутан';
+  } else if (/sotret|сотрет/i.test(rawDrug)) {
+    drugName = 'сотрет';
+  } else if (/verocutan|verokutan|верокут/i.test(rawDrug)) {
+    drugName = 'верокутан';
+  }
 
-  if (front) front.innerHTML = '<b>Сегодня вы ещё не приняли ' + drug + '</b>';
-  if (back)  back.textContent = 'Молодец! Сегодня вы приняли ' + drug;
+  // дальше всё как было: подставляешь drugName в текст
 }
+
 
 
   // локальное состояние напоминания

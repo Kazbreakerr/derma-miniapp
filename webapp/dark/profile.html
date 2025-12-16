@@ -378,48 +378,23 @@ let devTg = new URLSearchParams(location.search).get('tg')
 try{ if (devTg) localStorage.setItem('rt.dev.tg', devTg); }catch(_){}
 
 function api(path, opts = {}) {
-  const API_BASE = String(window.API_BASE||'').replace(/\/$/, '');
-  const u = new URL(/^https?:/i.test(path) ? path : (API_BASE + path), location.origin);
-
-  // в браузере всегда шлём tg
-  if (!isTgApp && devTg && !u.searchParams.has('tg')) u.searchParams.set('tg', devTg);
-
-  // таймзона + cache-buster
-  try {
-    const tz = Intl.DateTimeFormat().resolvedOptions().timeZone;
-    if (tz) u.searchParams.set('tz', tz);
-  } catch(_){}
-  u.searchParams.set('v','2025-11-03-unified-api');
-
-  const headers = { 'Content-Type':'application/json', ...(opts.headers||{}) };
-  if (isTgApp && initData) headers['X-Telegram-InitData'] = initData;
-
-  return fetch(u.toString(), { ...opts, headers });
-}
-
-  function api(path, opts = {}) {
     const API_BASE = String(window.API_BASE||'').replace(/\/$/, '');
-    let url = /^https?:\/\//i.test(path) ? path : (API_BASE + path);
-    const params = [];
+    const u = new URL(/^https?:/i.test(path) ? path : (API_BASE + path), location.origin);
 
-    // Всегда указываем бота
-    params.push('bot=' + encodeURIComponent(BOT));
+    // В браузере без Telegram всегда шлём tg
+    if (!isTgApp && devTg && !u.searchParams.has('tg')) u.searchParams.set('tg', devTg);
 
-    // В браузере без Telegram — подкладываем тестовый tg
-    if (!isTgApp && devTg) params.push('tg=' + encodeURIComponent(devTg));
-
-    // cache-buster
-    params.push('v=profile-2025-10-21');
-    url += (url.includes('?') ? '&' : '?') + params.join('&');
+    // таймзона + версионирование запроса
     try {
-  const tz = Intl.DateTimeFormat().resolvedOptions().timeZone;
-  if (tz) params.push('tz=' + encodeURIComponent(tz));
-} catch (_){}
+      const tz = Intl.DateTimeFormat().resolvedOptions().timeZone;
+      if (tz && !u.searchParams.has('tz')) u.searchParams.set('tz', tz);
+    } catch(_){}
+    u.searchParams.set('v', '2025-11-03-unified-api');
 
     const headers = { 'Content-Type':'application/json', ...(opts.headers||{}) };
     if (isTgApp && initData) headers['X-Telegram-InitData'] = initData;
 
-    return fetch(url, { ...opts, headers });
+    return fetch(u.toString(), { ...opts, headers });
   }
   (async function hydrateHeader(){
   const tg    = window.Telegram?.WebApp;

@@ -355,7 +355,8 @@ html[data-theme="light"] .cancel{
   const qs  = new URLSearchParams(location.search);
   const BOT = (window.RT_BOT) || qs.get('bot') || localStorage.getItem('rt.bot') || 'derma_k8cx';
   let devTg = qs.get('tg') || localStorage.getItem('rt.dev.tg') || localStorage.getItem('rt_usr_id') || (isTgApp ? '' : '1002');
-
+  
+  devTg = String(devTg || '').match(/\d+/)?.[0] || '';
   try{ if (devTg) localStorage.setItem('rt.dev.tg', devTg); }catch(_){}
   try{ localStorage.setItem('rt.bot', BOT); }catch(_){}
 
@@ -364,7 +365,7 @@ html[data-theme="light"] .cancel{
     let url = /^https?:\/\//i.test(path) ? path : (API_BASE + path);
     const params = [];
     params.push('bot=' + encodeURIComponent(BOT));            // ← обязательно
-    if (!isTgApp && devTg) params.push('tg=' + encodeURIComponent(devTg));
+    if (devTg) params.push('tg=' + encodeURIComponent(devTg));
     params.push('v=reset-2025-10-21');
     url += (url.includes('?') ? '&' : '?') + params.join('&');
 

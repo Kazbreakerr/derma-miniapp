@@ -277,12 +277,13 @@ body::before{
     </div>
 
     <div class="field" style="max-width:340px">
-      <label for="plan_drug">Препарат:</label>
-      <select id="plan_drug">
-        <option value="roaccutane">Роаккутан</option>
-        <option value="aknekutan">Акнекутан</option>
-        <option value="other">Другое</option>
-      </select>
+      <label for="plan_drug" class="ctrl-label">Препарат</label>
+<select id="plan_drug" class="ctrl">
+  <option value="roaccutane">Роаккутан</option>
+  <option value="aknekutan">Акнекутан</option>
+  <option value="sotret">Сотрет</option>
+  <option value="verocutan">Верокутан</option>
+</select>
     </div>
 
     <!-- Дата + плашка-комментарий -->
@@ -300,14 +301,24 @@ body::before{
       <div id="dateHint" class="tip">Укажите реальную дату начала — это нужно для календаря и расчётов.</div>
     </div>
 
-    <div class="rec" style="margin-top:12px">
-      <h3>Рекомендуемая кумулятивная доза</h3>
-      <div><b>Минимальная (120 мг/кг):</b> <span id="minDose">—</span> мг</div>
-      <div><b>Оптимальная (135 мг/кг):</b> <span id="optDose">—</span> мг</div>
-      <div><b>Максимальная (150 мг/кг):</b> <span id="maxDose">—</span> мг</div>
-      <div class="muted" style="margin-top:6px">Суточная доза варьируется от 10–20 мг в начале до 60–80 мг в пике.</div>
-      <div class="tip">Суточная доза обычно рассчитывается как 0,5–1 мг/кг. Точную дозу подбирает врач.</div>
-    </div>
+    <div class="rec">
+  <div class="h">Рекомендуемая кумулятивная доза</div>
+  <ul class="list">
+    <li>Минимальная (120 мг/кг): <span id="minDose">—</span> мг</li>
+    <li>Оптимальная (135 мг/кг): <span id="optDose">—</span> мг</li>
+    <li>Максимальная (150 мг/кг): <span id="maxDose">—</span> мг</li>
+  </ul>
+
+  <div class="tip">
+    Суточная доза обычно рассчитывается врачом исходя из массы тела, переносимости и схемы лечения.
+  </div>
+
+  <div class="tip">
+    ⚠️ <b>Индивидуальные схемы (не для всех пациентов)</b>:  
+    160–180&nbsp;мг/кг — при тяжёлых формах и высоком риске рецидива,  
+    только по показаниям и под контролем врача.
+  </div>
+</div>
 
     <!-- "Я уже на курсе" -->
     <div class="inline" style="margin-top:14px">
