@@ -184,6 +184,25 @@ body{
   .media-btn{ border-radius:12px }
   .start{ width:92vw; }
 }
+.benefits{
+  max-width: 780px;
+  margin: 10px auto 4px;
+  padding: 12px 14px;
+  border-radius: 18px;
+  background: rgba(255,255,255,.05);
+  box-shadow: var(--inset-up), var(--inset-dn), var(--shadow-dn);
+  backdrop-filter: blur(6px);
+}
+.benefits ul{ margin:0; padding:0; list-style:none; display:grid; gap:8px; }
+.benefits li{ color:var(--muted); }
+.benefits b{ color:var(--ink); font-weight:900; }
+.fineprint{
+  margin-top:10px;
+  font-size: 12px;
+  color: color-mix(in oklab, var(--muted) 85%, white);
+  opacity:.9;
+}
+
 </style>
 <script src="/js/folder-router.js"></script>
 <script src="/js/gates.js"></script>
@@ -193,9 +212,20 @@ body{
   <main class="shell">
     <!-- HERO -->
     <section class="hero">
-      <h1>Добро пожаловать<br>в Roaccutane Tracker</h1>
-      <div class="lead-card">Поможем аккуратно пройти курс: фиксируйте дозы, следите за прогрессом и не пропускайте приём.</div>
+      <h1>Roaccutane Tracker<br><span style="opacity:.88">трекер курса изотретиноина</span></h1>
+<div class="lead-card">
+  Дневник приёма, прогресс по курсу, фото-сравнение и напоминания — чтобы проходить курс спокойнее и регулярнее.
+</div>
     </section>
+    <section class="benefits" aria-label="Возможности приложения">
+      <ul>
+        <li><b>Фиксация доз</b> — отмечайте приём и смотрите прогресс.</li>
+        <li><b>Фото и самочувствие</b> — сравнение до/после и дневник.</li>
+        <li><b>Напоминания</b> — о приёме и о закупке лекарства.</li>
+      </ul>
+      <div class="fineprint">Приложение не даёт медицинских рекомендаций. Решения — только с врачом.</div>
+    </section>
+
 
     <!-- PROMPT -->
     <section class="prompt">
@@ -357,9 +387,9 @@ const uid = sp.get('tg') || tgInit || ''; // без дефолта
 
     // финальная развилка
     const next = !consented ? './warnings.html'
-               : !hasWeight ? './profile.html'
-               : !hasPlan   ? './plan.html'
-               :              './main.html';
+           : !(hasWeight && hasPlan) ? './onboarding.html'
+           : './main.html';
+
 
     location.href = next + qs;
   }, { capture:true }); // наш обработчик сработает раньше прочих

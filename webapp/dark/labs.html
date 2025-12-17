@@ -333,7 +333,7 @@
 })();
 </script>
   <header>
-    <div class="app-title">Roaccutane Tracker</div>
+    <div class="app-title">Retiora — Retinoid & Isotretinoin Tracker</div>
   </header>
 
   <div class="wrap page" id="pageRoot">
@@ -350,6 +350,12 @@
             <button type="button" data-sex="female" class="active">Ж</button>
             <button type="button" data-sex="male">М</button>
           </div>
+          <strong style="margin-left:10px;">Возраст:</strong>
+  <div class="seg" id="ageSeg">
+    <button type="button" data-age="u16">&lt; 16</button>
+    <button type="button" data-age="adult" class="active">16+</button>
+  </div>
+</div>
         </div>
         <div class="muted" id="updatedLbl">Не сохранено</div>
       </div>
@@ -529,6 +535,7 @@ window.addEventListener('orientationchange', fitBottomSpacer);
 
   // Refs
   const sexSeg = document.getElementById('sexSeg');
+  const ageSeg = document.getElementById('ageSeg');
   const updatedLbl = document.getElementById('updatedLbl');
   const fileInput = document.getElementById('fileInput');
   const addPhotosBtn = document.getElementById('addPhotosBtn');
@@ -541,7 +548,8 @@ window.addEventListener('orientationchange', fitBottomSpacer);
 
   // State
   let sex = (localStorage.getItem('labs.sex') || 'female');
-  let values = JSON.parse(localStorage.getItem('labs.values') || '{}');
+  let ageGroup = (localStorage.getItem('labs.age') || 'adult'); // 'u16' | 'adult'
+  let values = {};
   let photos = JSON.parse(localStorage.getItem('labs.photos') || '[]');
   let reports = JSON.parse(localStorage.getItem('labs.reports') || '[]');
 
@@ -552,29 +560,74 @@ window.addEventListener('orientationchange', fitBottomSpacer);
       sex = btn.dataset.sex;
       sexSeg.querySelectorAll('button').forEach(b=>b.classList.toggle('active', b===btn));
       localStorage.setItem('labs.sex', sex);
-      applySexRanges();
+      applyDynamicRanges();
+recomputeAll();
+    });
+  });
+  ageSeg.querySelectorAll('button').forEach(btn=>{
+    if(btn.dataset.age===ageGroup) btn.classList.add('active');
+    btn.addEventListener('click', ()=>{
+      ageGroup = btn.dataset.age;
+      ageSeg.querySelectorAll('button').forEach(b=>b.classList.toggle('active', b===btn));
+      localStorage.setItem('labs.age', ageGroup);
+      applyDynamicRanges();
       recomputeAll();
     });
   });
-  function applySexRanges(){
-    const hdl = document.querySelector('.dyn-hdl');
-    if(!hdl) return;
-    hdl.textContent = (sex==='female')? hdl.getAttribute('data-f') : hdl.getAttribute('data-m');
-  }
+  function fmt(n){
+  return Number.isInteger(n) ? String(n) : String(n).replace(/\.0+$/,'');
+}
+function rangeLabel(key){
+  const r = rangesFor(key);
+  if(!r) return '';
+  if('lt' in r) return `< ${fmt(r.lt)}`;
+  if('gt' in r) return `> ${fmt(r.gt)}`;
+  return `${fmt(r.min)}–${fmt(r.max)}`;
+}
 
+function applyDynamicRanges(){
+  // обновляем подписи норм в UI у каждого поля
+  document.querySelectorAll('.field').forEach(box=>{
+    const key = box.getAttribute('data-key');
+    const rangeEl = box.querySelector('.range');
+    if(rangeEl) rangeEl.textContent = rangeLabel(key);
+  });
+}
+applyDynamicRanges();
+recomputeAll();
   // Ranges & status
   function rangesFor(key){
-    if(key==='ALT') return (sex==='female')? {min:0, max:35} : {min:0, max:45};
-    if(key==='AST') return (sex==='female')? {min:0, max:35} : {min:0, max:40};
-    if(key==='BILIRUBIN') return {min:3, max:21};
-    if(key==='ALP') return {min:40, max:130};
-    if(key==='TG') return {min:0.4, max:1.7};
-    if(key==='TC') return {min:3.0, max:5.2};
-    if(key==='LDL') return {lt:3.0};
-    if(key==='HDL') return (sex==='female')? {gt:1.2} : {gt:1.0};
-    if(key==='GLU') return {min:3.9, max:5.6};
-    return null;
+  const u16 = (ageGroup === 'u16');
+
+  if(key==='ALT'){
+    if(u16) return (sex==='female') ? {min:0, max:25} : {min:0, max:30};
+    return (sex==='female') ? {min:0, max:35} : {min:0, max:45};
   }
+  if(key==='AST'){
+    if(u16) return (sex==='female') ? {min:0, max:34} : {min:0, max:38};
+    return (sex==='female') ? {min:0, max:35} : {min:0, max:40};
+  }
+
+  if(key==='BILIRUBIN') return {min:3, max:21};
+
+  // у подростков ЩФ часто выше из-за роста костей
+  if(key==='ALP') return u16 ? {min:100, max:390} : {min:40, max:130};
+
+  // Липиды: у <16 “здоровые” цели обычно строже (очень усреднённо)
+  if(key==='TG')  return u16 ? {min:0.4, max:1.3} : {min:0.4, max:1.7};
+  if(key==='TC')  return u16 ? {min:2.9, max:4.4} : {min:3.0, max:5.2};
+  if(key==='LDL') return u16 ? {lt:2.8} : {lt:3.0};
+
+  // чтобы “М/Ж” не был бессмысленным — HDL меняем по полу и возрасту
+  if(key==='HDL'){
+    if(u16) return {gt:1.0};                 // упрощённо одинаково
+    return (sex==='female') ? {gt:1.2} : {gt:1.0};
+  }
+
+  if(key==='GLU') return u16 ? {min:3.3, max:5.5} : {min:3.9, max:5.6};
+
+  return null;
+}
   function statusFor(key, val){
     if(val==='' || isNaN(val)) return {cls:'ok', label:'—', icon:''};
     const x = Number(val), r = rangesFor(key);
@@ -610,7 +663,6 @@ window.addEventListener('orientationchange', fitBottomSpacer);
   document.querySelectorAll('.field').forEach(box=>{
     const key = box.getAttribute('data-key');
     const input = box.querySelector('input');
-    if(values[key]!==undefined) input.value = values[key];
     input.addEventListener('input', ()=>{
       recomputeAll();
       updatedLbl.textContent = 'Есть несохранённые изменения';
@@ -650,17 +702,12 @@ window.addEventListener('orientationchange', fitBottomSpacer);
     TG:'ммоль/л', TC:'ммоль/л', LDL:'ммоль/л', HDL:'ммоль/л', GLU:'ммоль/л'
   };
   function rangeText(key){
-    if(key==='ALT') return (sex==='female')? '0–35 Ед/л' : '0–45 Ед/л';
-    if(key==='AST') return (sex==='female')? '0–35 Ед/л' : '0–40 Ед/л';
-    if(key==='BILIRUBIN') return '3–21 мкмоль/л';
-    if(key==='ALP') return '40–130 Ед/л';
-    if(key==='TG') return '0.4–1.7 ммоль/л';
-    if(key==='TC') return '3.0–5.2 ммоль/л';
-    if(key==='LDL') return '< 3.0 ммоль/л';
-    if(key==='HDL') return (sex==='female')? '> 1.2 ммоль/л' : '> 1.0 ммоль/л';
-    if(key==='GLU') return '3.9–5.6 ммоль/л';
-    return '';
-  }
+  const r = rangesFor(key);
+  if(!r) return '';
+  if('lt' in r) return `< ${fmt(r.lt)} ${UNITS[key]}`;
+  if('gt' in r) return `> ${fmt(r.gt)} ${UNITS[key]}`;
+  return `${fmt(r.min)}–${fmt(r.max)} ${UNITS[key]}`;
+}
   function collectCurrent(){
     const out = {};
     document.querySelectorAll('.field').forEach(box=>{
@@ -1136,6 +1183,758 @@ document.getElementById('navProfile').addEventListener('click', (e)=>{ e.prevent
     .rep-item .badge{ font-size: 10.5px; padding: 5px 8px; }
   }
 </style>
+<!-- RT_TOUR_V1: guided tour (spotlight + CTA) -->
+<style id="rtTourStyle">
+  :root{
+    --rt-tour-z-overlay: 99990;
+    --rt-tour-z-focus:   99991;
+    --rt-tour-z-pointer: 99992;
+    --rt-tour-z-pop:     99993;
+    --rt-tour-accent: rgba(66, 227, 184, 1);
+    --rt-tour-accentSoft: rgba(66, 227, 184, .35);
+  }
+  #rtTourOverlay{
+    position:fixed; inset:0;
+    z-index: var(--rt-tour-z-overlay);
+    background: rgba(0,0,0,.28);
+    backdrop-filter: blur(10px) saturate(1.15);
+    -webkit-backdrop-filter: blur(10px) saturate(1.15);
+    opacity:0; pointer-events:none;
+    transition: opacity .18s ease;
+  }
+  #rtTourOverlay.is-on{ opacity:1; pointer-events:auto; }
 
+  .rt-tour-focus{
+    position:relative !important;
+    z-index: var(--rt-tour-z-focus) !important;
+    box-shadow:
+      0 0 0 2px rgba(255,255,255,.10),
+      0 0 0 3px rgba(66,227,184,.55),
+      0 18px 44px rgba(0,0,0,.45),
+      0 0 34px rgba(66,227,184,.30);
+    border-radius: 16px;
+  }
+  .rt-tour-focus.rt-tour-radius-inherit{ border-radius: inherit; }
+
+  #rtTourPointer{
+    position:fixed;
+    z-index: var(--rt-tour-z-pointer);
+    width: 12px; height: 12px; border-radius: 999px;
+    background: var(--rt-tour-accent);
+    box-shadow: 0 0 0 6px rgba(66,227,184,.18), 0 10px 24px rgba(0,0,0,.35);
+    transform: translate(-50%,-50%);
+    opacity:0;
+    pointer-events:none;
+    transition: opacity .12s ease;
+    animation: rtTourBounce 1.05s ease-in-out infinite;
+  }
+  #rtTourPointer.is-on{ opacity:1; }
+  @keyframes rtTourBounce{
+    0%,100%{ transform: translate(-50%,-50%) translateY(0); }
+    50%{ transform: translate(-50%,-50%) translateY(-8px); }
+  }
+
+  #rtTourPop{
+    position:fixed;
+    z-index: var(--rt-tour-z-pop);
+    width:min(380px, calc(100vw - 28px));
+    padding: 14px 14px 12px;
+    border-radius: 18px;
+    background: rgba(14, 21, 33, .86);
+    box-shadow: 0 22px 60px rgba(0,0,0,.55), 0 0 0 1px rgba(255,255,255,.08);
+    color: rgba(232,243,255,.96);
+    opacity:0;
+    pointer-events:none;
+    transform: translateY(6px);
+    transition: opacity .16s ease, transform .16s ease;
+  }
+  #rtTourPop.is-on{ opacity:1; pointer-events:auto; transform: translateY(0); }
+  #rtTourPop .rt-title{ font-weight:800; font-size: 16px; margin:0 0 6px; letter-spacing:.2px; }
+  #rtTourPop .rt-text{ margin:0; font-size: 13px; line-height:1.35; opacity:.92; }
+  #rtTourPop .rt-sub{ margin-top:8px; font-size: 12px; opacity:.7; }
+  #rtTourPop .rt-actions{
+    display:flex; gap:10px; justify-content:space-between; align-items:center;
+    margin-top: 12px;
+  }
+  #rtTourPop .rt-actions .rt-left{ display:flex; gap:10px; align-items:center; }
+  #rtTourPop .rt-btn{
+    appearance:none; border:none; cursor:pointer;
+    padding: 10px 14px;
+    border-radius: 14px;
+    font-weight: 800;
+    letter-spacing:.2px;
+    font-size: 13px;
+  }
+  #rtTourPop .rt-btn.secondary{
+    background: rgba(255,255,255,.10);
+    color: rgba(232,243,255,.92);
+  }
+  #rtTourPop .rt-btn.primary{
+    background: linear-gradient(180deg, rgba(66,227,184,1), rgba(41,182,201,1));
+    color:#061019;
+    box-shadow: 0 10px 28px rgba(66,227,184,.22);
+  }
+  #rtTourPop .rt-btn.primary:disabled{
+    opacity:.55; cursor:not-allowed;
+  }
+  #rtTourPop .rt-step{
+    font-size: 12px; opacity:.55;
+  }
+
+  /* notification preview inside popover */
+  .rt-preview{
+    margin-top:10px;
+    display:grid;
+    gap:8px;
+  }
+  .rt-notif{
+    border-radius: 14px;
+    padding: 10px 12px;
+    background: rgba(255,255,255,.06);
+    box-shadow: inset 0 0 0 1px rgba(255,255,255,.06);
+    font-size: 12px;
+    line-height:1.25;
+  }
+  .rt-notif b{ font-weight:800; }
+  .rt-notif .muted{ opacity:.72; display:block; margin-top:2px; }
+</style>
+
+<div id="rtTourOverlay" aria-hidden="true"></div>
+<div id="rtTourPointer" aria-hidden="true"></div>
+
+<div id="rtTourPop" role="dialog" aria-modal="true" aria-label="Обучение приложению">
+  <div class="rt-step" id="rtTourStep">Шаг</div>
+  <h3 class="rt-title" id="rtTourTitle">—</h3>
+  <p class="rt-text" id="rtTourText">—</p>
+  <div id="rtTourExtra"></div>
+  <div class="rt-actions">
+    <div class="rt-left">
+      <button class="rt-btn secondary" id="rtTourSkip" type="button">Пропустить</button>
+    </div>
+    <button class="rt-btn primary" id="rtTourNext" type="button">Далее</button>
+  </div>
+</div>
+
+<script id="rtTourScript">
+(function(){
+  const VERSION = 1;
+  const STATE_KEY = 'rt.tour.v' + VERSION;
+  const DONE_KEY  = 'rt.tour.done.v' + VERSION;
+
+  const $  = (s, r=document) => r.querySelector(s);
+  const $$ = (s, r=document) => Array.from(r.querySelectorAll(s));
+
+  const overlay = $('#rtTourOverlay');
+  const pop     = $('#rtTourPop');
+  const pointer = $('#rtTourPointer');
+  const elStep  = $('#rtTourStep');
+  const elTitle = $('#rtTourTitle');
+  const elText  = $('#rtTourText');
+  const elExtra = $('#rtTourExtra');
+  const btnSkip = $('#rtTourSkip');
+  const btnNext = $('#rtTourNext');
+
+  function pageKey(){
+    const p = (location.pathname.split('/').pop() || '').toLowerCase();
+    return p.replace(/\.html(\?.*)?$/,'') || 'main';
+  }
+
+  function loadState(){
+    try{
+      const s = JSON.parse(localStorage.getItem(STATE_KEY) || 'null');
+      if (!s || typeof s !== 'object') return null;
+      return s;
+    }catch(_){ return null; }
+  }
+  function saveState(s){
+    try{ localStorage.setItem(STATE_KEY, JSON.stringify(s)); }catch(_){}
+  }
+  function isDone(){
+    try{ return localStorage.getItem(DONE_KEY) === '1'; }catch(_){ return false; }
+  }
+  function markDone(){
+    try{ localStorage.setItem(DONE_KEY, '1'); }catch(_){}
+    try{ localStorage.removeItem(STATE_KEY); }catch(_){}
+  }
+
+  let focused = [];
+  let cleanupWait = null;
+  let cleanupEnter = null;
+  let satisfied = false;
+
+  function clearFocus(){
+    focused.forEach(el=>{
+      try{
+        el.classList.remove('rt-tour-focus','rt-tour-radius-inherit');
+        el.removeAttribute('data-rt-tour-focus');
+      }catch(_){}
+    });
+    focused = [];
+  }
+
+  function visible(on){
+    overlay.classList.toggle('is-on', !!on);
+    pop.classList.toggle('is-on', !!on);
+    pointer.classList.toggle('is-on', !!on);
+    overlay.setAttribute('aria-hidden', on ? 'false' : 'true');
+  }
+
+  function rectUnion(els){
+    const rs = els.map(e=> e.getBoundingClientRect()).filter(r=> r.width && r.height);
+    if(!rs.length) return null;
+    let left=rs[0].left, top=rs[0].top, right=rs[0].right, bottom=rs[0].bottom;
+    rs.forEach(r=>{
+      left=Math.min(left,r.left); top=Math.min(top,r.top);
+      right=Math.max(right,r.right); bottom=Math.max(bottom,r.bottom);
+    });
+    return {left, top, right, bottom, width:right-left, height:bottom-top};
+  }
+
+  function clamp(v, a, b){ return Math.max(a, Math.min(b, v)); }
+
+  function placeUI(targetRect){
+    const pad = 10;
+    const vw = window.innerWidth, vh = window.innerHeight;
+
+    // pointer near top-right of target
+    if (targetRect){
+      const px = clamp(targetRect.right - 8, 14, vw - 14);
+      const py = clamp(targetRect.top + 10, 14, vh - 14);
+      pointer.style.left = px + 'px';
+      pointer.style.top  = py + 'px';
+    } else {
+      pointer.style.left = (vw/2) + 'px';
+      pointer.style.top  = (vh/2) + 'px';
+    }
+
+    // popover position: below if possible, else above, else center
+    const popW = Math.min(380, vw - 28);
+    pop.style.width = popW + 'px';
+    pop.style.maxWidth = popW + 'px';
+
+    let x = 14, y = 14;
+    if(targetRect){
+      const belowY = targetRect.bottom + 14;
+      const aboveY = targetRect.top - 14;
+
+      // try below
+      if (belowY + pop.offsetHeight < vh - 14){
+        y = belowY;
+      } else if (aboveY - pop.offsetHeight > 14){
+        y = aboveY - pop.offsetHeight;
+      } else {
+        y = clamp((vh - pop.offsetHeight)/2, 14, vh - pop.offsetHeight - 14);
+      }
+
+      x = clamp(targetRect.left, 14, vw - popW - 14);
+    } else {
+      y = clamp((vh - pop.offsetHeight)/2, 14, vh - pop.offsetHeight - 14);
+      x = clamp((vw - popW)/2, 14, vw - popW - 14);
+    }
+    pop.style.left = x + 'px';
+    pop.style.top  = y + 'px';
+  }
+
+  function setContent(step, idx, total){
+    elStep.textContent = `Шаг ${idx+1} из ${total}`;
+    elTitle.textContent = step.title || '—';
+    elText.textContent  = step.text  || '';
+    elExtra.innerHTML   = step.extraHTML || '';
+    btnNext.textContent = (step.primary && step.primary.label) ? step.primary.label : 'Далее';
+  }
+
+  function setSatisfied(v){
+    satisfied = !!v;
+    const must = currentStep()?.require;
+    if (!must){
+      btnNext.disabled = false;
+      return;
+    }
+    btnNext.disabled = !satisfied;
+  }
+
+  function currentStep(){
+    const key = pageKey();
+    const list = STEPS[key] || [];
+    const st = loadState();
+    const idx = st?.idx ?? 0;
+    return list[idx] || null;
+  }
+
+  function ensureTargets(step){
+    let els = [];
+    const addEl = (e)=>{
+      if(!e || !(e instanceof Element)) return;
+      if (e.offsetParent === null && getComputedStyle(e).position !== 'fixed') return; // hidden
+      els.push(e);
+    };
+
+    if (typeof step.focus === 'function'){
+      try{
+        const res = step.focus();
+        (Array.isArray(res) ? res : [res]).forEach(addEl);
+      }catch(_){}
+    } else if (Array.isArray(step.focus)){
+      step.focus.forEach(sel=>{
+        if (typeof sel === 'string'){
+          $$(sel).forEach(addEl);
+        }
+      });
+    }
+
+    // if nothing found and step can be skipped automatically
+    if (!els.length && step.skipIfMissing) return null;
+    return els;
+  }
+
+  function attachRequire(step){
+    if (!step.require) { setSatisfied(true); return null; }
+    if (step.require === 'manual') { setSatisfied(false); return null; }
+
+    setSatisfied(false);
+
+    // generic "any of" support
+    const reqs = Array.isArray(step.require) ? step.require : [step.require];
+    const off = [];
+
+    const mark = ()=>{
+      setSatisfied(true);
+      if (step.autoNext && !step.primary){
+        // auto-advance only if it's an in-page step
+        setTimeout(next, 80);
+      }
+    };
+
+    reqs.forEach(req=>{
+      const type = req.type || 'click';
+      const sel  = req.selector;
+      if (!sel) return;
+
+      const handler = (e)=>{
+        const hit = e.target && (e.target.closest ? e.target.closest(sel) : null);
+        if (!hit) return;
+        if (req.preventDefault) { try{ e.preventDefault(); }catch(_){ } }
+        if (req.stopPropagation) {
+          try{ e.stopImmediatePropagation(); }catch(_){}
+          try{ e.stopPropagation(); }catch(_){}
+        }
+        mark();
+      };
+
+      if (type === 'input'){
+        const inputHandler = (e)=>{
+          const hit = e.target && (e.target.closest ? e.target.closest(sel) : null);
+          if (!hit) return;
+          // allow "non-empty" requirement
+          if (req.nonEmpty){
+            const v = (hit.value ?? '').toString().trim();
+            if (!v) return;
+          }
+          mark();
+        };
+        document.addEventListener('input', inputHandler, true);
+        off.push(()=> document.removeEventListener('input', inputHandler, true));
+      } else if (type === 'change'){
+        document.addEventListener('change', handler, true);
+        off.push(()=> document.removeEventListener('change', handler, true));
+      } else { // click
+        document.addEventListener('click', handler, true);
+        off.push(()=> document.removeEventListener('click', handler, true));
+      }
+    });
+
+    return ()=> off.forEach(fn=>{ try{ fn(); }catch(_){ } });
+  }
+
+  function attachEnter(step){
+    if (typeof step.onEnter !== 'function') return null;
+    try{ return step.onEnter({setSatisfied}); }catch(_){ return null; }
+  }
+
+  function show(){
+    const key = pageKey();
+    const list = STEPS[key] || [];
+    const st = loadState() || {active:false, page:key, idx:0};
+
+    if (!st.active) return;
+    if (st.page !== key){
+      // если пользователь ушёл руками на другую страницу — продолжаем с первого шага этой страницы
+      st.page = key;
+      st.idx  = 0;
+      saveState(st);
+    }
+
+    const step = list[st.idx];
+    if (!step){
+      visible(false);
+      clearFocus();
+      markDone();
+      return;
+    }
+
+    // cleanup previous
+    if (cleanupWait){ try{ cleanupWait(); }catch(_){ } cleanupWait=null; }
+    if (cleanupEnter){ try{ cleanupEnter(); }catch(_){ } cleanupEnter=null; }
+    clearFocus();
+
+    // targets
+    const targets = ensureTargets(step);
+    if (targets === null){
+      // auto-skip this step
+      next();
+      return;
+    }
+
+    focused = targets || [];
+    focused.forEach(el=>{
+      try{
+        el.classList.add('rt-tour-focus');
+        if (step.radiusInherit) el.classList.add('rt-tour-radius-inherit');
+        el.setAttribute('data-rt-tour-focus','1');
+      }catch(_){}
+    });
+
+    // scroll to first target
+    if (focused[0] && focused[0].scrollIntoView){
+      try{ focused[0].scrollIntoView({behavior:'smooth', block:'center', inline:'center'}); }catch(_){}
+    }
+
+    // content + positioning
+    visible(true);
+    setContent(step, st.idx, list.length);
+
+    // attach enter hook (e.g. long-press practice)
+    cleanupEnter = attachEnter(step);
+
+    // requirements gating
+    cleanupWait = attachRequire(step);
+
+    // position after layout
+    setTimeout(()=>{
+      placeUI(rectUnion(focused));
+    }, 0);
+  }
+
+  function navigateTo(page){
+    const base = location.pathname.replace(/[^\/]*$/, '');
+    const url  = base + page + '.html';
+    location.href = url;
+  }
+
+  function next(){
+    const key = pageKey();
+    const list = STEPS[key] || [];
+    const st = loadState() || {active:true, page:key, idx:0};
+
+    // if current step defines primary click (CTA), handle it
+    const step = list[st.idx];
+    if (step?.primary?.click){
+      const target = $(step.primary.click);
+      if (target){
+        // if click leads to navigation, persist the next page step beforehand
+        if (step.primary.nextPage){
+          saveState({active:true, page: step.primary.nextPage, idx:0});
+        }
+        try{ target.click(); }catch(_){}
+        return;
+      }
+      // fallback to navigation if element missing
+      if (step.primary.nextPage){
+        saveState({active:true, page: step.primary.nextPage, idx:0});
+        navigateTo(step.primary.nextPage);
+        return;
+      }
+    }
+
+    // normal flow
+    if (step?.primary?.nextPage){
+      saveState({active:true, page: step.primary.nextPage, idx:0});
+      navigateTo(step.primary.nextPage);
+      return;
+    }
+
+    st.idx = (st.idx ?? 0) + 1;
+
+    if (st.idx >= list.length){
+      // finish this page: if there's an explicit nextPageForFinish, go there; otherwise mark done
+      if (step?.nextPageOnFinish){
+        saveState({active:true, page: step.nextPageOnFinish, idx:0});
+        navigateTo(step.nextPageOnFinish);
+        return;
+      }
+      visible(false);
+      clearFocus();
+      markDone();
+      return;
+    }
+
+    saveState(st);
+    show();
+  }
+
+  function skip(){
+    visible(false);
+    clearFocus();
+    if (cleanupWait){ try{ cleanupWait(); }catch(_){ } cleanupWait=null; }
+    if (cleanupEnter){ try{ cleanupEnter(); }catch(_){ } cleanupEnter=null; }
+    markDone();
+  }
+
+  btnSkip?.addEventListener('click', skip);
+  btnNext?.addEventListener('click', next);
+  overlay?.addEventListener('click', (e)=>{ e.preventDefault(); e.stopPropagation(); });
+
+  window.addEventListener('resize', ()=>{ if (overlay.classList.contains('is-on')) placeUI(rectUnion(focused)); });
+
+  // -------- Steps mapping (editable) --------
+  const pick = {
+    calendarDay(){
+      return $('.day.today') || $('.day');
+    }
+  };
+
+  const STEPS = {
+    main: [
+      {
+        title: 'Цель курса',
+        text: 'Нажмите «Мин./Опт./Макс.», чтобы увидеть разные цели по курсу.',
+        focus: ['#doseSeg'],
+        radiusInherit: true,
+        require: {type:'click', selector:'#doseSeg button'},
+      },
+      {
+        title: 'Отметить приём',
+        text: 'Выставьте дозу: «+ / −» или введите число — и это попадёт в журнал.',
+        focus: ['#mg', '#mgMinus', '#mgPlus'],
+        require: [
+          {type:'click', selector:'#mgPlus'},
+          {type:'click', selector:'#mgMinus'},
+          {type:'input', selector:'#mg', nonEmpty:true},
+        ],
+      },
+      {
+        title: 'Тип капсулы',
+        text: 'Выберите размер капсулы — так дозировка считается правильно.',
+        focus: ['#capSeg'],
+        radiusInherit: true,
+        skipIfMissing: true,
+        require: {type:'click', selector:'#capSeg button'},
+      },
+      {
+        title: 'Сохранить приём',
+        text: 'Нажмите «Добавить» — приём сохранится в календаре и прогрессе.',
+        focus: ['#save'],
+        radiusInherit: true,
+        require: {type:'click', selector:'#save'},
+      },
+      {
+        title: 'Календарь',
+        text: 'Откройте календарь, чтобы видеть дни приёма и пропуски.',
+        focus: ['#openCalendarBtn'],
+        radiusInherit: true,
+        primary: { label:'Открыть', click:'#openCalendarBtn', nextPage:'calendar' },
+      },
+    ],
+
+    calendar: [
+      {
+        title: 'День в календаре',
+        text: 'Тапните по любому дню — снизу появится краткая карточка.',
+        focus: () => pick.calendarDay(),
+        radiusInherit: true,
+        require: {type:'click', selector:'#grid .day'},
+      },
+      {
+        title: 'Быстрый переход в дневник',
+        text: 'Зажмите день на 1 секунду — так вы быстро откроете дневник этого дня.',
+        focus: () => pick.calendarDay(),
+        radiusInherit: true,
+        // practice long-press without реального перехода
+        require: 'manual',
+        onEnter: ({setSatisfied})=>{
+          setSatisfied(false);
+          const grid = $('#grid');
+          if(!grid) { setSatisfied(true); return null; }
+
+          let t=null, active=false;
+
+          const down = (e)=>{
+            const dayEl = e.target && e.target.closest && e.target.closest('.day');
+            if(!dayEl) return;
+
+            // блокируем штатный обработчик на время практики (чтобы не улететь в дневник)
+            try{ e.stopImmediatePropagation(); }catch(_){}
+            try{ e.stopPropagation(); }catch(_){}
+            try{ e.preventDefault(); }catch(_){}
+
+            active = true;
+            clearTimeout(t);
+            t = setTimeout(()=>{
+              if(!active) return;
+              setSatisfied(true);
+            }, 850);
+          };
+          const up = ()=>{
+            active = false;
+            clearTimeout(t);
+          };
+
+          grid.addEventListener('pointerdown', down, true);
+          window.addEventListener('pointerup', up, true);
+          window.addEventListener('pointercancel', up, true);
+
+          return ()=>{
+            clearTimeout(t);
+            grid.removeEventListener('pointerdown', down, true);
+            window.removeEventListener('pointerup', up, true);
+            window.removeEventListener('pointercancel', up, true);
+          };
+        },
+      },
+      {
+        title: 'Профиль',
+        text: 'Перейдите в профиль — там врач, напоминания и дневник.',
+        focus: ['nav.tabbar a[href$="myprofile.html"]'],
+        radiusInherit: true,
+        primary: { label:'Перейти', click:'nav.tabbar a[href$="myprofile.html"]', nextPage:'myprofile' },
+      },
+    ],
+
+    myprofile: [
+      {
+        title: 'Лечащий врач',
+        text: 'Введите код врача (его выдаёт врач). После прикрепления дождитесь, пока врач примет заявку.',
+        focus: ['#docCodeInput', '#docBindBtn', '#doctorMeta'],
+        radiusInherit: true,
+        require: {type:'input', selector:'#docCodeInput', nonEmpty:true},
+      },
+      {
+        title: 'Напоминания',
+        text: 'Включите напоминания о приёме и о закупке капсул — чтобы не забывать.',
+        focus: ['#remToggle', '#remTime', '#remStock', '#stockThreshold'],
+        radiusInherit: true,
+        extraHTML: `
+          <div class="rt-preview">
+            <div class="rt-notif"><b>Roaccutane Tracker</b><span class="muted">09:00 • Пора принять препарат</span></div>
+            <div class="rt-notif"><b>Roaccutane Tracker</b><span class="muted">Осталось ≤ 10 капсул • Пора купить</span></div>
+          </div>
+        `,
+        require: [
+          {type:'click', selector:'#remToggle'},
+          {type:'click', selector:'#remStock'},
+          {type:'change', selector:'#remTime'},
+        ],
+      },
+      {
+        title: 'Дневник',
+        text: 'Откройте дневник — там самочувствие, побочки, фото и заметки.',
+        focus: ['a[href$="diary.html"].tab', 'a[href$="diary.html"]', '#openDiaryBtn'],
+        skipIfMissing: true,
+        radiusInherit: true,
+        primary: { label:'Перейти', click:'a[href$="diary.html"]', nextPage:'diary' },
+      },
+    ],
+
+    diary: [
+      {
+        title: 'Самочувствие',
+        text: 'Это ваш пушистый друг: он показывает общее состояние на сегодня. Побочки тоже влияют на самочувствие. Подвиньте ползунок и нажмите «Подтвердить» — это увидит ваш врач.',
+        focus: ['#moodScene', '#moodBar', '#confirmMood'],
+        radiusInherit: true,
+        require: {type:'click', selector:'#confirmMood'},
+      },
+      {
+        title: 'Побочные эффекты',
+        text: 'Отметьте побочки — они тоже влияют на самочувствие. Эти данные будут передаваться вашему врачу.',
+        focus: ['#seList'],
+        radiusInherit: true,
+        require: {type:'input', selector:'#seList input[type="range"][data-key]'},
+      },
+      {
+        title: 'Анализы',
+        text: 'Переходим к анализам — там контроль показателей и сохранение отчётов.',
+        focus: ['nav.navbar a[href$="labs.html"]', '.bottom-nav #navLabs', 'a[href$=\"labs.html\"]'],
+        radiusInherit: true,
+        primary: { label:'Перейти', click:'a[href$="labs.html"]', nextPage:'labs' },
+      },
+    ],
+
+    labs: [
+      {
+        title: 'Пол и нормы',
+        text: 'Выберите пол — так нормы и подсказки будут точнее.',
+        focus: ['#sexSeg'],
+        radiusInherit: true,
+        require: {type:'click', selector:'#sexSeg button'},
+      },
+      {
+        title: 'Введите значения',
+        text: 'Введите показатели из бланка (например, АЛТ) — справа появится статус.',
+        focus: ['.field[data-key="ALT"]', '.field[data-key="ALT"] input'],
+        radiusInherit: true,
+        require: {type:'input', selector:'.field[data-key="ALT"] input', nonEmpty:true},
+      },
+      {
+        title: 'Сохранить',
+        text: 'Нажмите «Сохранить значения» — данные сохранятся на этом устройстве.',
+        focus: ['#saveBtn'],
+        radiusInherit: true,
+        require: {type:'click', selector:'#saveBtn'},
+      },
+      {
+        title: 'Готово',
+        text: 'Вы освоили основные функции. Тур можно будет включить снова из настроек (если добавим кнопку).',
+        focus: ['#pageRoot'],
+        skipIfMissing: true,
+        radiusInherit: true,
+      },
+    ],
+  };
+
+  // -------- Autostart --------
+  function shouldAutostart(){
+    if (isDone()) return false;
+
+    const st = loadState();
+    if (st?.active) return true; // продолжить на любой странице
+
+    // новый запуск — только с main
+    return pageKey() === 'main';
+  }
+
+  function start(){
+    saveState({active:true, page: pageKey(), idx:0});
+    show();
+  }
+
+  function init(){
+    const st = loadState();
+
+    // если тур уже идёт — просто показываем текущий шаг на этой странице
+    if (st?.active){
+      setTimeout(()=>{ show(); }, 120);
+      return;
+    }
+
+    // иначе — автостарт только на main
+    if (shouldAutostart()){
+      setTimeout(()=>{ start(); }, 220);
+    }
+  }
+
+  if (document.readyState === 'loading'){
+    document.addEventListener('DOMContentLoaded', init);
+  } else {
+    init();
+  }
+
+  // Expose small API (optional)
+  window.RTTour = {
+    start: ()=>{ try{ localStorage.removeItem(DONE_KEY); }catch(_){ } start(); },
+    stop: skip,
+  };
+})();
+</script>
+<!-- /RT_TOUR_V1 -->
 </body>
 </html>

@@ -937,7 +937,7 @@ html, body{ max-width:100vw; overflow-x:hidden; }
 })();
 </script>
   <div class="topbar">
-    <div class="brand">Roaccutane Tracker</div>
+    <div class="brand">Retiora — Retinoid & Isotretinoin Tracker</div>
 <button id="themeToggle" class="theme-toggle small" role="switch" aria-checked="false" aria-label="Переключить тему">
       <span class="scene light">
         <svg viewBox="0 0 260 88" preserveAspectRatio="none" xmlns="http://www.w3.org/2000/svg">
@@ -1462,8 +1462,12 @@ function getLocalTodayDose(){
 
   // Резервный фолбэк из localStorage (если нет TG и нет снэпшота)
   try{
-    STATE.weightKg    ||= Number(localStorage.getItem('rt_weightKG') || 0);
-    STATE.goalMgPerKg ||= Number(localStorage.getItem('rt_goalMgKg') || 135);
+    STATE.weightKg ||= Number(
+  localStorage.getItem('rt_weightKG') ||
+  localStorage.getItem('rt.weight_kg') ||
+  0
+);
+    STATE.goalMgPerKg ||= Number(localStorage.getItem('rt_goal_mgkg') || localStorage.getItem('rt_goalMgKg') || 135);
     STATE.takenMg     ||= Number(localStorage.getItem('rt_takenMg') || 0);
     STATE.todayMg     ||= Number(localStorage.getItem('rt_todayMg') || 0);
     STATE.drug        ||= localStorage.getItem('rt_drug') || 'Изотретиноин';

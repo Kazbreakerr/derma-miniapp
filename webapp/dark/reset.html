@@ -443,6 +443,11 @@ html[data-theme="light"] .cancel{
             'derma_alarm_id','derma_consent','derma_next','derma_splash_seen'
           ];
           keys.forEach(k=>{ try{ localStorage.removeItem(k); }catch(_ ){} })
+          // === RESET ONBOARDING & TOUR (чтобы обучение началось заново) ===
+try { localStorage.removeItem('rt.tour.v1'); } catch(_) {}
+try { localStorage.removeItem('rt.tour.done.v1'); } catch(_) {}
+try { localStorage.removeItem('rt.onboarding.done'); } catch(_) {}
+
           const diaryKeys = [
   'rt.diary.v1',     // дозы по дням
   'rt.diary.v2',     // самочувствие/фото

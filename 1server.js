@@ -371,9 +371,9 @@ app.get('/api/state/next/welcome', tgAuth, async (req, res) => {
     );
   const hasPlan    = Boolean(p.rows[0]);     
 
-    const page = !consented ? '/dark/warnings.html'
-               : !(hasProfile && hasPlan) ? '/dark/onboarding.html'
-               : '/dark/main.html';
+  const page = !consented ? '/dark/warnings.html'
+  : !(hasProfile && hasPlan) ? '/dark/onboarding.html'
+  : '/dark/main.html';
 
     res.json({ ok: true, role: 'patient', page });
   } catch (e) {
@@ -1730,6 +1730,9 @@ app.get(['/main', '/plan', '/profile'], (req, res) => {
   };
   res.redirect(302, map[req.path] + q);
 });
+app.get(['/onboarding', '/onboarding.html'], (req, res) =>
+  res.sendFile(path.join(pagesDir, 'onboarding.html'))
+);
 
 // Дополнительно: если где-то есть /faq без .html
 app.get('/faq', (req, res) => {
@@ -1785,10 +1788,6 @@ app.get(['/plan', '/plan.html'], (req, res) =>
   res.sendFile(path.join(pagesDir, 'plan.html'))
 );
 
-
-app.get(['/onboarding', '/onboarding.html'], (req, res) =>
-  res.sendFile(path.join(pagesDir, 'onboarding.html'))
-);
 app.get(['/myprofile', '/myprofile.html'], (req, res) =>
   res.sendFile(path.join(pagesDir, 'myprofile.html'))
 );

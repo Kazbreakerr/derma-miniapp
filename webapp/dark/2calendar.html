@@ -4,7 +4,7 @@
   <meta charset="utf-8"/>
   <meta name="viewport" content="width=device-width, initial-scale=1"/>
   <meta name="view-transition" content="same-origin">
-  <title>Календарь — Retiora — Retinoid & Isotretinoin Tracker</title>
+  <title>Календарь — Roaccutane Tracker</title>
   <style>
     :root{
   --bg: #0b0f16;
@@ -758,7 +758,7 @@ html::view-transition-new(root){
   }catch(_){}
 })();
 </script>
-<div class="brand">Retiora — Retinoid & Isotretinoin Tracker</div>
+  <div class="brand">Roaccutane Tracker</div>
 
   <div class="app-title">Календарь<span data-pill-spot></span><span data-stock-spot></span></div>
 
@@ -938,11 +938,6 @@ function finalizeRange() {
   const pad = n => String(n).padStart(2,'0');
   const iso = d => `${d.getFullYear()}-${pad(d.getMonth()+1)}-${pad(d.getDate())}`;
   const getDiary = () => { try{ return JSON.parse(localStorage.getItem('rt.diary.v1')||'{}'); } catch(e){ return {}; } };
-  // Тумблер "Цвет под настроение" (должен работать в этом же скрипте)
-const TINT_KEY = 'rt.moodTintOn';
-function isTintOn(){
-  return (localStorage.getItem(TINT_KEY) ?? '1') !== '0';
-}
   function moodEmoji(v){
     if(v == null) return '—';
     if(v <= -3) return '😵‍💫';
@@ -1112,7 +1107,6 @@ function moodGlow(idx){
 
 function render(){
   const year   = current.getFullYear();
-  const tintOn = isTintOn();
   const month  = current.getMonth();
   const daysTotal = new Date(year, month + 1, 0).getDate();
 
@@ -1186,32 +1180,25 @@ cell.className = 'day' + (isToday ? ' today' : '') + (missed ? ' missed' : '');
 cell.setAttribute('data-date', id);
 if (day === 1) cell.style.gridColumnStart = String(startCol + 1);
 
-// 1) Свечение: пропуск = красный; иначе по самочувствию (только если tintOn)
-let glow = missed ? missGlow()
-        : (tintOn && moodIdx != null ? moodGlow(moodIdx) : 'transparent');
+// свечение: пропуск = красный; иначе по самочувствию; если данных нет — по дозе/без свечения
+const glow = missed ? missGlow()
+           : (moodIdx != null ? moodGlow(moodIdx) : 'transparent');
 cell.style.setProperty('--glowC', glow);
-
-// 2) Цветной фон по самочувствию (только если tintOn)
-if (tintOn && moodIdx != null){
+// цветной фон по самочувствию (как на твоём скрине)
+if (moodIdx != null){
   cell.style.setProperty('--moodBg', moodBg(moodIdx));
 } else {
   cell.style.removeProperty('--moodBg');
 }
 
-// 3) Если самочувствия нет (или tintOff), но есть доза — зелёный heatmap
+// если самочувствия нет, но есть доза — даём зелёное свечение heatmap
 if (glow === 'transparent' && dose > 0 && !missed){
-  glow = heatColor(dose, maxDose);
-  cell.style.setProperty('--glowC', glow);
+  cell.style.setProperty('--glowC', heatColor(dose, maxDose));
 }
-
-// 4) Эффекты mood-4/5/6 — только если tintOn
-cell.classList.remove('mood-4','mood-5','mood-6');
-if (tintOn){
-  if (moodIdx === 4) cell.classList.add('mood-4');
-  if (moodIdx === 5) cell.classList.add('mood-5');
-  if (moodIdx === 6) cell.classList.add('mood-6');
-}
-
+// эффекты частиц/бликов по самочувствию
+if (moodIdx === 4) cell.classList.add('mood-4'); // Неплохо (синий + искры)
+if (moodIdx === 5) cell.classList.add('mood-5'); // Хорошо (мята + искры)
+if (moodIdx === 6) cell.classList.add('mood-6'); // Отлично (зелёный + “драгоценный” блик)
 // контент
 const doseClass = `dose${taken ? ' taken' : ''}`;
 cell.innerHTML = `
@@ -1564,8 +1551,7 @@ if (btn){
 })();
 window.addEventListener('keydown', (e)=>{ if(e.key === 'Escape') closeSheet(); });
   window.addEventListener('storage', (e)=>{
-    if (e.key === 'rt.diary.v1' || e.key === 'rt.diary.bump' || e.key === 'rt.diary.v2' || e.key === 'rt.moodTintOn') render();
-
+ if (e.key === 'rt.diary.v1' || e.key === 'rt.diary.bump' || e.key === 'rt.diary.v2') render();
 
 });
 // на всякий — обновляемся, когда пользователь вернулся на страницу
@@ -1894,22 +1880,17 @@ body.sheet-open nav.tabbar{ pointer-events: auto !important; }
 
 
 <!-- RT_TOUR_V1: guided tour (spotlight + CTA) -->
-<style id="rtTourStyle">:root{
+<style id="rtTourStyle">
+  :root{
     --rt-tour-z-overlay: 9500;
     --rt-tour-z-focus: 9501;
     --rt-tour-z-pointer: 9502;
     --rt-tour-z-pop: 9503;
     --rt-tour-accent: rgba(66, 227, 184, 1);
     --rt-tour-accentSoft: rgba(66, 227, 184, .35);
-    --rt-tour-z-tabbar: 9605;
-    --rt-tour-overlay-bottom: calc(var(--tabbar-h) + 14px);
-
   }
   #rtTourOverlay{
-    position:fixed;
-    top:0; left:0; right:0;
-    bottom: var(--rt-tour-overlay-bottom);
-
+    position:fixed; inset:0;
     z-index: var(--rt-tour-z-overlay);
     background: rgba(0,0,0,.28);
     backdrop-filter: blur(10px) saturate(1.15);
@@ -1920,7 +1901,7 @@ body.sheet-open nav.tabbar{ pointer-events: auto !important; }
   #rtTourOverlay.is-on{ opacity:1; pointer-events:auto; }
 
   .rt-tour-focus{
-    /* position is set in JS only when needed (for z-index) */
+    position:relative !important;
     z-index: var(--rt-tour-z-focus) !important;
     box-shadow:
       0 0 0 2px rgba(255,255,255,.10),
@@ -1931,7 +1912,7 @@ body.sheet-open nav.tabbar{ pointer-events: auto !important; }
   }
   
   .rt-tour-reveal{
-    /* position is set in JS only when needed (for z-index) */
+    position:relative !important;
     z-index: var(--rt-tour-z-focus) !important;
     box-shadow:none !important;
   }
@@ -2018,13 +1999,6 @@ body.sheet-open nav.tabbar{ pointer-events: auto !important; }
   }
   .rt-notif b{ font-weight:800; }
   .rt-notif .muted{ opacity:.72; display:block; margin-top:2px; }
-
-/* When tour is active — keep bottom nav above overlay (not blurred) */
-body.rt-tour-on nav.tabbar{
-  z-index: var(--rt-tour-z-tabbar) !important;
-  pointer-events: auto !important;
-}
-
 </style>
 
 <div id="rtTourOverlay" aria-hidden="true"></div>
@@ -2099,7 +2073,6 @@ let cleanupWait = null;
       try{
         el.classList.remove('rt-tour-focus','rt-tour-radius-inherit');
         el.removeAttribute('data-rt-tour-focus');
-              restorePositioned(el);
       }catch(_){}
     });
     focused = [];
@@ -2108,14 +2081,12 @@ let cleanupWait = null;
       try{
         el.classList.remove('rt-tour-reveal','rt-tour-radius-inherit');
         el.removeAttribute('data-rt-tour-reveal');
-              restorePositioned(el);
       }catch(_){}
     });
     revealed = [];
   }
 
   function visible(on){
-    document.body.classList.toggle('rt-tour-on', !!on);
     overlay.classList.toggle('is-on', !!on);
     pop.classList.toggle('is-on', !!on);
     overlay.setAttribute('aria-hidden', on ? 'false' : 'true');
@@ -2135,124 +2106,48 @@ let cleanupWait = null;
 
   function clamp(v, a, b){ return Math.max(a, Math.min(b, v)); }
 
+  function placeUI(targetRect){
+    const pad = 10;
+    const vw = window.innerWidth, vh = window.innerHeight;
 
-function ensurePositioned(el){
-  try{
-    const cs = getComputedStyle(el);
-    if (cs.position === 'static'){
-      // remember inline position so we can restore
-      if (!el.dataset.rtTourPrevPos) el.dataset.rtTourPrevPos = (el.style.position || '');
-      el.dataset.rtTourWasStatic = '1';
-      el.style.position = 'relative';
+    // pointer near top-right of target
+    if (targetRect){
+      const px = clamp(targetRect.right - 8, 14, vw - 14);
+      const py = clamp(targetRect.top + 10, 14, vh - 14);
+      pointer.style.left = px + 'px';
+      pointer.style.top  = py + 'px';
+    } else {
+      pointer.style.left = (vw/2) + 'px';
+      pointer.style.top  = (vh/2) + 'px';
     }
-  }catch(_){}
-}
 
-function restorePositioned(el){
-  try{
-    if (el.dataset.rtTourWasStatic === '1'){
-      const prev = el.dataset.rtTourPrevPos || '';
-      if (prev) el.style.position = prev;
-      else el.style.removeProperty('position');
+    // popover position: below if possible, else above, else center
+    const popW = Math.min(380, vw - 28);
+    pop.style.width = popW + 'px';
+    pop.style.maxWidth = popW + 'px';
+
+    let x = 14, y = 14;
+    if(targetRect){
+      const belowY = targetRect.bottom + 14;
+      const aboveY = targetRect.top - 14;
+
+      // try below
+      if (belowY + pop.offsetHeight < vh - 14){
+        y = belowY;
+      } else if (aboveY - pop.offsetHeight > 14){
+        y = aboveY - pop.offsetHeight;
+      } else {
+        y = clamp((vh - pop.offsetHeight)/2, 14, vh - pop.offsetHeight - 14);
+      }
+
+      x = clamp(targetRect.left, 14, vw - popW - 14);
+    } else {
+      y = clamp((vh - pop.offsetHeight)/2, 14, vh - pop.offsetHeight - 14);
+      x = clamp((vw - popW)/2, 14, vw - popW - 14);
     }
-    delete el.dataset.rtTourWasStatic;
-    delete el.dataset.rtTourPrevPos;
-  }catch(_){}
-}
-
-  function rectIntersects(a,b){
-  if(!a || !b) return false;
-  return !(a.right <= b.left || a.left >= b.right || a.bottom <= b.top || a.top >= b.bottom);
-}
-
-function placeUI(targetRect, avoidRect, step){
-  const vw = window.innerWidth, vh = window.innerHeight;
-  const SAFE = 14;
-  const GAP  = 14;
-
-  // pointer near top-right of target
-  if (targetRect){
-    const px = clamp(targetRect.right - 8, SAFE, vw - SAFE);
-    const py = clamp(targetRect.top + 10, SAFE, vh - SAFE);
-    pointer.style.left = px + 'px';
-    pointer.style.top  = py + 'px';
-  } else {
-    pointer.style.left = (vw/2) + 'px';
-    pointer.style.top  = (vh/2) + 'px';
+    pop.style.left = x + 'px';
+    pop.style.top  = y + 'px';
   }
-
-  // popover width
-  const popW = Math.min(380, vw - 28);
-  pop.style.width = popW + 'px';
-  pop.style.maxWidth = popW + 'px';
-
-  // measure height after content render
-  const popH = pop.offsetHeight || 200;
-
-  const align = (step && step.popAlign) || 'start'; // start|center|end
-  const preferred = (step && step.popPlacement) || null;
-
-  const xAligned = (rect)=>{
-    if (!rect) return clamp((vw - popW)/2, SAFE, vw - popW - SAFE);
-    if (align === 'center') return clamp(rect.left + (rect.width - popW)/2, SAFE, vw - popW - SAFE);
-    if (align === 'end')    return clamp(rect.right - popW, SAFE, vw - popW - SAFE);
-    return clamp(rect.left, SAFE, vw - popW - SAFE); // start
-  };
-
-  const candidates = [];
-  const push = (p)=>{ if(p && !candidates.includes(p)) candidates.push(p); };
-  push(preferred);
-  ['below','above','right','left','center'].forEach(push);
-
-  let best = { x: SAFE, y: SAFE };
-
-  const avoid = avoidRect || targetRect;
-
-  for (const p of candidates){
-    let x = SAFE, y = SAFE;
-
-    if (!targetRect){
-      x = clamp((vw - popW)/2, SAFE, vw - popW - SAFE);
-      y = clamp((vh - popH)/2, SAFE, vh - popH - SAFE);
-      best = {x,y};
-      break;
-    }
-
-    if (p === 'below'){
-      x = xAligned(targetRect);
-      y = targetRect.bottom + GAP;
-    } else if (p === 'above'){
-      x = xAligned(targetRect);
-      y = targetRect.top - GAP - popH;
-    } else if (p === 'right'){
-      x = targetRect.right + GAP;
-      y = clamp(targetRect.top, SAFE, vh - popH - SAFE);
-    } else if (p === 'left'){
-      x = targetRect.left - GAP - popW;
-      y = clamp(targetRect.top, SAFE, vh - popH - SAFE);
-    } else { // center
-      x = (vw - popW)/2;
-      y = (vh - popH)/2;
-    }
-
-    x = clamp(x, SAFE, vw - popW - SAFE);
-    y = clamp(y, SAFE, vh - popH - SAFE);
-
-    const candRect = { left:x, top:y, right:x+popW, bottom:y+popH };
-
-    // Prefer placements that do not cover the avoid-rect (usually the revealed context)
-    if (!avoid || !rectIntersects(candRect, avoid) || p === 'center'){
-      best = {x,y};
-      break;
-    }
-
-    // fallback candidate (keep last tried)
-    best = {x,y};
-  }
-
-  pop.style.left = best.x + 'px';
-  pop.style.top  = best.y + 'px';
-}
 
   function setContent(step, idx, total){
     elStep.textContent = `Шаг ${idx+1} из ${total}`;
@@ -2437,7 +2332,6 @@ function attachRequire(step){
     revealed = reveals;
     revealed.forEach(el=>{
       try{
-        ensurePositioned(el);
         el.classList.add('rt-tour-reveal');
         if (step.radiusInherit) el.classList.add('rt-tour-radius-inherit');
         el.setAttribute('data-rt-tour-reveal','1');
@@ -2446,7 +2340,6 @@ function attachRequire(step){
 
     focused.forEach(el=>{
       try{
-        ensurePositioned(el);
         el.classList.add('rt-tour-focus');
         if (step.radiusInherit) el.classList.add('rt-tour-radius-inherit');
         el.setAttribute('data-rt-tour-focus','1');
@@ -2470,14 +2363,9 @@ function attachRequire(step){
 
     // position after layout
     setTimeout(()=>{
-      const rFocus = rectUnion(focused);
-      let avoidEls = focused.slice();
-      const mode = (step && step.avoidCover) || 'focus';
-      if (mode === 'reveal') avoidEls = revealed.slice();
-      else if (mode === 'all') avoidEls = focused.concat(revealed);
-      const rAvoid = rectUnion(avoidEls);
-      placeUI(rFocus, rAvoid, step);
-      const wantPointer = (step.pointer !== false) && !!rFocus;
+      const r = rectUnion(focused);
+      placeUI(r);
+      const wantPointer = (step.pointer !== false) && !!r;
       pointer.classList.toggle('is-on', wantPointer);
     }, 0);
   }
@@ -2629,28 +2517,19 @@ main: [
       {
         title: 'FAQ',
         text: 'Тут короткие подсказки по курсу.',
-        reveal: ['#cardFAQ'],
         focus: ['#cardFAQ a.chip'],
-        avoidCover: 'reveal',
-        popPlacement: 'above',
         radiusInherit: true,
       },
       {
         title: 'Обнулить всё',
         text: 'Удалит журнал и кэш на этом устройстве. Профиль останется.',
-        reveal: ['#cardReset'],
         focus: ['#resetBtn'],
-        avoidCover: 'reveal',
-        popPlacement: 'above',
         radiusInherit: true,
       },
       {
         title: 'Нижнее меню',
         text: 'Внизу — разделы приложения. Откройте «Календарь», чтобы продолжить.',
-        reveal: ['nav.tabbar'],
         focus: ['nav.tabbar a[href*="calendar.html"]'],
-        avoidCover: 'reveal',
-        popPlacement: 'above',
         radiusInherit: true,
         primary: { label:'К календарю', click:'nav.tabbar a[href*="calendar.html"]', nextPage:'calendar' },
       },
@@ -2661,21 +2540,11 @@ main: [
  [
       {
         title: 'День в календаре',
-        text: 'Тапните по любому дню — снизу появится карточка. Если зажать день на 1 секунду, откроется дневник этого дня.',
+        text: 'Тапните по любому дню — снизу появится краткая карточка.',
         reveal: ['#card'],
         focus: () => pick.calendarDay(),
         radiusInherit: true,
         require: {type:'click', selector:'#grid .day'},
-        autoNext: true,
-      },
-      {
-        title: 'Карточка дня',
-        text: 'Снизу — самочувствие, доза и заметка. «Открыть дневник» — подробности.',
-        reveal: ['#sheet'],
-        focus: ['#sheet', '#openDiary', '#doseEdit'],
-        radiusInherit: true,
-        avoidCover: 'reveal',
-        popPlacement: 'above',
       },
       {
         title: 'Заполнить сразу несколько дней',
@@ -2701,17 +2570,64 @@ main: [
         },
       },
       {
+        title: 'Быстрый переход в дневник',
+        text: 'Зажмите день на 1 секунду — так вы быстро откроете дневник этого дня.',
+        reveal: ['#card'],
+        focus: () => pick.calendarDay(),
+        radiusInherit: true,
+        // practice long-press without реального перехода
+        require: 'manual',
+        onEnter: ({setSatisfied})=>{
+          setSatisfied(false);
+          const grid = $('#grid');
+          if(!grid) { setSatisfied(true); return null; }
+
+          let t=null, active=false;
+
+          const down = (e)=>{
+            const dayEl = e.target && e.target.closest && e.target.closest('.day');
+            if(!dayEl) return;
+
+            // блокируем штатный обработчик на время практики (чтобы не улететь в дневник)
+            try{ e.stopImmediatePropagation(); }catch(_){}
+            try{ e.stopPropagation(); }catch(_){}
+            try{ e.preventDefault(); }catch(_){}
+
+            active = true;
+            clearTimeout(t);
+            t = setTimeout(()=>{
+              if(!active) return;
+              setSatisfied(true);
+            }, 850);
+          };
+          const up = ()=>{
+            active = false;
+            clearTimeout(t);
+          };
+
+          grid.addEventListener('pointerdown', down, true);
+          window.addEventListener('pointerup', up, true);
+          window.addEventListener('pointercancel', up, true);
+
+          return ()=>{
+            clearTimeout(t);
+            grid.removeEventListener('pointerdown', down, true);
+            window.removeEventListener('pointerup', up, true);
+            window.removeEventListener('pointercancel', up, true);
+          };
+        },
+      },
+      {
         title: 'Профиль',
         text: 'Перейдите в профиль — там врач, напоминания и дневник.',
         reveal: ['nav.tabbar'],
         focus: ['nav.tabbar a[href$="myprofile.html"]'],
-        avoidCover: 'reveal',
-        popPlacement: 'above',
         radiusInherit: true,
         primary: { label:'Перейти', click:'nav.tabbar a[href$="myprofile.html"]', nextPage:'myprofile' },
       },
     ],
-myprofile: [
+
+    myprofile: [
       {
         title: 'Лечащий врач',
         text: 'Введите код врача (его выдаёт врач). После прикрепления дождитесь, пока врач примет заявку.',

@@ -306,7 +306,7 @@ html, body{ max-width:100vw; overflow-x:hidden; }
   display:flex; align-items:center;
   cursor:pointer; user-select:none; -webkit-user-select:none; touch-action: pan-x;
 }
-#moodBar{ touch-action: pan-x; user-select:none; -webkit-user-select:none; }
+#moodBar{ touch-action: pan-y; user-select:none; -webkit-user-select:none; }
 .bar .rail{
   position:absolute; left:14px; right:14px; top:50%;
   height:6px; transform:translateY(-50%);   /* было 10px */
@@ -395,11 +395,11 @@ html, body{ max-width:100vw; overflow-x:hidden; }
   }
   .outline{background:transparent; border:1px solid var(--border); color:var(--text)}
   /* Стабильный контейнер с динамическим соотношением сторон */
-.compare{
+  .compare{
   position:relative;
   width:100%;
-  max-width:760px;
-  margin:8px auto 0;
+  max-width: var(--photo-max);
+  margin:0;
   border:1px solid var(--border);
   border-radius:14px;
   overflow:hidden;
@@ -407,7 +407,15 @@ html, body{ max-width:100vw; overflow-x:hidden; }
   /* соотношение сторон берём из JS (натуральные размеры правой картинки) */
   aspect-ratio: var(--cmp-w, 4) / var(--cmp-h, 3);
 }
-
+.compare-shell{
+  display:flex;
+  justify-content:center;
+  align-items:center;
+  gap:10px;
+  margin:8px auto 0;
+}
+#compareWrap[hidden] + #openCompareBtn{ display:none; } /* если сравнение скрыто — кнопка тоже */
+.open-compare{ white-space:nowrap; }
 /* ОБЕ картинки заполняют контейнер одинаково */
 .compare > img,
 .compare .top > img{
@@ -1225,6 +1233,46 @@ header{
   /* 3) На всякий случай скрываем визуальный «вынос» рамок */
   .reminders .field, .reminders .card{ overflow: hidden; }
 </style>
+<style id="compare-fullscreen-style">
+  .cmp-expand{
+    position:absolute; right:12px; bottom:12px;
+    width:44px; height:44px; border-radius:14px;
+    border:1px solid var(--border);
+    background:rgba(0,0,0,.35); color:var(--text);
+    display:grid; place-items:center;
+    box-shadow:0 8px 18px rgba(0,0,0,.35), inset 0 1px 0 rgba(255,255,255,.06);
+    cursor:pointer; z-index:6;
+  }
+  .cmp-expand:active{ transform: translateY(1px); }
+
+  .cmp-close{
+    position:absolute; right:12px; top:12px;
+    width:44px; height:44px; border-radius:14px;
+    border:1px solid var(--border);
+    background:rgba(0,0,0,.45); color:var(--text);
+    display:grid; place-items:center;
+    box-shadow:0 8px 18px rgba(0,0,0,.35), inset 0 1px 0 rgba(255,255,255,.06);
+    cursor:pointer; z-index:7;
+  }
+
+  .cmp-backdrop{
+    position:fixed; inset:0;
+    background:rgba(0,0,0,.55);
+    backdrop-filter: blur(8px);
+    z-index:999;
+  }
+
+  body.cmp-fullscreen{ overflow:hidden; }
+  #compareWrap.cmp-full{
+    position:fixed;
+    left:50%; top:50%;
+    transform:translate(-50%,-50%);
+    z-index:1000;
+    width:min(96vw, 980px);
+    max-width:none !important;
+    border-radius:22px;
+  }
+</style>
 
 </head>
 <body>
@@ -1242,10 +1290,11 @@ header{
 <header>
   <div class="wrap">
     <div class="wrap topbar">
-    <a href="myprofile.html" class="toplink">← В профиль</a>
-    <div class="app-title">Дневник<span data-pill-spot></span><span data-stock-spot></span></div>
-    <a href="calendar.html" class="toplink">В календарь →</a>
-  </div>
+      <div class="title-stack">
+        <div class="brand">Retiora — Retinoid & Isotretinoin Tracker</div>
+        <div class="app-title">Дневник<span data-pill-spot></span><span data-stock-spot></span></div>
+      </div>
+    </div>
     <div class="day-nav">
       <button class="nav-arrow left" id="prevDay" aria-label="Предыдущий день">
         <svg width="18" height="18" viewBox="0 0 24 24" fill="none"><path d="M15 19l-7-7 7-7" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
@@ -1374,15 +1423,22 @@ header{
 
   <!-- Подписи дат -->
   <div class="label start">—</div>
+  <button type="button" class="cmp-exit" id="cmpExit" aria-label="Закрыть сравнение">×</button>
   <div class="label current">—</div>
 
   <!-- Вертикальная линия и «кругляш» -->
   <div class="handle"></div>
   <div class="knob">↔</div>
+  <button type="button" class="cmp-expand" id="cmpExpand" aria-label="Расширить сравнение" title="Расширить">⤢</button>
+  <button type="button" class="cmp-close" id="cmpClose" aria-label="Закрыть" title="Закрыть" hidden>✕</button>
+
+  
 
   <!-- Невидимый range, нужен для доступности/клавиатуры -->
   <input type="range" id="compareRange" min="0" max="100" step="0.5" value="50" aria-label="Разделитель сравнения">
 </div>
+<div class="cmp-backdrop" id="cmpBackdrop" hidden></div>
+
 
   </section>
 
@@ -1865,9 +1921,15 @@ function tweenValence(from, to, ms = 220){
       // локальная запись дня
       try {
         const entry = getEntry(iso);
-        entry.wellness = to;
-        entry.wellnessSaved = true;
-        putEntry(entry);
+
+// РУЧНОЕ (базовое) настроение дня:
+entry.wellness_user = to;
+
+// оставим wellness для совместимости (может использоваться где-то ещё)
+entry.wellness = to;
+
+entry.wellnessSaved = true;
+putEntry(entry);
         if (typeof syncDiaryDebounced === 'function') syncDiaryDebounced();
       } catch(_) {}
     }
@@ -1901,7 +1963,11 @@ function previewValence(x01){
   const v = x01 * 100;
   window.valence = v;
   bar.style.setProperty('--x', x01);
-  if (knob) knob.style.left = `calc(14px + ${x01} * (100% - 28px))`;
+  if (knob) {
+  const w = bar.getBoundingClientRect().width;
+  knob.style.left = (14 + x01 * (w - 28)) + 'px';
+}
+
   updateFurByValence(v);
   updateSceneByValence(v);
 }
@@ -1974,6 +2040,28 @@ function curISO(){
   const pad=n=>String(n).padStart(2,'0');
   return `${d.getFullYear()}-${pad(d.getMonth()+1)}-${pad(d.getDate())}`;
 }
+// ===== Auto mood adjust by side-effects delta =====
+function autoAdjustMoodBySEDelta(delta){
+  delta = Number(delta) || 0;
+  if (!delta) return;
+
+  // текущее самочувствие (0..100)
+  const v = (typeof window.valence === 'number') ? window.valence : 50;
+
+  // переводим в индекс 0..6 (твоя шкала настроения)
+  const curIdx  = Math.round((v/100) * 6);
+
+  // delta>0 (побочка выросла) => индекс уменьшаем (хуже)
+  // delta<0 (побочка уменьшилась) => индекс увеличиваем (лучше)
+  const nextIdx = clamp(curIdx - delta, 0, 6);
+
+  if (nextIdx === curIdx) return;
+
+  // применяем через существующий API (он сам сохранит и обновит UI)
+  if (typeof window.applyValence === 'function') {
+    window.applyValence((nextIdx / 6) * 100);
+  }
+}
 
 /* ===== Side effects ===== */
 const SE_DEFS = [
@@ -2004,11 +2092,18 @@ paint(level);
 
 input.addEventListener('input', (e)=>{
   const v = +e.target.value;
+
+  const prev = Number(entry.sideEffects?.[key] ?? 0);
+
   badge.textContent = v;
   entry.sideEffects[key] = v;
-  putEntry(entry);      // локально ок
-  syncDiaryDebounced(); // и мягко на сервер
+
+  putEntry(entry);
+  syncDiaryDebounced();
   paint(v);
+
+ // авто-синхронизация самочувствия по сумме побочек (в обе стороны)
+__autoSyncMoodFromSE(entry);
 });
 
     seList.appendChild(row);
@@ -2255,9 +2350,10 @@ function pxToPercent(x){
   const r = compareWrap.getBoundingClientRect();
   return Math.max(0, Math.min(100, ((x - r.left) / r.width) * 100));
 }
-compareRange.addEventListener('input', e => setSplit(+e.target.value));
-let dragging = false;
 compareWrap.addEventListener('pointerdown', e => {
+  // Если нажали на кнопки "расширить" или "закрыть" — НЕ запускаем drag
+  if (e.target.closest('.cmp-expand, .cmp-close')) return;
+
   dragging = true;
   const p = pxToPercent(e.clientX);
   compareRange.value = p; setSplit(p);
@@ -2270,6 +2366,70 @@ window.addEventListener('pointermove', e => {
 });
 window.addEventListener('pointerup', () => dragging = false);
 
+// ===== Fullscreen compare =====
+(function(){
+  const expandBtn = document.getElementById('cmpExpand');
+  const closeBtn  = document.getElementById('cmpClose');
+    // чтобы нажатия на кнопки не воспринимались как "drag" на контейнере
+    [expandBtn, closeBtn].forEach(btn => {
+    if(!btn) return;
+    btn.addEventListener('pointerdown', (e)=> e.stopPropagation(), {passive:true});
+  });
+  const backdrop  = document.getElementById('cmpBackdrop');
+  if(!expandBtn || !closeBtn || !backdrop || !compareWrap) return;
+
+  function fit(){
+    const cs = getComputedStyle(compareWrap);
+    const w = parseFloat(cs.getPropertyValue('--cmp-w')) || 4;
+    const h = parseFloat(cs.getPropertyValue('--cmp-h')) || 3;
+    const ratio = w / h;
+
+    const pad = 24;
+    const maxW = Math.max(280, window.innerWidth  - pad);
+    const maxH = Math.max(320, window.innerHeight - pad);
+
+    const widthByH = maxH * ratio;
+    const finalW = Math.min(maxW, widthByH);
+
+    compareWrap.style.width = finalW + 'px';
+  }
+
+  function openFS(){
+    if(compareWrap.hidden) return;
+    document.body.classList.add('cmp-fullscreen');
+    compareWrap.classList.add('cmp-full');
+    backdrop.hidden = false;
+    closeBtn.hidden = false;
+
+    fit();
+    setSplit(Number(compareRange?.value || 50));
+    window.addEventListener('resize', fit);
+  }
+
+  function closeFS(){
+    document.body.classList.remove('cmp-fullscreen');
+    compareWrap.classList.remove('cmp-full');
+    backdrop.hidden = true;
+    closeBtn.hidden = true;
+    compareWrap.style.width = '';
+    window.removeEventListener('resize', fit);
+  }
+
+  expandBtn.addEventListener('click', openFS);
+  closeBtn.addEventListener('click', closeFS);
+  backdrop.addEventListener('click', closeFS);
+
+  window.addEventListener('keydown', (e)=>{
+    if(e.key === 'Escape' && document.body.classList.contains('cmp-fullscreen')) closeFS();
+  });
+
+  // если refreshCompare перекидывает aspect-ratio — подгоним размер в полноэкране
+  const _oldRefresh = refreshCompare;
+  window.refreshCompare = function(){
+    _oldRefresh();
+    if(document.body.classList.contains('cmp-fullscreen')) requestAnimationFrame(fit);
+  };
+})();
 
 
 // === UI helpers for mood save state (persists) ===
@@ -2469,7 +2629,24 @@ function loadIntoUI(dateISO){
   moodTouched = false;  // новый день — считаем, что ползунок пока не трогали
   const entry = getEntry(dateISO);
   updateDayChip(dateISO);
-  applyValence(entry.wellness ?? 50, true);
+ // 0) гарантируем наличие "ручной базы" (один раз для старых записей)
+if (typeof entry.wellness_user !== 'number') {
+  entry.wellness_user = (typeof entry.wellness === 'number') ? entry.wellness : 50;
+  putEntry(entry);
+}
+
+const baseWellness = entry.wellness_user;
+
+// 1) рисуем именно базовое настроение (без записи)
+applyValence(baseWellness, true);
+
+// 2) база для авто-понижения — тоже от "ручного"
+__setMoodBaseIdx(dateISO, Math.round((baseWellness / 100) * 6));
+
+// 3) страховка: иногда WebView не успевает показать сцену сразу
+requestAnimationFrame(() => {
+  try { applyValence(baseWellness, true); } catch(_){}
+});
   renderSE(entry);
 
 // миниатюры из отдельного хранилища (страховка от старых записей)
@@ -2504,6 +2681,88 @@ function selectedISO(){
   const last = (typeof lastDateISO === 'string' && lastDateISO) ? lastDateISO : '';
   return (dp || last || q || ss || todayISO()).slice(0,10);
 }
+// ===== Auto mood down when side effects increase =====
+const __MOOD_BASE_SS_KEY = 'rt.diary.moodBaseIdx.v1';
+
+// базовый индекс (0..6) — "ручное" настроение дня, от него считаем понижение
+function __getMoodBaseIdx(iso){
+  try{
+    const m = JSON.parse(sessionStorage.getItem(__MOOD_BASE_SS_KEY) || '{}');
+    if (Number.isFinite(m?.[iso])) return m[iso];
+  }catch(_){}
+
+  // fallback: берём из сохранённого wellness, иначе нейтрально
+  try{
+    const e = getEntry(iso);
+    const v = (typeof e?.wellness === 'number') ? e.wellness : 50;
+    return Math.round((v/100) * 6);
+  }catch(_){
+    return 3;
+  }
+}
+
+function __setMoodBaseIdx(iso, idx){
+  idx = Math.max(0, Math.min(6, Number(idx)||0));
+  try{
+    const m = JSON.parse(sessionStorage.getItem(__MOOD_BASE_SS_KEY) || '{}') || {};
+    m[iso] = idx;
+    sessionStorage.setItem(__MOOD_BASE_SS_KEY, JSON.stringify(m));
+  }catch(_){}
+}
+
+// сумма побочек (0..12)
+function __seTotal(entry){
+  const se = entry?.sideEffects || {};
+  return Object.values(se).reduce((a,v)=> a + (Number(v)||0), 0);
+}
+
+// насколько "шагов" по 7-слайдеру вниз (0..6)
+// сейчас: каждые 2 балла суммарной побочки = -1 шаг
+function __sePenaltySteps(total){
+  total = Number(total) || 0;          // 0..12
+  return Math.min(6, Math.floor((total / 12) * 7)); // 0..6, до "дна" при почти максимуме
+}
+
+function __autoSyncMoodFromSE(entry){
+  // Всегда пересчитываем от суммы побочек: и вниз, и вверх
+  const iso = (entry?.date || selectedISO()).slice(0,10);
+
+  const baseIdx = __getMoodBaseIdx(iso);   // “ручная база” дня
+  const total   = __seTotal(entry);        // сумма побочек 0..12
+  const down    = __sePenaltySteps(total); // сколько шагов ухудшения 0..6
+
+  const targetIdx = Math.max(0, baseIdx - down);
+
+  const curVal = (typeof window.valence === 'number') ? window.valence : 50;
+  const curIdx = Math.round((curVal/100) * 6);
+
+  if (targetIdx === curIdx) return;
+
+  const targetVal = (targetIdx / 6) * 100;
+
+  // ВАЖНО: это “не initial”, чтобы UI/календарь/главная обновлялись как обычно
+  applyValence(targetVal, true); // важно: только UI, НЕ запись как ручное настроение
+}
+
+
+// фиксируем "базу" когда пользователь вручную двигает настроение (pointer/клавиши)
+(function bindManualMoodBaseTracking(){
+  const bar = document.getElementById('moodBar');
+  if (!bar) return;
+
+  const mark = ()=>{
+    const iso = selectedISO();
+    const v   = (typeof window.valence === 'number') ? window.valence : 50;
+    const idx = Math.round((v/100) * 6);
+    __setMoodBaseIdx(iso, idx);
+  };
+
+  bar.addEventListener('pointerup', ()=> setTimeout(mark, 0), true);
+  bar.addEventListener('keydown', (e)=>{
+    if (e.key === 'ArrowLeft' || e.key === 'ArrowRight') setTimeout(mark, 0);
+  }, true);
+})();
+
 
 const confirmMood = document.getElementById('confirmMood');
 const saveAll     = document.getElementById('saveAll');
@@ -2516,9 +2775,10 @@ if (confirmMood){
 
     putV2Wellness(iso, v);
     const entry = getEntry(iso);
-    entry.wellness = v;
-    entry.wellnessSaved = true;
-    putEntry(entry);
+    entry.wellness_user = v;
+entry.wellness = v;
+entry.wellnessSaved = true;
+putEntry(entry);
 
     setMoodSavedUI(true);
   });
@@ -2637,8 +2897,13 @@ function isTintOn(){
   return (localStorage.getItem(TINT_KEY) ?? '1') !== '0'; // по умолчанию вкл.
 }
 function setTintOn(on){
-  try{ localStorage.setItem(TINT_KEY, on ? '1' : '0'); }catch(_){}
-  // Пере-применяем цвета для текущего настроения
+  try{
+    localStorage.setItem(TINT_KEY, on ? '1' : '0');
+    // пинок другим страницам (calendar/main), чтобы они сразу перерисовались
+    localStorage.setItem('rt.moodTint.bump', String(Date.now()));
+  }catch(_){}
+
+  // если на diary ты тоже используешь tint для фона — оставляем как было
   const v = (typeof window.valence === 'number') ? window.valence : 50;
   if (typeof updateColorsByValence === 'function') updateColorsByValence(v);
 }
@@ -2829,6 +3094,17 @@ header.topbar{ padding: var(--hdr-pad-y) 12px; gap: var(--hdr-gap); }
 /* spacer всегда равен фактической высоте навбара */
 .page-bottom-spacer{ height: var(--nav-h, 84px); }
 
+:root{ --compare-max: 560px; }          /* ширина сравнения на десктопе */
+@media (max-width: 520px){
+  :root{ --compare-max: 380px; }        /* уже на телефоне */
+}
+
+/* перебиваем более широкие стили из патча */
+.compare{
+  max-width: var(--compare-max) !important;
+  margin-left: auto !important;
+  margin-right: auto !important;
+}
 </style>
 
 <script>

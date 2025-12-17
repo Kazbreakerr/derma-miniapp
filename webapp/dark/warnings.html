@@ -401,7 +401,7 @@ startBtn?.addEventListener('click', (e)=>{
   }catch(_){}
 
   // 2) ЯВНЫЙ переход на profile.html (без helper'а, чтобы исключить ошибки роутера)
-  location.replace('./profile.html' + (location.search || ''));
+  location.replace('./onboarding.html' + (location.search || ''));
 });
 // при входе — оба тумблера выключены
 switchRisk?.setAttribute('aria-pressed','false');

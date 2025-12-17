@@ -575,6 +575,7 @@ body.light .seg button{
   box-shadow: 0 0 0 2px rgba(255,255,255,.08) inset, 0 10px 22px rgba(0,0,0,.30);
 }
 #cardCalendar .day .day-num{
+  position: relative; z-index: 2;
   font-weight:800; font-size:14px; color:#fff; text-shadow: 0 1px 2px rgba(0,0,0,.5);
 }
 #cardCalendar .day.today{
@@ -609,14 +610,17 @@ body.light .seg button{
 
 #cardCalendar .day::after{
   content:"";
-  position:absolute; inset:-6px;
+  position:absolute;
+  inset:-6px;
   border-radius:inherit;
-  background: radial-gradient(120% 90% at 50% 20%,
-              var(--glowC, transparent) 0 45%, transparent 60%);
-  filter: blur(14px) saturate(1.05);
+  /* 1) основной «цвет дня» (градиент); 2) мягкое свечение поверх */
+  background:
+    var(--moodBg, transparent),
+    radial-gradient(120% 90% at 50% 20%,
+      var(--glowC, transparent) 0 45%, transparent 60%);
+  filter: blur(10px) saturate(1.05);
   mix-blend-mode: screen;
-  opacity: 1;
-  z-index: 0;
+  z-index:0;
   pointer-events:none;
 }
 
@@ -867,7 +871,7 @@ body.light .tab.active{ color:#0d1220; background: linear-gradient(180deg, rgba(
     });
   }
   window.addEventListener('storage',e=>{
-    if(['rt.diary.v1','rt.diary.bump','derma_today_iso','derma_today_mg','rt.moodTintOn','rt.moodTint.bump'].includes(e.key)){
+  if(['rt.diary.v1','rt.diary.bump','derma_today_iso','derma_today_mg'].includes(e.key)){
     try { applyDiaryToMain(diaryGet()); } catch(_){}
     try { renderCalPreview(); } catch(_){}
     try { updateSummary(); } catch(_){}
@@ -1203,7 +1207,7 @@ document.addEventListener('DOMContentLoaded', () => {
   </defs>
 </svg>
   <div class="wrap">
-    <h1>Retiora — Retinoid & Isotretinoin Tracker</h1>  <span data-pill-spot></span><span data-stock-spot></span>
+    <h1>Roaccutane Tracker</h1>  <span data-pill-spot></span><span data-stock-spot></span>
 
     <section class="card clickable" id="profileHeader" aria-label="Профиль">
       <div class="glow"></div>
@@ -1216,7 +1220,7 @@ document.addEventListener('DOMContentLoaded', () => {
       </div>
     </section>
 
-    <section class="card section" id="cardProgress" aria-labelledby="progress-title">
+    <section class="card section" aria-labelledby="progress-title">
       <div class="glow"></div>
       <div class="row" style="justify-content:space-between; align-items:center">
         <h2 id="progress-title" style="margin:0">Прогресс</h2>
@@ -1316,7 +1320,7 @@ document.addEventListener('DOMContentLoaded', () => {
       </div>
     </section>
 
-    <section class="card section" id="cardDose" aria-labelledby="dose-title">
+    <section class="card section" aria-labelledby="dose-title">
       <div class="glow"></div>
       <h2 id="dose-title" style="margin-bottom:8px">Отметить приём</h2>
       <div class="row">
@@ -1359,7 +1363,7 @@ document.addEventListener('DOMContentLoaded', () => {
     </section>
 
     
-    <section class="card section" id="cardReminder" aria-labelledby="reminder-title">
+    <section class="card section" aria-labelledby="reminder-title">
       <div class="glow"></div>
       <div class="row" style="justify-content:space-between; align-items:flex-start; gap:16px">
         <h2 id="reminder-title" style="margin:0">Напоминание</h2>
@@ -1383,7 +1387,7 @@ document.addEventListener('DOMContentLoaded', () => {
       </div>
     </section>
 
-    <section class="card section" id="cardFAQ" aria-label="FAQ">
+    <section class="card section" aria-label="FAQ">
       <div class="glow"></div>
       <svg class="faq-deco" viewBox="0 0 120 120" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
         <defs>
@@ -1405,7 +1409,7 @@ document.addEventListener('DOMContentLoaded', () => {
 <a href="faq.html#missed" class="chip" data-vt-link>Пропуск дозы</a>
     </section>
 
-    <section class="card section" id="cardReset" aria-labelledby="reset-title" style="border-color:#3a1f2b;background:linear-gradient(180deg,#141824,#0f1624)">
+    <section class="card section" aria-labelledby="reset-title" style="border-color:#3a1f2b;background:linear-gradient(180deg,#141824,#0f1624)">
       <h2 id="reset-title" style="margin-bottom:6px;color:#ffd7db">Обнулить всё</h2>
       <div class="muted" style="margin-bottom:10px">Будут удалены: журнал приёмов, настройки напоминаний, локальные кэши прогресса. Профиль останется.</div>
       <button id="resetBtn" class="cta" style="background:#151018;border:1px solid #a11a28;color:#ffd7db">Перейти к обнулению</button>
@@ -1576,32 +1580,25 @@ function wipeLocalDiary(reason = 'manual-reset'){
 // чтобы было удобно дергать из reset.html/консоли
 window.wipeLocalDiary = wipeLocalDiary;
 
-// === Mood helpers for calendar preview (SYNC WITH calendar.html) ===
+// === Mood helpers for calendar preview ===
 
-// читаем wellness/valence из новой БД дневника (rt.diary.v2)
+// читаем wellness 0..100 из новой БД дневника
 function _wellnessMap(){
   try{
     const db = JSON.parse(localStorage.getItem('rt.diary.v2')||'null');
     const out = {};
     if (db && db.entries){
       for (const [k, e] of Object.entries(db.entries)){
-        if (typeof e.wellness === 'number') out[k] = e.wellness; // обычно 0..100
-        else if (typeof e.valence  === 'number') out[k] = e.valence; // на всякий случай
+        if (typeof e.wellness === 'number') out[k] = e.wellness;
+        else if (typeof e.valence  === 'number') out[k] = e.valence; // ← добавили
       }
     }
     return out;
   }catch(_){ return {}; }
 }
 
-// старые оценки -3..+3 -> валентность (0..100) по центрам 7 корзин (как в calendar.html)
-function normalizeMoodV1(m){
-  if (m === null || m === undefined || m === '' || !Number.isFinite(Number(m))) return null;
-  const x = Math.max(-3, Math.min(3, Number(m)));
-  const centers = [8.5, 25, 40, 50, 60, 75, 91.5];
-  const idx = Math.round(x + 3);
-  return centers[idx];
-}
-
+// 7 состояний: 1=оч.плохо … 7=отлично
+// 7 состояний: 1=оч.плохо … 7=отлично
 // 0..100 → индекс 0..6 (как в calendar.html)
 function moodIndexFromValence(v){
   if (v==null) return null;
@@ -1609,100 +1606,75 @@ function moodIndexFromValence(v){
   const idx  = Math.round(Math.max(0, Math.min(100, Number(v))) / step);
   return Math.max(0, Math.min(6, idx));
 }
+function moodBg(idx){
+  // 7 состояний слева→справа (от очень плохо до отлично)
+  const G = [
+    // 0  очень плохо — жёлтая «тревога»
+    'radial-gradient(140% 70% at 50% 10%, rgba(255,206,51,.42) 0 62%, rgba(255,206,51,0) 70%)',
+    // 1  ниже нормы — тёплый оранжевый
+    'radial-gradient(140% 70% at 50% 10%, rgba(255,136,34,.40) 0 62%, rgba(255,136,34,0) 70%)',
+    // 2  неплохо — мягкий красно-розовый
+    'radial-gradient(140% 70% at 50% 10%, rgba(255,92,92,.38) 0 62%, rgba(255,92,92,0) 70%)',
+    // 3  нейтрально — холодный серо-голубой
+    'radial-gradient(140% 70% at 50% 10%, rgba(160,180,200,.35) 0 62%, rgba(160,180,200,0) 70%)',
+    // 4  хорошо — синий
+    'radial-gradient(140% 70% at 50% 10%, rgba(56,189,248,.44) 0 62%, rgba(56,189,248,0) 70%)',
+    // 5  очень хорошо — мята
+    'radial-gradient(140% 70% at 50% 10%, rgba(34,197,167,.40) 0 62%, rgba(34,197,167,0) 70%)',
+    // 6  отлично — яркий зелёный
+    'radial-gradient(140% 70% at 50% 10%, rgba(16,185,129,.42) 0 62%, rgba(16,185,129,0) 70%)'
+  ];
+  return G[Math.max(0, Math.min(6, +idx||0))];
+}
+// цвет свечения по индексу (как в calendar.html)
+function moodGlow(idx){
+  switch(idx){
+    case 0: return 'hsla(354,100%,36%,.73)'; // бордовый — очень плохо
+    case 1: return 'hsla(40,85%,47%,.58)';  // тёмно-оранжевый — плохо
+    case 2: return 'hsla(40, 45%, 78%, .52)';  // бежевый — ниже нормы
+    case 3: return 'hsla(200,86%,93%,.45)'; // слабый голубой — нейтрально
+    case 4: return 'hsla(200, 85%, 55%, .52)'; // насыщенный синий — неплохо
+    case 5: return 'hsla(170, 100%, 65%, .52)';  // желто-зелёный — хорошо
+    case 6: return 'hsla(110, 100%, 55%, .72)'; // яркий зелёный
+    default: return 'transparent';
+  }
+}
+function missGlow(){ return 'hsla(0,86%,58%,60)'; } // сочный красный (пропуск)
 
-// берём самочувствие дня и возвращаем индекс 0..6
+// Индекс настроения для превью (0..6) — ДОЛЖЕН совпадать с calendar.html
 function moodIndexFromDiary(rec, iso){
   const wm = _wellnessMap();
   let v = wm[iso];
 
   if (v != null && isFinite(v)) {
     // v может быть в -1..1, 0..1 или 0..100 → приводим к 0..100
-    let v100 = null;
-    if (v >= 0 && v <= 100)      v100 = v;              // 0..100
-    else if (v >= 0 && v <= 1)   v100 = v * 100;        // 0..1
-    else if (v >= -1 && v <= 1)  v100 = (v + 1) * 50;   // -1..1
-    if (v100 != null) return moodIndexFromValence(v100);
-  }
-
-  // очень старый дневник (mood 1..6 или -3..+3) — мягко приводим к валентности
-  const m = Number(rec?.mood ?? rec?.m);
-  const vOld = normalizeMoodV1(m);
-  if (vOld != null) return moodIndexFromValence(vOld);
-
-  return null;
-}
-
-// фон дня (как в calendar.html)
-function moodBg(idx){
-  const G = [
-    'radial-gradient(140% 70% at 50% 10%, rgba(255,206,51,.42) 0 62%, rgba(255,206,51,0) 70%)',
-    'radial-gradient(140% 70% at 50% 10%, rgba(255,136,34,.40) 0 62%, rgba(255,136,34,0) 70%)',
-    'radial-gradient(140% 70% at 50% 10%, rgba(255,92,92,.38) 0 62%, rgba(255,92,92,0) 70%)',
-    'radial-gradient(140% 70% at 50% 10%, rgba(160,180,200,.35) 0 62%, rgba(160,180,200,0) 70%)',
-    'radial-gradient(140% 70% at 50% 10%, rgba(56,189,248,.44) 0 62%, rgba(56,189,248,0) 70%)',
-    'radial-gradient(140% 70% at 50% 10%, rgba(34,197,167,.40) 0 62%, rgba(34,197,167,0) 70%)',
-    'radial-gradient(140% 70% at 50% 10%, rgba(16,185,129,.42) 0 62%, rgba(16,185,129,0) 70%)'
-  ];
-  return G[Math.max(0, Math.min(6, +idx||0))];
-}
-
-// цвет свечения (как в calendar.html)
-function moodGlow(idx){
-  switch(idx){
-    case 0: return 'hsla(354,100%,36%,.73)';
-    case 1: return 'hsla(40,85%,47%,.58)';
-    case 2: return 'hsla(40, 45%, 78%, .52)';
-    case 3: return 'hsla(200,86%,93%,.45)';
-    case 4: return 'hsla(200, 85%, 55%, .52)';
-    case 5: return 'hsla(170, 100%, 65%, .52)';
-    case 6: return 'hsla(110, 100%, 55%, .72)';
-    default: return 'transparent';
-  }
-}
-// === Global toggle: "Цвет под настроение" (shared with diary/calendar) ===
-const TINT_KEY = 'rt.moodTintOn';
-function isTintOn(){
-  return (localStorage.getItem(TINT_KEY) ?? '1') !== '0'; // default ON
-}
-
-// фоновый “цвет дня” (как в calendar.html)
-function moodBg(idx){
-  const G = [
-    'radial-gradient(140% 70% at 50% 10%, rgba(255,206,51,.42) 0 62%, rgba(255,206,51,0) 70%)',
-    'radial-gradient(140% 70% at 50% 10%, rgba(255,136,34,.40) 0 62%, rgba(255,136,34,0) 70%)',
-    'radial-gradient(140% 70% at 50% 10%, rgba(255,92,92,.38) 0 62%, rgba(255,92,92,0) 70%)',
-    'radial-gradient(140% 70% at 50% 10%, rgba(160,180,200,.35) 0 62%, rgba(160,180,200,0) 70%)',
-    'radial-gradient(140% 70% at 50% 10%, rgba(56,189,248,.44) 0 62%, rgba(56,189,248,0) 70%)',
-    'radial-gradient(140% 70% at 50% 10%, rgba(34,197,167,.40) 0 62%, rgba(34,197,167,0) 70%)',
-    'radial-gradient(140% 70% at 50% 10%, rgba(16,185,129,.42) 0 62%, rgba(16,185,129,0) 70%)'
-  ];
-  return G[Math.max(0, Math.min(6, +idx||0))];
-}
-// ВАЖНО: теперь индекс строго 0..6 (как в calendar.html)
-function moodIndexFromDiary(rec, iso){
-  const wm = _wellnessMap();
-  let v = wm[iso];
-
-  if (v != null && isFinite(v)) {
-    // v может быть: 0..100, 0..1 или -1..1
     let v100;
-    if (v >= 0 && v <= 100)      v100 = v;                 // 0..100
-    else if (v >= 0 && v <= 1)   v100 = v * 100;           // 0..1
-    else if (v >= -1 && v <= 1)  v100 = ((v + 1) / 2)*100; // -1..1
+    if (v >= 0 && v <= 100)      v100 = v;
+    else if (v >= 0 && v <= 1)   v100 = v * 100;
+    else if (v >= -1 && v <= 1)  v100 = ((v + 1) / 2) * 100;
     else                         v100 = 50;
 
     return moodIndexFromValence(v100);
   }
 
-  // очень старый дневник (1..6) -> 0..6
+  // старые форматы дневника
   const m = Number(rec?.mood ?? rec?.m);
-  if (m >= 1 && m <= 6){
-    return Math.max(0, Math.min(6, Math.round((m - 1) * 6 / 5)));
+  if (isFinite(m)){
+    // самый старый формат -3..+3
+    if (m >= -3 && m <= 3){
+      const x = Math.max(-3, Math.min(3, m));
+      const centers = [8.5, 25, 40, 50, 60, 75, 91.5];
+      const idx = Math.round(x + 3);
+      return moodIndexFromValence(centers[idx]);
+    }
+    // формат 1..6 (растягиваем до 7 корзин)
+    if (m >= 1 && m <= 6){
+      return Math.max(0, Math.min(6, Math.round((m - 1) * 6 / 5)));
+    }
   }
 
   return null;
 }
-
 
 // добавить mg к дате в дневнике (или создать)
 function bumpDiaryDose(iso, mgAdd){
@@ -2038,8 +2010,6 @@ function renderCalPreview(){
   const box = document.getElementById('calPreview');
   if(!box){ return; }
   box.innerHTML='';
-  // Если анимация календаря оставила "скрывающие" классы — календарь может остаться прозрачным
-  box.classList.remove('leave-left','leave-right','pre-enter-left','pre-enter-right');
 
   // Сумма приёмов по датам
   const map = new Map();
@@ -2087,6 +2057,8 @@ if (ml) ml.textContent = label;
   const currentIso = (document.getElementById('date')?.value||'').slice(0,10);
   const dAll = diaryGet();
   
+  
+
   for(let i=0;i<7;i++){
     const d = new Date(base); d.setDate(base.getDate()+i);
     const y  = d.getFullYear();
@@ -2098,36 +2070,23 @@ if (ml) ml.textContent = label;
 const monthChip = isFirstOfMonth ? `<span class="month-chip">${mShort[d.getMonth()]}</span>` : '';
 
     const rec  = dAll?.[iso] || {};
-    const moodIdx = moodIndexFromDiary(rec, iso);
-
     const cell = document.createElement('div');
     cell.className = 'day' + (iso === todayISO() ? ' today' : '') + (iso === currentIso ? ' selected' : '');
     cell.setAttribute('data-iso', iso);
 
-  // сброс каждый рендер (иначе стили “наследуются”)
-cell.style.setProperty('--glowC', 'transparent');
-cell.style.setProperty('--moodBg', 'transparent');
+    const missed = (rec?.miss === true || rec?.taken === false) && mg === 0;
+    if (missed) cell.classList.add('miss');
 
-// moodIdx ты УЖЕ посчитала выше: const moodIdx = moodIndexFromDiary(rec, iso);
-const tintOn = isTintOn();
+    const moodIdx = moodIndexFromDiary(rec, iso); // 0..6 | null
 
-// 1) Пропуск (miss) всегда остаётся красным, не зависит от тумблера
-if (rec.miss === true && mg === 0){
-  cell.classList.add('miss');
-  cell.style.setProperty('--glowC', 'rgba(244,63,94,.55)');
-} 
-// 2) Настроение — только если включён тумблер "Цвет под настроение"
-else if (tintOn && moodIdx !== null && moodIdx !== undefined){
-  cell.classList.add('mood-' + moodIdx);
-  cell.style.setProperty('--glowC', moodGlow(moodIdx));
-  cell.style.setProperty('--moodBg', moodBg(moodIdx));
-} 
-// 3) Иначе оставляем нейтральный вид
-else {
-  cell.style.removeProperty('--glowC');
-  cell.style.removeProperty('--moodBg');
-}
+    // 1) glow (как в calendar.html)
+    const glow = missed ? missGlow()
+               : (moodIdx != null ? moodGlow(moodIdx) : 'transparent');
+    cell.style.setProperty('--glowC', glow);
 
+    // 2) цветной фон по самочувствию (как в calendar.html)
+    if (moodIdx != null) cell.style.setProperty('--moodBg', moodBg(moodIdx));
+    else cell.style.removeProperty('--moodBg');
 
 
     cell.innerHTML = `
@@ -3203,6 +3162,26 @@ window.addEventListener('storage', (e) => {
   }
 });
 
+// === Mini calendar nav fix (previous/next week) ===
+(function () {
+  if (window.__calNavBound) return;  // уже привязано выше — ничего не делаем
+  const prev = document.getElementById('calPrev') ||
+               document.querySelector('.cal-prev, [data-cal-nav="prev"]');
+  const next = document.getElementById('calNext') ||
+               document.querySelector('.cal-next, [data-cal-nav="next"]');
+  // calOffset уже используется рендером превью недели
+  if (typeof window.calOffset !== 'number') window.calOffset = 0;
+
+  function go(dir) {
+    window.calOffset += dir * 7;   // -7 назад, +7 вперёд
+    if (typeof window.renderCalPreview === 'function') {
+      window.renderCalPreview();
+    }
+  }
+
+  prev && prev.addEventListener('click', (e) => { e.preventDefault(); e.stopPropagation(); go(-1); });
+  next && next.addEventListener('click', (e) => { e.preventDefault(); e.stopPropagation(); go(+1); });
+})();
 
 // === Haptic on "Добавить" button ===
 (function () {
@@ -3302,31 +3281,6 @@ window.addEventListener('storage', (e) => {
   transition: width .6s cubic-bezier(.2,.8,.2,1);
 }
 .pill-scale{display:flex; justify-content:space-between; font-size:12px; color:var(--text-lo); padding:0 2px}
-/* === calendar-like mood paint for main preview === */
-#calPreview .day{
-  position: relative;
-  isolation: isolate;
-}
-
-#calPreview .day::after{
-  content:"";
-  position:absolute;
-  inset:-6px;
-  border-radius:inherit;
-  background:
-    var(--moodBg, transparent),
-    radial-gradient(120% 90% at 50% 20%,
-      var(--glowC, transparent) 0 45%, transparent 60%);
-  filter: blur(10px) saturate(1.05);
-  mix-blend-mode: screen;
-  z-index:0;
-  pointer-events:none;
-}
-
-/* контент поверх свечения */
-#calPreview .day .day-num{ position: relative; z-index: 2; }
-#calPreview .day .marks{ z-index: 2; }
-
 
 </style>
 
@@ -3711,11 +3665,6 @@ if (cur && cur.complete && cur.naturalWidth > 0) return;
   }catch(e){ console.log('ensureAvatarFallback error', e); }
 })();
 </script>
-<style id="mood-colors-overrides">
-  /* разные оттенки для 6 и 7 уровней настроения */
-  #cardCalendar .day.mood-6{ --glowC: hsla(155,98%,55%,.52) !important; } /* хорошо — мятный */
-  #cardCalendar .day.mood-7{ --glowC: hsla(215,85%,60%,.60) !important; } /* отлично — бирюзово-синий */
-</style>
 <style id="enc-style">
   .enc-overlay{
     position:fixed; inset:0; z-index:9999; display:grid; place-items:center;
@@ -3805,15 +3754,55 @@ if (cur && cur.complete && cur.naturalWidth > 0) return;
 })();
 </script>
 <!-- === ONBOARDING TOUR === -->
+<div id="onboarding" hidden>
+  <div class="ob-dim"></div>
+  <div class="ob-card">
+    <div class="ob-text">
+      <h3 id="ob-title"></h3>
+      <p id="ob-desc"></p>
+    </div>
+    <div class="ob-actions">
+      <button id="ob-skip">Пропустить</button>
+      <button id="ob-next">Далее</button>
+    </div>
+  </div>
+</div>
 
-
+<style>
+#onboarding {
+  position: fixed; inset: 0; z-index: 9998;
+  display: none; align-items: center; justify-content: center;
+  font-family: system-ui, sans-serif;
+}
+#onboarding.show { display: flex; }
+.ob-dim {
+  position: absolute; inset: 0; backdrop-filter: blur(8px) brightness(.4);
+  background: rgba(0,0,0,.5);
+}
+.ob-card {
+  position: relative; z-index: 2; 
+  background: rgba(15,23,34,.85); 
+  color: #fff; padding: 20px 24px;
+  border-radius: 18px; max-width: 420px; text-align: center;
+  box-shadow: 0 14px 34px rgba(0,0,0,.4);
+}
+.ob-card h3 { font-size: 18px; margin: 0 0 6px; font-weight: 700; }
+.ob-card p  { font-size: 14px; margin: 0 0 16px; opacity: .9; }
+.ob-actions { display: flex; justify-content: space-between; gap: 10px; }
+.ob-actions button {
+  flex: 1; height: 40px; border-radius: 12px; font-weight: 700;
+  border: none; cursor: pointer;
+}
+#ob-skip { background: rgba(255,255,255,.15); color: #fff; }
+#ob-next { background: linear-gradient(135deg,#22D3EE,#14B8A6); color: #0d1220; }
+</style>
 <!-- RT_TOUR_V1: guided tour (spotlight + CTA) -->
 <style id="rtTourStyle">
   :root{
-    --rt-tour-z-overlay: 9500;
-    --rt-tour-z-focus: 9501;
-    --rt-tour-z-pointer: 9502;
-    --rt-tour-z-pop: 9503;
+    --rt-tour-z-overlay: 99990;
+    --rt-tour-z-focus:   99991;
+    --rt-tour-z-pointer: 99992;
+    --rt-tour-z-pop:     99993;
     --rt-tour-accent: rgba(66, 227, 184, 1);
     --rt-tour-accentSoft: rgba(66, 227, 184, .35);
   }
@@ -3829,22 +3818,16 @@ if (cur && cur.complete && cur.naturalWidth > 0) return;
   #rtTourOverlay.is-on{ opacity:1; pointer-events:auto; }
 
   .rt-tour-focus{
-    /* position is set in JS only when needed (for z-index) */
+    position:relative !important;
     z-index: var(--rt-tour-z-focus) !important;
     box-shadow:
       0 0 0 2px rgba(255,255,255,.10),
       0 0 0 3px rgba(66,227,184,.55),
       0 18px 44px rgba(0,0,0,.45),
       0 0 34px rgba(66,227,184,.30);
-    border-radius: 18px;
+    border-radius: 16px;
   }
-  
-  .rt-tour-reveal{
-    /* position is set in JS only when needed (for z-index) */
-    z-index: var(--rt-tour-z-focus) !important;
-    box-shadow:none !important;
-  }
-.rt-tour-focus.rt-tour-radius-inherit{ border-radius: inherit; }
+  .rt-tour-focus.rt-tour-radius-inherit{ border-radius: inherit; }
 
   #rtTourPointer{
     position:fixed;
@@ -3940,7 +3923,6 @@ if (cur && cur.complete && cur.naturalWidth > 0) return;
   <div class="rt-actions">
     <div class="rt-left">
       <button class="rt-btn secondary" id="rtTourSkip" type="button">Пропустить</button>
-      <button class="rt-btn secondary" id="rtTourFree" type="button" title="Перейти дальше без выполнения действия">Дальше</button>
     </div>
     <button class="rt-btn primary" id="rtTourNext" type="button">Далее</button>
   </div>
@@ -3963,7 +3945,6 @@ if (cur && cur.complete && cur.naturalWidth > 0) return;
   const elText  = $('#rtTourText');
   const elExtra = $('#rtTourExtra');
   const btnSkip = $('#rtTourSkip');
-  const btnFree = $('#rtTourFree');
   const btnNext = $('#rtTourNext');
 
   function pageKey(){
@@ -3990,9 +3971,7 @@ if (cur && cur.complete && cur.naturalWidth > 0) return;
   }
 
   let focused = [];
-  
-  let revealed = [];
-let cleanupWait = null;
+  let cleanupWait = null;
   let cleanupEnter = null;
   let satisfied = false;
 
@@ -4001,26 +3980,16 @@ let cleanupWait = null;
       try{
         el.classList.remove('rt-tour-focus','rt-tour-radius-inherit');
         el.removeAttribute('data-rt-tour-focus');
-              restorePositioned(el);
       }catch(_){}
     });
     focused = [];
-
-    revealed.forEach(el=>{
-      try{
-        el.classList.remove('rt-tour-reveal','rt-tour-radius-inherit');
-        el.removeAttribute('data-rt-tour-reveal');
-              restorePositioned(el);
-      }catch(_){}
-    });
-    revealed = [];
   }
 
   function visible(on){
     overlay.classList.toggle('is-on', !!on);
     pop.classList.toggle('is-on', !!on);
+    pointer.classList.toggle('is-on', !!on);
     overlay.setAttribute('aria-hidden', on ? 'false' : 'true');
-    if(!on) pointer.classList.remove('is-on');
   }
 
   function rectUnion(els){
@@ -4036,138 +4005,60 @@ let cleanupWait = null;
 
   function clamp(v, a, b){ return Math.max(a, Math.min(b, v)); }
 
+  function placeUI(targetRect){
+    const pad = 10;
+    const vw = window.innerWidth, vh = window.innerHeight;
 
-function ensurePositioned(el){
-  try{
-    const cs = getComputedStyle(el);
-    if (cs.position === 'static'){
-      // remember inline position so we can restore
-      if (!el.dataset.rtTourPrevPos) el.dataset.rtTourPrevPos = (el.style.position || '');
-      el.dataset.rtTourWasStatic = '1';
-      el.style.position = 'relative';
+    // pointer near top-right of target
+    if (targetRect){
+      const px = clamp(targetRect.right - 8, 14, vw - 14);
+      const py = clamp(targetRect.top + 10, 14, vh - 14);
+      pointer.style.left = px + 'px';
+      pointer.style.top  = py + 'px';
+    } else {
+      pointer.style.left = (vw/2) + 'px';
+      pointer.style.top  = (vh/2) + 'px';
     }
-  }catch(_){}
-}
 
-function restorePositioned(el){
-  try{
-    if (el.dataset.rtTourWasStatic === '1'){
-      const prev = el.dataset.rtTourPrevPos || '';
-      if (prev) el.style.position = prev;
-      else el.style.removeProperty('position');
+    // popover position: below if possible, else above, else center
+    const popW = Math.min(380, vw - 28);
+    pop.style.width = popW + 'px';
+    pop.style.maxWidth = popW + 'px';
+
+    let x = 14, y = 14;
+    if(targetRect){
+      const belowY = targetRect.bottom + 14;
+      const aboveY = targetRect.top - 14;
+
+      // try below
+      if (belowY + pop.offsetHeight < vh - 14){
+        y = belowY;
+      } else if (aboveY - pop.offsetHeight > 14){
+        y = aboveY - pop.offsetHeight;
+      } else {
+        y = clamp((vh - pop.offsetHeight)/2, 14, vh - pop.offsetHeight - 14);
+      }
+
+      x = clamp(targetRect.left, 14, vw - popW - 14);
+    } else {
+      y = clamp((vh - pop.offsetHeight)/2, 14, vh - pop.offsetHeight - 14);
+      x = clamp((vw - popW)/2, 14, vw - popW - 14);
     }
-    delete el.dataset.rtTourWasStatic;
-    delete el.dataset.rtTourPrevPos;
-  }catch(_){}
-}
-
-  function rectIntersects(a,b){
-  if(!a || !b) return false;
-  return !(a.right <= b.left || a.left >= b.right || a.bottom <= b.top || a.top >= b.bottom);
-}
-
-function placeUI(targetRect, avoidRect, step){
-  const vw = window.innerWidth, vh = window.innerHeight;
-  const SAFE = 14;
-  const GAP  = 14;
-
-  // pointer near top-right of target
-  if (targetRect){
-    const px = clamp(targetRect.right - 8, SAFE, vw - SAFE);
-    const py = clamp(targetRect.top + 10, SAFE, vh - SAFE);
-    pointer.style.left = px + 'px';
-    pointer.style.top  = py + 'px';
-  } else {
-    pointer.style.left = (vw/2) + 'px';
-    pointer.style.top  = (vh/2) + 'px';
+    pop.style.left = x + 'px';
+    pop.style.top  = y + 'px';
   }
-
-  // popover width
-  const popW = Math.min(380, vw - 28);
-  pop.style.width = popW + 'px';
-  pop.style.maxWidth = popW + 'px';
-
-  // measure height after content render
-  const popH = pop.offsetHeight || 200;
-
-  const align = (step && step.popAlign) || 'start'; // start|center|end
-  const preferred = (step && step.popPlacement) || null;
-
-  const xAligned = (rect)=>{
-    if (!rect) return clamp((vw - popW)/2, SAFE, vw - popW - SAFE);
-    if (align === 'center') return clamp(rect.left + (rect.width - popW)/2, SAFE, vw - popW - SAFE);
-    if (align === 'end')    return clamp(rect.right - popW, SAFE, vw - popW - SAFE);
-    return clamp(rect.left, SAFE, vw - popW - SAFE); // start
-  };
-
-  const candidates = [];
-  const push = (p)=>{ if(p && !candidates.includes(p)) candidates.push(p); };
-  push(preferred);
-  ['below','above','right','left','center'].forEach(push);
-
-  let best = { x: SAFE, y: SAFE };
-
-  const avoid = avoidRect || targetRect;
-
-  for (const p of candidates){
-    let x = SAFE, y = SAFE;
-
-    if (!targetRect){
-      x = clamp((vw - popW)/2, SAFE, vw - popW - SAFE);
-      y = clamp((vh - popH)/2, SAFE, vh - popH - SAFE);
-      best = {x,y};
-      break;
-    }
-
-    if (p === 'below'){
-      x = xAligned(targetRect);
-      y = targetRect.bottom + GAP;
-    } else if (p === 'above'){
-      x = xAligned(targetRect);
-      y = targetRect.top - GAP - popH;
-    } else if (p === 'right'){
-      x = targetRect.right + GAP;
-      y = clamp(targetRect.top, SAFE, vh - popH - SAFE);
-    } else if (p === 'left'){
-      x = targetRect.left - GAP - popW;
-      y = clamp(targetRect.top, SAFE, vh - popH - SAFE);
-    } else { // center
-      x = (vw - popW)/2;
-      y = (vh - popH)/2;
-    }
-
-    x = clamp(x, SAFE, vw - popW - SAFE);
-    y = clamp(y, SAFE, vh - popH - SAFE);
-
-    const candRect = { left:x, top:y, right:x+popW, bottom:y+popH };
-
-    // Prefer placements that do not cover the avoid-rect (usually the revealed context)
-    if (!avoid || !rectIntersects(candRect, avoid) || p === 'center'){
-      best = {x,y};
-      break;
-    }
-
-    // fallback candidate (keep last tried)
-    best = {x,y};
-  }
-
-  pop.style.left = best.x + 'px';
-  pop.style.top  = best.y + 'px';
-}
 
   function setContent(step, idx, total){
     elStep.textContent = `Шаг ${idx+1} из ${total}`;
     elTitle.textContent = step.title || '—';
     elText.textContent  = step.text  || '';
     elExtra.innerHTML   = step.extraHTML || '';
-    btnNext.textContent = (step.primary && step.primary.label) ? step.primary.label : (step.nextLabel || 'Далее');
+    btnNext.textContent = (step.primary && step.primary.label) ? step.primary.label : 'Далее';
   }
 
   function setSatisfied(v){
     satisfied = !!v;
     const must = currentStep()?.require;
-    // show "Дальше" only when there is an action requirement
-    if (btnFree) btnFree.style.display = must ? '' : 'none';
     if (!must){
       btnNext.disabled = false;
       return;
@@ -4209,31 +4100,7 @@ function placeUI(targetRect, avoidRect, step){
     return els;
   }
 
-  
-  function ensureReveal(step){
-    let els = [];
-    const addEl = (e)=>{
-      if(!e || !(e instanceof Element)) return;
-      if (e.offsetParent === null && getComputedStyle(e).position !== 'fixed') return; // hidden
-      els.push(e);
-    };
-
-    if (typeof step.reveal === 'function'){
-      try{
-        const res = step.reveal();
-        (Array.isArray(res) ? res : [res]).forEach(addEl);
-      }catch(_){}
-    } else if (Array.isArray(step.reveal)){
-      step.reveal.forEach(sel=>{
-        if (typeof sel === 'string'){
-          $$(sel).forEach(addEl);
-        }
-      });
-    }
-    return els;
-  }
-
-function attachRequire(step){
+  function attachRequire(step){
     if (!step.require) { setSatisfied(true); return null; }
     if (step.require === 'manual') { setSatisfied(false); return null; }
 
@@ -4332,22 +4199,8 @@ function attachRequire(step){
     }
 
     focused = targets || [];
-
-    // reveal (visible context without glow)
-    const reveals = ensureReveal(step) || [];
-    revealed = reveals;
-    revealed.forEach(el=>{
-      try{
-        ensurePositioned(el);
-        el.classList.add('rt-tour-reveal');
-        if (step.radiusInherit) el.classList.add('rt-tour-radius-inherit');
-        el.setAttribute('data-rt-tour-reveal','1');
-      }catch(_){}
-    });
-
     focused.forEach(el=>{
       try{
-        ensurePositioned(el);
         el.classList.add('rt-tour-focus');
         if (step.radiusInherit) el.classList.add('rt-tour-radius-inherit');
         el.setAttribute('data-rt-tour-focus','1');
@@ -4371,15 +4224,7 @@ function attachRequire(step){
 
     // position after layout
     setTimeout(()=>{
-      const rFocus = rectUnion(focused);
-      let avoidEls = focused.slice();
-      const mode = (step && step.avoidCover) || 'focus';
-      if (mode === 'reveal') avoidEls = revealed.slice();
-      else if (mode === 'all') avoidEls = focused.concat(revealed);
-      const rAvoid = rectUnion(avoidEls);
-      placeUI(rFocus, rAvoid, step);
-      const wantPointer = (step.pointer !== false) && !!rFocus;
-      pointer.classList.toggle('is-on', wantPointer);
+      placeUI(rectUnion(focused));
     }, 0);
   }
 
@@ -4389,7 +4234,7 @@ function attachRequire(step){
     location.href = url;
   }
 
-  function next(force=false){
+  function next(){
     const key = pageKey();
     const list = STEPS[key] || [];
     const st = loadState() || {active:true, page:key, idx:0};
@@ -4449,16 +4294,10 @@ function attachRequire(step){
   }
 
   btnSkip?.addEventListener('click', skip);
-  btnFree?.addEventListener('click', ()=> next(true));
-  btnNext?.addEventListener('click', ()=> next(false));
+  btnNext?.addEventListener('click', next);
   overlay?.addEventListener('click', (e)=>{ e.preventDefault(); e.stopPropagation(); });
 
-  window.addEventListener('resize', ()=>{
-    if (!overlay.classList.contains('is-on')) return;
-    const r = rectUnion(focused);
-    placeUI(r);
-    pointer.classList.toggle('is-on', (currentStep()?.pointer !== false) && !!r);
-  });
+  window.addEventListener('resize', ()=>{ if (overlay.classList.contains('is-on')) placeUI(rectUnion(focused)); });
 
   // -------- Steps mapping (editable) --------
   const pick = {
@@ -4468,92 +4307,49 @@ function attachRequire(step){
   };
 
   const STEPS = {
-    
-main: [
-      {
-        title: 'Добро пожаловать в Roaccutane Tracker',
-        text: 'Покажу, как отмечать приём, смотреть прогресс, вести дневник и анализы.',
-        focus: [],
-        pointer: false,
-        nextLabel: 'Начать',
-      },
+    main: [
       {
         title: 'Цель курса',
-        text: 'Выберите Мин/Опт/Макс. Круги и полоска — ваш прогресс.',
-        reveal: ['#cardProgress'],
-        focus: ['#doseSeg button'],
+        text: 'Нажмите «Мин./Опт./Макс.», чтобы увидеть разные цели по курсу.',
+        focus: ['#doseSeg'],
         radiusInherit: true,
         require: {type:'click', selector:'#doseSeg button'},
       },
       {
         title: 'Отметить приём',
-        text: 'Выставьте дозу, тип капсулы и дату.',
-        reveal: ['#cardDose'],
-        focus: ['#mg', '#mgMinus', '#mgPlus', '#capSeg', '#date'],
+        text: 'Выставьте дозу: «+ / −» или введите число — и это попадёт в журнал.',
+        focus: ['#mg', '#mgMinus', '#mgPlus'],
+        require: [
+          {type:'click', selector:'#mgPlus'},
+          {type:'click', selector:'#mgMinus'},
+          {type:'input', selector:'#mg', nonEmpty:true},
+        ],
+      },
+      {
+        title: 'Тип капсулы',
+        text: 'Выберите размер капсулы — так дозировка считается правильно.',
+        focus: ['#capSeg'],
         radiusInherit: true,
-        onEnter(){
-          // показать блок типа капсулы на время обучения
-          const cap = $('#capType');
-          if (cap) cap.hidden = false;
-        },
+        skipIfMissing: true,
+        require: {type:'click', selector:'#capSeg button'},
       },
       {
         title: 'Сохранить приём',
-        text: 'Нажмите «Добавить». Прогресс обновится, появится мотивация, а карточка станет зелёной.',
-        reveal: ['#cardDose', '#cardProgress', '#cardReminder'],
+        text: 'Нажмите «Добавить» — приём сохранится в календаре и прогрессе.',
         focus: ['#save'],
         radiusInherit: true,
         require: {type:'click', selector:'#save'},
       },
       {
         title: 'Календарь',
-        text: 'Быстрый обзор недели. «Открыть» — полный календарь.',
-        reveal: ['#cardCalendar'],
-        focus: ['#openCalendarBtn', '#calPrev', '#calNext'],
+        text: 'Откройте календарь, чтобы видеть дни приёма и пропуски.',
+        focus: ['#openCalendarBtn'],
         radiusInherit: true,
-      },
-      {
-        title: 'Напоминания',
-        text: 'Включите напоминание и выберите время.',
-        reveal: ['#cardReminder'],
-        focus: ['#remCtrl input', '#remTime'],
-        radiusInherit: true,
-        extra(){
-          return `
-            <div class="rt-extras">
-              <div class="rt-notif"><b>🔔 Roaccutane Tracker</b><span class="muted">Пора принять препарат</span></div>
-              <div class="rt-notif"><b>🧴 Roaccutane Tracker</b><span class="muted">Капсул осталось мало — пора докупить</span></div>
-            </div>
-          `;
-        }
-      },
-      {
-        title: 'FAQ',
-        text: 'Тут короткие подсказки по курсу.',
-        reveal: ['#cardFAQ'],
-        focus: ['#cardFAQ a.chip'],
-        radiusInherit: true,
-      },
-      {
-        title: 'Обнулить всё',
-        text: 'Удалит журнал и кэш на этом устройстве. Профиль останется.',
-        reveal: ['#cardReset'],
-        focus: ['#resetBtn'],
-        radiusInherit: true,
-      },
-      {
-        title: 'Нижнее меню',
-        text: 'Внизу — разделы приложения. Откройте «Календарь», чтобы продолжить.',
-        reveal: ['nav.tabbar'],
-        focus: ['nav.tabbar a[href*="calendar.html"]'],
-        radiusInherit: true,
-        primary: { label:'К календарю', click:'nav.tabbar a[href*="calendar.html"]', nextPage:'calendar' },
+        primary: { label:'Открыть', click:'#openCalendarBtn', nextPage:'calendar' },
       },
     ],
 
-
-    calendar:
- [
+    calendar: [
       {
         title: 'День в календаре',
         text: 'Тапните по любому дню — снизу появится краткая карточка.',

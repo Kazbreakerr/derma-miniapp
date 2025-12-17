@@ -4,7 +4,7 @@
   <meta charset="utf-8"/>
   <meta name="viewport" content="width=device-width, initial-scale=1"/>
   <meta name="view-transition" content="same-origin">
-  <title>Календарь — Retiora — Retinoid & Isotretinoin Tracker</title>
+  <title>Календарь — Roaccutane Tracker</title>
   <style>
     :root{
   --bg: #0b0f16;
@@ -727,6 +727,11 @@ html::view-transition-new(root){
     }catch(_){}
     return 0;
   }
+  // Тумблер "Цвет под настроение" (берём тот же ключ, что в diary.html)
+const TINT_KEY = 'rt.moodTintOn';
+function isTintOn(){
+  return (localStorage.getItem(TINT_KEY) ?? '1') !== '0';
+}
   function render(){
     const need=getTodayMg()<=0;
     document.querySelectorAll('[data-pill-spot]').forEach(spot=>{
@@ -758,7 +763,7 @@ html::view-transition-new(root){
   }catch(_){}
 })();
 </script>
-<div class="brand">Retiora — Retinoid & Isotretinoin Tracker</div>
+  <div class="brand">Roaccutane Tracker</div>
 
   <div class="app-title">Календарь<span data-pill-spot></span><span data-stock-spot></span></div>
 
@@ -938,11 +943,6 @@ function finalizeRange() {
   const pad = n => String(n).padStart(2,'0');
   const iso = d => `${d.getFullYear()}-${pad(d.getMonth()+1)}-${pad(d.getDate())}`;
   const getDiary = () => { try{ return JSON.parse(localStorage.getItem('rt.diary.v1')||'{}'); } catch(e){ return {}; } };
-  // Тумблер "Цвет под настроение" (должен работать в этом же скрипте)
-const TINT_KEY = 'rt.moodTintOn';
-function isTintOn(){
-  return (localStorage.getItem(TINT_KEY) ?? '1') !== '0';
-}
   function moodEmoji(v){
     if(v == null) return '—';
     if(v <= -3) return '😵‍💫';
@@ -1112,7 +1112,6 @@ function moodGlow(idx){
 
 function render(){
   const year   = current.getFullYear();
-  const tintOn = isTintOn();
   const month  = current.getMonth();
   const daysTotal = new Date(year, month + 1, 0).getDate();
 
@@ -1186,32 +1185,25 @@ cell.className = 'day' + (isToday ? ' today' : '') + (missed ? ' missed' : '');
 cell.setAttribute('data-date', id);
 if (day === 1) cell.style.gridColumnStart = String(startCol + 1);
 
-// 1) Свечение: пропуск = красный; иначе по самочувствию (только если tintOn)
-let glow = missed ? missGlow()
-        : (tintOn && moodIdx != null ? moodGlow(moodIdx) : 'transparent');
+// свечение: пропуск = красный; иначе по самочувствию; если данных нет — по дозе/без свечения
+const glow = missed ? missGlow()
+           : (moodIdx != null ? moodGlow(moodIdx) : 'transparent');
 cell.style.setProperty('--glowC', glow);
-
-// 2) Цветной фон по самочувствию (только если tintOn)
-if (tintOn && moodIdx != null){
+// цветной фон по самочувствию (как на твоём скрине)
+if (moodIdx != null){
   cell.style.setProperty('--moodBg', moodBg(moodIdx));
 } else {
   cell.style.removeProperty('--moodBg');
 }
 
-// 3) Если самочувствия нет (или tintOff), но есть доза — зелёный heatmap
+// если самочувствия нет, но есть доза — даём зелёное свечение heatmap
 if (glow === 'transparent' && dose > 0 && !missed){
-  glow = heatColor(dose, maxDose);
-  cell.style.setProperty('--glowC', glow);
+  cell.style.setProperty('--glowC', heatColor(dose, maxDose));
 }
-
-// 4) Эффекты mood-4/5/6 — только если tintOn
-cell.classList.remove('mood-4','mood-5','mood-6');
-if (tintOn){
-  if (moodIdx === 4) cell.classList.add('mood-4');
-  if (moodIdx === 5) cell.classList.add('mood-5');
-  if (moodIdx === 6) cell.classList.add('mood-6');
-}
-
+// эффекты частиц/бликов по самочувствию
+if (moodIdx === 4) cell.classList.add('mood-4'); // Неплохо (синий + искры)
+if (moodIdx === 5) cell.classList.add('mood-5'); // Хорошо (мята + искры)
+if (moodIdx === 6) cell.classList.add('mood-6'); // Отлично (зелёный + “драгоценный” блик)
 // контент
 const doseClass = `dose${taken ? ' taken' : ''}`;
 cell.innerHTML = `
@@ -1564,8 +1556,7 @@ if (btn){
 })();
 window.addEventListener('keydown', (e)=>{ if(e.key === 'Escape') closeSheet(); });
   window.addEventListener('storage', (e)=>{
-    if (e.key === 'rt.diary.v1' || e.key === 'rt.diary.bump' || e.key === 'rt.diary.v2' || e.key === 'rt.moodTintOn') render();
-
+ if (e.key === 'rt.diary.v1' || e.key === 'rt.diary.bump' || e.key === 'rt.diary.v2') render();
 
 });
 // на всякий — обновляемся, когда пользователь вернулся на страницу
@@ -1894,22 +1885,25 @@ body.sheet-open nav.tabbar{ pointer-events: auto !important; }
 
 
 <!-- RT_TOUR_V1: guided tour (spotlight + CTA) -->
-<style id="rtTourStyle">:root{
-    --rt-tour-z-overlay: 9500;
-    --rt-tour-z-focus: 9501;
-    --rt-tour-z-pointer: 9502;
-    --rt-tour-z-pop: 9503;
-    --rt-tour-accent: rgba(66, 227, 184, 1);
-    --rt-tour-accentSoft: rgba(66, 227, 184, .35);
-    --rt-tour-z-tabbar: 9605;
-    --rt-tour-overlay-bottom: calc(var(--tabbar-h) + 14px);
+<style id="rtTourStyle">
+  :root{
+  --rt-tour-z-overlay: 9500;
+  --rt-tour-z-tabbar:  9600;   /* таббар выше оверлея (чтобы НЕ размывался) */
+  --rt-tour-z-focus:   9605;   /* подсветка выше таббара */
+  --rt-tour-z-pointer: 9606;
+  --rt-tour-z-pop:     9607;
 
-  }
+  --rt-tour-accent: rgba(66, 227, 184, 1);
+  --rt-tour-accentSoft: rgba(66, 227, 184, .35);
+  /* Когда тур активен — таббар всегда сверху и не размывается оверлеем */
+body.rt-tour-on nav.tabbar{
+  z-index: var(--rt-tour-z-tabbar) !important;
+}
+
+}
+
   #rtTourOverlay{
-    position:fixed;
-    top:0; left:0; right:0;
-    bottom: var(--rt-tour-overlay-bottom);
-
+    position:fixed; inset:0;
     z-index: var(--rt-tour-z-overlay);
     background: rgba(0,0,0,.28);
     backdrop-filter: blur(10px) saturate(1.15);
@@ -2018,13 +2012,6 @@ body.sheet-open nav.tabbar{ pointer-events: auto !important; }
   }
   .rt-notif b{ font-weight:800; }
   .rt-notif .muted{ opacity:.72; display:block; margin-top:2px; }
-
-/* When tour is active — keep bottom nav above overlay (not blurred) */
-body.rt-tour-on nav.tabbar{
-  z-index: var(--rt-tour-z-tabbar) !important;
-  pointer-events: auto !important;
-}
-
 </style>
 
 <div id="rtTourOverlay" aria-hidden="true"></div>
@@ -2063,6 +2050,18 @@ body.rt-tour-on nav.tabbar{
   const btnSkip = $('#rtTourSkip');
   const btnFree = $('#rtTourFree');
   const btnNext = $('#rtTourNext');
+  // Блокируем клики везде, кроме попапа тура и подсвеченных элементов (focus)
+function isAllowedTarget(t){
+  return !!(t && (t.closest('#rtTourPop') || t.closest('[data-rt-tour-focus]')));
+}
+function tourGuard(e){
+  if (!overlay.classList.contains('is-on')) return;
+  if (isAllowedTarget(e.target)) return;
+  e.preventDefault();
+  e.stopPropagation();
+  e.stopImmediatePropagation();
+}
+
 
   function pageKey(){
     const p = (location.pathname.split('/').pop() || '').toLowerCase();
@@ -2115,12 +2114,26 @@ let cleanupWait = null;
   }
 
   function visible(on){
-    document.body.classList.toggle('rt-tour-on', !!on);
-    overlay.classList.toggle('is-on', !!on);
-    pop.classList.toggle('is-on', !!on);
-    overlay.setAttribute('aria-hidden', on ? 'false' : 'true');
-    if(!on) pointer.classList.remove('is-on');
+  overlay.classList.toggle('is-on', !!on);
+  pop.classList.toggle('is-on', !!on);
+  overlay.setAttribute('aria-hidden', on ? 'false' : 'true');
+  if(!on) pointer.classList.remove('is-on');
+
+  // флаг на body для поднятия tabbar по z-index
+  document.body.classList.toggle('rt-tour-on', !!on);
+
+  // глобальная защита: кликается только focus и сам попап тура
+  if (on){
+    document.addEventListener('pointerdown', tourGuard, true);
+    document.addEventListener('click', tourGuard, true);
+    document.addEventListener('touchstart', tourGuard, true);
+  } else {
+    document.removeEventListener('pointerdown', tourGuard, true);
+    document.removeEventListener('click', tourGuard, true);
+    document.removeEventListener('touchstart', tourGuard, true);
   }
+}
+
 
   function rectUnion(els){
     const rs = els.map(e=> e.getBoundingClientRect()).filter(r=> r.width && r.height);
@@ -2661,22 +2674,22 @@ main: [
  [
       {
         title: 'День в календаре',
-        text: 'Тапните по любому дню — снизу появится карточка. Если зажать день на 1 секунду, откроется дневник этого дня.',
+        text: 'Тапните по любому дню — снизу появится краткая карточка.',
         reveal: ['#card'],
-        focus: () => pick.calendarDay(),
+        focus: ['#grid .day'],
         radiusInherit: true,
-        require: {type:'click', selector:'#grid .day'},
-        autoNext: true,
+        require: { type:'click', selector:'#grid .day' },
+autoNext: true,
       },
       {
-        title: 'Карточка дня',
-        text: 'Снизу — самочувствие, доза и заметка. «Открыть дневник» — подробности.',
-        reveal: ['#sheet'],
-        focus: ['#sheet', '#openDiary', '#doseEdit'],
-        radiusInherit: true,
-        avoidCover: 'reveal',
-        popPlacement: 'above',
-      },
+  title: 'Карточка дня',
+  text: 'Снизу — самочувствие, доза и заметка. «Открыть дневник» — подробности.',
+  reveal: ['#sheet'],
+  focus: ['#sheet', '#openDiary', '#doseEdit'],
+  radiusInherit: true,
+  avoidCover: 'reveal',
+  popPlacement: 'above',
+},
       {
         title: 'Заполнить сразу несколько дней',
         text: 'Проведите пальцем по нескольким дням — появится ввод дозы для всех выбранных.',
@@ -2701,6 +2714,54 @@ main: [
         },
       },
       {
+        title: 'Быстрый переход в дневник',
+        text: 'Зажмите день на 1 секунду — так вы быстро откроете дневник этого дня.',
+        reveal: ['#card'],
+        focus: () => pick.calendarDay(),
+        radiusInherit: true,
+        // practice long-press without реального перехода
+        require: 'manual',
+        onEnter: ({setSatisfied})=>{
+          setSatisfied(false);
+          const grid = $('#grid');
+          if(!grid) { setSatisfied(true); return null; }
+
+          let t=null, active=false;
+
+          const down = (e)=>{
+            const dayEl = e.target && e.target.closest && e.target.closest('.day');
+            if(!dayEl) return;
+
+            // блокируем штатный обработчик на время практики (чтобы не улететь в дневник)
+            try{ e.stopImmediatePropagation(); }catch(_){}
+            try{ e.stopPropagation(); }catch(_){}
+            try{ e.preventDefault(); }catch(_){}
+
+            active = true;
+            clearTimeout(t);
+            t = setTimeout(()=>{
+              if(!active) return;
+              setSatisfied(true);
+            }, 850);
+          };
+          const up = ()=>{
+            active = false;
+            clearTimeout(t);
+          };
+
+          grid.addEventListener('pointerdown', down, true);
+          window.addEventListener('pointerup', up, true);
+          window.addEventListener('pointercancel', up, true);
+
+          return ()=>{
+            clearTimeout(t);
+            grid.removeEventListener('pointerdown', down, true);
+            window.removeEventListener('pointerup', up, true);
+            window.removeEventListener('pointercancel', up, true);
+          };
+        },
+      },
+      {
         title: 'Профиль',
         text: 'Перейдите в профиль — там врач, напоминания и дневник.',
         reveal: ['nav.tabbar'],
@@ -2711,7 +2772,8 @@ main: [
         primary: { label:'Перейти', click:'nav.tabbar a[href$="myprofile.html"]', nextPage:'myprofile' },
       },
     ],
-myprofile: [
+
+    myprofile: [
       {
         title: 'Лечащий врач',
         text: 'Введите код врача (его выдаёт врач). После прикрепления дождитесь, пока врач примет заявку.',
