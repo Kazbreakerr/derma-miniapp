@@ -50,7 +50,7 @@ try{
 }catch(_){}
 </script>
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>Roaccutane Tracker — Главная</title>
+  <title>Retiora — Retinoid & Isotretinoin Tracker — Главная</title>
  <script src="https://telegram.org/js/telegram-web-app.js"></script>
   <script>window.API_BASE = window.API_BASE || '';
 </script>
@@ -3878,6 +3878,10 @@ if (cur && cur.complete && cur.naturalWidth > 0) return;
     transform: translateY(6px);
     transition: opacity .16s ease, transform .16s ease;
   }
+  #rtTourPop.rt-solid{
+  background: rgba(10,16,28,.96);
+  border: 1px solid rgba(255,255,255,.10);
+}
   #rtTourPop.is-on{ opacity:1; pointer-events:auto; transform: translateY(0); }
   #rtTourPop .rt-title{ font-weight:800; font-size: 16px; margin:0 0 6px; letter-spacing:.2px; }
   #rtTourPop .rt-text{ margin:0; font-size: 13px; line-height:1.35; opacity:.92; }
@@ -4113,11 +4117,14 @@ function placeUI(targetRect, avoidRect, step){
     let x = SAFE, y = SAFE;
 
     if (!targetRect){
-      x = clamp((vw - popW)/2, SAFE, vw - popW - SAFE);
-      y = clamp((vh - popH)/2, SAFE, vh - popH - SAFE);
-      best = {x,y};
-      break;
-    }
+  x = clamp((vw - popW)/2, SAFE, vw - popW - SAFE);
+
+  const topOffset = (step && typeof step.topOffset === 'number') ? step.topOffset : 92;
+  y = clamp(SAFE + topOffset, SAFE, vh - popH - SAFE);
+
+  best = {x,y};
+  break;
+}
 
     if (p === 'below'){
       x = xAligned(targetRect);
@@ -4156,6 +4163,7 @@ function placeUI(targetRect, avoidRect, step){
 }
 
   function setContent(step, idx, total){
+    pop.classList.toggle('rt-solid', !!step.solid);
     elStep.textContent = `Шаг ${idx+1} из ${total}`;
     elTitle.textContent = step.title || '—';
     elText.textContent  = step.text  || '';
@@ -4311,12 +4319,12 @@ function attachRequire(step){
     }
 
     const step = list[st.idx];
-    if (!step){
-      visible(false);
-      clearFocus();
-      markDone();
-      return;
-    }
+if (!step){
+  visible(false);
+  clearFocus();
+  // НЕ markDone! Просто прячем тур на неподдерживаемой странице
+  return;
+}
 
     // cleanup previous
     if (cleanupWait){ try{ cleanupWait(); }catch(_){ } cleanupWait=null; }
@@ -4471,11 +4479,14 @@ function attachRequire(step){
     
 main: [
       {
-        title: 'Добро пожаловать в Roaccutane Tracker',
+        
+        title: 'Добро пожаловать в Retiora',
         text: 'Покажу, как отмечать приём, смотреть прогресс, вести дневник и анализы.',
         focus: [],
         pointer: false,
         nextLabel: 'Начать',
+        solid: true,
+topOffset: 64,
       },
       {
         title: 'Цель курса',
@@ -4499,7 +4510,7 @@ main: [
       },
       {
         title: 'Сохранить приём',
-        text: 'Нажмите «Добавить». Прогресс обновится, появится мотивация, а карточка станет зелёной.',
+        text: 'Нажмите «Добавить». Прогресс обновится, карточка напоминания станет зелёной, сигнал о приёме перестанет мигать.',
         reveal: ['#cardDose', '#cardProgress', '#cardReminder'],
         focus: ['#save'],
         radiusInherit: true,
@@ -4507,10 +4518,34 @@ main: [
       },
       {
         title: 'Календарь',
-        text: 'Быстрый обзор недели. «Открыть» — полный календарь.',
+        text: 'Быстрый обзор недели. Нажатием на кнопку «Открыть» вы перейдете на страницу Календаря.',
         reveal: ['#cardCalendar'],
-        focus: ['#openCalendarBtn', '#calPrev', '#calNext'],
+        focus: ['#calPrev', '#calNext'],
         radiusInherit: true,
+        onEnter(){
+  const btn = document.querySelector('#openCalendarBtn');
+  if (!btn) return;
+
+  const prev = {
+    pe: btn.style.pointerEvents,
+    dis: btn.disabled,
+    aria: btn.getAttribute('aria-disabled'),
+    op: btn.style.opacity,
+  };
+
+  btn.style.pointerEvents = 'none';
+  try{ btn.disabled = true; }catch(_){}
+  btn.setAttribute('aria-disabled','true');
+  btn.style.opacity = '0.65';
+
+  return ()=>{
+    btn.style.pointerEvents = prev.pe || '';
+    try{ btn.disabled = !!prev.dis; }catch(_){}
+    if (prev.aria == null) btn.removeAttribute('aria-disabled');
+    else btn.setAttribute('aria-disabled', prev.aria);
+    btn.style.opacity = prev.op || '';
+  };
+},
       },
       {
         title: 'Напоминания',
@@ -4521,26 +4556,30 @@ main: [
         extra(){
           return `
             <div class="rt-extras">
-              <div class="rt-notif"><b>🔔 Roaccutane Tracker</b><span class="muted">Пора принять препарат</span></div>
-              <div class="rt-notif"><b>🧴 Roaccutane Tracker</b><span class="muted">Капсул осталось мало — пора докупить</span></div>
+              <div class="rt-notif"><b>🔔 Retiora — Retinoid & Isotretinoin Tracker </b><span class="muted">Пора принять препарат</span></div>
+              <div class="rt-notif"><b>🧴 Retiora — Retinoid & Isotretinoin Tracker</b><span class="muted">Капсул осталось мало — пора докупить</span></div>
             </div>
           `;
         }
       },
       {
-        title: 'FAQ',
-        text: 'Тут короткие подсказки по курсу.',
-        reveal: ['#cardFAQ'],
-        focus: ['#cardFAQ a.chip'],
-        radiusInherit: true,
-      },
+  title: 'FAQ',
+  text: 'Короткие подсказки по курсу.',
+  reveal: ['#cardFAQ'],
+  focus: ['#cardFAQ a.chip'],
+  radiusInherit: true,
+  avoidCover: 'reveal',
+  popPlacement: 'above',
+},
       {
         title: 'Обнулить всё',
         text: 'Удалит журнал и кэш на этом устройстве. Профиль останется.',
         reveal: ['#cardReset'],
         focus: ['#resetBtn'],
-        radiusInherit: true,
-      },
+        avoidCover: 'reveal',
+  popPlacement: 'above',
+  radiusInherit: true,
+},
       {
         title: 'Нижнее меню',
         text: 'Внизу — разделы приложения. Откройте «Календарь», чтобы продолжить.',
@@ -4632,8 +4671,8 @@ main: [
         radiusInherit: true,
         extraHTML: `
           <div class="rt-preview">
-            <div class="rt-notif"><b>Roaccutane Tracker</b><span class="muted">09:00 • Пора принять препарат</span></div>
-            <div class="rt-notif"><b>Roaccutane Tracker</b><span class="muted">Осталось ≤ 10 капсул • Пора купить</span></div>
+            <div class="rt-notif"><b>Retiora — Retinoid & Isotretinoin Tracker</b><span class="muted">09:00 • Пора принять препарат</span></div>
+            <div class="rt-notif"><b>Retiora — Retinoid & Isotretinoin Tracker</b><span class="muted">Осталось ≤ 10 капсул • Пора купить</span></div>
           </div>
         `,
         require: [

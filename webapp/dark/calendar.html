@@ -324,7 +324,8 @@ user-select: none;
 
 .dose .capsule{ grid-area: cap; }
 .dose .val{ grid-area: val; }
-.dose .unit{ display:none; }
+.dose .unit{ display:inline-block; opacity:.85; }
+
 /* === MOOD FX (только синий = частицы; мята = люминисценция; зелёный = малахит) === */
 .day::before{
   content:"";
@@ -699,6 +700,9 @@ html::view-transition-new(root){
 .sheet .sheet-title{ font-size: clamp(16px, 2.2vw, 18px); }
 .sheet .badge{ font-size: 12px; }
 .sheet .sheet-row strong{ font-size: 15px; }
+
+/* когда выделяем диапазон — не даём странице скроллиться */
+.grid.dragging { touch-action: none; }
 
 </style>
 <style id="pill-alert-style">
@@ -1218,9 +1222,13 @@ cell.innerHTML = `
   <div class="day-num">${day}</div>
   <div class="marks">
     <div class="${doseClass}" style="${dose ? '' : 'opacity:.0;'}">
-      <span class="capsule" aria-hidden="true"></span>
-      <span class="val">${dose ? dose : ''}</span>
-    </div>
+  <span class="capsule" aria-hidden="true"></span>
+  <span class="doseText">
+    <span class="val">${dose ? dose : ''}</span>
+    <span class="unit">${dose ? 'мг' : ''}</span>
+  </span>
+</div>
+
     <div class="mood">${(mood==null?"":moodEmoji(mood))}</div>
   </div>
 `;
@@ -1628,32 +1636,58 @@ document.addEventListener('visibilitychange', ()=>{ if (!document.hidden) render
 })();
 
 
-  // === RANGE SELECT (п.4): делегирование по .day ===
+  // === RANGE SELECT (mobile-safe): pointermove + elementFromPoint ===
 grid.addEventListener('pointerdown', (e) => {
   const cell = e.target.closest('.day[data-date]');
   if (!cell) return;
+
   drag.active = true;
-  drag.start = cell.dataset.date;
-  drag.over  = cell.dataset.date;
+  drag.start  = cell.dataset.date;
+  drag.over   = cell.dataset.date;
+  drag.pointerId = e.pointerId;
+
   grid.classList.add('dragging');
   highlightRange(drag.start, drag.over);
-});
 
-grid.addEventListener('pointerover', (e) => {
+  // удерживаем события на grid (важно для тача)
+  try { grid.setPointerCapture(e.pointerId); } catch (_) {}
+
+  // блокируем скролл страницы
+  e.preventDefault();
+}, { passive: false });
+
+grid.addEventListener('pointermove', (e) => {
   if (!drag.active) return;
-  const cell = e.target.closest('.day[data-date]');
+
+  const el = document.elementFromPoint(e.clientX, e.clientY);
+  const cell = el && el.closest ? el.closest('.day[data-date]') : null;
   if (!cell) return;
-  drag.over = cell.dataset.date;
+
+  const id = cell.dataset.date;
+  if (id === drag.over) return;
+
+  drag.over = id;
   highlightRange(drag.start, drag.over);
-});
+
+  e.preventDefault();
+}, { passive: false });
 
 const finishDrag = () => {
   if (!drag.active) return;
-  finalizeRange();
+
+  try {
+    if (drag.pointerId != null) {
+      grid.releasePointerCapture(drag.pointerId);
+    }
+  } catch (_) {}
+
+  finalizeRange(); // у тебя уже есть эта функция
 };
+
 grid.addEventListener('pointerup', finishDrag);
 grid.addEventListener('pointercancel', finishDrag);
 document.addEventListener('pointerup', finishDrag);
+
 
   render();
 })();
@@ -2024,7 +2058,51 @@ body.rt-tour-on nav.tabbar{
   z-index: var(--rt-tour-z-tabbar) !important;
   pointer-events: auto !important;
 }
+/* чтобы "20 мг" всегда было в одной строке */
+.dose .doseText{
+  display:inline-flex;
+  align-items:baseline;
+  gap:4px;
+  white-space:nowrap;
+}
 
+/* мобильная раскладка: капсула сверху, ниже "20 мг" */
+@media (max-width:520px){
+  .grid .day .dose{
+    display:flex !important;
+    flex-direction:column;
+    align-items:flex-start;
+    gap:2px;
+  }
+}
+
+/* FINAL MOBILE OVERRIDE: капсула сверху, ниже "20 мг" в одну строку */
+@media (max-width: 520px){
+  .grid .day .dose{
+    display:flex !important;
+    flex-direction:column !important;
+    align-items:flex-start !important;
+    gap:2px !important;
+  }
+
+  .grid .day .dose .capsule{
+    display:inline-block !important;
+    width:16px;
+    height:10px;
+  }
+
+  .grid .day .dose .doseText{
+    display:inline-flex !important;
+    align-items:baseline;
+    gap:4px;
+    white-space:nowrap !important; /* ключевое: "20 мг" не переносится */
+  }
+
+  .grid .day .dose .unit{
+    display:inline !important;
+    opacity:.85;
+  }
+} 
 </style>
 
 <div id="rtTourOverlay" aria-hidden="true"></div>
