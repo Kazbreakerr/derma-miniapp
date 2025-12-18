@@ -3848,7 +3848,7 @@ if (cur && cur.complete && cur.naturalWidth > 0) return;
   #rtTourOverlay{
     position:fixed; inset:0;
     z-index: var(--rt-tour-z-overlay);
-    background: rgba(0,0,0,.12);
+    background: rgba(0,0,0,.28);
     backdrop-filter: blur(10px) saturate(1.15);
     -webkit-backdrop-filter: blur(10px) saturate(1.15);
     opacity:0; pointer-events:none;
@@ -3865,26 +3865,7 @@ if (cur && cur.complete && cur.naturalWidth > 0) return;
       0 18px 44px rgba(0,0,0,.45),
       0 0 34px rgba(66,227,184,.30);
     border-radius: 18px;
-    }
-  .rt-tour-focus.rt-tour-strong{
-    box-shadow:
-      0 0 0 2px rgba(255,255,255,.14),
-      0 0 0 4px rgba(66,227,184,.92),
-      0 0 0 10px rgba(66,227,184,.18),
-      0 22px 60px rgba(0,0,0,.55),
-      0 0 52px rgba(66,227,184,.44);
-    animation: rtTourPulse 1.15s ease-in-out infinite;
   }
-  @keyframes rtTourPulse{
-    0%,100%{ filter: brightness(1); }
-    50%{ filter: brightness(1.08); }
-  }
-
-  /* step-2 helper: show which modes were visited */
-  #doseSeg button.rt-tour-visited{
-    box-shadow: inset 0 0 0 2px rgba(66,227,184,.65), 0 10px 24px rgba(66,227,184,.14);
-  }
-
   
   .rt-tour-reveal{
     /* position is set in JS only when needed (for z-index) */
@@ -4151,41 +4132,27 @@ function placeUI(targetRect, avoidRect, step){
     return clamp(rect.left, SAFE, vw - popW - SAFE); // start
   };
 
-  const avoid = avoidRect || targetRect;
-
-  // --- No target: keep stable (center if requested, otherwise top offset) ---
-  if (!targetRect){
-    const x = clamp((vw - popW)/2, SAFE, vw - popW - SAFE);
-    let y;
-    if (preferred === 'center'){
-      y = clamp((vh - popH)/2, SAFE, vh - popH - SAFE);
-    } else {
-      const topOffset = (step && typeof step.topOffset === 'number') ? step.topOffset : 92;
-      y = clamp(SAFE + topOffset, SAFE, vh - popH - SAFE);
-    }
-    pop.style.left = x + 'px';
-    pop.style.top  = y + 'px';
-    return;
-  }
-
-  // --- With target: try to NOT cover the avoid-rect (focus/reveal) ---
   const candidates = [];
   const push = (p)=>{ if(p && !candidates.includes(p)) candidates.push(p); };
-
-  // preference first
   push(preferred);
+  ['below','above','right','left','center'].forEach(push);
 
-  // default placements (WITHOUT center fallback)
-  ['below','above','right','left'].forEach(push);
+  let best = { x: SAFE, y: SAFE };
 
-  // allow center ONLY if explicitly asked
-  if (preferred === 'center') push('center');
-
-  let best = null;
-  let bestOverlap = Infinity;
+  const avoid = avoidRect || targetRect;
 
   for (const p of candidates){
     let x = SAFE, y = SAFE;
+
+    if (!targetRect){
+  x = clamp((vw - popW)/2, SAFE, vw - popW - SAFE);
+
+  const topOffset = (step && typeof step.topOffset === 'number') ? step.topOffset : 92;
+  y = clamp(SAFE + topOffset, SAFE, vh - popH - SAFE);
+
+  best = {x,y};
+  break;
+}
 
     if (p === 'below'){
       x = xAligned(targetRect);
@@ -4209,32 +4176,14 @@ function placeUI(targetRect, avoidRect, step){
 
     const candRect = { left:x, top:y, right:x+popW, bottom:y+popH };
 
-    // compute overlap area with avoid
-    let overlap = 0;
-    if (avoid && rectIntersects(candRect, avoid)){
-      const ix = Math.max(0, Math.min(candRect.right, avoid.right) - Math.max(candRect.left, avoid.left));
-      const iy = Math.max(0, Math.min(candRect.bottom, avoid.bottom) - Math.max(candRect.top, avoid.top));
-      overlap = ix * iy;
-    }
-
-    // perfect: no overlap
-    if (!avoid || overlap === 0){
+    // Prefer placements that do not cover the avoid-rect (usually the revealed context)
+    if (!avoid || !rectIntersects(candRect, avoid) || p === 'center'){
       best = {x,y};
-      bestOverlap = 0;
       break;
     }
 
-    // otherwise, keep best minimal overlap
-    if (overlap < bestOverlap){
-      best = {x,y};
-      bestOverlap = overlap;
-    }
-  }
-
-  // last-resort fallback
-  if (!best){
-    best = { x: clamp((vw - popW)/2, SAFE, vw - popW - SAFE),
-             y: clamp(SAFE + 92, SAFE, vh - popH - SAFE) };
+    // fallback candidate (keep last tried)
+    best = {x,y};
   }
 
   pop.style.left = best.x + 'px';
@@ -4540,33 +4489,12 @@ if (!step){
   btnNext?.addEventListener('click', ()=> next(false));
   overlay?.addEventListener('click', (e)=>{ e.preventDefault(); e.stopPropagation(); });
 
-  function rtTourRecalcUI(){
+  window.addEventListener('resize', ()=>{
     if (!overlay.classList.contains('is-on')) return;
-    const step = currentStep();
-    const rFocus = rectUnion(focused);
-
-    let avoidEls = focused.slice();
-    const mode = (step && step.avoidCover) || 'focus';
-    if (mode === 'reveal') avoidEls = revealed.slice();
-    else if (mode === 'all') avoidEls = focused.concat(revealed);
-
-    const rAvoid = rectUnion(avoidEls);
-    placeUI(rFocus, rAvoid, step);
-    pointer.classList.toggle('is-on', (step?.pointer !== false) && !!rFocus);
-  }
-
-  window.addEventListener('resize', rtTourRecalcUI);
-
-  // keep popover pinned if user scrolls
-  let __rtTourRAF = null;
-  window.addEventListener('scroll', ()=>{
-    if (!overlay.classList.contains('is-on')) return;
-    if (__rtTourRAF) return;
-    __rtTourRAF = requestAnimationFrame(()=>{
-      __rtTourRAF = null;
-      rtTourRecalcUI();
-    });
-  }, {passive:true});
+    const r = rectUnion(focused);
+    placeUI(r);
+    pointer.classList.toggle('is-on', (currentStep()?.pointer !== false) && !!r);
+  });
 
   // -------- Steps mapping (editable) --------
   const pick = {
@@ -4578,75 +4506,30 @@ if (!step){
   const STEPS = {
     
 main: [
-           {
+      {
+        
         title: 'Добро пожаловать в Retiora',
         text: 'Покажу, как отмечать приём, смотреть прогресс, вести дневник и анализы.',
         focus: [],
         pointer: false,
         nextLabel: 'Начать',
         solid: true,
-        popPlacement: 'center',
-        popAlign: 'center',
+topOffset: 64,
       },
       {
         title: 'Цель курса',
-        text: 'Пощёлкайте по всем трём режимам (Мин/Опт/Макс) — и мы перейдём дальше автоматически.',
+        text: 'Выберите Мин/Опт/Макс. Круги и полоска — ваш прогресс.',
         reveal: ['#cardProgress'],
-        focus: ['#doseSeg'],
+        focus: ['#doseSeg button'],
         radiusInherit: true,
-        popPlacement: 'below',
-        popAlign: 'center',
-        avoidCover: 'focus',
-        require: 'manual',
-        autoNext: true,
-        onEnter({ setSatisfied }){
-          try { setSatisfied(false); } catch(_){}
-          const seg = document.getElementById('doseSeg');
-          if (!seg) { setSatisfied(true); return; }
-
-          const need = new Set(['min','opt','max']);
-          const seen = new Set();
-          const btns = Array.from(seg.querySelectorAll('button[data-mode]'));
-
-          const markBtn = (mode)=>{
-            if (!mode || !need.has(mode)) return;
-            seen.add(mode);
-            const b = seg.querySelector(`button[data-mode="${mode}"]`);
-            if (b) b.classList.add('rt-tour-visited');
-          };
-
-          // mark current active mode (if any)
-          const active = seg.querySelector('button.active[data-mode]');
-          if (active) markBtn(active.dataset.mode);
-
-          const onClick = (e)=>{
-            const b = e.target && e.target.closest ? e.target.closest('button[data-mode]') : null;
-            if (!b) return;
-            markBtn(b.dataset.mode);
-
-            if (seen.size >= 3){
-              setSatisfied(true);
-              setTimeout(()=> next(false), 120);
-            }
-          };
-
-          seg.addEventListener('click', onClick, true);
-
-          return ()=>{
-            seg.removeEventListener('click', onClick, true);
-            btns.forEach(b=> b.classList.remove('rt-tour-visited'));
-          };
-        },
+        require: {type:'click', selector:'#doseSeg button'},
       },
       {
-        title: 'Дозировка и капсулы',
-        text: 'Дозу можно вводить вручную или менять кнопками «− / +». Тип капсулы тоже переключается здесь. Дату трогать не нужно — это просто информация.',
+        title: 'Отметить приём',
+        text: 'Выставьте дозу, тип капсулы и дату.',
         reveal: ['#cardDose'],
-        focus: ['#mg', '#mgMinus', '#mgPlus', '#capSeg'],
+        focus: ['#mg', '#mgMinus', '#mgPlus', '#capSeg', '#date'],
         radiusInherit: true,
-        popPlacement: 'below',
-        popAlign: 'center',
-        avoidCover: 'focus',
         onEnter(){
           // показать блок типа капсулы на время обучения
           const cap = $('#capType');
@@ -4659,20 +4542,9 @@ main: [
         reveal: ['#cardDose', '#cardProgress', '#cardReminder'],
         focus: ['#save'],
         radiusInherit: true,
-        popPlacement: 'above',
-        popAlign: 'center',
-        avoidCover: 'focus',
         require: {type:'click', selector:'#save'},
-        autoNext: true,
-        onEnter(){
-          const btn = document.querySelector('#save');
-          if (!btn) return;
-          btn.classList.add('rt-tour-strong');
-          return ()=> btn.classList.remove('rt-tour-strong');
-        },
       },
-
-{
+      {
         title: 'Календарь',
         text: 'Быстрый обзор недели. Нажатием на кнопку «Открыть» вы перейдете на страницу Календаря.',
         reveal: ['#cardCalendar'],

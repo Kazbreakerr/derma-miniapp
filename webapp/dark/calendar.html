@@ -1251,9 +1251,11 @@ cell.addEventListener('pointerdown', (e)=>{
   setPortalXYFromEvent(e);
 
   pressTimer = setTimeout(()=>{
-    longPressed = true;
-    goDiary(id);
-  }, LONG_MS);
+  // если пользователь начал выделять диапазон — НЕ открываем дневник
+  if (drag.pending || drag.active) return;
+  longPressed = true;
+  goDiary(id);
+}, LONG_MS);
 });
 
 function onMove(e){
@@ -1636,89 +1638,122 @@ document.addEventListener('visibilitychange', ()=>{ if (!document.hidden) render
 })();
 
 
-  // === RANGE SELECT (mobile-safe, fixed): включаем только после реального протягивания ===
-const RANGE_START_THR = 14; // px (должно быть > MOVE_TOL=12, чтобы не ломать long-press)
+  // === RANGE SELECT (phones fix): touch on coarse pointers, pointer on desktop ===
+const IS_COARSE = window.matchMedia && window.matchMedia('(pointer: coarse)').matches;
+const RANGE_START_THR = 10;   // важно: меньше, чем MOVE_TOL=12, но long-press мы уже защитили
+const RANGE_PAD = 14;
 
-function cellFromPoint(x, y){
+function rangeCellFromXY(x, y){
   const el = document.elementFromPoint(x, y);
   let cell = el && el.closest ? el.closest('.day[data-date]') : null;
   if (cell) return cell;
 
-  // попали в gap — берём ближайшую ячейку по расширенному прямоугольнику
-  const PAD = 12;
-  const cells = grid.querySelectorAll('.day[data-date]');
-  for (const c of cells){
+  // попадание в gap между ячейками
+  for (const c of grid.querySelectorAll('.day[data-date]')){
     const r = c.getBoundingClientRect();
-    if (x >= r.left-PAD && x <= r.right+PAD && y >= r.top-PAD && y <= r.bottom+PAD) return c;
+    if (x >= r.left - RANGE_PAD && x <= r.right + RANGE_PAD &&
+        y >= r.top  - RANGE_PAD && y <= r.bottom + RANGE_PAD) return c;
   }
   return null;
 }
 
-grid.addEventListener('pointerdown', (e) => {
-  const cell = e.target.closest('.day[data-date]');
+function rangeArm(cell, x, y){
+  drag.pending = true;
+  drag.active  = false;
+  drag.start   = cell.dataset.date;
+  drag.over    = cell.dataset.date;
+  drag.x0 = x; drag.y0 = y;
+}
+
+function rangeEnsureActive(){
+  if (drag.active) return;
+  drag.active = true;
+  grid.classList.add('dragging');
+  highlightRange(drag.start, drag.over);
+}
+
+function rangeUpdate(x, y){
+  const cell = rangeCellFromXY(x, y);
   if (!cell) return;
-
-  // НЕ включаем drag сразу — иначе ломаем tap/long-press логику
-  drag.pending  = true;
-  drag.active   = false;
-  drag.start    = cell.dataset.date;
-  drag.over     = cell.dataset.date;
-  drag.pointerId = e.pointerId;
-
-  drag.x0 = e.clientX;
-  drag.y0 = e.clientY;
-}, { passive: true });
-
-grid.addEventListener('pointermove', (e) => {
-  if (!drag.pending && !drag.active) return;
-
-  // если drag ещё не активен — ждём порог движения
-  if (!drag.active){
-    const dx = e.clientX - (drag.x0 || 0);
-    const dy = e.clientY - (drag.y0 || 0);
-    if ((dx*dx + dy*dy) < RANGE_START_THR*RANGE_START_THR) return;
-
-    // ВКЛЮЧАЕМ выделение только теперь
-    drag.active = true;
-    grid.classList.add('dragging');
-    try { grid.setPointerCapture(drag.pointerId); } catch(_) {}
-
-    // подсветим стартовый день
-    highlightRange(drag.start, drag.over);
-  }
-
-  const cell = cellFromPoint(e.clientX, e.clientY);
-  if (!cell) return;
-
   const id = cell.dataset.date;
   if (id === drag.over) return;
-
   drag.over = id;
   highlightRange(drag.start, drag.over);
+}
 
-  e.preventDefault(); // блокируем скролл ТОЛЬКО во время реального drag
-}, { passive: false });
-
-const finishDrag = () => {
-  // если выделение так и не началось — это был тап/удержание, не вмешиваемся
+function rangeFinish(){
   if (!drag.active){
     drag.pending = false;
     return;
   }
-
-  try {
-    if (drag.pointerId != null) grid.releasePointerCapture(drag.pointerId);
-  } catch (_) {}
-
   drag.pending = false;
-  finalizeRange(); // внутри уже сбрасывает drag.active и снимает .dragging :contentReference[oaicite:2]{index=2}
-};
+  finalizeRange();
+}
 
-grid.addEventListener('pointerup', finishDrag);
-grid.addEventListener('pointercancel', finishDrag);
-document.addEventListener('pointerup', finishDrag);
+if (IS_COARSE){
+  // --- PHONE/TABLET: touch events (реально работает на мобилках) ---
+  grid.addEventListener('touchstart', (e)=>{
+    const cell = e.target.closest('.day[data-date]');
+    if (!cell) return;
+    const t = e.touches[0];
+    rangeArm(cell, t.clientX, t.clientY);
+  }, {passive:true});
 
+  grid.addEventListener('touchmove', (e)=>{
+    if (!drag.pending && !drag.active) return;
+    const t = e.touches[0];
+    const x = t.clientX, y = t.clientY;
 
+    if (!drag.active){
+      const dx = x - (drag.x0 || 0), dy = y - (drag.y0 || 0);
+      if (dx*dx + dy*dy < RANGE_START_THR*RANGE_START_THR) return;
+      rangeEnsureActive();
+    }
+
+    rangeUpdate(x, y);
+
+    // ключевое: как только drag активен — гасим скролл страницы
+    if (e.cancelable) e.preventDefault();
+  }, {passive:false});
+
+  grid.addEventListener('touchend', rangeFinish, {passive:true});
+  grid.addEventListener('touchcancel', ()=>{
+    drag.pending = false;
+    drag.active = false;
+    grid.classList.remove('dragging');
+  }, {passive:true});
+
+} else {
+  // --- DESKTOP: pointer events (мышь/трекпад) ---
+  grid.addEventListener('pointerdown', (e)=>{
+    const cell = e.target.closest('.day[data-date]');
+    if (!cell) return;
+    rangeArm(cell, e.clientX, e.clientY);
+    drag.pointerId = e.pointerId;
+  }, {passive:true});
+
+  grid.addEventListener('pointermove', (e)=>{
+    if (!drag.pending && !drag.active) return;
+
+    if (!drag.active){
+      const dx = e.clientX - (drag.x0 || 0), dy = e.clientY - (drag.y0 || 0);
+      if (dx*dx + dy*dy < (RANGE_START_THR*RANGE_START_THR)) return;
+      rangeEnsureActive();
+      try { grid.setPointerCapture(drag.pointerId); } catch(_){}
+    }
+
+    rangeUpdate(e.clientX, e.clientY);
+    e.preventDefault();
+  }, {passive:false});
+
+  const end = ()=>{
+    try { if (drag.pointerId != null) grid.releasePointerCapture(drag.pointerId); } catch(_){}
+    rangeFinish();
+  };
+  grid.addEventListener('pointerup', end);
+  grid.addEventListener('pointercancel', end);
+  document.addEventListener('pointerup', end);
+}
 
   render();
 })();

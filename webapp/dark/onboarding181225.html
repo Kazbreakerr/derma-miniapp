@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>Retiora — Retinoid & Isotretinoin Tracker — Быстрый старт</title>
+  <title>Roaccutane Tracker — Быстрый старт</title>
 
   <!-- Telegram WebApp -->
   <script src="https://telegram.org/js/telegram-web-app.js"></script>
@@ -52,15 +52,6 @@
       --neo-light: rgba(255,255,255,.06);
     }
     *{box-sizing:border-box}
-    /* FIX: чтобы атрибут hidden работал (его перебивал .field{display:flex}) */
-    [hidden]{display:none !important;}
-    /* desktop helpers */
-    .desktop-only{display:none}
-    @media (hover:hover) and (pointer:fine){
-      .desktop-only{display:block}
-    }
-
-
     html,body{height:100%}
     body{
       margin:0;color:var(--text-high);
@@ -80,16 +71,7 @@
     }
 
     .wrap{max-width:900px;margin:0 auto;padding:24px 24px 40px}
-    h1{margin:0 0 14px;text-align:center}
-    .brandTitle{font-weight:900;letter-spacing:.2px}
-    .brandName{font-size:30px;line-height:34px;display:inline-block}
-    .brandDash{opacity:.75}
-    .brandTag{font-size:18px;line-height:22px;font-weight:800;opacity:.92;display:inline-block;vertical-align:baseline}
-    @media (max-width: 420px){
-      .brandName{font-size:26px;line-height:30px}
-      .brandTag{font-size:15px;line-height:19px}
-    }
-
+    h1{font-size:28px;line-height:34px;margin:0 0 16px;font-weight:800;text-align:center}
 
     .card{
       position:relative;
@@ -127,9 +109,9 @@
     }
     .dot[aria-current="true"]{background:linear-gradient(135deg,#22D3EE 0%, #14B8A6 50%, #60A5FA 100%);}
 
-    .viewport{position:relative;overflow:hidden;border-radius:16px;transition:height .22s ease; will-change:height}
-    .slides{display:flex;transition:transform .22s ease;align-items:flex-start}
-    .slide{flex:0 0 100%;padding:12px 10px 10px;min-height:0;align-self:flex-start}
+    .viewport{position:relative;overflow:hidden;border-radius:16px}
+    .slides{display:flex;transition:transform .22s ease}
+    .slide{flex:0 0 100%;padding:14px 10px 10px;min-height:320px}
 
     .row{display:flex;flex-wrap:wrap;gap:12px;align-items:center}
     .inline{display:flex;flex-wrap:wrap;gap:12px;align-items:flex-start}
@@ -212,32 +194,6 @@
 
     .msg{min-height:20px;margin-top:10px;color:var(--text-low);font-size:13px}
     footer{margin:24px 0 8px;color:var(--text-low);text-align:center;font-size:13px}
-
-    /* ===== iOS numeric keyboard: кнопка «Готово» (чтобы удобно скрывать клавиатуру) ===== */
-    .kbdDone{
-      position:fixed;
-      right:14px;
-      bottom:calc(14px + env(safe-area-inset-bottom, 0px));
-      height:42px;
-      padding:0 16px;
-      border-radius:999px;
-      border:1px solid rgba(255,255,255,.10);
-      background:linear-gradient(180deg,#132034 0%,#0E1626 100%);
-      color:var(--text-high);
-      font-weight:900;
-      box-shadow: 10px 14px 24px rgba(0,0,0,.45), -4px -4px 12px rgba(255,255,255,.05);
-      z-index:10000;
-      opacity:0;
-      transform:translateY(6px);
-      pointer-events:none;
-      transition:opacity .16s ease, transform .16s ease;
-    }
-    body.kbd-on .kbdDone{
-      opacity:1;
-      transform:translateY(0);
-      pointer-events:auto;
-    }
-
 
     /* pill switch + bells (как в plan) */
     .pill-switch{
@@ -448,7 +404,7 @@ body.wheel-open{overflow:hidden; touch-action:none}
 </head>
 <body>
   <div class="wrap">
-    <h1 class="brandTitle"><span class="brandName">Retiora</span> <span class="brandDash">—</span> <span class="brandTag">Retinoid &amp; Isotretinoin Tracker</span></h1>
+    <h1>Retiora — Retinoid & Isotretinoin Tracker</h1>
 
     <section class="card" aria-label="Быстрый старт">
       <div class="glow"></div>
@@ -486,11 +442,6 @@ body.wheel-open{overflow:hidden; touch-action:none}
   <span id="birthText" class="wheel-field__text muted">Не выбрано</span>
   <span class="wheel-field__chev" aria-hidden="true">▾</span>
 </button>
-
-              <div class="desktop-only" style="margin-top:10px">
-                <div class="muted" style="font-size:13px;margin-bottom:6px">Или введите вручную (на компьютере)</div>
-                <input id="birthManual" type="date" />
-              </div>
 
               <div class="tip">Используется для корректности профиля (и возможных ограничений по возрасту).</div>
             </div>
@@ -536,7 +487,7 @@ body.wheel-open{overflow:hidden; touch-action:none}
 
           <!-- 4: drug -->
           <div class="slide" data-step="4">
-            <div class="field" style="max-width:320px;margin:8px auto 0">
+            <div class="field" style="max-width:360px">
               <label for="drug">Препарат</label>
               <select id="drug">
                 <option value="roaccutane">Роаккутан</option>
@@ -551,27 +502,12 @@ body.wheel-open{overflow:hidden; touch-action:none}
           <!-- 5: start + goal -->
           <div class="slide" data-step="5">
             <div class="inline">
-              <div class="field" style="max-width:320px">
-                <label for="startBtn">Дата начала курса*</label>
-
-                <!-- значение хранится тут (YYYY-MM-DD), saveAll() продолжит работать -->
-                <input id="start" type="hidden" />
-
-                <button id="startBtn" type="button" class="wheel-field" aria-haspopup="dialog" aria-controls="startModal">
-                  <span id="startText" class="wheel-field__text muted">Не выбрано</span>
-                  <span class="wheel-field__chev" aria-hidden="true">▾</span>
-                </button>
-
-                <div class="desktop-only" style="margin-top:10px">
-                  <div class="muted" style="font-size:13px;margin-bottom:6px">Или введите вручную (на компьютере)</div>
-                  <input id="startManual" type="date" />
-                </div>
-
+              <div class="field" style="max-width:260px">
+                <label for="start">Дата начала курса*</label>
+                <input id="start" type="date" />
                 <div class="tip">Укажите реальную дату — нужна для календаря и расчётов.</div>
               </div>
             </div>
-
-            <div class="muted" style="font-size:13px;margin-top:10px">Цель — необязательный пункт. Можно пропустить и заполнить позже в плане.</div>
 
             <div class="inline" style="margin-top:12px">
               <div class="field">
@@ -588,8 +524,7 @@ body.wheel-open{overflow:hidden; touch-action:none}
 
           <!-- 6: already taken -->
           <div class="slide" data-step="6">
-            <div class="compactWrap" style="max-width:380px;margin:8px auto 0">
-<button id="alreadyBtn" class="pill-switch" aria-pressed="false" type="button" style="margin-top:2px">
+            <button id="alreadyBtn" class="pill-switch" aria-pressed="false" type="button" style="margin-top:2px">
               <span class="dot" aria-hidden="true"></span>
               <span class="label">Я уже на курсе</span>
             </button>
@@ -601,7 +536,6 @@ body.wheel-open{overflow:hidden; touch-action:none}
                 <div class="tip">Нужно, чтобы учесть это на главной. Можно округлить.</div>
               </div>
             </div>
-</div>
           </div>
 
           <!-- 7: reminders -->
@@ -654,8 +588,6 @@ body.wheel-open{overflow:hidden; touch-action:none}
 
     <footer>Приложение не даёт медицинских рекомендаций. Решения — только с врачом.</footer>
   </div>
-
-  <button type="button" id="kbdDone" class="kbdDone" aria-label="Скрыть клавиатуру">Готово</button>
 <!-- ===== Birthdate wheel picker (modal) ===== -->
 <div id="birthModal" class="wheel-modal" role="dialog" aria-modal="true" aria-labelledby="birthModalTitle" hidden>
   <div class="wheel-backdrop" data-close></div>
@@ -696,49 +628,6 @@ body.wheel-open{overflow:hidden; touch-action:none}
     </div>
   </div>
 </div>
-
-
-<!-- ===== Start date wheel picker (modal) ===== -->
-<div id="startModal" class="wheel-modal" role="dialog" aria-modal="true" aria-labelledby="startModalTitle" hidden>
-  <div class="wheel-backdrop" data-close-start></div>
-
-  <div class="wheel-sheet" role="document">
-    <div class="wheel-sheet__glow"></div>
-
-    <div class="wheel-sheet__head">
-      <div>
-        <div id="startModalTitle" class="wheel-title">Дата начала курса</div>
-        <div class="wheel-sub">Активна центральная строка — остальные полупрозрачные и слегка размытые.</div>
-      </div>
-      <button type="button" class="wheel-x" data-close-start aria-label="Закрыть">✕</button>
-    </div>
-
-    <div class="wheel-cols" aria-label="Выбор даты начала курса">
-      <div class="wheel-col">
-        <div class="wheel-label">День</div>
-        <div class="wheel" id="startWheelDay" tabindex="0"></div>
-      </div>
-
-      <div class="wheel-col">
-        <div class="wheel-label">Месяц</div>
-        <div class="wheel" id="startWheelMonth" tabindex="0"></div>
-      </div>
-
-      <div class="wheel-col">
-        <div class="wheel-label">Год</div>
-        <div class="wheel" id="startWheelYear" tabindex="0"></div>
-      </div>
-
-      <div class="wheel-focus" aria-hidden="true"></div>
-    </div>
-
-    <div class="wheel-actions">
-      <button type="button" class="ghost" id="startCancel">Отмена</button>
-      <button type="button" class="cta" id="startOk">Готово</button>
-    </div>
-  </div>
-</div>
-
 
 <script>
   // ==== Telegram init ====
@@ -782,68 +671,6 @@ body.wheel-open{overflow:hidden; touch-action:none}
     }catch(_){ return ''; }
   }
 
-
-  // ==== iOS keyboard helper: «Готово» + тап по фону ====
-  const kbdDone = document.getElementById('kbdDone');
-
-  function isEditable(el){
-    if (!el) return false;
-    const tag = (el.tagName || '').toUpperCase();
-    if (tag === 'INPUT' || tag === 'TEXTAREA') return true;
-    if (tag === 'SELECT') return true;
-    return false;
-  }
-
-  function hideKeyboard(){
-    const ae = document.activeElement;
-    if (isEditable(ae)) {
-      try { ae.blur(); } catch(_) {}
-    }
-  }
-
-  function updateKbdDonePos(){
-    if (!kbdDone) return;
-    const vv = window.visualViewport;
-    if (!vv) return;
-    const kb = Math.max(0, (window.innerHeight - vv.height - vv.offsetTop));
-    kbdDone.style.bottom = `calc(${14 + kb}px + env(safe-area-inset-bottom, 0px))`;
-  }
-
-  if (kbdDone){
-    kbdDone.addEventListener('click', hideKeyboard);
-
-    document.addEventListener('focusin', (e)=>{
-      // показываем только когда фокус на поле ввода (и не открыт wheel)
-      if (document.body.classList.contains('wheel-open')) return;
-      if (isEditable(e.target)) {
-        document.body.classList.add('kbd-on');
-        updateKbdDonePos();
-      }
-    });
-
-    document.addEventListener('focusout', ()=>{
-      // небольшая задержка, чтобы успел переключиться фокус
-      setTimeout(()=>{
-        if (!isEditable(document.activeElement)) {
-          document.body.classList.remove('kbd-on');
-        }
-      }, 0);
-    });
-
-    // тап по фону закрывает клавиатуру
-    document.addEventListener('pointerdown', (e)=>{
-      if (document.body.classList.contains('wheel-open')) return;
-      if (e.target.closest('input,textarea,select')) return;
-      if (e.target.closest('#kbdDone')) return;
-      hideKeyboard();
-    }, { capture:true });
-  }
-
-  if (window.visualViewport){
-    window.visualViewport.addEventListener('resize', updateKbdDonePos);
-    window.visualViewport.addEventListener('scroll', updateKbdDonePos);
-  }
-
   // ==== UI stepper ====
   const steps = [
     { title:'Пол и дата рождения', hint:'Быстро заполним базовые данные.', icon:'user' },
@@ -873,17 +700,6 @@ body.wheel-open{overflow:hidden; touch-action:none}
   const btnPrev = document.getElementById('btnPrev');
   const btnNext = document.getElementById('btnNext');
   const msg = document.getElementById('msg');
-
-  const viewport = document.querySelector('.viewport');
-
-  function updateViewportHeight(){
-    if (!viewport) return;
-    const s = slides.children[idx];
-    if (!s) return;
-    const h = Math.max(170, s.scrollHeight);
-    viewport.style.height = h + 'px';
-  }
-
 
   let idx = 0;
 
@@ -917,7 +733,6 @@ body.wheel-open{overflow:hidden; touch-action:none}
     msg.textContent = '';
     btnPrev.disabled = idx===0;
     btnNext.textContent = (idx === steps.length-1) ? 'Сохранить' : 'Далее';
-    requestAnimationFrame(updateViewportHeight);
   }
 
   // ==== Step 3 UX: no allergies disables other ====
@@ -934,7 +749,6 @@ body.wheel-open{overflow:hidden; touch-action:none}
     const on = alreadyBtn.getAttribute('aria-pressed') !== 'true';
     alreadyBtn.setAttribute('aria-pressed', String(on));
     alreadyWrap.style.display = on ? '' : 'none';
-    requestAnimationFrame(updateViewportHeight);
   });
 
   // ==== Goal mg/kg <-> mg sync ====
@@ -1008,7 +822,6 @@ body.wheel-open{overflow:hidden; touch-action:none}
       remTime.value = t;
       remTime.disabled = !on;
       if (remindWrap) remindWrap.hidden = !on;
-    requestAnimationFrame(updateViewportHeight);
     }catch(_){ }
   })();
 
@@ -1021,7 +834,6 @@ body.wheel-open{overflow:hidden; touch-action:none}
       capsNow.value = (c && c > 0) ? String(c) : '';
       capsNow.disabled = !on;
       if (capsWrap) capsWrap.hidden = !on;
-    requestAnimationFrame(updateViewportHeight);
     }catch(_){ }
   })();
 
@@ -1078,10 +890,7 @@ body.wheel-open{overflow:hidden; touch-action:none}
         if (p.ok) {
           const pl = await p.json();
           if (pl.drug) document.getElementById('drug').value = pl.drug;
-          if (pl.start_date) {
-          document.getElementById('start').value = String(pl.start_date).slice(0,10);
-          document.getElementById('start').dispatchEvent(new Event('input'));
-        }
+          if (pl.start_date) document.getElementById('start').value = String(pl.start_date).slice(0,10);
         }
       }catch(_){ }
 
@@ -1118,10 +927,7 @@ body.wheel-open{overflow:hidden; touch-action:none}
     if (i === 5) {
       const start = document.getElementById('start').value || '';
       if (!start) {
-        const btn = document.getElementById('startBtn');
-        const manual = document.getElementById('startManual');
-        if (btn) btn.classList.add('input-error');
-        if (manual) manual.classList.add('input-error');
+        document.getElementById('start').classList.add('input-error');
         return { ok:false, msg:'Укажи дату начала курса — без неё календарь и расчёты не работают.' };
       }
       return { ok:true };
@@ -1299,22 +1105,15 @@ try{
     else await saveAll();
   });
 
-  // keyboard enter => next (и не пробрасываем Enter на "Далее", когда открыт wheel-picker)
+  // keyboard enter => next
   document.addEventListener('keydown', (e)=>{
-    const openModal = document.querySelector('.wheel-modal:not([hidden])');
-    if (openModal){
-      if (e.key === 'Enter') {
-        e.preventDefault();
-        const ok = openModal.querySelector('#birthOk, #startOk, .cta');
-        if (ok) ok.click();
-      }
-      return;
-    }
-    if (e.key === 'Enter') { e.preventDefault(); btnNext.click(); }
-  });
-
-
-  window.addEventListener('resize', ()=>requestAnimationFrame(updateViewportHeight));
+  const bm = document.getElementById('birthModal');
+  if (bm && !bm.hidden) {
+    if (e.key === 'Enter') { e.preventDefault(); document.getElementById('birthOk').click(); }
+    return;
+  }
+  if (e.key === 'Enter') { e.preventDefault(); btnNext.click(); }
+});
 
   // init
   renderDots();
@@ -1326,7 +1125,6 @@ try{
   const birthInput = document.getElementById('birth');
   const birthBtn   = document.getElementById('birthBtn');
   const birthText  = document.getElementById('birthText');
-  const birthManual = document.getElementById('birthManual');
 
   const modal   = document.getElementById('birthModal');
   const wheelDayEl   = document.getElementById('wheelDay');
@@ -1370,24 +1168,6 @@ try{
     birthText.textContent = formatHuman(p);
     birthText.classList.remove('muted');
   }
-  function syncBirthManual(){
-    if (!birthManual) return;
-    const iso = birthInput.value || '';
-    birthManual.value = iso || '';
-  }
-
-  if (birthManual){
-    birthManual.addEventListener('input', ()=>{
-      const iso = birthManual.value || '';
-      birthInput.value = iso;
-      birthInput.dispatchEvent(new Event('input'));
-    });
-  }
-
-  birthInput.addEventListener('input', ()=>{
-    birthInput.dispatchEvent(new Event('input'));
-    syncBirthManual();
-  });
 
   // -------- Wheel (transform + inertia) --------
   function Wheel(root, values, labelFn, onPick){
@@ -1724,370 +1504,6 @@ try{
   updateBirthText();
 })();
 
-
-// ===== Start date wheel picker logic (modal) =====
-(function initStartWheelPicker(){
-  const startInput  = document.getElementById('start'); // hidden YYYY-MM-DD
-  const startBtn    = document.getElementById('startBtn');
-  const startText   = document.getElementById('startText');
-  const startManual = document.getElementById('startManual');
-
-  const modal   = document.getElementById('startModal');
-  const wheelDayEl   = document.getElementById('startWheelDay');
-  const wheelMonthEl = document.getElementById('startWheelMonth');
-  const wheelYearEl  = document.getElementById('startWheelYear');
-
-  const btnOk     = document.getElementById('startOk');
-  const btnCancel = document.getElementById('startCancel');
-
-  const MONTHS = ['января','февраля','марта','апреля','мая','июня','июля','августа','сентября','октября','ноября','декабря'];
-  const NOW_Y = new Date().getFullYear();
-  const YEAR_MIN = NOW_Y - 30;
-  const YEAR_MAX = NOW_Y + 2;
-
-  let draft = { d:1, m:0, y:NOW_Y };
-  let beforeOpenISO = '';
-
-  const pad2 = (n)=> String(n).padStart(2,'0');
-  const toISO = (y,m,d)=> `${y}-${pad2(m+1)}-${pad2(d)}`;
-
-  function daysInMonth(y, m){ return new Date(y, m+1, 0).getDate(); }
-
-  function parseISO(iso){
-    const m = /^(\d{4})-(\d{2})-(\d{2})$/.exec(iso||'');
-    if(!m) return null;
-    const y = +m[1], mm = +m[2]-1, d = +m[3];
-    if (mm<0 || mm>11) return null;
-    const maxD = daysInMonth(y, mm);
-    if (d<1 || d>maxD) return null;
-    return { y, m:mm, d };
-  }
-
-  function formatHuman({y,m,d}){ return `${d} ${MONTHS[m]} ${y}`; }
-
-  function updateStartText(){
-    const p = parseISO(startInput.value);
-    if (!p){
-      startText.textContent = 'Не выбрано';
-      startText.classList.add('muted');
-      return;
-    }
-    startText.textContent = formatHuman(p);
-    startText.classList.remove('muted');
-  }
-
-  function syncStartManual(){
-    if (!startManual) return;
-    startManual.value = startInput.value || '';
-  }
-
-  if (startManual){
-    startManual.addEventListener('input', ()=>{
-      startInput.value = startManual.value || '';
-      startInput.dispatchEvent(new Event('input'));
-    });
-  }
-
-  startInput.addEventListener('input', ()=>{
-    startBtn?.classList.remove('input-error');
-    startManual?.classList.remove('input-error');
-    updateStartText();
-    syncStartManual();
-    requestAnimationFrame(updateViewportHeight);
-  });
-
-  // -------- Wheel (transform + inertia) --------
-  function Wheel(root, values, labelFn, onPick){
-    this.root = root;
-    this.values = values.slice();
-    this.labelFn = labelFn || ((v)=>String(v));
-    this.onPick = onPick || (()=>{});
-    this.list = document.createElement('div');
-    this.list.className = 'wheel-list';
-    root.innerHTML = '';
-    root.appendChild(this.list);
-
-    this.itemH = 44;
-    this.pos = 0;
-    this.v = 0;
-    this.drag = null;
-    this.anim = null;
-    this.snapT = null;
-
-    this._recalc();
-    this._build();
-    this._bind();
-    this._update(true);
-  }
-
-  Wheel.prototype._recalc = function(){
-    const cs = getComputedStyle(this.root);
-    const ih = parseFloat(cs.getPropertyValue('--item-h')) || 44;
-    this.itemH = ih;
-    this.h = this.root.clientHeight || 220;
-    this.center = this.h/2 - this.itemH/2;
-    this.max = Math.max(0, this.values.length - 1);
-  };
-
-  Wheel.prototype._build = function(){
-    this.list.innerHTML = '';
-    const frag = document.createDocumentFragment();
-    this.values.forEach((v, i)=>{
-      const it = document.createElement('div');
-      it.className = 'wheel-item';
-      it.dataset.index = String(i);
-      it.dataset.value = String(v);
-      it.textContent = this.labelFn(v);
-      it.addEventListener('click', ()=>{ this.setIndex(i, true); });
-      frag.appendChild(it);
-    });
-    this.list.appendChild(frag);
-    this._recalc();
-  };
-
-  Wheel.prototype.setValues = function(values, keepValue){
-    const prev = (keepValue !== undefined) ? keepValue : this.getValue();
-    this.values = values.slice();
-    this._build();
-    let idx = this.values.findIndex(v => String(v) === String(prev));
-    if (idx < 0) idx = Math.min(this.max, Math.max(0, Math.round(this.pos)));
-    this.setIndex(idx, false);
-  };
-
-  Wheel.prototype.getValue = function(){
-    const i = Math.min(this.max, Math.max(0, Math.round(this.pos)));
-    return this.values[i];
-  };
-
-  Wheel.prototype.setValue = function(value, animate){
-    const i = this.values.findIndex(v => String(v) === String(value));
-    this.setIndex(i >= 0 ? i : 0, !!animate);
-  };
-
-  Wheel.prototype.setIndex = function(i, animate){
-    i = Math.min(this.max, Math.max(0, i));
-    if (!animate){
-      this._stopAnim();
-      this.pos = i;
-      this._update(true);
-      this.onPick(this.getValue());
-      return;
-    }
-    this._animateTo(i);
-  };
-
-  Wheel.prototype._stopAnim = function(){
-    if (this.anim) cancelAnimationFrame(this.anim);
-    this.anim = null;
-  };
-
-  Wheel.prototype._animateTo = function(target){
-    this._stopAnim();
-    const start = this.pos;
-    const diff = target - start;
-    const t0 = performance.now();
-    const dur = 220;
-    const ease = (t)=> 1 - Math.pow(1 - t, 3);
-
-    const step = (now)=>{
-      const p = Math.min(1, (now - t0) / dur);
-      this.pos = start + diff * ease(p);
-      this._update(false);
-      if (p < 1) this.anim = requestAnimationFrame(step);
-      else {
-        this.anim = null;
-        this.pos = target;
-        this._update(true);
-        this.onPick(this.getValue());
-      }
-    };
-    this.anim = requestAnimationFrame(step);
-  };
-
-  Wheel.prototype._queueSnap = function(){
-    clearTimeout(this.snapT);
-    this.snapT = setTimeout(()=> this._snap(), 120);
-  };
-
-  Wheel.prototype._snap = function(){
-    this._animateTo(Math.round(this.pos));
-  };
-
-  Wheel.prototype._applyBounds = function(next){
-    if (next < 0) return next / 3;
-    if (next > this.max) return this.max + (next - this.max) / 3;
-    return next;
-  };
-
-  Wheel.prototype._update = function(final){
-    const y = this.center - this.pos * this.itemH;
-    this.list.style.transform = `translate3d(0, ${y}px, 0)`;
-
-    const sel = Math.round(this.pos);
-    const items = this.list.children;
-    for (let i=0; i<items.length; i++){
-      const it = items[i];
-      const dist = Math.abs(i - sel);
-      it.classList.toggle('is-active', dist === 0);
-      if (dist === 0){ it.style.opacity='1'; it.style.filter='none'; }
-      else if (dist === 1){ it.style.opacity='0.55'; it.style.filter='blur(0.6px)'; }
-      else if (dist === 2){ it.style.opacity='0.28'; it.style.filter='blur(1px)'; }
-      else { it.style.opacity='0.16'; it.style.filter='blur(1.2px)'; }
-    }
-
-    if (final){
-      this.pos = Math.min(this.max, Math.max(0, this.pos));
-      const yy = this.center - this.pos * this.itemH;
-      this.list.style.transform = `translate3d(0, ${yy}px, 0)`;
-    }
-  };
-
-  Wheel.prototype._bind = function(){
-    this.root.addEventListener('pointerdown', (e)=>{
-      if (e.pointerType === 'mouse' && e.button !== 0) return;
-      this._stopAnim();
-      clearTimeout(this.snapT);
-      this.root.setPointerCapture(e.pointerId);
-      this.drag = { startY:e.clientY, startPos:this.pos, lastY:e.clientY, lastT:performance.now() };
-      this.v = 0;
-      e.preventDefault();
-    }, { passive:false });
-
-    this.root.addEventListener('pointermove', (e)=>{
-      if (!this.drag) return;
-      const dy = e.clientY - this.drag.startY;
-      const raw = this.drag.startPos - (dy / this.itemH);
-      this.pos = this._applyBounds(raw);
-
-      const now = performance.now();
-      const dt = Math.max(1, now - this.drag.lastT);
-      const vy = (e.clientY - this.drag.lastY) / dt;
-      this.v = (-vy / this.itemH);
-
-      this.drag.lastY = e.clientY;
-      this.drag.lastT = now;
-
-      this._update(false);
-    });
-
-    const end = ()=>{
-      if (!this.drag) return;
-      this.drag = null;
-
-      const frictionPer16 = 0.90;
-      let v = this.v;
-      let last = performance.now();
-
-      const step = (now)=>{
-        const dt = now - last;
-        last = now;
-
-        let next = this.pos + v * dt;
-        if (next < 0 || next > this.max) v *= 0.55;
-        next = this._applyBounds(next);
-
-        this.pos = next;
-        this._update(false);
-
-        const k = Math.pow(frictionPer16, dt/16);
-        v *= k;
-
-        if (Math.abs(v) < 0.002){
-          this.anim = null;
-          this.pos = Math.min(this.max, Math.max(0, this.pos));
-          this._snap();
-          return;
-        }
-        this.anim = requestAnimationFrame(step);
-      };
-
-      this._stopAnim();
-      this.anim = requestAnimationFrame(step);
-    };
-
-    this.root.addEventListener('pointerup', end);
-    this.root.addEventListener('pointercancel', end);
-
-    this.root.addEventListener('wheel', (e)=>{
-      e.preventDefault();
-      this._stopAnim();
-      const k = 0.22;
-      const raw = this.pos + (e.deltaY / this.itemH) * k;
-      this.pos = this._applyBounds(raw);
-      this._update(false);
-      this._queueSnap();
-    }, { passive:false });
-
-    this.root.addEventListener('keydown', (e)=>{
-      if (e.key === 'ArrowUp'){ e.preventDefault(); this.setIndex(Math.round(this.pos)-1, true); }
-      if (e.key === 'ArrowDown'){ e.preventDefault(); this.setIndex(Math.round(this.pos)+1, true); }
-      if (e.key === 'PageUp'){ e.preventDefault(); this.setIndex(Math.round(this.pos)-5, true); }
-      if (e.key === 'PageDown'){ e.preventDefault(); this.setIndex(Math.round(this.pos)+5, true); }
-    });
-  };
-
-  const years = [];
-  for (let y=YEAR_MIN; y<=YEAR_MAX; y++) years.push(y);
-
-  let dayWheel, monthWheel, yearWheel;
-
-  function rebuildDays(){
-    const maxD = daysInMonth(draft.y, draft.m);
-    const days = Array.from({length:maxD}, (_,i)=>i+1);
-    draft.d = Math.min(draft.d, maxD);
-    dayWheel.setValues(days, draft.d);
-    dayWheel.setValue(draft.d, false);
-  }
-
-  function openModal(){
-    beforeOpenISO = startInput.value || '';
-    const parsed = parseISO(beforeOpenISO);
-    if (parsed) draft = { ...parsed };
-    else {
-      const now = new Date();
-      draft = { d: now.getDate(), m: now.getMonth(), y: now.getFullYear() };
-    }
-
-    if (!monthWheel){
-      dayWheel = new Wheel(wheelDayEl, [1], (v)=>String(v), (v)=>{ draft.d = parseInt(v,10) || 1; });
-      monthWheel = new Wheel(wheelMonthEl, MONTHS.map((_,i)=>i), (i)=>MONTHS[i], (v)=>{ draft.m = parseInt(v,10) || 0; rebuildDays(); });
-      yearWheel = new Wheel(wheelYearEl, years, (v)=>String(v), (v)=>{ draft.y = parseInt(v,10) || NOW_Y; rebuildDays(); });
-    }
-
-    monthWheel.setValue(draft.m, false);
-    yearWheel.setValue(draft.y, false);
-    rebuildDays();
-    dayWheel.setValue(draft.d, false);
-
-    modal.hidden = false;
-    document.body.classList.add('wheel-open');
-    try{ startBtn.blur(); }catch(_){}
-  }
-
-  function closeModal(keep){
-    if (!keep) startInput.value = beforeOpenISO || '';
-    modal.hidden = true;
-    document.body.classList.remove('wheel-open');
-    startInput.dispatchEvent(new Event('input'));
-  }
-
-  startBtn.addEventListener('click', openModal);
-  modal.querySelectorAll('[data-close-start]').forEach(el=> el.addEventListener('click', ()=>closeModal(false)));
-  btnCancel.addEventListener('click', ()=>closeModal(false));
-
-  btnOk.addEventListener('click', ()=>{
-    startInput.value = toISO(draft.y, draft.m, draft.d);
-    closeModal(true);
-  });
-
-  document.addEventListener('keydown', (e)=>{
-    if (modal.hidden) return;
-    if (e.key === 'Escape') closeModal(false);
-  });
-
-  // initial
-  startInput.dispatchEvent(new Event('input'));
-})();
 
 
 </script>
