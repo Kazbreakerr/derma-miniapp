@@ -2040,28 +2040,6 @@ function curISO(){
   const pad=n=>String(n).padStart(2,'0');
   return `${d.getFullYear()}-${pad(d.getMonth()+1)}-${pad(d.getDate())}`;
 }
-// ===== Auto mood adjust by side-effects delta =====
-function autoAdjustMoodBySEDelta(delta){
-  delta = Number(delta) || 0;
-  if (!delta) return;
-
-  // текущее самочувствие (0..100)
-  const v = (typeof window.valence === 'number') ? window.valence : 50;
-
-  // переводим в индекс 0..6 (твоя шкала настроения)
-  const curIdx  = Math.round((v/100) * 6);
-
-  // delta>0 (побочка выросла) => индекс уменьшаем (хуже)
-  // delta<0 (побочка уменьшилась) => индекс увеличиваем (лучше)
-  const nextIdx = clamp(curIdx - delta, 0, 6);
-
-  if (nextIdx === curIdx) return;
-
-  // применяем через существующий API (он сам сохранит и обновит UI)
-  if (typeof window.applyValence === 'function') {
-    window.applyValence((nextIdx / 6) * 100);
-  }
-}
 
 /* ===== Side effects ===== */
 const SE_DEFS = [
@@ -2102,8 +2080,6 @@ input.addEventListener('input', (e)=>{
   syncDiaryDebounced();
   paint(v);
 
- // авто-синхронизация самочувствия по сумме побочек (в обе стороны)
-__autoSyncMoodFromSE(entry);
 });
 
     seList.appendChild(row);
@@ -2637,16 +2613,14 @@ if (typeof entry.wellness_user !== 'number') {
 
 const baseWellness = entry.wellness_user;
 
-// 1) рисуем именно базовое настроение (без записи)
+// рисуем настроение дня (без записи)
 applyValence(baseWellness, true);
 
-// 2) база для авто-понижения — тоже от "ручного"
-__setMoodBaseIdx(dateISO, Math.round((baseWellness / 100) * 6));
-
-// 3) страховка: иногда WebView не успевает показать сцену сразу
+// страховка: иногда WebView не успевает показать сцену сразу
 requestAnimationFrame(() => {
   try { applyValence(baseWellness, true); } catch(_){}
 });
+
   renderSE(entry);
 
 // миниатюры из отдельного хранилища (страховка от старых записей)

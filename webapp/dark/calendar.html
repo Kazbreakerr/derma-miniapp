@@ -1651,16 +1651,36 @@ grid.addEventListener('pointerdown', (e) => {
 
   // удерживаем события на grid (важно для тача)
   try { grid.setPointerCapture(e.pointerId); } catch (_) {}
-
+  document.body.classList.add('no-scroll'); // ← ВОТ СЮДА
   // блокируем скролл страницы
   e.preventDefault();
 }, { passive: false });
 
+function cellFromPoint(x, y){
+  // 1) обычный путь
+  const el = document.elementFromPoint(x, y);
+  let cell = el && el.closest ? el.closest('.day[data-date]') : null;
+  if (cell) return cell;
+
+  // 2) попали в gap: берём "расширенные" прямоугольники ячеек
+  const PAD = 10; // захват вокруг карточки (под твой --grid-gap)
+  const cells = grid.querySelectorAll('.day[data-date]');
+  for (const c of cells){
+    const r = c.getBoundingClientRect();
+    if (
+      x >= (r.left - PAD) && x <= (r.right + PAD) &&
+      y >= (r.top  - PAD) && y <= (r.bottom + PAD)
+    ){
+      return c;
+    }
+  }
+  return null;
+}
+
 grid.addEventListener('pointermove', (e) => {
   if (!drag.active) return;
 
-  const el = document.elementFromPoint(e.clientX, e.clientY);
-  const cell = el && el.closest ? el.closest('.day[data-date]') : null;
+  const cell = cellFromPoint(e.clientX, e.clientY);
   if (!cell) return;
 
   const id = cell.dataset.date;
@@ -1672,6 +1692,7 @@ grid.addEventListener('pointermove', (e) => {
   e.preventDefault();
 }, { passive: false });
 
+
 const finishDrag = () => {
   if (!drag.active) return;
 
@@ -1680,7 +1701,7 @@ const finishDrag = () => {
       grid.releasePointerCapture(drag.pointerId);
     }
   } catch (_) {}
-
+  document.body.classList.remove('no-scroll'); // ← ВОТ СЮДА
   finalizeRange(); // у тебя уже есть эта функция
 };
 
@@ -1922,7 +1943,9 @@ body.sheet-open nav.tabbar{ pointer-events: auto !important; }
   opacity: .95;
 }
 
-
+body.no-scroll{
+  overflow: hidden;
+}
 </style>
 
 
