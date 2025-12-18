@@ -544,7 +544,7 @@ user-select: none;
     }
 
     /* === RANGE SELECT (п.4) === */
-.grid.dragging { user-select: none; }
+    .grid.dragging { user-select: none; touch-action: none; }
 .day.in-range {
   outline: 2px dashed var(--accent, #8bdcff);
   outline-offset: -4px;
@@ -1636,49 +1636,56 @@ document.addEventListener('visibilitychange', ()=>{ if (!document.hidden) render
 })();
 
 
-  // === RANGE SELECT (mobile-safe): pointermove + elementFromPoint ===
-grid.addEventListener('pointerdown', (e) => {
-  const cell = e.target.closest('.day[data-date]');
-  if (!cell) return;
-
-  drag.active = true;
-  drag.start  = cell.dataset.date;
-  drag.over   = cell.dataset.date;
-  drag.pointerId = e.pointerId;
-
-  grid.classList.add('dragging');
-  highlightRange(drag.start, drag.over);
-
-  // удерживаем события на grid (важно для тача)
-  try { grid.setPointerCapture(e.pointerId); } catch (_) {}
-  document.body.classList.add('no-scroll'); // ← ВОТ СЮДА
-  // блокируем скролл страницы
-  e.preventDefault();
-}, { passive: false });
+  // === RANGE SELECT (mobile-safe, fixed): включаем только после реального протягивания ===
+const RANGE_START_THR = 14; // px (должно быть > MOVE_TOL=12, чтобы не ломать long-press)
 
 function cellFromPoint(x, y){
-  // 1) обычный путь
   const el = document.elementFromPoint(x, y);
   let cell = el && el.closest ? el.closest('.day[data-date]') : null;
   if (cell) return cell;
 
-  // 2) попали в gap: берём "расширенные" прямоугольники ячеек
-  const PAD = 10; // захват вокруг карточки (под твой --grid-gap)
+  // попали в gap — берём ближайшую ячейку по расширенному прямоугольнику
+  const PAD = 12;
   const cells = grid.querySelectorAll('.day[data-date]');
   for (const c of cells){
     const r = c.getBoundingClientRect();
-    if (
-      x >= (r.left - PAD) && x <= (r.right + PAD) &&
-      y >= (r.top  - PAD) && y <= (r.bottom + PAD)
-    ){
-      return c;
-    }
+    if (x >= r.left-PAD && x <= r.right+PAD && y >= r.top-PAD && y <= r.bottom+PAD) return c;
   }
   return null;
 }
 
+grid.addEventListener('pointerdown', (e) => {
+  const cell = e.target.closest('.day[data-date]');
+  if (!cell) return;
+
+  // НЕ включаем drag сразу — иначе ломаем tap/long-press логику
+  drag.pending  = true;
+  drag.active   = false;
+  drag.start    = cell.dataset.date;
+  drag.over     = cell.dataset.date;
+  drag.pointerId = e.pointerId;
+
+  drag.x0 = e.clientX;
+  drag.y0 = e.clientY;
+}, { passive: true });
+
 grid.addEventListener('pointermove', (e) => {
-  if (!drag.active) return;
+  if (!drag.pending && !drag.active) return;
+
+  // если drag ещё не активен — ждём порог движения
+  if (!drag.active){
+    const dx = e.clientX - (drag.x0 || 0);
+    const dy = e.clientY - (drag.y0 || 0);
+    if ((dx*dx + dy*dy) < RANGE_START_THR*RANGE_START_THR) return;
+
+    // ВКЛЮЧАЕМ выделение только теперь
+    drag.active = true;
+    grid.classList.add('dragging');
+    try { grid.setPointerCapture(drag.pointerId); } catch(_) {}
+
+    // подсветим стартовый день
+    highlightRange(drag.start, drag.over);
+  }
 
   const cell = cellFromPoint(e.clientX, e.clientY);
   if (!cell) return;
@@ -1689,25 +1696,28 @@ grid.addEventListener('pointermove', (e) => {
   drag.over = id;
   highlightRange(drag.start, drag.over);
 
-  e.preventDefault();
+  e.preventDefault(); // блокируем скролл ТОЛЬКО во время реального drag
 }, { passive: false });
 
-
 const finishDrag = () => {
-  if (!drag.active) return;
+  // если выделение так и не началось — это был тап/удержание, не вмешиваемся
+  if (!drag.active){
+    drag.pending = false;
+    return;
+  }
 
   try {
-    if (drag.pointerId != null) {
-      grid.releasePointerCapture(drag.pointerId);
-    }
+    if (drag.pointerId != null) grid.releasePointerCapture(drag.pointerId);
   } catch (_) {}
-  document.body.classList.remove('no-scroll'); // ← ВОТ СЮДА
-  finalizeRange(); // у тебя уже есть эта функция
+
+  drag.pending = false;
+  finalizeRange(); // внутри уже сбрасывает drag.active и снимает .dragging :contentReference[oaicite:2]{index=2}
 };
 
 grid.addEventListener('pointerup', finishDrag);
 grid.addEventListener('pointercancel', finishDrag);
 document.addEventListener('pointerup', finishDrag);
+
 
 
   render();
@@ -1943,9 +1953,6 @@ body.sheet-open nav.tabbar{ pointer-events: auto !important; }
   opacity: .95;
 }
 
-body.no-scroll{
-  overflow: hidden;
-}
 </style>
 
 
