@@ -108,10 +108,24 @@ try{
     .pos-left  {transform:translate(calc(-50% - 170px),-50%) scale(0.56)}
     .pos-right {transform:translate(calc(-50% + 170px),-50%) scale(0.56)}
     @media (max-width:520px){
-      .rings-rail{height:200px}
-      .pos-left{transform:translate(calc(-50% - 130px),-50%) scale(0.56)}
-      .pos-right{transform:translate(calc(-50% + 130px),-50%) scale(0.56)}
-    }
+  .rings-rail{height:200px}
+  .pos-left{transform:translate(calc(-50% - 130px),-50%) scale(0.56)}
+  .pos-right{transform:translate(calc(-50% + 130px),-50%) scale(0.56)}
+
+  /* компактнее карточки (≈ -10%) */
+  #cardDose{ padding:14px; }
+  #cardFAQ{ padding:14px; }
+  #cardReset{ padding:14px; }
+
+  /* чуть меньше кнопки выбора капсулы */
+  #capType .seg .seg-btn{
+    height:36px;
+    padding:0 14px;
+    border-radius:13px;
+    font-size:0.95em;
+  }
+}
+
     .ring button{all:unset;cursor:pointer;display:block}
     /* --- Неоновые толстые кольца --- */
 .ring circle.track{ stroke: url(#ringTrackGrad); stroke-width:18; }
@@ -701,14 +715,20 @@ body.light .seg button{
   width:20px; height:20px; border-radius:50%;
   background: radial-gradient(circle at 35% 35%, #fff 0%, #f1f7ff 20%, #9ff1f0 55%, #00c6c2 100%);
   box-shadow: 0 6px 16px rgba(0,0,0,.35), 0 0 0 3px rgba(255,255,255,.12) inset;
+  z-index: 2;
   transition:left .6s cubic-bezier(.2,.7,.2,1);
 }
 .animal-icon{
-  position:absolute; left:var(--w); top:50%; transform:translate(-50%,-58%);
-  width:34px; height:34px; color:#a9b6cb;
+  position:absolute; left:var(--w); top:50%;
+  transform:translate(-50%,-50%);
+  width:18px; height:18px;
+  color:#a9b6cb;
+  z-index: 3;
+  pointer-events:none;
   filter: drop-shadow(0 4px 8px rgba(0,0,0,.35));
   transition:left .6s cubic-bezier(.2,.7,.2,1);
 }
+
 .animal-icon use{ color:inherit; }
 
 
@@ -858,7 +878,9 @@ body.light .tab.active{ color:#0d1220; background: linear-gradient(180deg, rgba(
     return 0;
   }
   function render(){
-    const need=getTodayMg()<=0;
+    const optin = localStorage.getItem('derma_remind_optin');
+const enabled = (optin === '1') || (optin !== '0' && (localStorage.getItem('rem_enabled')||'0') === '1');
+const need = enabled && getTodayMg()<=0;
     document.querySelectorAll('[data-pill-spot]').forEach(spot=>{
       let b=spot.querySelector('.pill-alert');
       if(!need){ if(b) b.remove(); return; }
@@ -2842,10 +2864,24 @@ time.addEventListener('change', () => {
 
 }
 
-  // ПОЧИНЕНО: обычное объявление функции (не IIFE)
-  function renderReminder(){
+function renderReminder(){
     const card = document.getElementById('remCard');
     if (!card) return;
+
+    // если напоминания выключены — прячем алерт (оставляем только тумблер + время)
+    const optin = localStorage.getItem('derma_remind_optin');
+    const enabled = (optin === '1') || (optin !== '0' && (localStorage.getItem('rem_enabled')||'0') === '1');
+
+    const wrap = card.closest('.flip-wrap');
+    if (!enabled){
+      if (wrap) wrap.style.display = 'none';
+      // синхронно скрываем маленькие алерты в мини-профиле
+      try{ window.renderPillAlert?.(); }catch(_){}
+      try{ window.renderStockAlert?.(); }catch(_){}
+      return;
+    } else {
+      if (wrap) wrap.style.display = '';
+    }
 
     const sum = getTodayDoseMg();
     const ls  = getTodayDoseMgLS();
@@ -2865,7 +2901,12 @@ time.addEventListener('change', () => {
 
     const took = (sum > 0) || (ls > 0) || (getDiaryDose(window.todayIsoFn()) > 0);
     card.classList.toggle('flipped', took);
+
+    // обновим маленькие алерты, если «сегодня» поменялось
+    try{ window.renderPillAlert?.(); }catch(_){}
+    try{ window.renderStockAlert?.(); }catch(_){}
   }
+
   window.renderReminder = renderReminder;
 
   // bootstrap
@@ -3452,67 +3493,57 @@ document.addEventListener('DOMContentLoaded', syncReminderUI);
 })();
 </script>
 <script>
-/* === Stock alert renderer (зелёный) === */
-(function(){
-  const K_LEFT='rt_capsules_left', K_THRESH='rt_capsules_threshold', K_ON='rt_capsules_alert_enabled';
-
-  function n(x){ x=Number(x); return Number.isFinite(x)?x:0; }
-  const on =()=> (localStorage.getItem(K_ON)||'0')==='1';
-
-  function text(){
-    if(!on()) return null;
-    const left = n(localStorage.getItem(K_LEFT)||0);
-    const thr  = n(localStorage.getItem(K_THRESH)||0);
-    if(left>0 && thr>0 && left<=thr) return `осталось ${left} капсул`;
-    return null;
-  }
-
+  /* === Stock badge (capsules left) — FINAL === */
   (function(){
-  const K_LEFT='rt_capsules_left', K_THRESH='rt_capsules_threshold', K_ON='rt_capsules_alert_enabled';
-  const num = x => (x=Number(x), Number.isFinite(x)?x:0);
-  const on  = () => (localStorage.getItem(K_ON)||'0')==='1';
-
-  function render(){
-    const left = num(localStorage.getItem(K_LEFT)||0);
-    const thr  = num(localStorage.getItem(K_THRESH)||0);
-    const low  = on() && thr>0 && left>0 && left<=thr;
-
-    document.querySelectorAll('[data-stock-spot]').forEach(host=>{
-      let el = host.querySelector('.pill-alert--stock');
-      if(!el){
-        el = document.createElement('span');
-        el.className = 'pill-alert pill-alert--stock';
-        host.appendChild(el);
-      }
-      // статично показываем остаток всегда
-      el.textContent = `${left} капсул`;
-      // анимация/подсветка только при тревоге
-      el.classList.toggle('is-low', low);
-    });
-  }
-
-  window.addEventListener('storage', e=>{
-    if([K_LEFT,K_THRESH,K_ON,'rt_capsules_left_bump','rt_capsules_threshold_bump','rt_capsules_alert_bump'].includes(e.key)) render();
-  });
-  document.addEventListener('visibilitychange', ()=>{ if(!document.hidden) render(); });
-  render();
-  window.renderStockAlert = render;
-})();
-  // реагируем на изменения из других страниц
-  window.addEventListener('storage', e=>{
-    if([K_LEFT,K_THRESH,K_ON,'rt_capsules_alert_bump','rt_capsules_left_bump','rt_capsules_threshold_bump'].includes(e.key)){
-      render();
+    const K_LEFT   = 'rt_capsules_left';
+    const K_THRESH = 'rt_capsules_threshold';
+    const K_ON     = 'rt_capsules_alert_enabled';
+  
+    const num = (v) => { v = Number(v); return Number.isFinite(v) ? v : NaN; };
+    const on  = () => (localStorage.getItem(K_ON) || '0') === '1';
+  
+    function render(){
+      const enabled = on();
+      const rawLeft = localStorage.getItem(K_LEFT);   // важно: null, если пользователь ещё не вводил
+      const left    = num(rawLeft);
+  
+      const rawThr = localStorage.getItem(K_THRESH);
+      const thr    = num(rawThr);
+  
+      document.querySelectorAll('[data-stock-spot]').forEach(host=>{
+        let el = host.querySelector('.pill-alert--stock');
+  
+        // выключено или значение ещё не задано (не показываем "0" просто так)
+        if (!enabled || rawLeft === null || !Number.isFinite(left)){
+          if (el) el.remove();
+          return;
+        }
+  
+        if (!el){
+          el = document.createElement('span');
+          el.className = 'pill-alert pill-alert--stock';
+          host.appendChild(el);
+        }
+  
+        const leftRounded = Math.max(0, Math.round(left));
+        el.textContent = `осталось ${leftRounded} капсул`;
+  
+        const low = Number.isFinite(thr) && thr > 0 && leftRounded <= Math.round(thr);
+        el.classList.toggle('is-low', low);
+      });
     }
-  });
-  document.addEventListener('visibilitychange',()=>{ if(!document.hidden) render(); });
-
-  // экспорт
-  window.renderStockAlert = render;
-
-  // первичный рендер
-  render();
-})();
-</script>
+  
+    document.addEventListener('visibilitychange', ()=>{ if(!document.hidden) render(); });
+    document.addEventListener('DOMContentLoaded', render);
+    window.addEventListener('storage', (e)=>{
+      if ([K_LEFT,K_THRESH,K_ON,'rt_capsules_left_bump','rt_capsules_threshold_bump','rt_capsules_alert_bump'].includes(e.key)) render();
+    });
+  
+    window.renderStockAlert = render;
+    render();
+  })();
+  </script>
+  
 
 <style>
 .pill-alert--stock{
@@ -3564,59 +3595,7 @@ document.addEventListener('DOMContentLoaded', syncReminderUI);
 
 </style>
 
-<script>
-  /* ЗЕЛЁНЫЙ АЛЕРТ — рендерим в [data-stock-spot] (всегда показываем остаток, подсвечиваем если мало) */
-  (function(){
-    const K_LEFT    = 'rt_stock_left';
-    const K_ENABLED = 'rt_stock_alert_enabled';
-    const K_THRESH  = 'rt_stock_threshold';
-  
-    const spot = document.querySelector('[data-stock-spot]');
-    if(!spot) return;
-  
-    const toNum = (v) => {
-      const n = Number(v);
-      return Number.isFinite(n) ? n : NaN;
-    };
-  
-    function render(){
-      const enabled = localStorage.getItem(K_ENABLED) !== '0'; // по умолчанию включено
-      const left    = toNum(localStorage.getItem(K_LEFT));
-      const thr     = toNum(localStorage.getItem(K_THRESH));
-  
-      // если фича выключена или нет данных — скрываем
-      if(!enabled || !Number.isFinite(left)){
-        spot.innerHTML = '';
-        return;
-      }
-  
-      let el = spot.querySelector('.pill-alert--stock');
-      if(!el){
-        el = document.createElement('span');
-        el.className = 'pill-alert pill-alert--stock';
-        spot.innerHTML = '';
-        spot.appendChild(el);
-      }
-  
-      const leftRounded = Math.max(0, Math.round(left));
-      el.textContent = `осталось ${leftRounded} капсул`;
-  
-      const hasThr = Number.isFinite(thr) && thr > 0;
-      const low = hasThr && leftRounded <= thr;
-      el.classList.toggle('is-low', low);
-    }
-  
-    window.addEventListener('storage', (e)=>{
-      if([K_LEFT, K_THRESH, K_ENABLED].includes(e.key)) render();
-    });
-  
-    document.addEventListener('visibilitychange', ()=>{ if(!document.hidden) render(); });
-    document.addEventListener('DOMContentLoaded', render);
-  
-    window.renderStockAlert = render;
-    render();
-  })();
-  </script>
+
   
 <script>
 (function bootstrapTgIdentity(){
@@ -4578,99 +4557,98 @@ if (!step){
   const STEPS = {
     
 main: [
-           {
-        title: 'Добро пожаловать в Retiora',
-        text: 'Покажу, как отмечать приём, смотреть прогресс, вести дневник и анализы.',
-        focus: [],
-        pointer: false,
-        nextLabel: 'Начать',
-        solid: true,
-        popPlacement: 'center',
-        popAlign: 'center',
-      },
-      {
-        title: 'Цель курса',
-        text: 'Пощёлкайте по всем трём режимам (Мин/Опт/Макс) — и мы перейдём дальше автоматически.',
-        reveal: ['#cardProgress'],
-        focus: ['#doseSeg'],
-        radiusInherit: true,
-        popPlacement: 'below',
-        popAlign: 'center',
-        avoidCover: 'focus',
-        require: 'manual',
-        autoNext: true,
-        onEnter({ setSatisfied }){
-          try { setSatisfied(false); } catch(_){}
-          const seg = document.getElementById('doseSeg');
-          if (!seg) { setSatisfied(true); return; }
+{
+  title: 'Добро пожаловать в Retiora',
+  text: 'Покажу, как отмечать приём, смотреть прогресс, вести дневник и анализы.',
+  focus: [],
+  pointer: false,
+  nextLabel: 'Начать',
+  solid: true,
+  popPlacement: 'center',
+  popAlign: 'center',
+},
+{
+  title: 'Цель курса',
+  text: 'Три режима можно переключать между собой (Минимум/Оптимум/Максимум), внизу показана полоса прогресса.',
+  reveal: ['#cardProgress'],
+  focus: ['#doseSeg'],
+  radiusInherit: true,
+  popPlacement: 'below',
+  popAlign: 'center',
+  avoidCover: 'focus',
+  require: 'manual',
+  autoNext: true,
+  onEnter({ setSatisfied }){
+    try { setSatisfied(false); } catch(_){}
+    const seg = document.getElementById('doseSeg');
+    if (!seg) { setSatisfied(true); return; }
 
-          const need = new Set(['min','opt','max']);
-          const seen = new Set();
-          const btns = Array.from(seg.querySelectorAll('button[data-mode]'));
+    const need = new Set(['min','opt','max']);
+    const seen = new Set();
+    const btns = Array.from(seg.querySelectorAll('button[data-mode]'));
 
-          const markBtn = (mode)=>{
-            if (!mode || !need.has(mode)) return;
-            seen.add(mode);
-            const b = seg.querySelector(`button[data-mode="${mode}"]`);
-            if (b) b.classList.add('rt-tour-visited');
-          };
+    const markBtn = (mode)=>{
+      if (!mode || !need.has(mode)) return;
+      seen.add(mode);
+      const b = seg.querySelector(`button[data-mode="${mode}"]`);
+      if (b) b.classList.add('rt-tour-visited');
+    };
 
-          // mark current active mode (if any)
-          const active = seg.querySelector('button.active[data-mode]');
-          if (active) markBtn(active.dataset.mode);
+    const active = seg.querySelector('button.active[data-mode]');
+    if (active) markBtn(active.dataset.mode);
 
-          const onClick = (e)=>{
-            const b = e.target && e.target.closest ? e.target.closest('button[data-mode]') : null;
-            if (!b) return;
-            markBtn(b.dataset.mode);
+    const onClick = (e)=>{
+      const b = e.target && e.target.closest ? e.target.closest('button[data-mode]') : null;
+      if (!b) return;
+      markBtn(b.dataset.mode);
 
-            if (seen.size >= 3){
-              setSatisfied(true);
-              setTimeout(()=> next(false), 120);
-            }
-          };
+      if (seen.size >= 3){
+        setSatisfied(true);
+        setTimeout(()=> next(false), 120);
+      }
+    };
 
-          seg.addEventListener('click', onClick, true);
+    seg.addEventListener('click', onClick, true);
 
-          return ()=>{
-            seg.removeEventListener('click', onClick, true);
-            btns.forEach(b=> b.classList.remove('rt-tour-visited'));
-          };
-        },
-      },
-      {
-        title: 'Дозировка и капсулы',
-        text: 'Дозу можно вводить вручную или менять кнопками «− / +». Тип капсулы тоже переключается здесь. Дату трогать не нужно — это просто информация.',
-        reveal: ['#cardDose'],
-        focus: ['#mg', '#mgMinus', '#mgPlus', '#capSeg'],
-        radiusInherit: true,
-        popPlacement: 'below',
-        popAlign: 'center',
-        avoidCover: 'focus',
-        onEnter(){
-          // показать блок типа капсулы на время обучения
-          const cap = $('#capType');
-          if (cap) cap.hidden = false;
-        },
-      },
-      {
-        title: 'Сохранить приём',
-        text: 'Нажмите «Добавить». Прогресс обновится, карточка напоминания станет зелёной, сигнал о приёме перестанет мигать.',
-        reveal: ['#cardDose', '#cardProgress', '#cardReminder'],
-        focus: ['#save'],
-        radiusInherit: true,
-        popPlacement: 'above',
-        popAlign: 'center',
-        avoidCover: 'focus',
-        require: {type:'click', selector:'#save'},
-        autoNext: true,
-        onEnter(){
-          const btn = document.querySelector('#save');
-          if (!btn) return;
-          btn.classList.add('rt-tour-strong');
-          return ()=> btn.classList.remove('rt-tour-strong');
-        },
-      },
+    return ()=>{
+      seg.removeEventListener('click', onClick, true);
+      btns.forEach(b=> b.classList.remove('rt-tour-visited'));
+    };
+  },
+},
+{
+  title: 'Дозировка и капсулы',
+  text: 'Дозу можно вводить вручную или менять кнопками «− / +». Тип капсулы тоже переключается здесь. Дату можно ввести вручную.',
+  reveal: ['#cardDose'],
+  focus: ['#mg', '#mgMinus', '#mgPlus', '#capSeg'],
+  radiusInherit: true,
+  popPlacement: 'below',
+  popAlign: 'center',
+  avoidCover: 'focus',
+  onEnter(){
+    const cap = $('#capType');
+    if (cap) cap.hidden = false;
+  },
+},
+{
+  title: 'Сохранить приём',
+  text: 'Нажмите «Добавить». Прогресс обновится. При включенных напоминаниях, карточка напоминания станет зелёной, сигнал о приёме перестанет мигать.',
+  reveal: ['#cardDose', '#cardProgress', '#cardReminder'],
+  focus: ['#save'],
+  radiusInherit: true,
+  popPlacement: 'above',
+  popAlign: 'center',
+  avoidCover: 'focus',
+  require: {type:'click', selector:'#save'},
+  autoNext: true,
+  onEnter(){
+    const btn = document.querySelector('#save');
+    if (!btn) return;
+    btn.classList.add('rt-tour-strong');
+    return ()=> btn.classList.remove('rt-tour-strong');
+  },
+},
+
 
 {
         title: 'Календарь',

@@ -119,6 +119,12 @@
 
 /* кнопку уводим вправо */
 .sheet-row .right{ margin-left:auto; }
+/* side-effects icons (как в myprofile) */
+.se-icons{ display:inline-flex; gap:8px; align-items:center; flex-wrap:wrap; vertical-align:middle; }
+.se-ico{
+  width:24px; height:24px; object-fit:contain;
+  filter: drop-shadow(0 2px 6px rgba(0,0,0,.35));
+}
     .month-nav{
       display:flex;
       align-items:center;
@@ -1078,6 +1084,31 @@ function sideEffectsCount(entry){
   let n=0; for(const k in se){ if(Number(se[k])>0) n++; }
   return n;
 }
+// === Side-effects icons (как в myprofile) ===
+const SE_META = {
+  lips_dry:    { label: 'Сухость губ',  file: 'lips_dry.png' },
+  skin_dry:    { label: 'Сухость кожи', file: 'skin_dry.png' },
+  muscle_pain: { label: 'Боль в суставах/мышцах', file: 'muscle_pain.png' },
+  headache:    { label: 'Головная боль', file: 'headache.png' },
+};
+
+function sideEffectsIconsHTML(entry){
+  try{
+    const se = (entry && entry.sideEffects && typeof entry.sideEffects === 'object') ? entry.sideEffects : {};
+    const icons = [];
+    for (const key of Object.keys(SE_META)){
+      const v = Number(se[key] || 0);
+      if (v > 0){
+        const meta  = SE_META[key];
+        const src1  = new URL('../assets/sideeffects/' + meta.file, location.href).toString();
+        const src2  = new URL('./assets/sideeffects/'  + meta.file, location.href).toString(); // fallback если папка assets лежит рядом
+        const title = meta.label + (v ? (' • ' + v + '/3') : '');
+        icons.push(`<img class="se-ico" src="${src1}" onerror="this.onerror=null;this.src='${src2}'" alt="${meta.label}" title="${title}">`);
+      }
+    }
+    return icons.length ? (`<span class="se-icons">${icons.join('')}</span>`) : '';
+  }catch(_){ return ''; }
+}
 
 // цвет свечения по индексу
 function moodGlow(idx){
@@ -1251,8 +1282,8 @@ cell.addEventListener('pointerdown', (e)=>{
   setPortalXYFromEvent(e);
 
   pressTimer = setTimeout(()=>{
-  // если пользователь начал выделять диапазон — НЕ открываем дневник
-  if (drag.pending || drag.active) return;
+  // блокируем только если реально началось выделение (drag.active)
+  if (drag.active) return;
   longPressed = true;
   goDiary(id);
 }, LONG_MS);
@@ -1314,15 +1345,22 @@ grid.appendChild(cell);
     ? firstSentenceWithEllipsis(noteRaw)
     : 'Записей нет. Нажмите и удерживайте день, чтобы открыть дневник.';
 
-  // Побочки: показываем только если есть (>0)
-  const seCount = sideEffectsCount(e2);
+ // Побочки: 3 состояния
+// 1) если sideEffects никогда не задавались → ничего не показываем
+// 2) если sideEffects заданы, но все 0 → "Побочек - 0"
+// 3) если есть >0 → иконки
+const seRecorded = !!(e2 && Object.prototype.hasOwnProperty.call(e2,'sideEffects'));
+const seIcons = seRecorded ? sideEffectsIconsHTML(e2) : '';
+const sePart  = seRecorded ? (seIcons || `<span class="muted">Побочек  0</span>`) : '';
+
 
   sheetBody.innerHTML = `
     <div class="sheet-row">
       <div class="badge">Самочувствие:</div>
       <div>
         <strong>${moodWord}</strong>
-        ${seCount > 0 ? `<span class="muted" style="margin-left:10px">• побочки: ${seCount}</span>` : ''}
+        ${sePart ? `<span class="muted" style="margin:0 10px">•</span>${sePart}` : ''}
+
       </div>
     </div>
 

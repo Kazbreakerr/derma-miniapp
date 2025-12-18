@@ -1273,7 +1273,19 @@ header{
     border-radius:22px;
   }
 </style>
+<style>
+  /* FIX: Telegram WebView + #dayPane{perspective} ломает position:fixed */
+  body.cmp-fullscreen #dayPane{
+    perspective: none !important;
+    transform-style: flat !important;
+  }
 
+  /* прячем нижнюю навигацию на время fullscreen (по желанию, но красиво) */
+  body.cmp-fullscreen .navbar{ opacity:0; pointer-events:none; }
+
+  /* у тебя есть лишняя кнопка × (cmpExit) — она не используется и может мешать высоте */
+  #cmpExit{ display:none !important; }
+</style>
 </head>
 <body>
 <script>
@@ -2143,6 +2155,20 @@ if (delBodyBtn) delBodyBtn.addEventListener('click', () => {
 
 const compareWrap=document.getElementById('compareWrap'); const imgStart=document.getElementById('imgStart'); const imgCurrent=document.getElementById('imgCurrent'); const topWrap=document.getElementById('topWrap');
 const compareRange=document.getElementById('compareRange');
+function applyCompareHeight(){
+  if(!compareWrap || compareWrap.hidden) return;
+
+  const cs = getComputedStyle(compareWrap);
+  const wBox = compareWrap.getBoundingClientRect().width || 1;
+
+  const cw = parseFloat(cs.getPropertyValue('--cmp-w')) || 4;
+  const ch = parseFloat(cs.getPropertyValue('--cmp-h')) || 3;
+
+  // высота по реальному соотношению сторон (работает даже если aspect-ratio глючит)
+  const hPx = Math.max(180, Math.round(wBox * (ch / cw)));
+  compareWrap.style.height = hPx + 'px';
+}
+window.addEventListener('resize', ()=> applyCompareHeight());
 
 // все даты, где вообще есть фото нужного типа (лицо/тело), отсортированы
 function listPhotoDates(db, kind){
@@ -2292,13 +2318,15 @@ function refreshCompare(){
   // подгоняем соотношение сторон под правое изображение (или левое, если правого нет)
   const wait = el => (el.complete && el.naturalWidth) ? Promise.resolve() :
                      new Promise(res => el.addEventListener('load', res, {once:true}));
-  Promise.all([wait(imgL), wait(imgR)]).then(()=>{
-    const w = imgR.naturalWidth  || imgL.naturalWidth  || 4;
-    const h = imgR.naturalHeight || imgL.naturalHeight || 3;
-    wrap.style.setProperty('--cmp-w', w);
-    wrap.style.setProperty('--cmp-h', h);
-    setSplit(50);
-  });
+                     Promise.all([wait(imgL), wait(imgR)]).then(()=>{
+  const w = imgR.naturalWidth  || imgL.naturalWidth  || 4;
+  const h = imgR.naturalHeight || imgL.naturalHeight || 3;
+  wrap.style.setProperty('--cmp-w', w);
+  wrap.style.setProperty('--cmp-h', h);
+
+  applyCompareHeight();   // ← ДОБАВИЛИ
+  setSplit(50);
+});
 }
 
 
@@ -2368,6 +2396,7 @@ window.addEventListener('pointerup', () => dragging = false);
     const finalW = Math.min(maxW, widthByH);
 
     compareWrap.style.width = finalW + 'px';
+    applyCompareHeight();
   }
 
   function openFS(){
@@ -2388,6 +2417,7 @@ window.addEventListener('pointerup', () => dragging = false);
     backdrop.hidden = true;
     closeBtn.hidden = true;
     compareWrap.style.width = '';
+    compareWrap.style.height = '';
     window.removeEventListener('resize', fit);
   }
 
