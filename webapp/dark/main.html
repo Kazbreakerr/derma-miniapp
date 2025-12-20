@@ -3896,7 +3896,7 @@ if (cur && cur.complete && cur.naturalWidth > 0) return;
     width:min(380px, calc(100vw - 28px));
     padding: 14px 14px 12px;
     border-radius: 18px;
-    background: rgba(14, 21, 33, .86);
+    background: rgba(14, 21, 33, .96);
     box-shadow: 0 22px 60px rgba(0,0,0,.55), 0 0 0 1px rgba(255,255,255,.08);
     color: rgba(232,243,255,.96);
     opacity:0;
@@ -3910,8 +3910,8 @@ if (cur && cur.complete && cur.naturalWidth > 0) return;
 }
   #rtTourPop.is-on{ opacity:1; pointer-events:auto; transform: translateY(0); }
   #rtTourPop .rt-title{ font-weight:800; font-size: 16px; margin:0 0 6px; letter-spacing:.2px; }
-  #rtTourPop .rt-text{ margin:0; font-size: 13px; line-height:1.35; opacity:.92; }
-  #rtTourPop .rt-sub{ margin-top:8px; font-size: 12px; opacity:.7; }
+  #rtTourPop .rt-text{ margin:0; font-size: 13px; line-height:1.35; opacity:1; }
+  #rtTourPop .rt-sub{ margin-top:8px; font-size: 12px; opacity:.92; }
   #rtTourPop .rt-actions{
     display:flex; gap:10px; justify-content:space-between; align-items:center;
     margin-top: 12px;
@@ -4568,14 +4568,15 @@ main: [
   popAlign: 'center',
 },
 {
-  title: 'Цель курса',
+  title: '🎯 Цель курса',
   text: 'Три режима можно переключать между собой (Минимум/Оптимум/Максимум), внизу показана полоса прогресса.',
   reveal: ['#cardProgress'],
   focus: ['#doseSeg'],
   radiusInherit: true,
-  popPlacement: 'below',
+  popPlacement: 'above',
+
   popAlign: 'center',
-  avoidCover: 'focus',
+  avoidCover: 'reveal',
   require: 'manual',
   autoNext: true,
   onEnter({ setSatisfied }){
@@ -4617,21 +4618,21 @@ main: [
   },
 },
 {
-  title: 'Дозировка и капсулы',
-  text: 'Дозу можно вводить вручную или менять кнопками «− / +». Тип капсулы тоже переключается здесь. Дату можно ввести вручную.',
+  title: '💊 Дозировка и капсулы',
+  text: 'Дозу можно вводить вручную или менять кнопками «− / +». Тип капсулы тоже переключается здесь.',
   reveal: ['#cardDose'],
   focus: ['#mg', '#mgMinus', '#mgPlus', '#capSeg'],
   radiusInherit: true,
-  popPlacement: 'below',
+  popPlacement: 'above',
   popAlign: 'center',
-  avoidCover: 'focus',
+  avoidCover: 'reveal',
   onEnter(){
     const cap = $('#capType');
     if (cap) cap.hidden = false;
   },
 },
 {
-  title: 'Сохранить приём',
+  title: '✅ Сохранить приём',
   text: 'Нажмите «Добавить». Прогресс обновится. При включенных напоминаниях, карточка напоминания станет зелёной, сигнал о приёме перестанет мигать.',
   reveal: ['#cardDose', '#cardProgress', '#cardReminder'],
   focus: ['#save'],
@@ -4651,11 +4652,14 @@ main: [
 
 
 {
-        title: 'Календарь',
-        text: 'Быстрый обзор недели. Нажатием на кнопку «Открыть» вы перейдете на страницу Календаря.',
-        reveal: ['#cardCalendar'],
-        focus: ['#calPrev', '#calNext'],
+  title: '🗓️ Календарь',
+text: 'Быстрый обзор недели. Нажатием на кнопку «Открыть» вы перейдете на страницу Календаря.',
+reveal: ['#cardCalendar'],
+focus: ['#openCalendarBtn'],
         radiusInherit: true,
+        popPlacement: 'above',
+popAlign: 'center',
+avoidCover: 'reveal',
         onEnter(){
   const btn = document.querySelector('#openCalendarBtn');
   if (!btn) return;
@@ -4682,11 +4686,14 @@ main: [
 },
       },
       {
-        title: 'Напоминания',
+        title: '⏰ Напоминания',
         text: 'Включите напоминание и выберите время.',
         reveal: ['#cardReminder'],
         focus: ['#remCtrl input', '#remTime'],
         radiusInherit: true,
+        popPlacement: 'above',
+popAlign: 'center',
+avoidCover: 'reveal',
         extra(){
           return `
             <div class="rt-extras">
@@ -4697,7 +4704,7 @@ main: [
         }
       },
       {
-  title: 'FAQ',
+        title: '❓ FAQ',
   text: 'Короткие подсказки по курсу.',
   reveal: ['#cardFAQ'],
   focus: ['#cardFAQ a.chip'],
@@ -4706,7 +4713,7 @@ main: [
   popPlacement: 'above',
 },
       {
-        title: 'Обнулить всё',
+        title: '🧹 Обнулить всё',
         text: 'Удалит журнал и кэш на этом устройстве. Профиль останется.',
         reveal: ['#cardReset'],
         focus: ['#resetBtn'],
@@ -4715,7 +4722,7 @@ main: [
   radiusInherit: true,
 },
       {
-        title: 'Нижнее меню',
+        title: '📌 Нижнее меню',
         text: 'Внизу — разделы приложения. Откройте «Календарь», чтобы продолжить.',
         reveal: ['nav.tabbar'],
         focus: ['nav.tabbar a[href*="calendar.html"]'],

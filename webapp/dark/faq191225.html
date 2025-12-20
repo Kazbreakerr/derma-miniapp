@@ -1,0 +1,631 @@
+<!doctype html>
+<html lang="ru">
+<head>
+  <meta charset="utf-8" />
+
+  <script src="/js/app-state.js"></script>
+  <script>
+  // Инициализация всех переключателей темы на странице
+  document.addEventListener('DOMContentLoaded', () => {
+    const settings = (window.AppState?.get('settings')) || {};
+const cur = document.documentElement.dataset.theme || 'dark';
+document.documentElement.dataset.theme = cur;
+    // найдём все тумблеры с data-role="theme-switch"
+    document.querySelectorAll('[data-role="theme-switch"]').forEach(sw => {
+      const isLight = (document.documentElement.dataset.theme === 'light');
+      sw.setAttribute('aria-pressed', isLight ? 'true' : 'false');
+
+      sw.addEventListener('click', () => {
+        const cur = document.documentElement.dataset.theme === 'light' ? 'light' : 'dark';
+        const next = (cur === 'light') ? 'dark' : 'light';
+        AppState.applyTheme(next);                  // сохраняем и ставим data-theme
+        // визуально обновим все тумблеры на странице
+        document.querySelectorAll('[data-role="theme-switch"]')
+          .forEach(x => x.setAttribute('aria-pressed', next === 'light' ? 'true' : 'false'));
+      });
+    });
+  });
+</script>
+
+
+  <script>try{ if(localStorage.getItem('derma_consent')!=='1'){ location.replace('./warnings.html'); } }catch(_){}</script>
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Roaccutane Tracker — FAQ</title>
+  <script src="https://telegram.org/js/telegram-web-app.js"></script>
+  <script>window.API_BASE = window.API_BASE || '';</script>
+
+<link rel="stylesheet" href="/css/ui-tokens.css">
+<script>document.documentElement.dataset.theme='dark';</script>
+
+  <style>
+    :root{
+      --bg:#0B1220; --surface:#0E1726; --card:#121C2E; --border:#1F2A3C;
+      --primary:#14B8A6; --primary-700:#0EA5A6; --primary-300:#5EEAD4;
+      --info:#60A5FA; --success:#22C55E; --warning:#F59E0B; --danger:#EF4444;
+      --text-high:#F3F7FF; --text-mid:#C7D2FE; --text-low:#93A3BF; --focus-ring:#93C5FD;
+    }
+    *{box-sizing:border-box}
+    html,body{height:100%}
+    body{margin:0;background:var(--bg);color:var(--text-high);
+         font-family:ui-sans-serif,system-ui,-apple-system,Segoe UI,Roboto,Inter,Manrope,Helvetica,Arial;
+         font-size:16px;line-height:1.5}
+    .wrap{max-width:980px;margin:0 auto;padding:24px 24px 40px}
+    h1{font-size:28px;line-height:34px;margin:0 0 16px;font-weight:600}
+    h2{font-size:22px;line-height:28px;margin:0 0 12px;font-weight:600}
+    .card{position:relative;background:var(--card);border:1px solid var(--border);border-radius:16px;
+          padding:16px;box-shadow:0 8px 24px rgba(0,0,0,.35);overflow:hidden}
+    .glow{position:absolute;inset:0;pointer-events:none;background:radial-gradient(120% 120% at 10% 0%, rgba(20,184,166,.18) 0%, rgba(18,28,46,0) 50%)}
+    .muted{color:var(--text-low)}
+    input[type="search"]{
+      width:100%;background:var(--surface);border:1px solid var(--border);color:var(--text-high);
+      border-radius:12px;padding:10px 12px;font-size:16px;outline:none
+    }
+    input[type="search"]:focus{border-color:var(--primary-700);box-shadow:0 0 0 2px var(--focus-ring)}
+    .chip{display:inline-flex;align-items:center;gap:6px;padding:8px 12px;border-radius:999px;background:#152235;border:1px solid transparent;color:var(--text-high);font-weight:600;margin-right:8px;margin-bottom:8px;text-decoration:none}
+    .chip:hover{border-color:#14B8A6;cursor:pointer}
+    details{border:1px solid var(--border);border-radius:12px;background:#0E1726;margin:10px 0;overflow:hidden}
+    details[open]{border-color:#0EA5A6;box-shadow:0 0 0 2px rgba(20,184,166,.25) inset}
+    summary{display:flex;gap:10px;align-items:center;list-style:none;padding:12px 14px;cursor:pointer;font-weight:600}
+    summary::-webkit-details-marker{display:none}
+    .qa-body{padding:0 14px 12px;color:var(--text-high)}
+    .qa-body p{margin:8px 0}
+    .pill{display:inline-flex;align-items:center;border:1px solid #2a3a52;border-radius:999px;padding:2px 8px;font-size:12px;margin-left:8px;color:var(--text-mid);background:#0f1a2b}
+    a{color:var(--text-mid);text-decoration:underline;text-underline-offset:3px}
+    footer{margin:24px 0 8px;color:var(--text-low);text-align:center;font-size:13px}
+  
+    /* Верхняя кнопка возврата */
+    .topbar{display:flex;align-items:center;gap:12px;flex-wrap:wrap;margin-bottom:12px}
+    .back-btn{
+      display:inline-flex;align-items:center;gap:8px;padding:8px 12px;border-radius:12px;
+      background:#152235;border:1px solid var(--border);color:var(--text-mid);text-decoration:none;font-weight:600;
+      box-shadow:0 6px 16px rgba(0,0,0,.25);transition:all .15s ease-in-out
+    }
+    .back-btn:hover{border-color:var(--primary-700);color:var(--text-high);transform:translateY(-1px)}
+    .back-btn svg{width:18px;height:18px;opacity:.9}
+
+  </style>
+  <style>
+    .topbar { display:flex; align-items:center; gap:12px; flex-wrap:wrap; }
+    #themeToggle{ margin-left:auto; }
+    .topbar .back-btn{ position:relative; z-index:20; }
+    #themeToggle.theme-toggle{ position:relative; z-index:10; }
+
+    #themeToggle.theme-toggle{
+      --h:64px; --w:192px; --pad:8px; --bd:2px;
+      --thumb:calc(var(--h) - 2*(var(--pad) + var(--bd)));
+      width:var(--w); height:var(--h); border-radius:999px; padding:0; overflow:hidden;
+      border:var(--bd) solid #D7E0E2; background:#F4F8F9; cursor:pointer;
+      -webkit-tap-highlight-color:transparent;
+      box-shadow: inset 0 0 0 1px rgba(255,255,255,.65);
+    }
+    html[data-theme="dark"] #themeToggle.theme-toggle{
+      background:#0F1726; border-color:rgba(255,255,255,.06);
+      box-shadow: inset 0 0 0 1px rgba(255,255,255,.05);
+    }
+    #themeToggle .scene{ position:absolute; inset:var(--pad); border-radius:calc(var(--h)/2 - var(--pad));
+      overflow:hidden; transition:opacity .28s ease, transform .38s cubic-bezier(.2,.7,.2,1); }
+    #themeToggle .scene svg{ position:absolute; inset:0; width:100%; height:100%; display:block; }
+    /* Inverted visuals: show DARK scene on LIGHT page and LIGHT scene on DARK page */
+    html[data-theme="light"] #themeToggle .scene.light{ opacity:0; transform: translateX(-6px); }
+    html[data-theme="light"] #themeToggle .scene.dark { opacity:1; transform: translateX(0); }
+    html[data-theme="dark"]  #themeToggle .scene.light{ opacity:1; transform: translateX(0); }
+    html[data-theme="dark"]  #themeToggle .scene.dark { opacity:0; transform: translateX(6px); }
+
+    #themeToggle .thumb{
+      position:absolute; top:calc(var(--pad) + var(--bd)); left:calc(var(--pad) + var(--bd));
+      width:var(--thumb); height:var(--thumb); border-radius:50%; background:#FFF;
+      box-shadow: 0 8px 24px rgba(0,0,0,.25), inset 0 0 0 1px rgba(0,0,0,.08), inset 0 1px 0 rgba(0,0,0,.06);
+      transform: translateX(0); transition: transform .38s cubic-bezier(.2,.7,.2,1); z-index:3;
+    }
+    /* Inverted thumb mapping: on LIGHT page thumb on the RIGHT */
+    html[data-theme="light"] #themeToggle .thumb{ transform: translateX(calc(var(--w) - 2*(var(--pad) + var(--bd)) - var(--thumb))); }
+    html[data-theme="dark"]  #themeToggle .thumb{ transform: translateX(0); }
+
+    /* Mini toggle for phones */
+    @media (max-width: 480px){ #themeToggle.theme-toggle{ --h:44px; --w:148px; --pad:6px; } }
+    @media (max-width: 360px){ #themeToggle.theme-toggle{ --h:40px; --w:136px; --pad:6px; } }
+
+    @media (prefers-reduced-motion: reduce){
+      #themeToggle .scene, #themeToggle .thumb{ transition:none!important; }
+    }
+  </style>
+    
+
+  <script>
+    (function(){
+      try{ if('scrollRestoration' in history) history.scrollRestoration = 'manual'; }catch(_){}
+      function toTop(){ try{ window.scrollTo(0,0); }catch(_){} }
+      if(document.readyState === 'complete' || document.readyState === 'interactive'){ toTop(); }
+      else { window.addEventListener('DOMContentLoaded', toTop, {once:true}); }
+      window.addEventListener('pageshow', toTop, {once:true});
+    })();
+  </script>
+
+
+  <style>
+    /* Full-bleed scene inside toggle (no inner gaps on any screen) */
+    #themeToggle.theme-toggle .scene{
+      inset: var(--bd) !important;
+      border-radius: calc(var(--h)/2 - var(--bd)) !important;
+      overflow: hidden !important;
+    }
+    #themeToggle.theme-toggle .scene svg{
+      width: 100% !important;
+      height: 100% !important;
+      display: block !important;
+    }
+  </style>
+<style id="pill-alert-style">
+  .pill-alert{
+    display:inline-flex;align-items:center;justify-content:center;
+    margin-left:10px;padding:2px 8px;border-radius:10px;
+    font-weight:800;font-size:12px;letter-spacing:.2px;
+    color:#fff;background:#ff4242;
+    box-shadow:0 0 0 0 rgba(255,66,66,.65);
+    animation:hazard 1.15s steps(2,start) infinite;
+  }
+  @keyframes hazard{to{opacity:.38;box-shadow:0 0 0 10px rgba(255,66,66,0)}}
+  @media (prefers-reduced-motion:reduce){.pill-alert{animation:none}}
+</style>
+
+<script id="pill-alert-script">
+(function(){
+  function todayISO(){const d=new Date();d.setMinutes(d.getMinutes()-d.getTimezoneOffset());return d.toISOString().slice(0,10);}
+  function getTodayMg(){
+    const iso=todayISO();
+    try{ const tIso=localStorage.getItem('derma_today_iso');
+      if(tIso===iso){ const mg=+localStorage.getItem('derma_today_mg')||0; if(mg>0) return mg; }
+    }catch(_){}
+    try{ const diary=JSON.parse(localStorage.getItem('rt.diary.v1')||'{}'); const rec=diary[iso];
+      if(rec){ if(rec.miss===true||rec.taken===false) return 0; return +(rec.dose ?? rec.mg ?? 0)||0; }
+    }catch(_){}
+    return 0;
+  }
+  function render(){
+    const need=getTodayMg()<=0;
+    document.querySelectorAll('[data-pill-spot]').forEach(spot=>{
+      let b=spot.querySelector('.pill-alert');
+      if(!need){ if(b) b.remove(); return; }
+      if(!b){ b=document.createElement('span'); b.className='pill-alert'; b.textContent='препарат';
+        b.title='Сегодня доза не отмечена'; spot.appendChild(b); }
+    });
+  }
+  window.addEventListener('storage',e=>{
+    if(['rt.diary.v1','derma_today_iso','derma_today_mg'].includes(e.key)) render();
+  });
+  document.addEventListener('visibilitychange',()=>{ if(!document.hidden) render(); });
+  document.addEventListener('DOMContentLoaded',render);
+  window.renderPillAlert = render;
+})();
+</script>
+
+</head>
+<body>
+<script>
+(function(){
+  try{
+    const tg = window.Telegram?.WebApp?.initDataUnsafe?.user?.id;
+    const sp = new URLSearchParams(location.search);
+    const uid = sp.get('tg') || tg || '';
+    localStorage.setItem('rt_role','patient');
+    localStorage.setItem('rt_last','patient:' + (document.body.id || 'main'));
+  }catch(_){}
+})();
+</script>
+  <div class="wrap">
+    <div class="topbar">
+      <a class="back-btn" href="/dark/main.html" id="btn-back" aria-label="Назад на главную">
+        <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M15 19l-7-7 7-7" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+        <span>Назад</span>
+      </a>
+     <h1 style="margin:0">Roaccutane Tracker <span data-pill-spot></span><span data-stock-spot></span></h1>
+      <!-- Theme toggle exact -->
+      <button id="themeToggle" class="theme-toggle" role="switch" aria-checked="false" aria-label="Переключить тему">
+        <span class="scene light">
+          <svg viewBox="0 0 260 88" preserveAspectRatio="none" xmlns="http://www.w3.org/2000/svg">
+            <defs><linearGradient id="lgLight" x1="0" y1="0" x2="1" y2="0">
+              <stop offset="0%" stop-color="#5ECFC8"/><stop offset="100%" stop-color="#FFD3A3"/></linearGradient>
+            </defs>
+            <rect x="0" y="0" width="260" height="88" rx="0" fill="url(#lgLight)"/>
+            <g fill="#FFF1E2">
+              <g opacity=".85"><circle cx="170" cy="46" r="18"/><circle cx="188" cy="46" r="22"/><circle cx="209" cy="50" r="18"/></g>
+              <g opacity=".35"><circle cx="130" cy="54" r="10"/><circle cx="145" cy="56" r="12"/></g>
+            </g>
+          </svg>
+        </span>
+        <span class="scene dark">
+          <svg viewBox="0 0 260 88" preserveAspectRatio="none" xmlns="http://www.w3.org/2000/svg">
+            <defs><linearGradient id="lgDark" x1="0" y1="0" x2="1" y2="0">
+              <stop offset="0%" stop-color="#1C2140"/><stop offset="100%" stop-color="#2A0F4A"/></linearGradient>
+            </defs>
+            <rect x="0" y="0" width="260" height="88" rx="0" fill="url(#lgDark)"/>
+            <g opacity=".55" style="mix-blend-mode:multiply"><ellipse cx="230" cy="44" rx="58" ry="44" fill="rgba(0,0,0,.22)"/></g>
+            <g opacity=".38" style="mix-blend-mode:multiply"><ellipse cx="236" cy="44" rx="82" ry="60" fill="rgba(0,0,0,.15)"/></g>
+            <g fill="#3B2A6B"><g opacity=".75"><circle cx="86" cy="52" r="22"/><circle cx="110" cy="50" r="18"/><circle cx="132" cy="54" r="22"/></g>
+              <g opacity=".40"><circle cx="46" cy="56" r="18"/><circle cx="64" cy="56" r="14"/></g></g>
+            <g fill="#A98DF7" opacity=".8"><circle cx="136" cy="18" r="1.8"/><circle cx="152" cy="24" r="1.4"/><circle cx="170" cy="20" r="1.3"/><circle cx="186" cy="28" r="1.6"/><circle cx="200" cy="22" r="1.2"/></g>
+          </svg>
+        </span>
+        <span class="thumb"></span>
+      </button>
+                
+
+    </div>
+
+    <section class="card" aria-labelledby="faq-title">
+      <div class="glow"></div>
+      <h2 id="faq-title">FAQ — часто задаваемые вопросы</h2>
+      <div class="muted" style="margin-bottom:8px">Эта информация носит справочный характер и не заменяет консультацию врача.</div>
+
+      <input id="search" type="search" placeholder="Поиск по FAQ (нажмите / для фокуса)">
+      <div style="margin-top:10px">
+        <a class="chip" href="#start">Начало</a>
+        <a class="chip" href="#dose">Дозировка</a>
+        <a class="chip" href="#side">Побочные эффекты</a>
+        <a class="chip" href="#labs">Анализы</a>
+        <a class="chip" href="#pregnancy">Беременность</a>
+        <a class="chip" href="#alcohol">Алкоголь</a>
+        <a class="chip" href="#sun">Солнце</a>
+        <a class="chip" href="#interactions">Лекарства</a>
+        <a class="chip" href="#missed">Пропуск дозы</a>
+        <a class="chip" href="#app">Приложение</a>
+      </div>
+    </section>
+
+    <section class="card" aria-label="Популярные вопросы">
+      <div class="glow"></div>
+      <h2 style="margin-bottom:6px">Популярные вопросы и нюансы</h2>
+
+      <div id="qa-list">
+
+        <details class="qa" id="start">
+          <summary>Как начать курс и работать с приложением? <span class="pill">start</span></summary>
+          <div class="qa-body">
+            <p>1) Прочитайте «Безопасность и согласие» и подтвердите, 2) заполните <a href="/profile">Профиль</a> (вес обязателен), 3) задайте <a href="/plan">План курса</a>, 4) отмечайте приём на Главной. Если что‑то изменилось — отредактируйте соответствующую страницу.</p>
+          </div>
+        </details>
+
+        <details class="qa" id="dose">
+          <summary>Какая целевая кумулятивная доза? Как её считать? <span class="pill">dose</span></summary>
+          <div class="qa-body">
+            <p>Обычно ориентируются на диапазон <b>120–150 мг/кг</b>, оптимум — <b>≈135 мг/кг</b>. Приложение считает процент, исходя из вашего веса и суммарно выпитых мг (включая уже выпитое, если вы его указали).</p>
+          </div>
+        </details>
+
+        <details class="qa" id="food">
+          <summary>Нужно ли принимать капсулы с едой? <span class="pill">биодоступность</span></summary>
+          <div class="qa-body">
+            <p>Да, <b>с едой, содержащей жир</b> — так изотретиноин лучше всасывается. Если врач сказал иначе — следуйте его плану.</p>
+          </div>
+        </details>
+
+        <details class="qa" id="labs">
+          <summary>Как часто сдавать анализы? <span class="pill">анализы</span></summary>
+          <div class="qa-body">
+            <p>Часто назначают контроль <b>каждые ~4 недели</b> (АЛТ/АСТ, билирубин, липиды и др.). Точный перечень и частоту определяет лечащий врач.</p>
+          </div>
+        </details>
+
+        <details class="qa" id="missed">
+          <summary>Пропустил(а) дозу — что делать? <span class="pill">пропуск</span></summary>
+          <div class="qa-body">
+            <p>Если вспомнили в тот же день — примите, если близко ко времени следующей — <b>пропустите</b> и продолжайте как обычно. <b>Не удваивайте</b> дозу.</p>
+          </div>
+        </details>
+
+        <details class="qa" id="side">
+          <summary>Сухость губ и кожи — чем помочь? <span class="pill">побочки</span></summary>
+          <div class="qa-body">
+            <p>Бальзам с вазелином/ланолином для губ, нежные увлажняющие кремы без кислот и ретиноидов, физиологические промывки носа/увлажнение воздуха. Избегайте агрессивных пилингов и скрабов.</p>
+          </div>
+        </details>
+
+        <details class="qa" id="sport">
+          <summary>Боль в мышцах/суставах на курсе <span class="pill">спорт</span></summary>
+          <div class="qa-body">
+            <p>Снизьте интенсивность нагрузок, уделяйте внимание восстановлению. Если боль выраженная или нарастает — обсудите с врачом коррекцию дозы/паузы.</p>
+          </div>
+        </details>
+
+        <details class="qa" id="redflags">
+          <summary>Изменения настроения, головные боли, ухудшение зрения <span class="pill">важно</span></summary>
+          <div class="qa-body">
+            <p>Это <b>важные сигналы</b>. Срочно свяжитесь с врачом. При резком ухудшении самочувствия — обратитесь за неотложной помощью.</p>
+          </div>
+        </details>
+
+        <details class="qa" id="pregnancy">
+          <summary>Беременность и контрацепция на изотретиноине <span class="pill">тератогенность</span></summary>
+          <div class="qa-body">
+            <p>Изотретиноин <b>тератогенен</b>. Нельзя беременеть во время курса и в течение <b>минимум 1 месяца</b> после. Требуется надёжная контрацепция и отрицательные тесты — следуйте схеме врача. <b>Донорство крови запрещено</b> на курсе и месяц после.</p>
+          </div>
+        </details>
+
+        <details class="qa" id="alcohol">
+          <summary>Можно ли алкоголь? <span class="pill">алкоголь</span></summary>
+          <div class="qa-body">
+            <p>Желательно <b>избегать</b>: алкоголь повышает нагрузку на печень и может усиливать рост триглицеридов. Если планируете — обсудите с врачом индивидуальные риски.</p>
+          </div>
+        </details>
+
+        <details class="qa" id="sun">
+          <summary>Солнце и SPF <span class="pill">фотосенсибилизация</span></summary>
+          <div class="qa-body">
+            <p>Кожа становится чувствительнее к ультрафиолету. Ежедневно используйте <b>SPF 30+</b>, шляпу/очки, избегайте соляриев.</p>
+          </div>
+        </details>
+
+        <details class="qa" id="interactions">
+          <summary>Какие лекарства и добавки несовместимы? <span class="pill">взаимодействия</span></summary>
+          <div class="qa-body">
+            <p>Не сочетайте с добавками <b>витамина A</b> и другими <b>ретиноидами</b> (наружными/системными). Совместное применение с <b>тетрациклинами</b> может повышать риск внутричерепной гипертензии — обычно избегают.</p>
+          </div>
+        </details>
+
+        <details class="qa" id="procedures">
+          <summary>Процедуры: лазер, пилинг, восковая эпиляция <span class="pill">процедуры</span></summary>
+          <div class="qa-body">
+            <p>Во время курса и некоторое время после (часто рекомендуют до <b>6 месяцев</b>) избегают травмирующих процедур из‑за риска рубцевания/гиперпигментации. Сроки — только с врачом.</p>
+          </div>
+        </details>
+
+        <details class="qa" id="lenses">
+          <summary>Контактные линзы и сухость глаз <span class="pill">линзы</span></summary>
+          <div class="qa-body">
+            <p>Возможна сухость глаз. Используйте «искусственные слёзы», делайте перерывы, при выраженном дискомфорте временно переходят на очки.</p>
+          </div>
+        </details>
+
+        <details class="qa" id="finish">
+          <summary>Когда заканчивают курс? <span class="pill">окончание</span></summary>
+          <div class="qa-body">
+            <p>Обычно — когда достигнута кумулятивная цель и стойкая ремиссия. Решение принимает врач с учётом клиники и переносимости.</p>
+          </div>
+        </details>
+
+        <details class="qa" id="brands">
+          <summary>Роаккутан, Акнеккутан — в чём разница? <span class="pill">бренды</span></summary>
+          <div class="qa-body">
+            <p>Это торговые названия <b>изотретиноина</b> от разных производителей. В приложении выбор влияет на быстрые чипы доз (кратные 10 мг или 8 мг).</p>
+          </div>
+        </details>
+
+        <details class="qa" id="app">
+          <summary>Как отмечать приём и где смотреть статистику в приложении? <span class="pill">app</span></summary>
+          <div class="qa-body">
+            <p>На <a href="/dark/main.html">Главной</a> введите мг и дату, нажмите «Сохранить» или выберите чип дозы. Сводные метрики, процент к 135 мг/кг и ETA — в блоке «Прогресс». Последние отметки и календарь‑превью — ниже.</p>
+          </div>
+        </details>
+
+      </div>
+    </section>
+
+        <section class="card" aria-label="Навигация">
+      <div class="glow"></div>
+      <div class="row" style="justify-content:space-between">
+        <a id="to-home" href="/dark/main.html">← На главную</a>
+      </div>
+    </section>
+
+    <footer>Информация носит общий характер и не заменяет консультацию врача. При любых ухудшениях — обратитесь к специалисту.</footer>
+  </div>
+
+  <script>
+    const tgApp=(window.Telegram&&window.Telegram.WebApp)?window.Telegram.WebApp:null;
+    if(tgApp&&tgApp.ready) tgApp.ready();
+    if(tgApp&&tgApp.expand) tgApp.expand();
+
+    const inp=document.getElementById('search');
+    const items=[...document.querySelectorAll('#qa-list .qa')];
+    function applyFilter(){
+      const q=(inp.value||'').toLowerCase().trim();
+      items.forEach(el=>{
+        if(!q){ el.style.display=''; return; }
+        const text=el.textContent.toLowerCase();
+        el.style.display = text.includes(q) ? '' : 'none';
+      });
+    }
+    inp.addEventListener('input', applyFilter);
+    window.addEventListener('keydown', (e)=>{ if(e.key==='/'){ e.preventDefault(); inp.focus(); } });
+
+    function openByHash(){
+      const id=location.hash.replace('#','');
+      if(!id) return;
+      const el=document.getElementById(id);
+      if(el && el.tagName.toLowerCase()==='details'){ el.open=true; el.scrollIntoView({behavior:'smooth', block:'start'}); }
+    }
+    window.addEventListener('hashchange', openByHash);
+    openByHash();
+
+
+    const back = document.getElementById('btn-back');
+    if (back){
+      back.addEventListener('click', function(ev){
+        ev.preventDefault();
+        try{
+          if (history.length > 1) { history.back(); return; }
+        }catch(_){}
+        location.href = './main.html';
+      });
+    }
+
+  </script>
+
+<script>
+(function(){
+  var back = document.getElementById('btn-back');
+  if(back){
+    back.addEventListener('click', function(e){
+      e.stopPropagation();
+      var t = document.documentElement.dataset.theme || 'dark';
+      var target = (t === 'dark') ? './main.html' : './main.html';
+      if (back.getAttribute('href') !== target) back.setAttribute('href', target);
+    }, {capture:true});
+  }
+  var link = document.getElementById('to-home');
+  if(link){
+    link.addEventListener('click', function(ev){
+      ev.preventDefault(); window.location.href = link.getAttribute('href');
+    }, {capture:true});
+  }
+})();
+</script>
+
+
+<script>
+(function(){
+  const PAGES = { light: 'faq-rt-light.html', dark: 'faq.html' };
+  const btn = document.getElementById('themeToggle');
+  if(!btn) return;
+
+  const isLight = /faq-rt-light\.html$/i.test(location.pathname) || /\(Light\)/.test(document.title);
+  setTheme(isLight ? 'light' : 'dark', true);
+  btn.setAttribute('aria-checked', String(!isLight));
+
+  btn.addEventListener('click', toggle);
+  btn.addEventListener('keydown', (e)=>{
+    if(e.key === ' ' || e.key === 'Enter'){ e.preventDefault(); toggle(); }
+  });
+
+  function toggle(){
+    const next = (document.documentElement.dataset.theme === 'dark') ? 'light' : 'dark';
+    setTheme(next);
+    try{ localStorage.setItem('rt.theme', next); }catch(_){}
+    const target = PAGES[next];
+    if(target && !location.pathname.endsWith('/'+target)){
+      location.href = target;
+    }
+  }
+  function setTheme(t, silent){
+    document.documentElement.setAttribute('data-theme', t);
+    if(!silent){ document.dispatchEvent(new CustomEvent('themechange', {detail:t})); }
+  }
+
+  // honor saved theme
+  try{
+    const saved = localStorage.getItem('rt.theme');
+    if(saved && saved !== (isLight?'light':'dark')){
+      setTheme(saved, true);
+      const target = PAGES[saved];
+      if(target && !location.pathname.endsWith('/'+target)){
+        location.replace(target);
+      }
+    }
+  }catch(_){}
+})();
+</script>
+<script>
+(function(){
+  const K_LEFT='rt_capsules_left', K_THRESH='rt_capsules_threshold', K_ON='rt_capsules_alert_enabled';
+  const num=(k,d=0)=>{const v=parseInt(localStorage.getItem(k)||d,10);return Number.isFinite(v)?v:0;}
+  const on =()=> (localStorage.getItem(K_ON)||'0')==='1';
+
+  function text(){
+    if(!on()) return null;
+    const left=num(K_LEFT,0), thr=num(K_THRESH,0);
+    if(left>0 && thr>0 && left<=thr) return `осталось ${left} капсул`;
+    return null;
+  }
+  function render(){
+    document.querySelectorAll('[data-stock-spot]').forEach(host=>{
+      let el=host.querySelector('.pill-alert--stock');
+      const t=text();
+      if(!t){ el?.remove(); return; }
+      if(!el){ el=document.createElement('span'); el.className='pill-alert pill-alert--stock'; host.appendChild(el); }
+      el.textContent=t;
+    });
+  }
+  window.addEventListener('storage', e=>{
+    if([K_LEFT,K_THRESH,K_ON,'rt_capsules_left_bump','rt_capsules_threshold_bump','rt_capsules_alert_bump'].includes(e.key)) render();
+  });
+  document.addEventListener('visibilitychange', ()=>{ if(!document.hidden) render(); });
+  render();
+  window.renderStockAlert=render;
+})();
+</script>
+
+<style>
+.pill-alert--stock{
+  display:inline-flex;
+  align-items:center;
+  justify-content:center;
+  white-space:nowrap;
+  padding:3px 8px;
+  border-radius:999px;
+  font-weight:700;
+  font-size:14px;
+  letter-spacing:.02em;
+  line-height:1;
+  background:linear-gradient(135deg,#22e6a1,#10b981);
+  color:#061a12;
+  border:1px solid rgba(255,255,255,.15);
+
+  /* базовое свечение */
+  box-shadow:
+    0 0 6px rgba(16,185,129,.55),
+    0 0 14px rgba(16,185,129,.35),
+    inset 0 1px 2px rgba(255,255,255,.2);
+
+  transform-origin:center;
+  will-change:transform,box-shadow;
+  animation:stock-breathe 3s ease-in-out infinite;
+}
+
+@keyframes stock-breathe{
+  0%,100%{
+    transform:scale(1);
+    box-shadow:
+      0 0 6px rgba(16,185,129,.55),
+      0 0 14px rgba(16,185,129,.35),
+      inset 0 1px 2px rgba(255,255,255,.2);
+  }
+  50%{
+    transform:scale(0.985);
+    box-shadow:
+      0 0 10px rgba(16,185,129,.75),
+      0 0 22px rgba(16,185,129,.45),
+      inset 0 1px 2px rgba(255,255,255,.25);
+  }
+}
+
+@media (prefers-reduced-motion:reduce){
+  .pill-alert--stock{ animation:none }
+}
+</style>
+
+<script>
+// Keep in-page anchors on the same document.
+document.addEventListener('click', function(e){
+  const a = e.target.closest('a[href^="#"]');
+  if(!a) return;
+  const href = a.getAttribute('href');
+  if (!href || href === '#') return;
+  const id = href.slice(1);
+  const el = document.getElementById(id);
+  if (el){
+    e.preventDefault();
+    el.scrollIntoView({behavior:'smooth', block:'start'});
+    try { history.replaceState(null, '', '#' + id); } catch (_) { location.hash = id; }
+  }
+});
+// Back button: go back to whoever пришёл (main/myprofile), иначе в /dark/main.html
+document.addEventListener('DOMContentLoaded', function(){
+  const backBtn = document.querySelector('#backBtn, .back-btn, a.back-btn');
+  if(!backBtn) return;
+  backBtn.addEventListener('click', function(ev){
+    ev.preventDefault();
+    const ref = document.referrer || '';
+    if (ref.includes('/dark/main') || ref.includes('/dark/myprofile')) {
+      location.href = ref; return;
+    }
+    const last = sessionStorage.getItem('lastPage') || '';
+    if (/\/dark\/(main|myprofile)\.html/.test(last)) {
+      location.href = last; return;
+    }
+    location.href = '/dark/main.html';
+  });
+});
+</script>
+
+</body>
+</html>

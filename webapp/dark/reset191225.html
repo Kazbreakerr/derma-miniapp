@@ -77,8 +77,8 @@ document.documentElement.dataset.theme = cur;
     }
     html[data-theme="light"] #themeToggle .thumb{ transform: translateX(calc(var(--w) - 2*(var(--pad) + var(--bd)) - var(--thumb))); }
     html[data-theme="dark"]  #themeToggle .thumb{ transform: translateX(0); }
-    @media (max-width: 480px){ #themeToggle.theme-toggle{ --h:44px; --w:148px; --pad:6px; } }
-    @media (max-width: 360px){ #themeToggle.theme-toggle{ --h:40px; --w:136px; --pad:6px; } }
+   @media (max-width: 480px){ #themeToggle.theme-toggle{ --h:34px; --w:112px; --pad:5px; } }
+@media (max-width: 360px){ #themeToggle.theme-toggle{ --h:32px; --w:104px; --pad:5px; } }
     @media (prefers-reduced-motion: reduce){ #themeToggle .scene, #themeToggle .thumb{ transition:none!important; } }
     #themeToggle.theme-toggle .scene{ inset: var(--bd) !important; border-radius: calc(var(--h)/2 - var(--bd)) !important; overflow: hidden !important; }
     #themeToggle.theme-toggle .scene svg{ width: 100% !important; height: 100% !important; display: block !important; }
@@ -258,140 +258,70 @@ html[data-theme="light"] .cancel{
   details.more summary::-webkit-details-marker{display:none}
   details.more .content{padding-top:4px}
 </style>
-
 <style id="reset-retiora-rotate-and-danger">
-  /* ===== Top header layout ===== */
-  .topbar{
-    display:flex;
-    align-items:center;
-    gap:12px;
-    flex-wrap:nowrap;
-    margin-bottom:6px;
-    padding-top:8px;   /* чуть ниже, ближе к тумблеру */
-  }
-  .topbar #themeToggle{ margin-left:auto; }
-  .top-badges{
-    display:flex;
-    align-items:center;
-    gap:10px;
-    margin:4px 0 12px;
-    min-height:18px;
-  }
-  .top-badges .pill-alert,
-  .top-badges .pill-alert--stock{ margin-left:0 !important; }
-
-  /* ===== Rotating title (single line) ===== */
+  /* ===== Rotating title ===== */
   .brand-h1{
-    display:flex;
-    align-items:baseline;
-    gap:8px;
-    flex-wrap:nowrap;
-    white-space:nowrap;
-    min-width:0;
-    max-width:100%;
-    overflow:hidden;
-    text-overflow:ellipsis;
-
-    line-height:1.12;
-    transition: opacity .45s ease, transform .55s ease;
-    will-change: opacity, transform;
-  }
-  .brand-h1.is-fading{
-    opacity:0;
-    transform: translateY(-6px);
+    display:flex; flex-wrap:wrap; align-items:baseline; gap:8px;
+    line-height:1.15;
   }
   .brand-h1 .brand{
     font-weight:900;
-    font-size:1.12em; /* +12% */
+    font-size:1.15em; /* +15% vs tagline */
     letter-spacing:.2px;
-    flex:0 0 auto;
   }
-  .brand-h1 .sep{
-    opacity:.7;
-    font-weight:800;
-    flex:0 0 auto;
-  }
+  .brand-h1 .sep{ opacity:.7; font-weight:800; }
   .brand-h1 .tagline{
     font-weight:800;
     opacity:.95;
-    min-width:0;
-    overflow:hidden;
-    text-overflow:ellipsis;
+    transition: opacity .45s ease, transform .55s ease;
+    will-change: opacity, transform;
+  }
+  .brand-h1.is-fading .tagline{
+    opacity:0;
+    transform: translateY(-6px);
   }
 
-  /* ===== Dim + blur from edges towards the button ===== */
+  /* ===== Dim + zoom on destructive press ===== */
   body::after{
-    content:"";
-    position:fixed;
-    inset:0;
-    z-index:50;
-    pointer-events:none;
-
-    /* Виньетка: края темнее, центр около кнопки светлее */
-    background: radial-gradient(130% 120% at 50% 72%,
-      rgba(0,0,0,0) 0 18%,
-      rgba(0,0,0,.35) 55%,
-      rgba(0,0,0,.72) 100%);
-    opacity:0;
+    content:""; position:fixed; inset:0; z-index:40; pointer-events:none;
+    background: rgba(0,0,0,.0);
     backdrop-filter: blur(0px);
-    transition: opacity .34s ease, backdrop-filter .34s ease;
+    opacity:0;
+    transition: opacity .28s ease, background .28s ease, backdrop-filter .28s ease;
   }
   body.is-arming::after,
   body.is-deleting::after{
     opacity:1;
-    backdrop-filter: blur(2px);
+    background: rgba(0,0,0,.30);
+    backdrop-filter: blur(1px);
   }
 
-  /* Не подсвечиваем весь блок — только кнопку */
-  #dangerCard{ position:relative; }
+  #dangerCard{
+    position:relative;
+    transform: translateZ(0);
+    transition: transform .28s ease, box-shadow .28s ease;
+    z-index:41;
+  }
+  body.is-arming #dangerCard{
+    transform: scale(1.02);
+    box-shadow: 0 18px 44px rgba(0,0,0,.45) !important;
+  }
+  body.is-arming #dangerCard::before{
+    content:""; position:absolute; inset:-2px; border-radius:18px;
+    pointer-events:none;
+    box-shadow: 0 0 0 2px rgba(239,68,68,.75), 0 0 26px rgba(239,68,68,.25);
+  }
 
+  /* ===== "Delete" button polish ===== */
   .hold-btn{
     border-radius:16px;
     background-image:
       radial-gradient(120% 100% at 0% 0%, rgba(255,255,255,.14), transparent 42%),
       linear-gradient(180deg, var(--danger-700), var(--danger-900)) !important;
-
-    position:relative;
-    z-index:60; /* над виньеткой, чтобы обводка читалась */
   }
-
-  body.is-arming .hold-btn{
-    box-shadow:
-      0 0 0 2px rgba(239,68,68,.78),
-      0 0 22px rgba(239,68,68,.25),
-      10px 12px 26px rgba(220,38,38,.20),
-      inset 0 2px 0 rgba(255,255,255,.25),
-      inset 0 -12px 30px rgba(0,0,0,.25) !important;
-  }
-
   .hold-btn:active{ transform: scale(.99); }
   .hold-btn .progress{
     background: linear-gradient(90deg, rgba(255,255,255,.10), rgba(255,255,255,.28));
-  }
-</style>
-
-<style id="reset-title-fit-patch">
-  /* Заголовок должен помещаться полностью: без троеточия, с переносом на мобиле */
-  #rotTitle.brand-h1{
-    overflow: visible !important;
-    text-overflow: clip !important;
-    max-width: 100% !important;
-    font-size: clamp(16px, 4.8vw, 22px);
-  }
-  #rotTitle.brand-h1,
-  #rotTitle.brand-h1 .tagline{
-    white-space: normal !important;
-  }
-  #rotTitle.brand-h1{ flex-wrap: wrap !important; }
-  #rotTitle.brand-h1 .tagline{
-    overflow: visible !important;
-    text-overflow: clip !important;
-    min-width: 0 !important;
-  }
-  /* На более широких экранах можно оставлять в одну строку */
-  @media (min-width: 560px){
-    #rotTitle.brand-h1{ flex-wrap: nowrap !important; white-space: nowrap !important; }
-    #rotTitle.brand-h1 .tagline{ white-space: nowrap !important; }
   }
 </style>
 
@@ -410,11 +340,13 @@ html[data-theme="light"] .cancel{
 </script>
   <div class="wrap">
     <div class="topbar">
-      <h1 class="brand-h1" id="rotTitle" style="margin:0">
+      <h1 class="brand-h1" style="margin:0">
         <span class="brand">Retiora</span>
         <span class="sep">—</span>
         <span class="tagline" id="rotTag">Retinoid &amp; Isotretinoin Tracker</span>
+        <span data-pill-spot></span>
       </h1>
+      <span data-stock-spot></span>
       <button id="themeToggle" class="theme-toggle" role="switch" aria-checked="true" aria-label="Переключить тему">
         <span class="scene light">
           <svg viewBox="0 0 260 88" preserveAspectRatio="none" xmlns="http://www.w3.org/2000/svg">
@@ -444,10 +376,6 @@ html[data-theme="light"] .cancel{
         <span class="thumb"></span>
       </button>
     </div>
-    <div class="top-badges" aria-label="Статусы">
-      <span data-pill-spot></span>
-      <span data-stock-spot></span>
-    </div>
 
     <div class="card danger" id="dangerCard">
   <p class="lead">Обнуление данных локально и на сервере:</p>
@@ -462,16 +390,14 @@ html[data-theme="light"] .cancel{
   <p class="muted" style="margin:6px 0 0">Профиль и план курса сохранятся.</p>
 
   <details class="more">
-    <summary>Подробнее</summary>
+    <summary>Подробнее, что будет очищено</summary>
     <div class="content">
-      <p class="muted" style="margin:0 0 8px">
-        Мы удалим дневник и календарь курса (включая фотографии) — локально и на сервере. Действие необратимо.
-      </p>
       <ul class="list">
-        <li><b>Удалится:</b> отметки о приёмах/пропусках и дозах, самочувствие, заметки дня, побочные эффекты, фотографии в фотодневнике, напоминания и локальные кэши.</li>
-        <li><b>Останется:</b> профиль и план курса (вес, цели и базовые настройки курса).</li>
+        <li>Все отметки о приёмах/дозах на сервере и в памяти устройства.</li>
+        <li>Настройки напоминаний и локальные кэши.</li>
+        <li>Файлы офлайн-версии (service worker и cache) — переустановятся автоматически.</li>
       </ul>
-      <div class="extra">Если вы передумали — нажмите «Отмена».</div>
+      <div class="extra">Действие необратимо. Если передумаете — нажмите «Отмена».</div>
     </div>
   </details>
 
@@ -529,8 +455,6 @@ html[data-theme="light"] .cancel{
         if(target && !location.pathname.endsWith('/'+target)){ location.href = target + location.search; }
       }
     })();
-
-    
 // ===== Rotating header (once per minute) =====
 (function(){
   const h1 = document.querySelector('h1.brand-h1');
@@ -545,23 +469,21 @@ html[data-theme="light"] .cancel{
   function swap(){
     i = (i + 1) % TAGS.length;
     h1.classList.add('is-fading');
-    // fade out -> swap -> fade in
     setTimeout(()=>{
       tag.textContent = TAGS[i];
       h1.classList.remove('is-fading');
     }, 320);
   }
 
-  // start exactly in 60s, then every 60s
   setTimeout(()=>{
     swap();
-    setInterval(swap, 60000);
-  }, 60000);
+    setInterval(swap, 20000);
+  }, 20000);
 })();
 
     const btn = document.getElementById('holdDelete');
     const msg = document.getElementById('msg');
-    let raf = null, start = 0, holding = false, duration = 2000;
+    let raf = null, start = 0, holding = false, duration = 1600;
 
     function setProgress(p){
       const val = Math.max(0, Math.min(1, p));
@@ -569,13 +491,9 @@ html[data-theme="light"] .cancel{
     }
 
     function onDown(e){
-      // лёгкая вибрация при начале удержания
-if (navigator.vibrate) {
-  navigator.vibrate(20);
-}
       if (btn.disabled) return;
-      
-      try{ document.body.classList.add('is-arming'); }catch(_){}holding = true;
+      try{ document.body.classList.add('is-arming'); }catch(_){}
+      holding = true;
       start = performance.now();
       setProgress(0);
       tick();
@@ -610,7 +528,7 @@ if (navigator.vibrate) {
         try{ document.body.classList.remove('is-arming'); document.body.classList.add('is-deleting'); }catch(_){}
         btn.disabled = true; msg.textContent = 'Удаляю…';
         const r = await api('/api/reset', { method:'POST', body:'{}' });
-        if(!r.ok){ msg.textContent = 'Ошибка ' + r.status; btn.disabled=false; setProgress(0); try{ document.body.classList.remove('is-deleting'); }catch(_){} return; }
+        if(!r.ok){ msg.textContent = 'Ошибка ' + r.status; btn.disabled=false; setProgress(0); return; }
         try{
           const qs = new URLSearchParams(location.search);
           const uid = qs.get('tg') || (window.Telegram?.WebApp?.initDataUnsafe?.user?.id || '');
@@ -636,45 +554,6 @@ diaryKeys.forEach(k => { try { localStorage.removeItem(k); } catch(_) {} });
 try { localStorage.removeItem('rt.daySlate.last'); } catch(_) {}
 try { localStorage.setItem('rt.daySlate.force','1'); } catch(_) {}
 
-
-// === PHOTOS: clear any stored photo blobs/base64 (best-effort) ===
-try{
-  const prefixes = ['rt.photo.', 'rt.photo:', 'rt.photos.', 'rt.img.', 'rt.image.', 'rt.compare.', 'rt.facePhoto', 'rt.bodyPhoto'];
-  for (let i = localStorage.length - 1; i >= 0; i--){
-    const k = localStorage.key(i);
-    if(!k) continue;
-    if (prefixes.some(p => k.startsWith(p)) || /photo|image/i.test(k) && k.startsWith('rt.')){
-      try{ localStorage.removeItem(k); }catch(_){}
-    }
-  }
-}catch(_){}
-
-// IndexedDB photo stores (best-effort; safe to ignore if unsupported)
-try{
-  if (window.indexedDB){
-    const del = (name)=> new Promise(res=>{
-      try{
-        const req = indexedDB.deleteDatabase(name);
-        req.onsuccess = req.onerror = req.onblocked = ()=>res();
-      }catch(_){ res(); }
-    });
-
-    // common names (if you ever store photos separately)
-    const common = ['rtPhotos','rt_photos','retioraPhotos','retiora_photos','photos','photoStore','imageStore'];
-    for (const n of common) { try{ await del(n); }catch(_){ } }
-
-    if (indexedDB.databases){
-      const dbs = await indexedDB.databases();
-      for (const db of (dbs||[])){
-        const nm = db && db.name;
-        if(nm && /photo|image|retiora|rt/i.test(nm)){
-          try{ await del(nm); }catch(_){}
-        }
-      }
-    }
-  }
-}catch(_){}
-
 // уведомим другие открытые вкладки (main, calendar) — они перерисуются
 try {
   localStorage.setItem('rt.diary.bump', String(Date.now()));
@@ -693,20 +572,17 @@ try {
         }catch(_ ){}
         msg.textContent = 'Готово';
         setTimeout(()=>{
-  const qs = location.search || '';
-
-  // текущая папка, из которой открыт reset:
-  // будет "/" или "/dark/" — поэтому редирект всегда в правильное место
-  const base = new URL('.', location.href).pathname;
-
-  const welcome = base + 'welcome-rt.html' + qs;
-  const target  = base + 'splash-video.html' + (qs ? qs + '&' : '?') + 'next=' + encodeURIComponent(welcome);
-
-  location.replace(target);
+  try{
+    const qs = location.search || '';
+    const next = encodeURIComponent('./welcome-rt.html' + qs);
+    const target = './splash-video.html' + (qs ? qs + '&' : '?') + 'next=' + next;
+    location.replace(target);
+  }catch(_){
+    location.replace('./splash-video.html'); // запасной вариант
+  }
 }, 450);
-
       }catch(e){
-        msg.textContent = 'Ошибка сети'; btn.disabled=false; setProgress(0); try{ document.body.classList.remove('is-deleting'); }catch(_){}
+        msg.textContent = 'Ошибка сети'; btn.disabled=false; setProgress(0);
       }
     }
   </script>

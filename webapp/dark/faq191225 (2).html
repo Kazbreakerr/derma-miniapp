@@ -80,7 +80,23 @@ document.documentElement.dataset.theme = cur;
     .back-btn svg{width:18px;height:18px;opacity:.9}
 
   </style>
-<style id="top-layout-style">  /* tighter top layout: back button on first row; title+toggle on the next row */
+<style id="brand-rotator-style">
+  .brand-block{flex:1;min-width:0;display:flex;align-items:baseline;gap:10px;flex-wrap:wrap}
+  .brand-rotator{display:flex;align-items:baseline;gap:10px;flex-wrap:nowrap;min-width:0;flex:1;
+    transition:opacity .35s ease, transform .35s ease}
+  .brand-rotator.is-switching{opacity:0;transform:translateY(-6px)}
+  .brand-main{font-size:30px;line-height:1;font-weight:800;letter-spacing:.2px;flex:0 0 auto}
+  .brand-dash{font-size:24px;line-height:1;font-weight:750;opacity:.9;flex:0 0 auto}
+  /* Retiora на ~12–15% больше */
+  .brand-sub{font-size:26px;line-height:1.05;font-weight:750;opacity:.92;flex:1 1 auto;min-width:0;
+    white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:560px}
+  .brand-badges{display:inline-flex;align-items:center;gap:10px;flex-wrap:wrap;flex:0 0 auto}
+  @media (max-width: 640px){
+    .brand-main{font-size:26px}
+    .brand-sub{font-size:22.5px;max-width:55vw}
+    .brand-dash{font-size:20px}
+  }
+</style><style id="top-layout-style">  /* tighter top layout: back button on first row; title+toggle on the next row */
   .topbar{display:flex;align-items:center;gap:12px;flex-wrap:wrap;margin-bottom:10px}
   .header-row{display:flex;align-items:center;gap:14px;flex-wrap:wrap;margin:2px 0 14px}
   .header-row #themeToggle{margin-left:auto}
@@ -132,15 +148,7 @@ document.documentElement.dataset.theme = cur;
     @media (prefers-reduced-motion: reduce){
       #themeToggle .scene, #themeToggle .thumb{ transition:none!important; }
     }
-  
-    /* Disable theme toggle (temporary) */
-    #themeToggle[disabled]{
-      opacity:.45;
-      pointer-events:none;
-      filter:grayscale(.25);
-    }
-    
-</style>
+  </style>
 <script>
     (function(){
       try{ if('scrollRestoration' in history) history.scrollRestoration = 'manual'; }catch(_){}
@@ -205,63 +213,6 @@ document.documentElement.dataset.theme = cur;
   window.renderPillAlert = render;
 })();
 </script>
-
-<style id="faq-top-compact-fix">
-  /* Compact top area + keep badges without eating space */
-  .topbar{justify-content:space-between !important; margin-bottom:10px !important}
-  .topbar-right{margin-left:auto; display:flex; align-items:center; gap:10px; flex-wrap:wrap}
-  @media (max-width:480px){ .faq-disclaimer{display:none} }
-  @media (max-width:520px){
-    .wrap{padding:12px 14px 26px !important}
-  }
-</style>
-
-
-<style>
-  /* Brand header row (Retiora — ...), without theme toggle */
-  .brand-row{
-    display:flex;
-    align-items:baseline;
-    gap:12px;
-    padding: 6px 18px 10px;
-  }
-  .brand-rotator{
-    display:flex;
-    align-items:baseline;
-    gap:10px;
-    flex-wrap:wrap;
-    min-width:0;
-    transition: opacity .35s ease, transform .35s ease;
-  }
-  .brand-rotator.is-switching{ opacity:0; transform: translateY(-6px); }
-
-  /* Retiora ~12–15% bigger than subtitle */
-  .brand-main{ font-size:30px; font-weight:800; line-height:1; letter-spacing:.2px; }
-  .brand-dash{ font-size:24px; font-weight:750; line-height:1; opacity:.9; }
-  .brand-sub { font-size:26px; font-weight:750; line-height:1.05; opacity:.92; }
-
-  .status-pills{
-    margin-left:auto;
-    display:flex;
-    gap:10px;
-    align-items:center;
-    flex-wrap:wrap;
-  }
-
-  @media (max-width: 520px){
-    .brand-row{ padding: 4px 14px 8px; }
-    .brand-main{ font-size:28px; }
-    .brand-sub { font-size:23px; }
-    .brand-dash{ font-size:22px; }
-  }
-  @media (max-width: 380px){
-    .brand-row{ gap:10px; }
-    .brand-main{ font-size:26px; }
-    .brand-sub { font-size:21px; }
-    .brand-dash{ font-size:20px; }
-  }
-</style>
-
 </head>
 <body>
 <script>
@@ -282,27 +233,51 @@ document.documentElement.dataset.theme = cur;
 <span>Назад</span>
 </a>
 
+<!-- Theme toggle exact -->
 
+</div><div class="header-row"><div aria-level="1" class="brand-block" role="heading">
+<div aria-label="Retiora — Retinoid &amp; Isotretinoin Tracker" class="brand-rotator" id="brandRotator">
+<span class="brand-main">Retiora</span>
+<span class="brand-dash">—</span>
+<span class="brand-sub" id="brandSub">Retinoid &amp; Isotretinoin Tracker</span>
 </div>
-
-<div class="brand-row" aria-label="Retiora header">
-  <div class="brand-rotator" id="brandRotator" aria-label="Retiora — Retinoid &amp; Isotretinoin Tracker">
-    <span class="brand-main">Retiora</span>
-    <span class="brand-dash">—</span>
-    <span class="brand-sub" id="brandSub">Retinoid &amp; Isotretinoin Tracker</span>
-  </div>
-
-  <div class="status-pills" aria-label="Статусы">
-    <span data-pill-spot></span><span data-stock-spot></span>
-  </div>
+<div class="brand-badges">
+<span data-pill-spot=""></span><span data-stock-spot=""></span>
 </div>
-
+</div><button aria-checked="false" aria-label="Переключить тему" class="theme-toggle" id="themeToggle" role="switch">
+<span class="scene light">
+<svg preserveaspectratio="none" viewbox="0 0 260 88" xmlns="http://www.w3.org/2000/svg">
+<defs><lineargradient id="lgLight" x1="0" x2="1" y1="0" y2="0">
+<stop offset="0%" stop-color="#5ECFC8"></stop><stop offset="100%" stop-color="#FFD3A3"></stop></lineargradient>
+</defs>
+<rect fill="url(#lgLight)" height="88" rx="0" width="260" x="0" y="0"></rect>
+<g fill="#FFF1E2">
+<g opacity=".85"><circle cx="170" cy="46" r="18"></circle><circle cx="188" cy="46" r="22"></circle><circle cx="209" cy="50" r="18"></circle></g>
+<g opacity=".35"><circle cx="130" cy="54" r="10"></circle><circle cx="145" cy="56" r="12"></circle></g>
+</g>
+</svg>
+</span>
+<span class="scene dark">
+<svg preserveaspectratio="none" viewbox="0 0 260 88" xmlns="http://www.w3.org/2000/svg">
+<defs><lineargradient id="lgDark" x1="0" x2="1" y1="0" y2="0">
+<stop offset="0%" stop-color="#1C2140"></stop><stop offset="100%" stop-color="#2A0F4A"></stop></lineargradient>
+</defs>
+<rect fill="url(#lgDark)" height="88" rx="0" width="260" x="0" y="0"></rect>
+<g opacity=".55" style="mix-blend-mode:multiply"><ellipse cx="230" cy="44" fill="rgba(0,0,0,.22)" rx="58" ry="44"></ellipse></g>
+<g opacity=".38" style="mix-blend-mode:multiply"><ellipse cx="236" cy="44" fill="rgba(0,0,0,.15)" rx="82" ry="60"></ellipse></g>
+<g fill="#3B2A6B"><g opacity=".75"><circle cx="86" cy="52" r="22"></circle><circle cx="110" cy="50" r="18"></circle><circle cx="132" cy="54" r="22"></circle></g>
+<g opacity=".40"><circle cx="46" cy="56" r="18"></circle><circle cx="64" cy="56" r="14"></circle></g></g>
+<g fill="#A98DF7" opacity=".8"><circle cx="136" cy="18" r="1.8"></circle><circle cx="152" cy="24" r="1.4"></circle><circle cx="170" cy="20" r="1.3"></circle><circle cx="186" cy="28" r="1.6"></circle><circle cx="200" cy="22" r="1.2"></circle></g>
+</svg>
+</span>
+<span class="thumb"></span>
+</button></div>
 <section aria-labelledby="faq-title" class="card">
 <div class="glow"></div>
 <h2 id="faq-title">FAQ — часто задаваемые вопросы</h2>
-<div class="muted faq-disclaimer" style="margin-bottom:8px">Справочно. Не заменяет консультацию врача.</div>
-<input id="search" aria-label="Поиск по FAQ" placeholder="Поиск по FAQ" type="search"/>
-<div style="margin-top:8px">
+<div class="muted" style="margin-bottom:8px">Эта информация носит справочный характер и не заменяет консультацию врача.</div>
+<input id="search" placeholder="Поиск по FAQ (нажмите / для фокуса)" type="search"/>
+<div style="margin-top:10px">
 <a class="chip" href="#start">Начало</a>
 <a class="chip" href="#app">Приложение</a>
 <a class="chip" href="#diary">Дневник</a>
@@ -579,6 +554,48 @@ document.documentElement.dataset.theme = cur;
 </script>
 <script>
 (function(){
+  const PAGES = { light: 'faq-rt-light.html', dark: 'faq.html' };
+  const btn = document.getElementById('themeToggle');
+  if(!btn) return;
+
+  const isLight = /faq-rt-light\.html$/i.test(location.pathname) || /\(Light\)/.test(document.title);
+  setTheme(isLight ? 'light' : 'dark', true);
+  btn.setAttribute('aria-checked', String(!isLight));
+
+  btn.addEventListener('click', toggle);
+  btn.addEventListener('keydown', (e)=>{
+    if(e.key === ' ' || e.key === 'Enter'){ e.preventDefault(); toggle(); }
+  });
+
+  function toggle(){
+    const next = (document.documentElement.dataset.theme === 'dark') ? 'light' : 'dark';
+    setTheme(next);
+    try{ localStorage.setItem('rt.theme', next); }catch(_){}
+    const target = PAGES[next];
+    if(target && !location.pathname.endsWith('/'+target)){
+      location.href = target;
+    }
+  }
+  function setTheme(t, silent){
+    document.documentElement.setAttribute('data-theme', t);
+    if(!silent){ document.dispatchEvent(new CustomEvent('themechange', {detail:t})); }
+  }
+
+  // honor saved theme
+  try{
+    const saved = localStorage.getItem('rt.theme');
+    if(saved && saved !== (isLight?'light':'dark')){
+      setTheme(saved, true);
+      const target = PAGES[saved];
+      if(target && !location.pathname.endsWith('/'+target)){
+        location.replace(target);
+      }
+    }
+  }catch(_){}
+})();
+</script>
+<script>
+(function(){
   const K_LEFT='rt_capsules_left', K_THRESH='rt_capsules_threshold', K_ON='rt_capsules_alert_enabled';
   const num=(k,d=0)=>{const v=parseInt(localStorage.getItem(k)||d,10);return Number.isFinite(v)?v:0;}
   const on =()=> (localStorage.getItem(K_ON)||'0')==='1';
@@ -687,9 +704,7 @@ document.addEventListener('DOMContentLoaded', function(){
   });
 });
 </script>
-
-
-<script>
+<script id="brand-rotator-script">
 (function(){
   const rot = document.getElementById('brandRotator');
   const sub = document.getElementById('brandSub');
@@ -701,8 +716,6 @@ document.addEventListener('DOMContentLoaded', function(){
   ];
 
   let i = 0;
-  const isRu = (document.documentElement.lang || '').toLowerCase().startsWith('ru');
-  i = isRu ? 1 : 0;
 
   function apply(idx, animate){
     const v = variants[idx % variants.length];
@@ -719,10 +732,15 @@ document.addEventListener('DOMContentLoaded', function(){
     }
   }
 
+  // старт: если язык страницы ru — начнём с русского варианта
+  try{
+    const isRu = (document.documentElement.lang || '').toLowerCase().startsWith('ru');
+    i = isRu ? 1 : 0;
+  }catch(_){}
+
   apply(i, false);
   setInterval(()=>{ i = (i + 1) % variants.length; apply(i, true); }, 60000);
 })();
 </script>
-
 </body>
 </html>

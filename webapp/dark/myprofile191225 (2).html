@@ -232,9 +232,6 @@ body.light .iconbtn.reset{
     .kv{ display:grid; grid-template-columns: 120px 1fr; gap:8px 12px; align-items:center; }
     .kv dt{ color:var(--muted) }
     .kv dd{ margin:0 }
-     .kv dd .se-icons{ display:flex; gap:8px; align-items:center; flex-wrap:wrap; }
-    .kv dd .se-ico{ width:26px; height:26px; object-fit:contain; border-radius:8px; }
-
     /* аккуратная подпись под полем "Осталось таблеток" */
 .kv dd .help--caps{
   display:block;
@@ -1083,10 +1080,7 @@ html, body{ max-width:100vw; overflow-x:hidden; }
             <dt>Аллергии</dt><dd id="allergies">нет данных</dd>
             <dt>Сегодня</dt><dd id="today">— мг</dd>
           
-          
-            <dt>Побочные эффекты</dt><dd id="todaySE">—</dd>
-            <dt>Самочувствие</dt><dd id="todayMood">—</dd>
-</dl>
+          </dl>
         </div>
 
         <div class="card doctor" style="flex:1; min-width:260px;">
@@ -2165,137 +2159,49 @@ function ddmmyyyy(iso){
   const [y,m,d] = String(iso||'').split('-');
   return (d && m && y) ? `${d}.${m}.${y}` : '—';
 }
-// ====== Allergies + Today + Side effects + Mood + Last dose ======
-(function(){
-  function safeJson(key, fallback){
-    try{
-      const raw = localStorage.getItem(key);
-      return raw ? JSON.parse(raw) : fallback;
-    }catch(_){ return fallback; }
-  }
-  function localTodayISO(){
-    // локальная дата в формате YYYY-MM-DD
-    return new Date(Date.now() - new Date().getTimezoneOffset()*60000).toISOString().slice(0,10);
-  }
-  function readDiaryEntry(iso){
-    // V2 (новый дневник)
-    try{
-      const db = safeJson('rt.diary.v2', null);
-      if (db && db.version === 2 && db.entries && db.entries[iso]) return db.entries[iso];
-      // если вдруг хранится как простой объект { 'YYYY-MM-DD': {...} }
-      if (db && !db.version && db[iso]) return db[iso];
-    }catch(_){}
-    // V1 (legacy)
-    try{
-      const v1 = safeJson('rt.diary.v1', {});
-      return v1[iso] || null;
-    }catch(_){}
-    return null;
-  }
-  function moodLabel(w){
-    if (typeof w !== 'number' || !isFinite(w)) return '';
-    w = Math.max(0, Math.min(100, Math.round(w)));
-    if (w <= 5)  return 'Очень плохо';
-    if (w <= 20) return 'Плохо';
-    if (w <= 40) return 'Ниже нормы';
-    if (w <= 60) return 'Нейтрально';
-    if (w <= 75) return 'Неплохо';
-    if (w <= 90) return 'Хорошо';
-    return 'Отлично';
-  }
-
-  const SE_META = {
-    lips_dry:    { label: 'Сухость губ',  file: 'lips_dry.png' },
-    skin_dry:    { label: 'Сухость кожи', file: 'skin_dry.png' },
-    muscle_pain: { label: 'Боль в суставах/мышцах', file: 'muscle_pain.png' },
-    headache:    { label: 'Головная боль', file: 'headache.png' },
-  };
-
-  const setTextAny = (ids, val) => {
-    for (const id of ids){
-      const el = document.getElementById(id);
-      if (el){ el.textContent = val; return true; }
-    }
-    return false;
-  };
-  const setHtmlAny = (ids, html) => {
-    for (const id of ids){
-      const el = document.getElementById(id);
-      if (el){ el.innerHTML = html; return true; }
-    }
-    return false;
-  };
-
-  function render(){
-    try{
-      // Аллергии
-      let txt = 'Отсутствуют';
-      try{
-        const arr = safeJson('rt_allergies', []);
-        if (Array.isArray(arr) && arr.length){
-          txt = arr.map(v => String(v).startsWith('other:') ? String(v).slice(6) : v).join(', ');
-        }
-      }catch(_){}
-      setTextAny(['allergies','allergyLine'], txt);
-
-      // Сегодняшняя доза
-      const isoToday = localTodayISO();
-      let todayMg = 0;
-      try{
-        const entryV1 = safeJson('rt.diary.v1', {})[isoToday] || {};
-        todayMg = Number(entryV1.dose ?? entryV1.mg ?? localStorage.getItem('derma_today_mg') ?? 0) || 0;
-      }catch(_){}
-      setTextAny(['today','todayDoseLine'], todayMg > 0 ? (todayMg + ' мг') : '—');
-
-      // Побочки + самочувствие (из дневника)
-      const entry = readDiaryEntry(isoToday) || {};
-      const seObj = (entry.sideEffects && typeof entry.sideEffects === 'object') ? entry.sideEffects : {};
-      const wVal  = (typeof entry.wellness === 'number') ? entry.wellness
-                    : (typeof entry.wellness_user === 'number') ? entry.wellness_user
-                    : null;
-
-      // Побочки: иконки выбранных
-      try{
-        const icons = [];
-        for (const key of Object.keys(SE_META)){
-          const v = Number(seObj[key] || 0);
-          if (v > 0){
-            const meta = SE_META[key];
-            const src  = new URL('../assets/sideeffects/' + meta.file, location.href).toString();
-            const title = meta.label + (v ? (' • ' + v + '/3') : '');
-            icons.push(`<img class="se-ico" src="${src}" alt="${meta.label}" title="${title}">`);
-          }
-        }
-        setHtmlAny(['todaySE'], icons.length ? (`<span class="se-icons">${icons.join('')}</span>`) : '—');
-      }catch(_){
-        setTextAny(['todaySE'], '—');
+// ====== Allergies + Today + Last dose ======
+(function fillProfileDetails(){
+  try {
+    const setAny = (ids, val) => {
+      for (const id of ids) {
+        const el = document.getElementById(id);
+        if (el) { el.textContent = val; return true; }
       }
+      return false;
+    };
 
-      // Самочувствие: слово
-      const mood = moodLabel(wVal);
-      setTextAny(['todayMood'], mood || '—');
+    // Аллергии
+    let txt = 'Отсутствуют';
+    try {
+      const raw = localStorage.getItem('rt_allergies');
+      if (raw) {
+        const arr = JSON.parse(raw);
+        if (Array.isArray(arr) && arr.length) {
+          txt = arr.map(v => v.startsWith('other:') ? v.slice(6) : v).join(', ');
+        }
+      }
+    } catch(_){}
+    setAny(['allergies','allergyLine'], txt);
 
-      // Последний приём (по v1)
-      let lastIso = null;
-      try{
-        const diary = safeJson('rt.diary.v1', {});
-        Object.keys(diary).sort().forEach(k => { if ((diary[k].dose||0) > 0) lastIso = k; });
-      }catch(_){}
-      setTextAny(['lastDose','lastDoseLine'], lastIso ? ddmmyyyy(lastIso) : '—');
-    }catch(_){}
-  }
+    // Сегодняшняя доза
+    const todayISO = new Date().toISOString().slice(0,10);
+    let todayMg = 0;
+    try {
+      const diary = JSON.parse(localStorage.getItem('rt.diary.v1')||'{}');
+      const todayRec = diary[todayISO] || {};
+      todayMg = Number(todayRec.dose || localStorage.getItem('derma_today_mg') || 0) || 0;
+    } catch(_){}
+    setAny(['today','todayDoseLine'], todayMg > 0 ? (todayMg + ' мг') : '—');
 
-  // первичный рендер
-  render();
-
-  // обновления (когда вернулся с дневника / поменялись данные)
-  window.addEventListener('storage', (e)=>{
-    if (!e || !e.key) return;
-    if (['rt.diary.v2','rt.diary.v1','rt.diary.bump','derma_today_iso','derma_today_mg','rt_allergies'].includes(e.key)){
-      render();
-    }
-  });
-  document.addEventListener('visibilitychange', ()=>{ if(!document.hidden) render(); });
+    // Последний приём
+    let lastIso = null;
+    try {
+      const diary = JSON.parse(localStorage.getItem('rt.diary.v1')||'{}');
+      Object.keys(diary).sort().forEach(k => { if ((diary[k].dose||0) > 0) lastIso = k; });
+    } catch(_){}
+    const ddmmyyyy = iso => { const [y,m,d] = String(iso||'').split('-'); return (d&&m&&y) ? (d+'.'+m+'.'+y) : '—'; };
+    setAny(['lastDose','lastDoseLine'], lastIso ? ddmmyyyy(lastIso) : '—');
+  } catch(e){}
 })();
 </script>
 <script>

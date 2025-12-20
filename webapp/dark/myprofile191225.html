@@ -232,9 +232,12 @@ body.light .iconbtn.reset{
     .kv{ display:grid; grid-template-columns: 120px 1fr; gap:8px 12px; align-items:center; }
     .kv dt{ color:var(--muted) }
     .kv dd{ margin:0 }
-     .kv dd .se-icons{ display:flex; gap:8px; align-items:center; flex-wrap:wrap; }
-    .kv dd .se-ico{ width:26px; height:26px; object-fit:contain; border-radius:8px; }
 
+    /* side-effects icons */
+    .kv dd .se-icons{ display:flex; gap:8px; align-items:center; flex-wrap:wrap; }
+    .kv dd .se-ico{ width:26px; height:26px; object-fit:contain;
+      filter: drop-shadow(0 2px 6px rgba(0,0,0,.35));
+    }
     /* аккуратная подпись под полем "Осталось таблеток" */
 .kv dd .help--caps{
   display:block;
@@ -1074,14 +1077,14 @@ html, body{ max-width:100vw; overflow-x:hidden; }
     <div class="soft-bridge"></div>
 
     <!-- DETAILS -->
-    <section class="details card" id="cardDetails">
+    <section class="details card">
       <h3 class="sec-title">Детали профиля</h3>
 
       <div class="row">
         <div class="card" style="flex:1; min-width:260px;">
           <dl class="kv">
             <dt>Аллергии</dt><dd id="allergies">нет данных</dd>
-            <dt>Сегодня</dt><dd id="today">— мг</dd>
+            <dt>Сегодня:</dt><dd id="today">— мг</dd>
           
           
             <dt>Побочные эффекты</dt><dd id="todaySE">—</dd>
@@ -1159,7 +1162,7 @@ html, body{ max-width:100vw; overflow-x:hidden; }
           <div style="font-weight:700">Дневник состояния</div>
           <div class="muted">Отслеживайте самочувствие, сухость кожи/губ, настроение</div>
         </div>
-        <a class="btn primary" id="goDiary" href="diary.html" data-vt-link>
+        <a class="btn primary" href="diary.html" data-vt-link>
           <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="#0d1220" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 19.5A2.5 2.5 0 0 0 6.5 22H20"/><path d="M20 22V6a2 2 0 0 0-2-2H6.5A2.5 2.5 0 0 0 4 6.5V22"/><path d="M8 8h8"/><path d="M8 12h8"/></svg>
           Посетить дневник
         </a>
@@ -1167,7 +1170,7 @@ html, body{ max-width:100vw; overflow-x:hidden; }
     </section>
 
     <!-- REMINDERS -->
-    <section class="card reminders" id="cardReminders">
+    <section class="card reminders">
       <h3>Напоминания</h3>
       <div class="field">
         <div class="lhs">
@@ -1201,7 +1204,7 @@ html, body{ max-width:100vw; overflow-x:hidden; }
     </section>
     <div class="cta-split">
   <!-- ЛЕВАЯ половина: Обнуление -->
-  <section class="card reset-panel" id="cardReset">
+  <section class="card reset-panel">
     <div class="reset-text">
       <h3 class="reset-title">Обнулить всё</h3>
       <p class="muted">
@@ -1216,7 +1219,7 @@ html, body{ max-width:100vw; overflow-x:hidden; }
   </section>
 
   <!-- ПРАВАЯ половина: возврат на приветствие -->
-  <section class="card welcome-panel" id="cardRole">
+  <section class="card welcome-panel">
     <a class="neon-btn" href="/dark/welcome-rt.html" data-vt-link
        title="Вернуться на приветственную страницу выбора роли">
       <span class="neon-title">К выбору роли&nbsp;›</span>
@@ -1244,7 +1247,7 @@ html, body{ max-width:100vw; overflow-x:hidden; }
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
       <small>Профиль</small>
     </a>
-    <a class="tab" id="navDiary" href="diary.html" data-vt-link>
+    <a class="tab" href="diary.html" data-vt-link>
       <!-- image/gallery icon -->
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="5" width="18" height="14" rx="2"/><circle cx="8.5" cy="12" r="2.5"/><path d="M21 13l-4-4-6 6"/></svg>
       <small>Фотодневник</small>
@@ -2165,25 +2168,44 @@ function ddmmyyyy(iso){
   const [y,m,d] = String(iso||'').split('-');
   return (d && m && y) ? `${d}.${m}.${y}` : '—';
 }
-// ====== Allergies + Today + Side effects + Mood + Last dose ======
+// ====== Allergies + Today + Last dose + (NEW) Today side-effects & wellness ======
 (function(){
+  function setTextAny(ids, val){
+    for (const id of ids){
+      const el = document.getElementById(id);
+      if (el){ el.textContent = val; return true; }
+    }
+    return false;
+  }
+  function setHtmlAny(ids, html){
+    for (const id of ids){
+      const el = document.getElementById(id);
+      if (!el) continue;
+      if (typeof html === 'string'){
+        el.innerHTML = html;
+      } else if (html && html.nodeType){
+        el.innerHTML = '';
+        el.appendChild(html);
+      } else {
+        el.textContent = String(html ?? '');
+      }
+      return true;
+    }
+    return false;
+  }
   function safeJson(key, fallback){
-    try{
-      const raw = localStorage.getItem(key);
-      return raw ? JSON.parse(raw) : fallback;
-    }catch(_){ return fallback; }
+    try{ const raw = localStorage.getItem(key); return raw ? JSON.parse(raw) : fallback; }
+    catch(_){ return fallback; }
   }
   function localTodayISO(){
-    // локальная дата в формате YYYY-MM-DD
-    return new Date(Date.now() - new Date().getTimezoneOffset()*60000).toISOString().slice(0,10);
+    try{ return (typeof todayISO === 'function') ? todayISO() : (new Date().toISOString().slice(0,10)); }
+    catch(_){ return new Date().toISOString().slice(0,10); }
   }
   function readDiaryEntry(iso){
-    // V2 (новый дневник)
+    // V2 (diary.html)
     try{
       const db = safeJson('rt.diary.v2', null);
       if (db && db.version === 2 && db.entries && db.entries[iso]) return db.entries[iso];
-      // если вдруг хранится как простой объект { 'YYYY-MM-DD': {...} }
-      if (db && !db.version && db[iso]) return db[iso];
     }catch(_){}
     // V1 (legacy)
     try{
@@ -2193,7 +2215,7 @@ function ddmmyyyy(iso){
     return null;
   }
   function moodLabel(w){
-    if (typeof w !== 'number' || !isFinite(w)) return '';
+    if (typeof w !== 'number' || !isFinite(w)) return null;
     w = Math.max(0, Math.min(100, Math.round(w)));
     if (w <= 5)  return 'Очень плохо';
     if (w <= 20) return 'Плохо';
@@ -2205,97 +2227,86 @@ function ddmmyyyy(iso){
   }
 
   const SE_META = {
-    lips_dry:    { label: 'Сухость губ',  file: 'lips_dry.png' },
-    skin_dry:    { label: 'Сухость кожи', file: 'skin_dry.png' },
-    muscle_pain: { label: 'Боль в суставах/мышцах', file: 'muscle_pain.png' },
-    headache:    { label: 'Головная боль', file: 'headache.png' },
+    lips_dry:   { label: 'Сухость губ',  file: 'lips_dry.png' },
+    skin_dry:   { label: 'Сухость кожи', file: 'skin_dry.png' },
+    muscle_pain:{ label: 'Боль в суставах/мышцах', file: 'muscle_pain.png' },
+    headache:   { label: 'Головная боль', file: 'headache.png' },
   };
 
-  const setTextAny = (ids, val) => {
-    for (const id of ids){
-      const el = document.getElementById(id);
-      if (el){ el.textContent = val; return true; }
-    }
-    return false;
-  };
-  const setHtmlAny = (ids, html) => {
-    for (const id of ids){
-      const el = document.getElementById(id);
-      if (el){ el.innerHTML = html; return true; }
-    }
-    return false;
-  };
-
-  function render(){
+  function renderDetails(){
+    // Аллергии
+    let txt = 'Отсутствуют';
     try{
-      // Аллергии
-      let txt = 'Отсутствуют';
-      try{
-        const arr = safeJson('rt_allergies', []);
-        if (Array.isArray(arr) && arr.length){
-          txt = arr.map(v => String(v).startsWith('other:') ? String(v).slice(6) : v).join(', ');
-        }
-      }catch(_){}
-      setTextAny(['allergies','allergyLine'], txt);
-
-      // Сегодняшняя доза
-      const isoToday = localTodayISO();
-      let todayMg = 0;
-      try{
-        const entryV1 = safeJson('rt.diary.v1', {})[isoToday] || {};
-        todayMg = Number(entryV1.dose ?? entryV1.mg ?? localStorage.getItem('derma_today_mg') ?? 0) || 0;
-      }catch(_){}
-      setTextAny(['today','todayDoseLine'], todayMg > 0 ? (todayMg + ' мг') : '—');
-
-      // Побочки + самочувствие (из дневника)
-      const entry = readDiaryEntry(isoToday) || {};
-      const seObj = (entry.sideEffects && typeof entry.sideEffects === 'object') ? entry.sideEffects : {};
-      const wVal  = (typeof entry.wellness === 'number') ? entry.wellness
-                    : (typeof entry.wellness_user === 'number') ? entry.wellness_user
-                    : null;
-
-      // Побочки: иконки выбранных
-      try{
-        const icons = [];
-        for (const key of Object.keys(SE_META)){
-          const v = Number(seObj[key] || 0);
-          if (v > 0){
-            const meta = SE_META[key];
-            const src  = new URL('../assets/sideeffects/' + meta.file, location.href).toString();
-            const title = meta.label + (v ? (' • ' + v + '/3') : '');
-            icons.push(`<img class="se-ico" src="${src}" alt="${meta.label}" title="${title}">`);
-          }
-        }
-        setHtmlAny(['todaySE'], icons.length ? (`<span class="se-icons">${icons.join('')}</span>`) : '—');
-      }catch(_){
-        setTextAny(['todaySE'], '—');
+      const arr = safeJson('rt_allergies', []);
+      if (Array.isArray(arr) && arr.length){
+        txt = arr.map(v => String(v).startsWith('other:') ? String(v).slice(6) : v).join(', ');
       }
-
-      // Самочувствие: слово
-      const mood = moodLabel(wVal);
-      setTextAny(['todayMood'], mood || '—');
-
-      // Последний приём (по v1)
-      let lastIso = null;
-      try{
-        const diary = safeJson('rt.diary.v1', {});
-        Object.keys(diary).sort().forEach(k => { if ((diary[k].dose||0) > 0) lastIso = k; });
-      }catch(_){}
-      setTextAny(['lastDose','lastDoseLine'], lastIso ? ddmmyyyy(lastIso) : '—');
     }catch(_){}
+    setTextAny(['allergies','allergyLine'], txt);
+
+    // Сегодняшняя доза (локально, с учётом таймзоны)
+    let todayMg = 0;
+    try{
+      if (typeof getLocalTodayDose === 'function') todayMg = getLocalTodayDose();
+      else {
+        const iso = localTodayISO();
+        const v1  = safeJson('rt.diary.v1', {});
+        const rec = v1[iso] || {};
+        todayMg   = Number(rec.dose ?? rec.mg ?? localStorage.getItem('derma_today_mg') ?? 0) || 0;
+      }
+    }catch(_){}
+    setTextAny(['today','todayDoseLine'], (todayMg > 0) ? (todayMg + ' мг') : '—');
+
+    // Побочки + самочувствие (из дневника)
+    const iso = localTodayISO();
+    const entry = readDiaryEntry(iso) || {};
+    const seObj = (entry.sideEffects && typeof entry.sideEffects === 'object') ? entry.sideEffects : {};
+    const wVal  = (typeof entry.wellness === 'number') ? entry.wellness
+                  : (typeof entry.wellness_user === 'number') ? entry.wellness_user
+                  : null;
+
+    // Побочки: показываем иконки только выбранных
+    try{
+      const icons = [];
+      for (const key of Object.keys(SE_META)){
+        const v = Number(seObj[key] || 0);
+        if (v > 0){
+          const meta = SE_META[key];
+          const src  = new URL('../assets/sideeffects/' + meta.file, location.href).toString();
+          const title = meta.label + (v ? (' • ' + v + '/3') : '');
+          icons.push(`<img class="se-ico" src="${src}" alt="${meta.label}" title="${title}">`);
+        }
+      }
+      setHtmlAny(['todaySE'], icons.length ? (`<span class="se-icons">${icons.join('')}</span>`) : '—');
+    }catch(_){
+      setTextAny(['todaySE'], '—');
+    }
+
+    // Самочувствие: слово как в дневнике (по шкале 0..100)
+    const mood = moodLabel(wVal);
+    setTextAny(['todayMood'], mood || '—');
+
+    // Последний приём (как было — по v1, там есть dose)
+    let lastIso = null;
+    try {
+      const diary = safeJson('rt.diary.v1', {});
+      Object.keys(diary).sort().forEach(k => { if ((diary[k].dose||0) > 0) lastIso = k; });
+    } catch(_){}
+    const ddmmyyyy2 = iso => { const [y,m,d] = String(iso||'').split('-'); return (d&&m&&y) ? (d+'.'+m+'.'+y) : '—'; };
+    setTextAny(['lastDose','lastDoseLine'], lastIso ? ddmmyyyy2(lastIso) : '—');
   }
 
   // первичный рендер
-  render();
+  try{ renderDetails(); }catch(_){}
 
   // обновления (когда вернулся с дневника / поменялись данные)
   window.addEventListener('storage', (e)=>{
     if (!e || !e.key) return;
     if (['rt.diary.v2','rt.diary.v1','rt.diary.bump','derma_today_iso','derma_today_mg','rt_allergies'].includes(e.key)){
-      render();
+      renderDetails();
     }
   });
-  document.addEventListener('visibilitychange', ()=>{ if(!document.hidden) render(); });
+  document.addEventListener('visibilitychange', ()=>{ if(!document.hidden) renderDetails(); });
 })();
 </script>
 <script>
@@ -3166,1166 +3177,6 @@ if (els.attach) {
   })();
 })();
 </script>
-
-
-
-  <!-- === ONBOARDING TOUR === -->
-
-
-<!-- RT_TOUR_V1: guided tour (spotlight + CTA) -->
-<style id="rtTourStyle">
-  :root{
-    --rt-tour-z-overlay: 9500;
-    --rt-tour-z-focus: 9501;
-    --rt-tour-z-pointer: 9502;
-    --rt-tour-z-pop: 9503;
-    --rt-tour-accent: rgba(66, 227, 184, 1);
-    --rt-tour-accentSoft: rgba(66, 227, 184, .35);
-  }
-  #rtTourOverlay{
-    position:fixed; inset:0;
-    z-index: var(--rt-tour-z-overlay);
-    background: rgba(0,0,0,.12);
-    backdrop-filter: blur(10px) saturate(1.15);
-    -webkit-backdrop-filter: blur(10px) saturate(1.15);
-    opacity:0; pointer-events:none;
-    transition: opacity .18s ease;
-  }
-  #rtTourOverlay.is-on{ opacity:1; pointer-events:auto; }
-
-  .rt-tour-focus{
-    /* position is set in JS only when needed (for z-index) */
-    z-index: var(--rt-tour-z-focus) !important;
-    box-shadow:
-      0 0 0 2px rgba(255,255,255,.10),
-      0 0 0 3px rgba(66,227,184,.55),
-      0 18px 44px rgba(0,0,0,.45),
-      0 0 34px rgba(66,227,184,.30);
-    border-radius: 18px;
-    }
-  .rt-tour-focus.rt-tour-strong{
-    box-shadow:
-      0 0 0 2px rgba(255,255,255,.14),
-      0 0 0 4px rgba(66,227,184,.92),
-      0 0 0 10px rgba(66,227,184,.18),
-      0 22px 60px rgba(0,0,0,.55),
-      0 0 52px rgba(66,227,184,.44);
-    animation: rtTourPulse 1.15s ease-in-out infinite;
-  }
-  @keyframes rtTourPulse{
-    0%,100%{ filter: brightness(1); }
-    50%{ filter: brightness(1.08); }
-  }
-
-  /* step-2 helper: show which modes were visited */
-  #doseSeg button.rt-tour-visited{
-    box-shadow: inset 0 0 0 2px rgba(66,227,184,.65), 0 10px 24px rgba(66,227,184,.14);
-  }
-
-  
-  .rt-tour-reveal{
-    /* position is set in JS only when needed (for z-index) */
-    z-index: var(--rt-tour-z-focus) !important;
-    box-shadow:none !important;
-  }
-.rt-tour-focus.rt-tour-radius-inherit{ border-radius: inherit; }
-
-  #rtTourPointer{
-    position:fixed;
-    z-index: var(--rt-tour-z-pointer);
-    width: 12px; height: 12px; border-radius: 999px;
-    background: var(--rt-tour-accent);
-    box-shadow: 0 0 0 6px rgba(66,227,184,.18), 0 10px 24px rgba(0,0,0,.35);
-    transform: translate(-50%,-50%);
-    opacity:0;
-    pointer-events:none;
-    transition: opacity .12s ease;
-    animation: rtTourBounce 1.05s ease-in-out infinite;
-  }
-  #rtTourPointer.is-on{ opacity:1; }
-  @keyframes rtTourBounce{
-    0%,100%{ transform: translate(-50%,-50%) translateY(0); }
-    50%{ transform: translate(-50%,-50%) translateY(-8px); }
-  }
-
-  #rtTourPop{
-    position:fixed;
-    z-index: var(--rt-tour-z-pop);
-    width:min(380px, calc(100vw - 28px));
-    padding: 14px 14px 12px;
-    border-radius: 18px;
-    background: rgba(14, 21, 33, .94);
-    box-shadow: 0 22px 60px rgba(0,0,0,.62), 0 0 0 1px rgba(255,255,255,.10);
-    color: rgba(232,243,255,.96);
-    opacity:0;
-    pointer-events:none;
-    transform: translateY(6px);
-    transition: opacity .16s ease, transform .16s ease;
-  }
-  #rtTourPop.rt-solid{
-  background: rgba(10,16,28,.96);
-  border: 1px solid rgba(255,255,255,.10);
-}
-  #rtTourPop.is-on{ opacity:1; pointer-events:auto; transform: translateY(0); }
-  #rtTourPop .rt-title{ font-weight:800; font-size: 16px; margin:0 0 6px; letter-spacing:.2px; }
-  #rtTourPop .rt-text{ margin:0; font-size: 13px; line-height:1.35; opacity:.92; }
-  #rtTourPop .rt-sub{ margin-top:8px; font-size: 12px; opacity:.7; }
-  #rtTourPop .rt-actions{
-    display:flex; gap:10px; justify-content:space-between; align-items:center;
-    margin-top: 12px;
-  }
-  #rtTourPop .rt-actions .rt-left{ display:flex; gap:10px; align-items:center; }
-  #rtTourPop .rt-btn{
-    appearance:none; border:none; cursor:pointer;
-    padding: 10px 14px;
-    border-radius: 14px;
-    font-weight: 800;
-    letter-spacing:.2px;
-    font-size: 13px;
-  }
-  #rtTourPop .rt-btn.secondary{
-    background: rgba(255,255,255,.10);
-    color: rgba(232,243,255,.92);
-  }
-  #rtTourPop .rt-btn.primary{
-    background: linear-gradient(180deg, rgba(66,227,184,1), rgba(41,182,201,1));
-    color:#061019;
-    box-shadow: 0 10px 28px rgba(66,227,184,.22);
-  }
-  #rtTourPop .rt-btn.primary:disabled{
-    opacity:.55; cursor:not-allowed;
-  }
-  #rtTourPop .rt-step{
-    font-size: 12px; opacity:.55;
-  }
-
-  /* notification preview inside popover */
-  .rt-preview{
-    margin-top:10px;
-    display:grid;
-    gap:8px;
-  }
-  .rt-notif{
-    border-radius: 14px;
-    padding: 10px 12px;
-    background: rgba(255,255,255,.06);
-    box-shadow: inset 0 0 0 1px rgba(255,255,255,.06);
-    font-size: 12px;
-    line-height:1.25;
-  }
-  .rt-notif b{ font-weight:800; }
-  .rt-notif .muted{ opacity:.72; display:block; margin-top:2px; }
-</style>
-
-<div id="rtTourOverlay" aria-hidden="true"></div>
-<div id="rtTourPointer" aria-hidden="true"></div>
-
-<div id="rtTourPop" role="dialog" aria-modal="true" aria-label="Обучение приложению">
-  <div class="rt-step" id="rtTourStep">Шаг</div>
-  <h3 class="rt-title" id="rtTourTitle">—</h3>
-  <p class="rt-text" id="rtTourText">—</p>
-  <div id="rtTourExtra"></div>
-  <div class="rt-actions">
-    <div class="rt-left">
-      <button class="rt-btn secondary" id="rtTourSkip" type="button">Пропустить</button>
-      <button class="rt-btn secondary" id="rtTourFree" type="button" title="Перейти дальше без выполнения действия">Следующий шаг</button>
-    </div>
-    <button class="rt-btn primary" id="rtTourNext" type="button">Далее</button>
-  </div>
-</div>
-
-<script id="rtTourScript">
-(function(){
-  const VERSION = 1;
-  const STATE_KEY = 'rt.tour.v' + VERSION;
-  const DONE_KEY  = 'rt.tour.done.v' + VERSION;
-
-  const $  = (s, r=document) => r.querySelector(s);
-  const $$ = (s, r=document) => Array.from(r.querySelectorAll(s));
-
-  const overlay = $('#rtTourOverlay');
-  const pop     = $('#rtTourPop');
-  const pointer = $('#rtTourPointer');
-  const elStep  = $('#rtTourStep');
-  const elTitle = $('#rtTourTitle');
-  const elText  = $('#rtTourText');
-  const elExtra = $('#rtTourExtra');
-  const btnSkip = $('#rtTourSkip');
-  const btnFree = $('#rtTourFree');
-  const btnNext = $('#rtTourNext');
-
-  function pageKey(){
-    const p = (location.pathname.split('/').pop() || '').toLowerCase();
-    return p.replace(/\.html(\?.*)?$/,'') || 'main';
-  }
-
-  function loadState(){
-    try{
-      const s = JSON.parse(localStorage.getItem(STATE_KEY) || 'null');
-      if (!s || typeof s !== 'object') return null;
-      return s;
-    }catch(_){ return null; }
-  }
-  function saveState(s){
-    try{ localStorage.setItem(STATE_KEY, JSON.stringify(s)); }catch(_){}
-  }
-  function isDone(){
-    try{ return localStorage.getItem(DONE_KEY) === '1'; }catch(_){ return false; }
-  }
-  function markDone(){
-    try{ localStorage.setItem(DONE_KEY, '1'); }catch(_){}
-    try{ localStorage.removeItem(STATE_KEY); }catch(_){}
-  }
-
-  let focused = [];
-  
-  let revealed = [];
-let cleanupWait = null;
-  let cleanupEnter = null;
-  let satisfied = false;
-
-  function clearFocus(){
-    focused.forEach(el=>{
-      try{
-        el.classList.remove('rt-tour-focus','rt-tour-radius-inherit');
-        el.removeAttribute('data-rt-tour-focus');
-              restorePositioned(el);
-      }catch(_){}
-    });
-    focused = [];
-
-    revealed.forEach(el=>{
-      try{
-        el.classList.remove('rt-tour-reveal','rt-tour-radius-inherit');
-        el.removeAttribute('data-rt-tour-reveal');
-              restorePositioned(el);
-      }catch(_){}
-    });
-    revealed = [];
-  }
-
-  function visible(on){
-    overlay.classList.toggle('is-on', !!on);
-    pop.classList.toggle('is-on', !!on);
-    overlay.setAttribute('aria-hidden', on ? 'false' : 'true');
-    if(!on) pointer.classList.remove('is-on');
-  }
-
-  function rectUnion(els){
-    const rs = els.map(e=> e.getBoundingClientRect()).filter(r=> r.width && r.height);
-    if(!rs.length) return null;
-    let left=rs[0].left, top=rs[0].top, right=rs[0].right, bottom=rs[0].bottom;
-    rs.forEach(r=>{
-      left=Math.min(left,r.left); top=Math.min(top,r.top);
-      right=Math.max(right,r.right); bottom=Math.max(bottom,r.bottom);
-    });
-    return {left, top, right, bottom, width:right-left, height:bottom-top};
-  }
-
-  function clamp(v, a, b){ return Math.max(a, Math.min(b, v)); }
-
-
-function ensurePositioned(el){
-  try{
-    const cs = getComputedStyle(el);
-    if (cs.position === 'static'){
-      // remember inline position so we can restore
-      if (!el.dataset.rtTourPrevPos) el.dataset.rtTourPrevPos = (el.style.position || '');
-      el.dataset.rtTourWasStatic = '1';
-      el.style.position = 'relative';
-    }
-  }catch(_){}
-}
-
-function restorePositioned(el){
-  try{
-    if (el.dataset.rtTourWasStatic === '1'){
-      const prev = el.dataset.rtTourPrevPos || '';
-      if (prev) el.style.position = prev;
-      else el.style.removeProperty('position');
-    }
-    delete el.dataset.rtTourWasStatic;
-    delete el.dataset.rtTourPrevPos;
-  }catch(_){}
-}
-
-  function rectIntersects(a,b){
-  if(!a || !b) return false;
-  return !(a.right <= b.left || a.left >= b.right || a.bottom <= b.top || a.top >= b.bottom);
-}
-
-function placeUI(targetRect, avoidRect, step){
-  const vw = window.innerWidth, vh = window.innerHeight;
-  const SAFE = 14;
-  const GAP  = 14;
-
-  // pointer near top-right of target
-  if (targetRect){
-    const px = clamp(targetRect.right - 8, SAFE, vw - SAFE);
-    const py = clamp(targetRect.top + 10, SAFE, vh - SAFE);
-    pointer.style.left = px + 'px';
-    pointer.style.top  = py + 'px';
-  } else {
-    pointer.style.left = (vw/2) + 'px';
-    pointer.style.top  = (vh/2) + 'px';
-  }
-
-  // popover width
-  const popW = Math.min(380, vw - 28);
-  pop.style.width = popW + 'px';
-  pop.style.maxWidth = popW + 'px';
-
-  // measure height after content render
-  const popH = pop.offsetHeight || 200;
-
-  const align = (step && step.popAlign) || 'start'; // start|center|end
-  const preferred = (step && step.popPlacement) || null;
-
-  const xAligned = (rect)=>{
-    if (!rect) return clamp((vw - popW)/2, SAFE, vw - popW - SAFE);
-    if (align === 'center') return clamp(rect.left + (rect.width - popW)/2, SAFE, vw - popW - SAFE);
-    if (align === 'end')    return clamp(rect.right - popW, SAFE, vw - popW - SAFE);
-    return clamp(rect.left, SAFE, vw - popW - SAFE); // start
-  };
-
-  const avoid = avoidRect || targetRect;
-
-  // --- No target: keep stable (center if requested, otherwise top offset) ---
-  if (!targetRect){
-    const x = clamp((vw - popW)/2, SAFE, vw - popW - SAFE);
-    let y;
-    if (preferred === 'center'){
-      y = clamp((vh - popH)/2, SAFE, vh - popH - SAFE);
-    } else {
-      const topOffset = (step && typeof step.topOffset === 'number') ? step.topOffset : 92;
-      y = clamp(SAFE + topOffset, SAFE, vh - popH - SAFE);
-    }
-    pop.style.left = x + 'px';
-    pop.style.top  = y + 'px';
-    return;
-  }
-
-  // --- With target: try to NOT cover the avoid-rect (focus/reveal) ---
-  const candidates = [];
-  const push = (p)=>{ if(p && !candidates.includes(p)) candidates.push(p); };
-
-  // preference first
-  push(preferred);
-
-  // default placements (WITHOUT center fallback)
-  ['below','above','right','left'].forEach(push);
-
-  // allow center ONLY if explicitly asked
-  if (preferred === 'center') push('center');
-
-  let best = null;
-  let bestOverlap = Infinity;
-
-  for (const p of candidates){
-    let x = SAFE, y = SAFE;
-
-    if (p === 'below'){
-      x = xAligned(targetRect);
-      y = targetRect.bottom + GAP;
-    } else if (p === 'above'){
-      x = xAligned(targetRect);
-      y = targetRect.top - GAP - popH;
-    } else if (p === 'right'){
-      x = targetRect.right + GAP;
-      y = clamp(targetRect.top, SAFE, vh - popH - SAFE);
-    } else if (p === 'left'){
-      x = targetRect.left - GAP - popW;
-      y = clamp(targetRect.top, SAFE, vh - popH - SAFE);
-    } else { // center
-      x = (vw - popW)/2;
-      y = (vh - popH)/2;
-    }
-
-    x = clamp(x, SAFE, vw - popW - SAFE);
-    y = clamp(y, SAFE, vh - popH - SAFE);
-
-    const candRect = { left:x, top:y, right:x+popW, bottom:y+popH };
-
-    // compute overlap area with avoid
-    let overlap = 0;
-    if (avoid && rectIntersects(candRect, avoid)){
-      const ix = Math.max(0, Math.min(candRect.right, avoid.right) - Math.max(candRect.left, avoid.left));
-      const iy = Math.max(0, Math.min(candRect.bottom, avoid.bottom) - Math.max(candRect.top, avoid.top));
-      overlap = ix * iy;
-    }
-
-    // perfect: no overlap
-    if (!avoid || overlap === 0){
-      best = {x,y};
-      bestOverlap = 0;
-      break;
-    }
-
-    // otherwise, keep best minimal overlap
-    if (overlap < bestOverlap){
-      best = {x,y};
-      bestOverlap = overlap;
-    }
-  }
-
-  // last-resort fallback
-  if (!best){
-    best = { x: clamp((vw - popW)/2, SAFE, vw - popW - SAFE),
-             y: clamp(SAFE + 92, SAFE, vh - popH - SAFE) };
-  }
-
-  pop.style.left = best.x + 'px';
-  pop.style.top  = best.y + 'px';
-}
-
-  function setContent(step, idx, total){
-    pop.classList.toggle('rt-solid', !!step.solid);
-    elStep.textContent = `Шаг ${idx+1} из ${total}`;
-    elTitle.textContent = step.title || '—';
-    elText.textContent  = step.text  || '';
-    elExtra.innerHTML   = step.extraHTML || '';
-    btnNext.textContent = (step.primary && step.primary.label) ? step.primary.label : (step.nextLabel || 'Далее');
-  }
-
-  function setSatisfied(v){
-    satisfied = !!v;
-    const must = currentStep()?.require;
-    // show "Дальше" only when there is an action requirement
-    if (btnFree) btnFree.style.display = must ? '' : 'none';
-    if (!must){
-      btnNext.disabled = false;
-      return;
-    }
-    btnNext.disabled = !satisfied;
-  }
-
-  function currentStep(){
-    const key = pageKey();
-    const list = STEPS[key] || [];
-    const st = loadState();
-    const idx = st?.idx ?? 0;
-    return list[idx] || null;
-  }
-
-  function ensureTargets(step){
-    let els = [];
-    const addEl = (e)=>{
-      if(!e || !(e instanceof Element)) return;
-      if (e.offsetParent === null && getComputedStyle(e).position !== 'fixed') return; // hidden
-      els.push(e);
-    };
-
-    if (typeof step.focus === 'function'){
-      try{
-        const res = step.focus();
-        (Array.isArray(res) ? res : [res]).forEach(addEl);
-      }catch(_){}
-    } else if (Array.isArray(step.focus)){
-      step.focus.forEach(sel=>{
-        if (typeof sel === 'string'){
-          $$(sel).forEach(addEl);
-        }
-      });
-    }
-
-    // if nothing found and step can be skipped automatically
-    if (!els.length && step.skipIfMissing) return null;
-    return els;
-  }
-
-  
-  function ensureReveal(step){
-    let els = [];
-    const addEl = (e)=>{
-      if(!e || !(e instanceof Element)) return;
-      if (e.offsetParent === null && getComputedStyle(e).position !== 'fixed') return; // hidden
-      els.push(e);
-    };
-
-    if (typeof step.reveal === 'function'){
-      try{
-        const res = step.reveal();
-        (Array.isArray(res) ? res : [res]).forEach(addEl);
-      }catch(_){}
-    } else if (Array.isArray(step.reveal)){
-      step.reveal.forEach(sel=>{
-        if (typeof sel === 'string'){
-          $$(sel).forEach(addEl);
-        }
-      });
-    }
-    return els;
-  }
-
-function attachRequire(step){
-    if (!step.require) { setSatisfied(true); return null; }
-    if (step.require === 'manual') { setSatisfied(false); return null; }
-
-    setSatisfied(false);
-
-    // generic "any of" support
-    const reqs = Array.isArray(step.require) ? step.require : [step.require];
-    const off = [];
-
-    const mark = ()=>{
-      setSatisfied(true);
-      if (step.autoNext && !step.primary){
-        // auto-advance only if it's an in-page step
-        setTimeout(next, 80);
-      }
-    };
-
-    reqs.forEach(req=>{
-      const type = req.type || 'click';
-      const sel  = req.selector;
-      if (!sel) return;
-
-      const handler = (e)=>{
-        const hit = e.target && (e.target.closest ? e.target.closest(sel) : null);
-        if (!hit) return;
-        if (req.preventDefault) { try{ e.preventDefault(); }catch(_){ } }
-        if (req.stopPropagation) {
-          try{ e.stopImmediatePropagation(); }catch(_){}
-          try{ e.stopPropagation(); }catch(_){}
-        }
-        mark();
-      };
-
-      if (type === 'input'){
-        const inputHandler = (e)=>{
-          const hit = e.target && (e.target.closest ? e.target.closest(sel) : null);
-          if (!hit) return;
-          // allow "non-empty" requirement
-          if (req.nonEmpty){
-            const v = (hit.value ?? '').toString().trim();
-            if (!v) return;
-          }
-          mark();
-        };
-        document.addEventListener('input', inputHandler, true);
-        off.push(()=> document.removeEventListener('input', inputHandler, true));
-      } else if (type === 'change'){
-        document.addEventListener('change', handler, true);
-        off.push(()=> document.removeEventListener('change', handler, true));
-      } else { // click
-        document.addEventListener('click', handler, true);
-        off.push(()=> document.removeEventListener('click', handler, true));
-      }
-    });
-
-    return ()=> off.forEach(fn=>{ try{ fn(); }catch(_){ } });
-  }
-
-  function attachEnter(step){
-    if (typeof step.onEnter !== 'function') return null;
-    try{ return step.onEnter({setSatisfied}); }catch(_){ return null; }
-  }
-
-  function show(){
-    const key = pageKey();
-    const list = STEPS[key] || [];
-    const st = loadState() || {active:false, page:key, idx:0};
-
-    if (!st.active) return;
-    if (st.page !== key){
-      // если пользователь ушёл руками на другую страницу — продолжаем с первого шага этой страницы
-      st.page = key;
-      st.idx  = 0;
-      saveState(st);
-    }
-
-    const step = list[st.idx];
-if (!step){
-  visible(false);
-  clearFocus();
-  // НЕ markDone! Просто прячем тур на неподдерживаемой странице
-  return;
-}
-
-    // cleanup previous
-    if (cleanupWait){ try{ cleanupWait(); }catch(_){ } cleanupWait=null; }
-    if (cleanupEnter){ try{ cleanupEnter(); }catch(_){ } cleanupEnter=null; }
-    clearFocus();
-
-    // targets
-    const targets = ensureTargets(step);
-    if (targets === null){
-      // auto-skip this step
-      next();
-      return;
-    }
-
-    focused = targets || [];
-
-    // reveal (visible context without glow)
-    const reveals = ensureReveal(step) || [];
-    revealed = reveals;
-    revealed.forEach(el=>{
-      try{
-        ensurePositioned(el);
-        el.classList.add('rt-tour-reveal');
-        if (step.radiusInherit) el.classList.add('rt-tour-radius-inherit');
-        el.setAttribute('data-rt-tour-reveal','1');
-      }catch(_){}
-    });
-
-    focused.forEach(el=>{
-      try{
-        ensurePositioned(el);
-        el.classList.add('rt-tour-focus');
-        if (step.radiusInherit) el.classList.add('rt-tour-radius-inherit');
-        el.setAttribute('data-rt-tour-focus','1');
-      }catch(_){}
-    });
-
-    // scroll to first target
-    if (focused[0] && focused[0].scrollIntoView){
-      try{ focused[0].scrollIntoView({behavior:'smooth', block:'center', inline:'center'}); }catch(_){}
-    }
-
-    // content + positioning
-    visible(true);
-    setContent(step, st.idx, list.length);
-
-    // attach enter hook (e.g. long-press practice)
-    cleanupEnter = attachEnter(step);
-
-    // requirements gating
-    cleanupWait = attachRequire(step);
-
-    // position after layout
-    setTimeout(()=>{
-      const rFocus = rectUnion(focused);
-      let avoidEls = focused.slice();
-      const mode = (step && step.avoidCover) || 'focus';
-      if (mode === 'reveal') avoidEls = revealed.slice();
-      else if (mode === 'all') avoidEls = focused.concat(revealed);
-      const rAvoid = rectUnion(avoidEls);
-      placeUI(rFocus, rAvoid, step);
-      const wantPointer = (step.pointer !== false) && !!rFocus;
-      pointer.classList.toggle('is-on', wantPointer);
-    }, 0);
-  }
-
-  function navigateTo(page){
-    const base = location.pathname.replace(/[^\/]*$/, '');
-    const url  = base + page + '.html';
-    location.href = url;
-  }
-
-  function next(force=false){
-    const key = pageKey();
-    const list = STEPS[key] || [];
-    const st = loadState() || {active:true, page:key, idx:0};
-
-    // if current step defines primary click (CTA), handle it
-    const step = list[st.idx];
-    if (step?.primary?.click){
-      const target = $(step.primary.click);
-      if (target){
-        // if click leads to navigation, persist the next page step beforehand
-        if (step.primary.nextPage){
-          saveState({active:true, page: step.primary.nextPage, idx:0});
-        }
-        try{ target.click(); }catch(_){}
-        return;
-      }
-      // fallback to navigation if element missing
-      if (step.primary.nextPage){
-        saveState({active:true, page: step.primary.nextPage, idx:0});
-        navigateTo(step.primary.nextPage);
-        return;
-      }
-    }
-
-    // normal flow
-    if (step?.primary?.nextPage){
-      saveState({active:true, page: step.primary.nextPage, idx:0});
-      navigateTo(step.primary.nextPage);
-      return;
-    }
-
-    st.idx = (st.idx ?? 0) + 1;
-
-    if (st.idx >= list.length){
-      // finish this page: if there's an explicit nextPageForFinish, go there; otherwise mark done
-      if (step?.nextPageOnFinish){
-        saveState({active:true, page: step.nextPageOnFinish, idx:0});
-        navigateTo(step.nextPageOnFinish);
-        return;
-      }
-      visible(false);
-      clearFocus();
-      markDone();
-      return;
-    }
-
-    saveState(st);
-    show();
-  }
-
-  function skip(){
-    visible(false);
-    clearFocus();
-    if (cleanupWait){ try{ cleanupWait(); }catch(_){ } cleanupWait=null; }
-    if (cleanupEnter){ try{ cleanupEnter(); }catch(_){ } cleanupEnter=null; }
-    markDone();
-  }
-
-  btnSkip?.addEventListener('click', skip);
-  btnFree?.addEventListener('click', ()=> next(true));
-  btnNext?.addEventListener('click', ()=> next(false));
-  overlay?.addEventListener('click', (e)=>{ e.preventDefault(); e.stopPropagation(); });
-
-  function rtTourRecalcUI(){
-    if (!overlay.classList.contains('is-on')) return;
-    const step = currentStep();
-    const rFocus = rectUnion(focused);
-
-    let avoidEls = focused.slice();
-    const mode = (step && step.avoidCover) || 'focus';
-    if (mode === 'reveal') avoidEls = revealed.slice();
-    else if (mode === 'all') avoidEls = focused.concat(revealed);
-
-    const rAvoid = rectUnion(avoidEls);
-    placeUI(rFocus, rAvoid, step);
-    pointer.classList.toggle('is-on', (step?.pointer !== false) && !!rFocus);
-  }
-
-  window.addEventListener('resize', rtTourRecalcUI);
-
-  // keep popover pinned if user scrolls
-  let __rtTourRAF = null;
-  window.addEventListener('scroll', ()=>{
-    if (!overlay.classList.contains('is-on')) return;
-    if (__rtTourRAF) return;
-    __rtTourRAF = requestAnimationFrame(()=>{
-      __rtTourRAF = null;
-      rtTourRecalcUI();
-    });
-  }, {passive:true});
-
-  // -------- Steps mapping (editable) --------
-  const pick = {
-    calendarDay(){
-      return $('.day.today') || $('.day');
-    }
-  };
-
-  const STEPS = {
-    
-main: [
-{
-  title: 'Добро пожаловать в Retiora',
-  text: 'Покажу, как отмечать приём, смотреть прогресс, вести дневник и анализы.',
-  focus: [],
-  pointer: false,
-  nextLabel: 'Начать',
-  solid: true,
-  popPlacement: 'center',
-  popAlign: 'center',
-},
-{
-  title: 'Цель курса',
-  text: 'Три режима можно переключать между собой (Минимум/Оптимум/Максимум), внизу показана полоса прогресса.',
-  reveal: ['#cardProgress'],
-  focus: ['#doseSeg'],
-  radiusInherit: true,
-  popPlacement: 'below',
-  popAlign: 'center',
-  avoidCover: 'focus',
-  require: 'manual',
-  autoNext: true,
-  onEnter({ setSatisfied }){
-    try { setSatisfied(false); } catch(_){}
-    const seg = document.getElementById('doseSeg');
-    if (!seg) { setSatisfied(true); return; }
-
-    const need = new Set(['min','opt','max']);
-    const seen = new Set();
-    const btns = Array.from(seg.querySelectorAll('button[data-mode]'));
-
-    const markBtn = (mode)=>{
-      if (!mode || !need.has(mode)) return;
-      seen.add(mode);
-      const b = seg.querySelector(`button[data-mode="${mode}"]`);
-      if (b) b.classList.add('rt-tour-visited');
-    };
-
-    const active = seg.querySelector('button.active[data-mode]');
-    if (active) markBtn(active.dataset.mode);
-
-    const onClick = (e)=>{
-      const b = e.target && e.target.closest ? e.target.closest('button[data-mode]') : null;
-      if (!b) return;
-      markBtn(b.dataset.mode);
-
-      if (seen.size >= 3){
-        setSatisfied(true);
-        setTimeout(()=> next(false), 120);
-      }
-    };
-
-    seg.addEventListener('click', onClick, true);
-
-    return ()=>{
-      seg.removeEventListener('click', onClick, true);
-      btns.forEach(b=> b.classList.remove('rt-tour-visited'));
-    };
-  },
-},
-{
-  title: 'Дозировка и капсулы',
-  text: 'Дозу можно вводить вручную или менять кнопками «− / +». Тип капсулы тоже переключается здесь. Дату можно ввести вручную.',
-  reveal: ['#cardDose'],
-  focus: ['#mg', '#mgMinus', '#mgPlus', '#capSeg'],
-  radiusInherit: true,
-  popPlacement: 'below',
-  popAlign: 'center',
-  avoidCover: 'focus',
-  onEnter(){
-    const cap = $('#capType');
-    if (cap) cap.hidden = false;
-  },
-},
-{
-  title: 'Сохранить приём',
-  text: 'Нажмите «Добавить». Прогресс обновится. При включенных напоминаниях, карточка напоминания станет зелёной, сигнал о приёме перестанет мигать.',
-  reveal: ['#cardDose', '#cardProgress', '#cardReminder'],
-  focus: ['#save'],
-  radiusInherit: true,
-  popPlacement: 'above',
-  popAlign: 'center',
-  avoidCover: 'focus',
-  require: {type:'click', selector:'#save'},
-  autoNext: true,
-  onEnter(){
-    const btn = document.querySelector('#save');
-    if (!btn) return;
-    btn.classList.add('rt-tour-strong');
-    return ()=> btn.classList.remove('rt-tour-strong');
-  },
-},
-
-
-{
-        title: 'Календарь',
-        text: 'Быстрый обзор недели. Нажатием на кнопку «Открыть» вы перейдете на страницу Календаря.',
-        reveal: ['#cardCalendar'],
-        focus: ['#calPrev', '#calNext'],
-        radiusInherit: true,
-        onEnter(){
-  const btn = document.querySelector('#openCalendarBtn');
-  if (!btn) return;
-
-  const prev = {
-    pe: btn.style.pointerEvents,
-    dis: btn.disabled,
-    aria: btn.getAttribute('aria-disabled'),
-    op: btn.style.opacity,
-  };
-
-  btn.style.pointerEvents = 'none';
-  try{ btn.disabled = true; }catch(_){}
-  btn.setAttribute('aria-disabled','true');
-  btn.style.opacity = '0.65';
-
-  return ()=>{
-    btn.style.pointerEvents = prev.pe || '';
-    try{ btn.disabled = !!prev.dis; }catch(_){}
-    if (prev.aria == null) btn.removeAttribute('aria-disabled');
-    else btn.setAttribute('aria-disabled', prev.aria);
-    btn.style.opacity = prev.op || '';
-  };
-},
-      },
-      {
-        title: 'Напоминания',
-        text: 'Включите напоминание и выберите время.',
-        reveal: ['#cardReminder'],
-        focus: ['#remCtrl input', '#remTime'],
-        radiusInherit: true,
-        extra(){
-          return `
-            <div class="rt-extras">
-              <div class="rt-notif"><b>🔔 Retiora — Retinoid & Isotretinoin Tracker </b><span class="muted">Пора принять препарат</span></div>
-              <div class="rt-notif"><b>🧴 Retiora — Retinoid & Isotretinoin Tracker</b><span class="muted">Капсул осталось мало — пора докупить</span></div>
-            </div>
-          `;
-        }
-      },
-      {
-  title: 'FAQ',
-  text: 'Короткие подсказки по курсу.',
-  reveal: ['#cardFAQ'],
-  focus: ['#cardFAQ a.chip'],
-  radiusInherit: true,
-  avoidCover: 'reveal',
-  popPlacement: 'above',
-},
-      {
-        title: 'Обнулить всё',
-        text: 'Удалит журнал и кэш на этом устройстве. Профиль останется.',
-        reveal: ['#cardReset'],
-        focus: ['#resetBtn'],
-        avoidCover: 'reveal',
-  popPlacement: 'above',
-  radiusInherit: true,
-},
-      {
-        title: 'Нижнее меню',
-        text: 'Внизу — разделы приложения. Откройте «Календарь», чтобы продолжить.',
-        reveal: ['nav.tabbar'],
-        focus: ['nav.tabbar a[href*="calendar.html"]'],
-        radiusInherit: true,
-        primary: { label:'К календарю', click:'nav.tabbar a[href*="calendar.html"]', nextPage:'calendar' },
-      },
-    ],
-
-
-    calendar:
- [
-      {
-        title: 'День в календаре',
-        text: 'Тапните по любому дню — снизу появится краткая карточка.',
-        focus: () => pick.calendarDay(),
-        radiusInherit: true,
-        require: {type:'click', selector:'#grid .day'},
-      },
-      {
-        title: 'Быстрый переход в дневник',
-        text: 'Зажмите день на 1 секунду — так вы быстро откроете дневник этого дня.',
-        focus: () => pick.calendarDay(),
-        radiusInherit: true,
-        // practice long-press without реального перехода
-        require: 'manual',
-        onEnter: ({setSatisfied})=>{
-          setSatisfied(false);
-          const grid = $('#grid');
-          if(!grid) { setSatisfied(true); return null; }
-
-          let t=null, active=false;
-
-          const down = (e)=>{
-            const dayEl = e.target && e.target.closest && e.target.closest('.day');
-            if(!dayEl) return;
-
-            // блокируем штатный обработчик на время практики (чтобы не улететь в дневник)
-            try{ e.stopImmediatePropagation(); }catch(_){}
-            try{ e.stopPropagation(); }catch(_){}
-            try{ e.preventDefault(); }catch(_){}
-
-            active = true;
-            clearTimeout(t);
-            t = setTimeout(()=>{
-              if(!active) return;
-              setSatisfied(true);
-            }, 850);
-          };
-          const up = ()=>{
-            active = false;
-            clearTimeout(t);
-          };
-
-          grid.addEventListener('pointerdown', down, true);
-          window.addEventListener('pointerup', up, true);
-          window.addEventListener('pointercancel', up, true);
-
-          return ()=>{
-            clearTimeout(t);
-            grid.removeEventListener('pointerdown', down, true);
-            window.removeEventListener('pointerup', up, true);
-            window.removeEventListener('pointercancel', up, true);
-          };
-        },
-      },
-      {
-        title: 'Профиль',
-        text: 'Перейдите в профиль — там врач, напоминания и дневник.',
-        focus: ['nav.tabbar a[href$="myprofile.html"]'],
-        radiusInherit: true,
-        primary: { label:'Перейти', click:'nav.tabbar a[href$="myprofile.html"]', nextPage:'myprofile' },
-      },
-    ],
-
-    myprofile: [
-      {
-        title: '👤 Профиль пациента',
-        text: 'Здесь сводка по курсу: имя, цель (мг/кг), препарат, дата старта и текущий прогресс. Эти данные помогают быстро понять, как идёт курс.',
-        reveal: ['#hero'],
-        focus: [],
-        pointer: false,
-        solid: true,
-        popPlacement: 'center',
-        popAlign: 'center',
-        nextLabel: 'Далее',
-      },
-      {
-        title: '🧾 Детали профиля',
-        text: 'Аллергии — из анкеты. «Сегодня, мг» подтягивается из отметок приёма на Главной. «Побочные эффекты» и «Самочувствие» — из Дневника (то, что вы отмечаете каждый день).',
-        reveal: ['#cardDetails'],
-        focus: ['#cardDetails'],
-        radiusInherit: true,
-        popPlacement: 'above',
-        popAlign: 'start',
-      },
-      {
-        title: '🩺 Лечащий врач',
-        text: 'Врач даст вам свой код. Введите код и отправьте заявку — после подтверждения врачом он появится здесь. Рецепт можно прикрепить отдельно (если вы используете эту функцию).',
-        reveal: ['#docBind'],
-        focus: ['#docBind', '#docHead', '#doctorMeta'],
-        radiusInherit: true,
-        popPlacement: 'above',
-        popAlign: 'center',
-        skipIfMissing: true,
-      },
-      {
-        title: '📓 Дневник состояния',
-        text: 'Открывайте Дневник, чтобы отмечать самочувствие, побочки и добавлять фото/заметки. Оттуда данные попадают в «Детали профиля» и в карточки дней календаря.',
-        reveal: ['#goDiary'],
-        focus: ['#goDiary'],
-        radiusInherit: true,
-        popPlacement: 'above',
-        popAlign: 'center',
-      },
-      {
-        title: '⏰ Напоминания и капсулы',
-        text: 'Включите ежедневное напоминание и выберите время. Ниже — напоминание о покупке: порог капсул и «сейчас» (сколько осталось). Когда «сейчас» станет ≤ порога — придёт напоминание.',
-        reveal: ['#cardReminders'],
-        focus: ['#cardReminders', '#remToggle', '#remTime', '#remStock', '#remThreshold', '#capsNowProfile'],
-        radiusInherit: true,
-        popPlacement: 'above',
-        popAlign: 'center',
-        extraHTML: `
-          <div class="rt-preview">
-            <div class="rt-notif"><b>Напоминание о приёме</b><span class="muted">09:00 • Пора принять препарат</span></div>
-            <div class="rt-notif"><b>Покупка лекарства</b><span class="muted">Осталось ≤ 10 капсул • Пора купить</span></div>
-          </div>
-        `,
-      },
-      {
-        title: '🧹 Обнуление и выбор роли',
-        text: '«Обнулить всё» — это переход на страницу сброса. Ничего не удалится без подтверждения. «К выбору роли» вернёт на экран выбора Врач/Пациент.',
-        reveal: ['#cardReset', '#cardRole'],
-        focus: ['#cardReset', '#cardRole'],
-        radiusInherit: true,
-        popPlacement: 'above',
-        popAlign: 'center',
-      },
-      {
-        title: '➡️ Перейдём в дневник',
-        text: 'Дальше откроем Дневник через нижнюю навигацию (вкладка «Фотодневник»).',
-        reveal: ['#navDiary'],
-        focus: ['#navDiary'],
-        radiusInherit: true,
-        popPlacement: 'above',
-        popAlign: 'center',
-        primary: { label:'Открыть дневник', click:'#navDiary', nextPage:'diary' },
-      },
-    ],
-
-    diary: [
-      {
-        title: 'Самочувствие',
-        text: 'Это ваш пушистый друг: он показывает общее состояние на сегодня. Побочки тоже влияют на самочувствие. Подвиньте ползунок и нажмите «Подтвердить» — это увидит ваш врач.',
-        focus: ['#moodScene', '#moodBar', '#confirmMood'],
-        radiusInherit: true,
-        require: {type:'click', selector:'#confirmMood'},
-      },
-      {
-        title: 'Побочные эффекты',
-        text: 'Отметьте побочки — они тоже влияют на самочувствие. Эти данные будут передаваться вашему врачу.',
-        focus: ['#seList'],
-        radiusInherit: true,
-        require: {type:'input', selector:'#seList input[type="range"][data-key]'},
-      },
-      {
-        title: 'Анализы',
-        text: 'Переходим к анализам — там контроль показателей и сохранение отчётов.',
-        focus: ['nav.navbar a[href$="labs.html"]', '.bottom-nav #navLabs', 'a[href$=\"labs.html\"]'],
-        radiusInherit: true,
-        primary: { label:'Перейти', click:'a[href$="labs.html"]', nextPage:'labs' },
-      },
-    ],
-
-    labs: [
-      {
-        title: 'Пол и нормы',
-        text: 'Выберите пол — так нормы и подсказки будут точнее.',
-        focus: ['#sexSeg'],
-        radiusInherit: true,
-        require: {type:'click', selector:'#sexSeg button'},
-      },
-      {
-        title: 'Введите значения',
-        text: 'Введите показатели из бланка (например, АЛТ) — справа появится статус.',
-        focus: ['.field[data-key="ALT"]', '.field[data-key="ALT"] input'],
-        radiusInherit: true,
-        require: {type:'input', selector:'.field[data-key="ALT"] input', nonEmpty:true},
-      },
-      {
-        title: 'Сохранить',
-        text: 'Нажмите «Сохранить значения» — данные сохранятся на этом устройстве.',
-        focus: ['#saveBtn'],
-        radiusInherit: true,
-        require: {type:'click', selector:'#saveBtn'},
-      },
-      {
-        title: 'Готово',
-        text: 'Вы освоили основные функции. Тур можно будет включить снова из настроек (если добавим кнопку).',
-        focus: ['#pageRoot'],
-        skipIfMissing: true,
-        radiusInherit: true,
-      },
-    ],
-  };
-
-  // -------- Autostart --------
-  function shouldAutostart(){
-    if (isDone()) return false;
-
-    const st = loadState();
-    if (st?.active) return true; // продолжить на любой странице
-
-    // новый запуск — только с main
-    return pageKey() === 'main';
-  }
-
-  function start(){
-    saveState({active:true, page: pageKey(), idx:0});
-    show();
-  }
-
-  function init(){
-    const st = loadState();
-
-    // если тур уже идёт — просто показываем текущий шаг на этой странице
-    if (st?.active){
-      setTimeout(()=>{ show(); }, 120);
-      return;
-    }
-
-    // иначе — автостарт только на main
-    if (shouldAutostart()){
-      setTimeout(()=>{ start(); }, 220);
-    }
-  }
-
-  if (document.readyState === 'loading'){
-    document.addEventListener('DOMContentLoaded', init);
-  } else {
-    init();
-  }
-
-  // Expose small API (optional)
-  window.RTTour = {
-    start: ()=>{ try{ localStorage.removeItem(DONE_KEY); }catch(_){ } start(); },
-    stop: skip,
-  };
-})();
-</script>
-
-  <!-- /RT_TOUR_V1 -->
 
 </body>
 </html>
