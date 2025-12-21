@@ -112,17 +112,69 @@ try{
   .pos-left{transform:translate(calc(-50% - 130px),-50%) scale(0.56)}
   .pos-right{transform:translate(calc(-50% + 130px),-50%) scale(0.56)}
 
-  /* компактнее карточки (≈ -10%) */
-  #cardDose{ padding:14px; }
+  /* компактнее карточки */
   #cardFAQ{ padding:14px; }
   #cardReset{ padding:14px; }
 
+  /* === DOSE CARD: еще компактнее (~ -15%) + stepper в одну строку с вводом === */
+  #cardDose{ padding:12px; text-align:center; }
+  #cardDose h2{ margin-bottom:6px !important; font-size:18px; }
+
+  /* раскладка элементов карточки: аккуратная колонка */
+  #cardDose .dose-row{
+    flex-direction:column;
+    gap:10px;
+    align-items:center;
+    justify-content:center;
+  }
+  #cardDose .dose-label{ font-weight:800; }
+
+  /* mg + (-/+) всегда в одной строке */
+  #cardDose .mg-wrap{
+    flex-wrap:nowrap;
+    align-items:flex-start; /* чтобы кнопки выравнивались по полю ввода, а не по подсказке */
+    gap:6px;
+    justify-content:center;
+  }
+  #cardDose .mg-wrap #mg{
+    width:102px;
+    height:38px;
+    padding:8px 10px;
+    border-radius:11px;
+  }
+  #cardDose .mg-col{ gap:5px; align-items:center; }
+  #cardDose .cap-hint{ font-size:11px; padding:2px 9px; }
+
+  #cardDose .stepper{ gap:6px; }
+  #cardDose .stepper .step{
+    width:38px;
+    height:38px;
+    border-radius:11px;
+    font-size:18px;
+  }
+
+  #cardDose #date{
+    width:min(165px, 100%) !important;
+  }
+  #cardDose input[type="date"]{
+    padding:8px 10px;
+    font-size:15px;
+    border-radius:11px;
+  }
+
+  #cardDose .dose-save{
+    height:46px;
+    border-radius:16px;
+    font-size:15px;
+    margin-top:10px;
+  }
+
   /* чуть меньше кнопки выбора капсулы */
   #capType .seg .seg-btn{
-    height:36px;
-    padding:0 14px;
-    border-radius:13px;
-    font-size:0.95em;
+    height:32px;
+    padding:0 12px;
+    border-radius:12px;
+    font-size:0.9em;
   }
 }
 
@@ -494,6 +546,103 @@ body.light .seg button{
   box-shadow:0 2px 6px rgba(0,0,0,.25);
 }
 .stepper .step:active{ transform:scale(.98) }
+
+/* Capsule hint near mg input */
+.mg-col{ display:flex; flex-direction:column; gap:6px }
+.cap-hint{
+  display:inline-flex; align-items:center; justify-content:center;
+  align-self:flex-start;
+  padding:3px 10px;
+  border-radius:999px;
+  font-size:12px;
+  font-weight:900;
+  letter-spacing:.2px;
+  color:rgba(233,246,255,.82);
+  background:rgba(255,255,255,.06);
+  border:1px solid rgba(255,255,255,.12);
+  box-shadow: inset 0 1px 0 rgba(255,255,255,.08), 0 6px 16px rgba(0,0,0,.22);
+}
+.cap-hint[hidden]{ display:none }
+
+/* Dose block: centered + compact + neumorph button */
+#cardDose{ text-align:center; }
+#cardDose h2{ text-align:center; }
+
+#cardDose .dose-row{
+  flex-wrap:wrap;
+  gap:12px;
+  align-items:center;
+  justify-content:center;
+}
+#cardDose .dose-label{ font-weight:800; }
+#cardDose .mg-wrap{ justify-content:center; }
+#cardDose .mg-col{ align-items:center; }
+#cardDose .cap-hint{ align-self:center; }
+
+#cardDose #capType{
+  justify-content:center;
+  margin-left:0;
+  width:100%;
+}
+#cardDose .date-wrap{
+  justify-content:center;
+  width:100%;
+}
+#cardDose #date{ width:min(180px, 100%) }
+
+#cardDose .dose-save{
+  position:relative;
+  overflow:hidden;
+  width:min(360px, 100%);
+  height:54px;
+  margin:12px auto 0;
+  border-radius:18px;
+  font-weight:900;
+  font-size:16px;
+  letter-spacing:.2px;
+  color:rgba(233,246,255,.92);
+  background: linear-gradient(180deg, rgba(255,255,255,.06), rgba(0,0,0,.14));
+  border:1px solid rgba(255,255,255,.10);
+  box-shadow:
+    14px 14px 30px rgba(0,0,0,.55),
+    -10px -10px 24px rgba(255,255,255,.05),
+    inset 0 1px 0 rgba(255,255,255,.10),
+    inset 0 -10px 18px rgba(0,0,0,.35);
+}
+#cardDose .dose-save::before{
+  content:"";
+  position:absolute;
+  inset:1px;
+  border-radius:inherit;
+  pointer-events:none;
+  background:
+    radial-gradient(120px 60px at 20% 18%, rgba(34,211,238,.34), rgba(34,211,238,0) 60%),
+    radial-gradient(140px 70px at 80% 0%, rgba(20,184,166,.26), rgba(20,184,166,0) 60%);
+  opacity:.9;
+}
+#cardDose .dose-save::after{
+  content:"";
+  position:absolute;
+  inset:0;
+  border-radius:inherit;
+  pointer-events:none;
+  background: linear-gradient(180deg, rgba(255,255,255,.14), rgba(255,255,255,0) 45%);
+  mix-blend-mode:soft-light;
+  opacity:.75;
+}
+#cardDose .dose-save:active{
+  transform: translateY(1px);
+  box-shadow:
+    inset 10px 10px 22px rgba(0,0,0,.55),
+    inset -8px -8px 18px rgba(255,255,255,.06),
+    inset 0 1px 0 rgba(255,255,255,.08);
+}
+
+@media (max-width: 520px){
+  #cardDose h2{ margin-bottom:6px }
+  #cardDose .dose-row{ gap:10px }
+  #cardDose .dose-save{ height:52px; border-radius:16px }
+}
 @media (max-width:420px){
   .mg-wrap #mg{ width:100px }
 }
@@ -1345,25 +1494,38 @@ document.addEventListener('DOMContentLoaded', () => {
     <section class="card section" id="cardDose" aria-labelledby="dose-title">
       <div class="glow"></div>
       <h2 id="dose-title" style="margin-bottom:8px">Отметить приём</h2>
-      <div class="row">
-        <div>Мг:</div>
+
+      <div class="row dose-row">
+        <div class="dose-label">Мг:</div>
+
         <div class="mg-wrap">
-          <input id="mg" type="number" step="10" value="20" inputmode="numeric" pattern="\d*" aria-label="Доза в миллиграммах">
+          <div class="mg-col">
+            <input id="mg" type="number" step="10" value="20" inputmode="numeric" pattern="\d*" aria-label="Доза в миллиграммах">
+            <span id="capHint" class="cap-hint" aria-live="polite" hidden></span>
+          </div>
+
           <div class="stepper">
             <button type="button" id="mgMinus" class="step" aria-label="Уменьшить на 10 мг">−</button>
             <button type="button" id="mgPlus"  class="step" aria-label="Увеличить на 10 мг">+</button>
           </div>
         </div>
+
         <div class="ctrl" id="capType" hidden>
-  <label class="ctrl-label">Тип капсулы</label>
-  <div id="capSeg" class="seg" style="grid-template-columns:repeat(2,1fr)"></div>
-</div>
+          <label class="ctrl-label">Тип капсулы</label>
+          <div id="capSeg" class="seg" style="grid-template-columns:repeat(2,1fr)"></div>
+        </div>
+
         <div class="date-wrap">
-  <div>Дата:</div>
-        <input id="date" type="date" style="width:180px"></div>
-        <button id="save" class="cta">Добавить</button>
+          <div>Дата:</div>
+          <input id="date" type="date" style="width:180px">
+        </div>
       </div>
-      <div id="doseHint" class="muted" style="margin-top:8px"></div>
+
+      <button id="save" class="cta dose-save">Добавить</button>
+
+      <!-- убрано по просьбе: "Последний приём / Сегодня" -->
+      <div id="doseHint" class="muted" style="display:none"></div>
+
       <div id="saveStatus" class="muted" style="margin-top:8px"></div>
     </section>
 
@@ -2944,25 +3106,21 @@ function renderReminder(){
 // Dose hint: "Последний приём: {N} мг • Сегодня: {X} мг"
 function updateDoseHint(){
   try{
-    const hint = document.getElementById('doseHint'); if (!hint) return;
-    let last = 0, today = 0;
-    const todayIso = (function(){ const d=new Date(); d.setMinutes(d.getMinutes()-d.getTimezoneOffset()); return d.toISOString().slice(0,10); })();
-    if (Array.isArray(DOSES) && DOSES.length){
-      last = Number(DOSES[0]?.mg || DOSES[0]?.mg_taken || 0) || 0;
-      for(const x of DOSES){
-        const iso = String(x.date||'').slice(0,10);
-        if (iso === todayIso) today += Number(x.mg||x.mg_taken||0) || 0;
-      }
-    }
-    const cap = Number(localStorage.getItem('rt.capsule_mg')||0);
+    const capHint = document.getElementById('capHint');
+    if (!capHint) return;
+
     const mgInput = Number(document.getElementById('mg')?.value || 0);
-    let capInfo = '';
+    const cap = Number(localStorage.getItem('rt.capsule_mg')||0);
+
     if (cap > 0 && mgInput > 0){
       const exact = (mgInput % cap) === 0;
       const n = exact ? (mgInput/cap) : Math.ceil(mgInput/cap);
-      capInfo = ` • ≈${n} капс.`;
+      capHint.textContent = `≈${n} капс.`;
+      capHint.hidden = false;
+    }else{
+      capHint.textContent = '';
+      capHint.hidden = true;
     }
-    hint.textContent = `Последний приём: ${fmtInt(last)} мг • Сегодня: ${fmtInt(today)} мг${capInfo}`;
   }catch(_){}
 }
 

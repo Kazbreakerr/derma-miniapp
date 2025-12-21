@@ -59,6 +59,16 @@ document.documentElement.dataset.theme = cur;
     input[type="search"]:focus{border-color:var(--primary-700);box-shadow:0 0 0 2px var(--focus-ring)}
     .chip{display:inline-flex;align-items:center;gap:6px;padding:8px 12px;border-radius:999px;background:#152235;border:1px solid transparent;color:var(--text-high);font-weight:600;margin-right:8px;margin-bottom:8px;text-decoration:none}
     .chip:hover{border-color:#14B8A6;cursor:pointer}
+
+    /* компактные подсказки FAQ */
+    .faq-chips{display:flex;flex-wrap:wrap;gap:6px;margin-top:10px}
+    .faq-chips .chip{margin:0;padding:6px 10px;font-size:14px;line-height:1.15;font-weight:650}
+    @media (max-width:520px){
+      .faq-chips{flex-wrap:nowrap;overflow-x:auto;-webkit-overflow-scrolling:touch;padding-bottom:6px;margin-bottom:4px}
+      .faq-chips::-webkit-scrollbar{display:none}
+      .faq-chips .chip{flex:0 0 auto;white-space:nowrap}
+    }
+
     details{border:1px solid var(--border);border-radius:12px;background:#0E1726;margin:10px 0;overflow:hidden}
     details[open]{border-color:#0EA5A6;box-shadow:0 0 0 2px rgba(20,184,166,.25) inset}
     summary{display:flex;gap:10px;align-items:center;list-style:none;padding:12px 14px;cursor:pointer;font-weight:600}
@@ -302,7 +312,7 @@ document.documentElement.dataset.theme = cur;
 <h2 id="faq-title">FAQ — часто задаваемые вопросы</h2>
 <div class="muted faq-disclaimer" style="margin-bottom:8px">Справочно. Не заменяет консультацию врача.</div>
 <input id="search" aria-label="Поиск по FAQ" placeholder="Поиск по FAQ" type="search"/>
-<div style="margin-top:8px">
+<div class="faq-chips" style="margin-top:8px">
 <a class="chip" href="#start">Начало</a>
 <a class="chip" href="#app">Приложение</a>
 <a class="chip" href="#diary">Дневник</a>
@@ -543,7 +553,7 @@ document.documentElement.dataset.theme = cur;
       if(el && el.tagName.toLowerCase()==='details'){ el.open=true; el.scrollIntoView({behavior:'smooth', block:'start'}); }
     }
     window.addEventListener('hashchange', openByHash);
-    openByHash();
+    // openByHash(); // не раскрываем вопросы автоматически при открытии страницы
 
 
     const back = document.getElementById('btn-back');
@@ -665,6 +675,7 @@ document.addEventListener('click', function(e){
   const el = document.getElementById(id);
   if (el){
     e.preventDefault();
+    if (el.tagName && el.tagName.toLowerCase()==='details') el.open = true;
     el.scrollIntoView({behavior:'smooth', block:'start'});
     try { history.replaceState(null, '', '#' + id); } catch (_) { location.hash = id; }
   }

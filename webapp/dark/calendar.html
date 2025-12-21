@@ -133,7 +133,7 @@
     .nav-btn{
       appearance:none;
       border:0;
-      border-radius: 14px;
+      border-radius: 12px;
       width:40px; height:40px;
       display:grid; place-items:center;
       color:var(--text);
@@ -504,50 +504,109 @@ user-select: none;
       background: linear-gradient(90deg, rgba(255,120,120,.20), rgba(255,196,0,.20), rgba(40,210,150,.20));
     }
     
-    /* --- TABBAR --- */
-    .tabbar{
-      position: fixed; left:0; right:0; bottom:0;
-      padding: 10px 12px calc(10px + env(safe-area-inset-bottom));
-      background: transparent;
-      z-index: 50; pointer-events: none; /* контейнер сквозной */
-    }
-    .tabbar-inner{
-      max-width: 1100px; margin: 0 auto;
-      display: grid; grid-template-columns: repeat(5, 1fr); gap: 10px;
-      align-items: center;
-      pointer-events: auto; /* кликается */
-    }
-    .tab{
-      display:flex; flex-direction:column; align-items:center; justify-content:center; gap:6px;
-      padding: 10px 8px; min-height: 56px;
-      border-radius: 16px;
-      color: var(--muted); text-decoration:none; font-size:12px; font-weight:600;
-      background: rgba(255,255,255,.04);
-      box-shadow: var(--shadow-soft);
-      transition: transform .12s ease, box-shadow .2s ease, background .2s ease, color .2s ease;
-    }
-    .tab svg{ width:22px; height:22px; opacity:.9; }
-    .tab:active{ transform: translateY(1px); }
-    .tab.active{
-      color: var(--text);
+    /* --- BOTTOM NAV (как в labs.html) --- */
+    .bottom-nav{
+      position: fixed; left: 0; right: 0; bottom: 0;
+      z-index: 1400;
+      /* адаптивные отступы + safe-area (чуть компактнее, чтобы подписи влезали) */
+      padding:
+        clamp(4px, 1.6vw, 8px)
+        max(env(safe-area-inset-left), clamp(8px, 2vw, 12px))
+        calc(clamp(4px, 1.6vw, 8px) + env(safe-area-inset-bottom))
+        max(env(safe-area-inset-right), clamp(8px, 2vw, 12px));
+      display: grid;
+      grid-template-columns: repeat(5, minmax(0, 1fr));
+      gap: clamp(5px, 1.4vw, 8px);
+
       background:
-        radial-gradient(200px 120px at 50% -40%, rgba(255,255,255,.08), transparent 70%),
-        linear-gradient(180deg, rgba(255,255,255,.10), rgba(255,255,255,.04));
+        radial-gradient(120% 140% at 50% -30%, rgba(255,255,255,.06) 0%, rgba(0,0,0,0) 58%),
+        linear-gradient(180deg, rgba(16,24,36,.92) 0%, rgba(10,16,24,.94) 100%);
+      border-top: 1px solid rgba(255,255,255,.08);
       box-shadow:
-        inset 0 1px 0 rgba(255,255,255,.15),
-        0 10px 26px rgba(0,0,0,.35),
+        0 -16px 34px rgba(0,0,0,.50),
+        inset 0  1px  0 rgba(255,255,255,.08);
+      backdrop-filter: saturate(120%) blur(10px);
+      -webkit-backdrop-filter: saturate(120%) blur(10px);
+    }
+    .bottom-nav .tab{
+      min-width: 0;
+      display:flex; flex-direction:column; align-items:center; justify-content:center;
+      gap: clamp(3px, 1vw, 5px);
+      height: clamp(44px, 12vw, 56px);
+      padding: clamp(5px, 1.4vw, 7px) clamp(5px, 1.4vw, 9px);
+      text-decoration:none;
+      border-radius: clamp(12px, 3.5vw, 16px);
+      border: 1px solid rgba(255,255,255,.10);
+      background:
+        radial-gradient(200px 120px at 50% -40%, rgba(255,255,255,.06), transparent 70%),
+        linear-gradient(180deg, rgba(16,25,40,.92), rgba(11,16,25,.96));
+      color:#b7c5dd;
+      font-size: clamp(9.5px, 2.6vw, 11.5px);
+      font-weight:800; letter-spacing:.12px;
+      box-shadow:
+        10px 10px 22px rgba(0,0,0,.42),
+        -10px -10px 22px rgba(255,255,255,.025),
+        inset 0 1px 0 rgba(255,255,255,.06),
+        inset 0 -1px 0 rgba(0,0,0,.35);
+      user-select:none;
+      -webkit-tap-highlight-color: transparent;
+      transition: transform .12s ease, filter .12s ease, box-shadow .2s ease;
+    }
+    .bottom-nav .tab svg{
+      width: clamp(16px, 4.8vw, 20px);
+      height: clamp(16px, 4.8vw, 20px);
+      opacity:.95;
+      flex: 0 0 auto;
+    }
+    .bottom-nav .tab span{
+      line-height: 1.05;
+      max-width: 100%;
+      overflow: visible;
+      text-overflow: clip;
+      white-space: normal;
+      text-align: center;
+      word-break: break-word;
+      hyphens: auto;
+      display: block;
+      padding: 0 2px;
+    }
+    .bottom-nav .tab:active{ transform: translateY(1px) }
+    .bottom-nav .tab.active{
+      color: #dbe7ff;
+      background:
+        radial-gradient(220px 140px at 50% -40%, rgba(158,197,255,.10), transparent 72%),
+        linear-gradient(180deg, rgba(17,29,48,.94), rgba(12,19,31,.98));
+      box-shadow:
+        inset 0 1px 0 rgba(255,255,255,.08),
+        inset 0 -1px 0 rgba(0,0,0,.35),
+        0 10px 26px rgba(0,0,0,.42),
         0 0 0 1px rgba(255,255,255,.06);
     }
-    body[data-theme="light"] .tab{
-      background: rgba(14,27,42,.04);
-      box-shadow: 6px 8px 16px rgba(14,27,42,.06), -6px -6px 14px rgba(255,255,255,.8);
-      color: #5e6b82;
+    .bottom-nav .tab.active span::after{
+      content:""; display:block; height:2px; border-radius:2px;
+      background: rgba(158,197,255,.95);
+      opacity:.9; margin-top:4px; width: 100%;
     }
-    body[data-theme="light"] .tab.active{
-      background: linear-gradient(180deg, #ffffff, #f6f8fb);
-      box-shadow: 8px 10px 20px rgba(14,27,42,.12), -6px -6px 14px rgba(255,255,255,.9);
-      color:#0e1b2a;
+    /* запас под навигацию, если где-то нужен */
+    .bottom-spacer{ height: var(--nav-h, calc(86px + env(safe-area-inset-bottom))); }
+
+    @media (max-width: 420px){
+      .bottom-nav{
+        padding: 8px max(env(safe-area-inset-left),10px)
+                 calc(8px + env(safe-area-inset-bottom))
+                 max(env(safe-area-inset-right),10px);
+        gap: 8px;
+      }
+      .bottom-nav .tab{ height: 56px; padding: 6px 8px; border-radius: 16px; font-size: 11.5px; }
+      .bottom-nav .tab svg{ width: 20px; height: 20px; }
     }
+    @media (max-width: 340px){
+      .bottom-nav .tab{ height: 52px; padding: 6px; font-size: 11px; }
+      .bottom-nav .tab svg{ width: 19px; height: 19px; }
+    }
+
+
+    
 
     /* === RANGE SELECT (п.4) === */
     .grid.dragging { user-select: none; touch-action: none; }
@@ -616,7 +675,9 @@ user-select: none;
     @media (max-width: 360px){
       .tabbar-inner{ gap:6px; }
       .tab{ min-height: 46px; padding: 8px; }
-      .tab span{ display:none; } /* hide labels to fit */
+      .tabbar-inner .tab span{ display:none; } /* hide labels to fit (only old tabbar) */
+    
+      .bottom-nav .tab span{ display:block !important; }
     }
 
 /* === OVERRIDE: marks pinned bottom-left and not stretched === */
@@ -702,10 +763,10 @@ html::view-transition-new(root){
   ::view-transition-group(portal){ animation:none!important; clip-path:none!important; }
 }
 /* компактнее bottom-sheet */
-.sheet{ font-size: clamp(14px, 1.9vw, 16px); }
-.sheet .sheet-title{ font-size: clamp(16px, 2.2vw, 18px); }
-.sheet .badge{ font-size: 12px; }
-.sheet .sheet-row strong{ font-size: 15px; }
+.sheet{ font-size: clamp(13px, 1.8vw, 15px); }
+.sheet .sheet-title{ font-size: clamp(15px, 2.0vw, 17px); }
+.sheet .badge{ font-size: 11px; }
+.sheet .sheet-row strong{ font-size: 14px; }
 
 /* когда выделяем диапазон — не даём странице скроллиться */
 .grid.dragging { touch-action: none; }
@@ -806,29 +867,27 @@ html::view-transition-new(root){
   </div>
 
   <!-- Bottom navigation -->
-  <nav class="tabbar" role="navigation" aria-label="Главная навигация">
-    <div class="tabbar-inner">
-      <a class="tab" href="main.html" aria-label="Главная">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M3 10.5 12 3l9 7.5v9a1 1 0 0 1-1 1h-5v-6H9v6H4a1 1 0 0 1-1-1v-9z" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"/></svg>
-        <span>Главная</span>
-      </a>
-      <a class="tab active" href="calendar.html" aria-current="page" aria-label="Календарь">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><rect x="3" y="4" width="18" height="18" rx="3" stroke-width="1.7"/><path d="M16 2v4M8 2v4M3 10h18" stroke-width="1.7" stroke-linecap="round"/></svg>
-        <span>Календарь</span>
-      </a>
-      <a class="tab" href="myprofile.html" aria-label="Профиль">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><circle cx="12" cy="8" r="4" stroke-width="1.7"/><path d="M4 21a8 8 0 0 1 16 0" stroke-width="1.7" stroke-linecap="round"/></svg>
-        <span>Профиль</span>
-      </a>
-      <a class="tab" href="diary.html" aria-label="Фотодневник">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><rect x="3" y="5" width="18" height="14" rx="3" stroke-width="1.7"/><path d="M9 10l2 2 3-3 4 5H6l3-4z" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"/></svg>
-        <span>Фотодневник</span>
-      </a>
-      <a class="tab" href="labs.html" aria-label="Анализы">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M9 3v6l-5 8a3 3 0 0 0 2.6 4.5h10.8A3 3 0 0 0 20 17l-5-8V3" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"/></svg>
-        <span>Анализы</span>
-      </a>
-    </div>
+  <nav class="bottom-nav" role="navigation" aria-label="Главная навигация">
+    <a class="tab" id="navHome" href="main.html" aria-label="Главная">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M3 10.5 12 3l9 7.5v9a1 1 0 0 1-1 1h-5v-6H9v6H4a1 1 0 0 1-1-1v-9z" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"/></svg>
+      <span>Главная</span>
+    </a>
+    <a class="tab active" id="navCalendar" href="calendar.html" aria-current="page" aria-label="Календарь">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><rect x="3" y="4" width="18" height="18" rx="3" stroke-width="1.7"/><path d="M16 2v4M8 2v4M3 10h18" stroke-width="1.7" stroke-linecap="round"/></svg>
+      <span>Календарь</span>
+    </a>
+    <a class="tab" id="navProfile" href="myprofile.html" aria-label="Профиль">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><circle cx="12" cy="8" r="4" stroke-width="1.7"/><path d="M4 21a8 8 0 0 1 16 0" stroke-width="1.7" stroke-linecap="round"/></svg>
+      <span>Профиль</span>
+    </a>
+    <a class="tab" id="navDiary" href="diary.html" aria-label="Фотодневник">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><rect x="3" y="5" width="18" height="14" rx="3" stroke-width="1.7"/><path d="M9 10l2 2 3-3 4 5H6l3-4z" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"/></svg>
+      <span>Фотодневник</span>
+    </a>
+    <a class="tab" id="navLabs" href="labs.html" aria-label="Анализы">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M9 3v6l-5 8a3 3 0 0 0 2.6 4.5h10.8A3 3 0 0 0 20 17l-5-8V3" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"/></svg>
+      <span>Анализы</span>
+    </a>
   </nav>
 
 <script>
@@ -1918,7 +1977,7 @@ if (IS_COARSE){
     0 -16px 34px rgba(0,0,0,.55),
     inset 0  1px  0 rgba(255,255,255,.10),
     inset 0 -1px  0 rgba(0,0,0,.35);
-  padding: 14px 14px 16px;
+  padding: 9px 10px 10px;
 }
 #sheet.active{
   opacity: 1; visibility: visible; pointer-events: auto;
@@ -1929,12 +1988,19 @@ if (IS_COARSE){
     visibility 0s;
 }
 
+
+#sheetBody{
+  max-height: min(46vh, 396px);
+  overflow: auto;
+  -webkit-overflow-scrolling: touch;
+  padding-bottom: 2px;
+}
 /* таббар поверх и кликабелен */
-nav.tabbar{ z-index: 1400 !important; }
-body.sheet-open nav.tabbar{ pointer-events: auto !important; }
+nav.bottom-nav{ z-index: 1400 !important; }
+body.sheet-open nav.bottom-nav{ pointer-events: auto !important; }
 /* ——— ручка перетягивания ——— */
 .drag-handle{
-  width: 48px; height: 6px; margin: 2px auto 10px; border-radius: 999px;
+  width: 44px; height: 5px; margin: 1px auto 6px; border-radius: 999px;
   background: linear-gradient(180deg, rgba(255,255,255,.38), rgba(255,255,255,.06));
   box-shadow:
     inset 0 1px 0 rgba(255,255,255,.35),
@@ -1944,7 +2010,7 @@ body.sheet-open nav.tabbar{ pointer-events: auto !important; }
 
 /* ——— шапка шита ——— */
 .sheet-head{
-  display:flex; align-items:center; gap:10px; padding: 4px 2px 10px;
+  display:flex; align-items:center; gap:8px; padding: 3px 2px 7px;
 }
 .sheet-title{
   flex:1; font-weight:800; letter-spacing:.2px;
@@ -1954,8 +2020,8 @@ body.sheet-open nav.tabbar{ pointer-events: auto !important; }
 /* ——— неоморфные строки ——— */
 .sheet-row{
   display:flex; align-items:center; justify-content:space-between;
-  gap: 12px; padding: 12px 14px; margin: 10px 0;
-  border-radius: 14px;
+  gap: 8px; padding: 7px 10px; margin: 6px 0;
+  border-radius: 12px;
   background: linear-gradient(180deg, rgba(255,255,255,.03), rgba(255,255,255,.015));
   box-shadow:
     10px 10px 22px rgba(0,0,0,.45),               /* нижняя правая внешняя */
@@ -1970,7 +2036,7 @@ body.sheet-open nav.tabbar{ pointer-events: auto !important; }
 /* ——— бейджи ——— */
 .badge{
   display:inline-flex; align-items:center; gap:6px;
-  padding: 6px 10px; border-radius: 999px;
+  padding: 4px 8px; border-radius: 999px;
   font-weight:700; letter-spacing:.2px;
   background: linear-gradient(180deg, rgba(255,255,255,.10), rgba(255,255,255,.02));
   border: 1px solid rgba(255,255,255,.10);
@@ -1983,7 +2049,7 @@ body.sheet-open nav.tabbar{ pointer-events: auto !important; }
 /* ——— капсульная кнопка (правая) ——— */
 .right, .pill{
   appearance:none; border:0; cursor:pointer; user-select:none;
-  padding: 10px 14px; border-radius: 14px; font-weight:800;
+  padding: 8px 12px; border-radius: 13px; font-weight:800;
   color:#0b1620; background:
     linear-gradient(180deg,#58edd2,#17d6c8 60%,#10c2bd);
   box-shadow:
@@ -2157,7 +2223,7 @@ body.sheet-open nav.tabbar{ pointer-events: auto !important; }
   .rt-notif .muted{ opacity:.72; display:block; margin-top:2px; }
 
 /* When tour is active — keep bottom nav above overlay (not blurred) */
-body.rt-tour-on nav.tabbar{
+body.rt-tour-on nav.bottom-nav{
   z-index: var(--rt-tour-z-tabbar) !important;
   pointer-events: auto !important;
 }
@@ -2828,12 +2894,12 @@ main: [
       {
         title: 'Нижнее меню',
         text: 'Внизу — разделы приложения. Откройте «Календарь», чтобы продолжить.',
-        reveal: ['nav.tabbar'],
-        focus: ['nav.tabbar a[href*="calendar.html"]'],
+        reveal: ['nav.bottom-nav'],
+        focus: ['nav.bottom-nav a[href*="calendar.html"]'],
         avoidCover: 'reveal',
         popPlacement: 'above',
         radiusInherit: true,
-        primary: { label:'К календарю', click:'nav.tabbar a[href*="calendar.html"]', nextPage:'calendar' },
+        primary: { label:'К календарю', click:'nav.bottom-nav a[href*="calendar.html"]', nextPage:'calendar' },
       },
     ],
 
@@ -2884,12 +2950,12 @@ main: [
       {
         title: 'Профиль',
         text: 'Перейдите в профиль — там врач, напоминания и дневник.',
-        reveal: ['nav.tabbar'],
-        focus: ['nav.tabbar a[href$="myprofile.html"]'],
+        reveal: ['nav.bottom-nav'],
+        focus: ['nav.bottom-nav a[href$="myprofile.html"]'],
         avoidCover: 'reveal',
         popPlacement: 'above',
         radiusInherit: true,
-        primary: { label:'Перейти', click:'nav.tabbar a[href$="myprofile.html"]', nextPage:'myprofile' },
+        primary: { label:'Перейти', click:'nav.bottom-nav a[href$="myprofile.html"]', nextPage:'myprofile' },
       },
     ],
 myprofile: [

@@ -50,7 +50,7 @@ try{
 }catch(_){}
 </script>
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>Roaccutane Tracker — Главная</title>
+  <title>Retiora — Retinoid & Isotretinoin Tracker — Главная</title>
  <script src="https://telegram.org/js/telegram-web-app.js"></script>
   <script>window.API_BASE = window.API_BASE || '';
 </script>
@@ -73,7 +73,7 @@ try{
          font-family:ui-sans-serif,system-ui,-apple-system,Segoe UI,Roboto,Inter,Manrope,Helvetica,Arial;
          font-size:16px;line-height:1.5}
     .wrap{max-width:980px;margin:0 auto;padding:24px 24px 112px} /* запас под нижнюю навигацию */
-    h1{font-size:28px;line-height:34px;margin:0 0 16px;font-weight:800; text-align:center; letter-spacing:.2px}
+    h1{font-size:clamp(20px,5.2vw,28px);line-height:1.12;margin:0 0 12px;font-weight:800;text-align:center;letter-spacing:.2px;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
     h2{font-size:22px;line-height:28px;margin:0 0 12px;font-weight:700}
     .card{position:relative;background:var(--card);border:1px solid var(--border);border-radius:16px;
           padding:16px;box-shadow:0 8px 24px rgba(0,0,0,.35);overflow:hidden}
@@ -108,10 +108,24 @@ try{
     .pos-left  {transform:translate(calc(-50% - 170px),-50%) scale(0.56)}
     .pos-right {transform:translate(calc(-50% + 170px),-50%) scale(0.56)}
     @media (max-width:520px){
-      .rings-rail{height:200px}
-      .pos-left{transform:translate(calc(-50% - 130px),-50%) scale(0.56)}
-      .pos-right{transform:translate(calc(-50% + 130px),-50%) scale(0.56)}
-    }
+  .rings-rail{height:200px}
+  .pos-left{transform:translate(calc(-50% - 130px),-50%) scale(0.56)}
+  .pos-right{transform:translate(calc(-50% + 130px),-50%) scale(0.56)}
+
+  /* компактнее карточки (≈ -10%) */
+  #cardDose{ padding:14px; }
+  #cardFAQ{ padding:14px; }
+  #cardReset{ padding:14px; }
+
+  /* чуть меньше кнопки выбора капсулы */
+  #capType .seg .seg-btn{
+    height:36px;
+    padding:0 14px;
+    border-radius:13px;
+    font-size:0.95em;
+  }
+}
+
     .ring button{all:unset;cursor:pointer;display:block}
     /* --- Неоновые толстые кольца --- */
 .ring circle.track{ stroke: url(#ringTrackGrad); stroke-width:18; }
@@ -701,14 +715,20 @@ body.light .seg button{
   width:20px; height:20px; border-radius:50%;
   background: radial-gradient(circle at 35% 35%, #fff 0%, #f1f7ff 20%, #9ff1f0 55%, #00c6c2 100%);
   box-shadow: 0 6px 16px rgba(0,0,0,.35), 0 0 0 3px rgba(255,255,255,.12) inset;
+  z-index: 2;
   transition:left .6s cubic-bezier(.2,.7,.2,1);
 }
 .animal-icon{
-  position:absolute; left:var(--w); top:50%; transform:translate(-50%,-58%);
-  width:34px; height:34px; color:#a9b6cb;
+  position:absolute; left:var(--w); top:50%;
+  transform:translate(-50%,-50%);
+  width:18px; height:18px;
+  color:#a9b6cb;
+  z-index: 3;
+  pointer-events:none;
   filter: drop-shadow(0 4px 8px rgba(0,0,0,.35));
   transition:left .6s cubic-bezier(.2,.7,.2,1);
 }
+
 .animal-icon use{ color:inherit; }
 
 
@@ -858,7 +878,9 @@ body.light .tab.active{ color:#0d1220; background: linear-gradient(180deg, rgba(
     return 0;
   }
   function render(){
-    const need=getTodayMg()<=0;
+    const optin = localStorage.getItem('derma_remind_optin');
+const enabled = (optin === '1') || (optin !== '0' && (localStorage.getItem('rem_enabled')||'0') === '1');
+const need = enabled && getTodayMg()<=0;
     document.querySelectorAll('[data-pill-spot]').forEach(spot=>{
       let b=spot.querySelector('.pill-alert');
       if(!need){ if(b) b.remove(); return; }
@@ -867,7 +889,7 @@ body.light .tab.active{ color:#0d1220; background: linear-gradient(180deg, rgba(
     });
   }
   window.addEventListener('storage',e=>{
-  if(['rt.diary.v1','rt.diary.bump','derma_today_iso','derma_today_mg'].includes(e.key)){
+    if(['rt.diary.v1','rt.diary.bump','derma_today_iso','derma_today_mg','rt.moodTintOn','rt.moodTint.bump'].includes(e.key)){
     try { applyDiaryToMain(diaryGet()); } catch(_){}
     try { renderCalPreview(); } catch(_){}
     try { updateSummary(); } catch(_){}
@@ -1203,7 +1225,7 @@ document.addEventListener('DOMContentLoaded', () => {
   </defs>
 </svg>
   <div class="wrap">
-    <h1>Roaccutane Tracker</h1>  <span data-pill-spot></span><span data-stock-spot></span>
+    <h1>Retiora — Retinoid & Isotretinoin Tracker</h1>
 
     <section class="card clickable" id="profileHeader" aria-label="Профиль">
       <div class="glow"></div>
@@ -1213,6 +1235,10 @@ document.addEventListener('DOMContentLoaded', () => {
           <div id="fullName" data-tg-name style="font-weight:700">—</div>
           <div class="muted">День курса: <span id="courseDay">—</span> · Выпито: <span id="consumedTop">0</span> мг</div>
         </div>
+      </div>
+      <div class="mini-alerts">
+        <span data-pill-spot></span>
+        <span data-stock-spot></span>
       </div>
     </section>
 
@@ -1576,60 +1602,131 @@ function wipeLocalDiary(reason = 'manual-reset'){
 // чтобы было удобно дергать из reset.html/консоли
 window.wipeLocalDiary = wipeLocalDiary;
 
-// === Mood helpers for calendar preview ===
+// === Mood helpers for calendar preview (SYNC WITH calendar.html) ===
 
-// читаем wellness 0..100 из новой БД дневника
+// читаем wellness/valence из новой БД дневника (rt.diary.v2)
 function _wellnessMap(){
   try{
     const db = JSON.parse(localStorage.getItem('rt.diary.v2')||'null');
     const out = {};
     if (db && db.entries){
       for (const [k, e] of Object.entries(db.entries)){
-        if (typeof e.wellness === 'number') out[k] = e.wellness;
-        else if (typeof e.valence  === 'number') out[k] = e.valence; // ← добавили
+        if (typeof e.wellness === 'number') out[k] = e.wellness; // обычно 0..100
+        else if (typeof e.valence  === 'number') out[k] = e.valence; // на всякий случай
       }
     }
     return out;
   }catch(_){ return {}; }
 }
 
-// 7 состояний: 1=оч.плохо … 7=отлично
-// 7 состояний: 1=оч.плохо … 7=отлично
+// старые оценки -3..+3 -> валентность (0..100) по центрам 7 корзин (как в calendar.html)
+function normalizeMoodV1(m){
+  if (m === null || m === undefined || m === '' || !Number.isFinite(Number(m))) return null;
+  const x = Math.max(-3, Math.min(3, Number(m)));
+  const centers = [8.5, 25, 40, 50, 60, 75, 91.5];
+  const idx = Math.round(x + 3);
+  return centers[idx];
+}
+
+// 0..100 → индекс 0..6 (как в calendar.html)
+function moodIndexFromValence(v){
+  if (v==null) return null;
+  const step = 100/6;
+  const idx  = Math.round(Math.max(0, Math.min(100, Number(v))) / step);
+  return Math.max(0, Math.min(6, idx));
+}
+
+// берём самочувствие дня и возвращаем индекс 0..6
 function moodIndexFromDiary(rec, iso){
   const wm = _wellnessMap();
   let v = wm[iso];
 
   if (v != null && isFinite(v)) {
-    // v может быть в -1..1, 0..1 или 0..100 → приводим к 0..1 и квантируем
-    let v01;
-    if (v >= 0 && v <= 100)      v01 = v / 100;          // 0..100
-    else if (v >= 0 && v <= 1)   v01 = v;                // 0..1
-    else if (v >= -1 && v <= 1)  v01 = (v + 1) / 2;      // -1..1 → 0..1
-    else                         v01 = 0.5;
-
-    // 0..1 → 1..7 (как в calendar.html: Math.round( v*6 ))
-    return Math.max(1, Math.min(7, Math.round(v01 * 6) + 1));
+    // v может быть в -1..1, 0..1 или 0..100 → приводим к 0..100
+    let v100 = null;
+    if (v >= 0 && v <= 100)      v100 = v;              // 0..100
+    else if (v >= 0 && v <= 1)   v100 = v * 100;        // 0..1
+    else if (v >= -1 && v <= 1)  v100 = (v + 1) * 50;   // -1..1
+    if (v100 != null) return moodIndexFromValence(v100);
   }
 
-  // очень старый дневник 1..6 → мягко растягиваем до 1..7
+  // очень старый дневник (mood 1..6 или -3..+3) — мягко приводим к валентности
   const m = Number(rec?.mood ?? rec?.m);
-  if (m >= 1 && m <= 6) return Math.max(1, Math.min(7, Math.round(m * 7 / 6)));
-  return 0;
+  const vOld = normalizeMoodV1(m);
+  if (vOld != null) return moodIndexFromValence(vOld);
+
+  return null;
 }
 
+// фон дня (как в calendar.html)
+function moodBg(idx){
+  const G = [
+    'radial-gradient(140% 70% at 50% 10%, rgba(255,206,51,.42) 0 62%, rgba(255,206,51,0) 70%)',
+    'radial-gradient(140% 70% at 50% 10%, rgba(255,136,34,.40) 0 62%, rgba(255,136,34,0) 70%)',
+    'radial-gradient(140% 70% at 50% 10%, rgba(255,92,92,.38) 0 62%, rgba(255,92,92,0) 70%)',
+    'radial-gradient(140% 70% at 50% 10%, rgba(160,180,200,.35) 0 62%, rgba(160,180,200,0) 70%)',
+    'radial-gradient(140% 70% at 50% 10%, rgba(56,189,248,.44) 0 62%, rgba(56,189,248,0) 70%)',
+    'radial-gradient(140% 70% at 50% 10%, rgba(34,197,167,.40) 0 62%, rgba(34,197,167,0) 70%)',
+    'radial-gradient(140% 70% at 50% 10%, rgba(16,185,129,.42) 0 62%, rgba(16,185,129,0) 70%)'
+  ];
+  return G[Math.max(0, Math.min(6, +idx||0))];
+}
 
-// оттенок свечения под индекс (совпадает с CSS)
-function moodGlowColor(idx){
+// цвет свечения (как в calendar.html)
+function moodGlow(idx){
   switch(idx){
-    case 1: return 'hsla(354,100%,36%,.73)'; // очень плохо — бордовый
-    case 2: return 'hsla(40,85%,47%,.58)';   // плохо — тёмно-оранжевый
-    case 3: return 'hsla(40,45%,78%,.52)';   // ниже нормы — бежевый
-    case 4: return 'hsla(200,86%,93%,.45)';  // нейтрально — светло-голубой
-    case 5: return 'hsla(200,85%,55%,.52)';  // неплохо — синий
-    case 6: return 'hsla(170,100%,65%,.52)'; // хорошо — мята
-    case 7: return 'hsla(110,100%,55%,.72)'; // отлично — зелёный
+    case 0: return 'hsla(354,100%,36%,.73)';
+    case 1: return 'hsla(40,85%,47%,.58)';
+    case 2: return 'hsla(40, 45%, 78%, .52)';
+    case 3: return 'hsla(200,86%,93%,.45)';
+    case 4: return 'hsla(200, 85%, 55%, .52)';
+    case 5: return 'hsla(170, 100%, 65%, .52)';
+    case 6: return 'hsla(110, 100%, 55%, .72)';
     default: return 'transparent';
   }
+}
+// === Global toggle: "Цвет под настроение" (shared with diary/calendar) ===
+const TINT_KEY = 'rt.moodTintOn';
+function isTintOn(){
+  return (localStorage.getItem(TINT_KEY) ?? '1') !== '0'; // default ON
+}
+
+// фоновый “цвет дня” (как в calendar.html)
+function moodBg(idx){
+  const G = [
+    'radial-gradient(140% 70% at 50% 10%, rgba(255,206,51,.42) 0 62%, rgba(255,206,51,0) 70%)',
+    'radial-gradient(140% 70% at 50% 10%, rgba(255,136,34,.40) 0 62%, rgba(255,136,34,0) 70%)',
+    'radial-gradient(140% 70% at 50% 10%, rgba(255,92,92,.38) 0 62%, rgba(255,92,92,0) 70%)',
+    'radial-gradient(140% 70% at 50% 10%, rgba(160,180,200,.35) 0 62%, rgba(160,180,200,0) 70%)',
+    'radial-gradient(140% 70% at 50% 10%, rgba(56,189,248,.44) 0 62%, rgba(56,189,248,0) 70%)',
+    'radial-gradient(140% 70% at 50% 10%, rgba(34,197,167,.40) 0 62%, rgba(34,197,167,0) 70%)',
+    'radial-gradient(140% 70% at 50% 10%, rgba(16,185,129,.42) 0 62%, rgba(16,185,129,0) 70%)'
+  ];
+  return G[Math.max(0, Math.min(6, +idx||0))];
+}
+// ВАЖНО: теперь индекс строго 0..6 (как в calendar.html)
+function moodIndexFromDiary(rec, iso){
+  const wm = _wellnessMap();
+  let v = wm[iso];
+
+  if (v != null && isFinite(v)) {
+    // v может быть: 0..100, 0..1 или -1..1
+    let v100;
+    if (v >= 0 && v <= 100)      v100 = v;                 // 0..100
+    else if (v >= 0 && v <= 1)   v100 = v * 100;           // 0..1
+    else if (v >= -1 && v <= 1)  v100 = ((v + 1) / 2)*100; // -1..1
+    else                         v100 = 50;
+
+    return moodIndexFromValence(v100);
+  }
+
+  // очень старый дневник (1..6) -> 0..6
+  const m = Number(rec?.mood ?? rec?.m);
+  if (m >= 1 && m <= 6){
+    return Math.max(0, Math.min(6, Math.round((m - 1) * 6 / 5)));
+  }
+
+  return null;
 }
 
 
@@ -1967,6 +2064,8 @@ function renderCalPreview(){
   const box = document.getElementById('calPreview');
   if(!box){ return; }
   box.innerHTML='';
+  // Если анимация календаря оставила "скрывающие" классы — календарь может остаться прозрачным
+  box.classList.remove('leave-left','leave-right','pre-enter-left','pre-enter-right');
 
   // Сумма приёмов по датам
   const map = new Map();
@@ -2014,8 +2113,6 @@ if (ml) ml.textContent = label;
   const currentIso = (document.getElementById('date')?.value||'').slice(0,10);
   const dAll = diaryGet();
   
-  
-
   for(let i=0;i<7;i++){
     const d = new Date(base); d.setDate(base.getDate()+i);
     const y  = d.getFullYear();
@@ -2033,18 +2130,30 @@ const monthChip = isFirstOfMonth ? `<span class="month-chip">${mShort[d.getMonth
     cell.className = 'day' + (iso === todayISO() ? ' today' : '') + (iso === currentIso ? ' selected' : '');
     cell.setAttribute('data-iso', iso);
 
-    if (rec.miss === true && mg === 0){
+  // сброс каждый рендер (иначе стили “наследуются”)
+cell.style.setProperty('--glowC', 'transparent');
+cell.style.setProperty('--moodBg', 'transparent');
+
+// moodIdx ты УЖЕ посчитала выше: const moodIdx = moodIndexFromDiary(rec, iso);
+const tintOn = isTintOn();
+
+// 1) Пропуск (miss) всегда остаётся красным, не зависит от тумблера
+if (rec.miss === true && mg === 0){
   cell.classList.add('miss');
-  cell.style.setProperty('--glowC','rgba(244,63,94,.55)'); // красный — пропуск
-} else {
-  const moodIdx = moodIndexFromDiary(rec, iso);
-  if (moodIdx > 0){
-    cell.classList.add('mood-'+moodIdx);
-    cell.style.setProperty('--glowC', moodGlowColor(moodIdx)); // ← цвет самочувствия
-  } else {
-    cell.style.removeProperty('--glowC');
-  }
+  cell.style.setProperty('--glowC', 'rgba(244,63,94,.55)');
+} 
+// 2) Настроение — только если включён тумблер "Цвет под настроение"
+else if (tintOn && moodIdx !== null && moodIdx !== undefined){
+  cell.classList.add('mood-' + moodIdx);
+  cell.style.setProperty('--glowC', moodGlow(moodIdx));
+  cell.style.setProperty('--moodBg', moodBg(moodIdx));
+} 
+// 3) Иначе оставляем нейтральный вид
+else {
+  cell.style.removeProperty('--glowC');
+  cell.style.removeProperty('--moodBg');
 }
+
 
 
     cell.innerHTML = `
@@ -2755,10 +2864,24 @@ time.addEventListener('change', () => {
 
 }
 
-  // ПОЧИНЕНО: обычное объявление функции (не IIFE)
-  function renderReminder(){
+function renderReminder(){
     const card = document.getElementById('remCard');
     if (!card) return;
+
+    // если напоминания выключены — прячем алерт (оставляем только тумблер + время)
+    const optin = localStorage.getItem('derma_remind_optin');
+    const enabled = (optin === '1') || (optin !== '0' && (localStorage.getItem('rem_enabled')||'0') === '1');
+
+    const wrap = card.closest('.flip-wrap');
+    if (!enabled){
+      if (wrap) wrap.style.display = 'none';
+      // синхронно скрываем маленькие алерты в мини-профиле
+      try{ window.renderPillAlert?.(); }catch(_){}
+      try{ window.renderStockAlert?.(); }catch(_){}
+      return;
+    } else {
+      if (wrap) wrap.style.display = '';
+    }
 
     const sum = getTodayDoseMg();
     const ls  = getTodayDoseMgLS();
@@ -2778,7 +2901,12 @@ time.addEventListener('change', () => {
 
     const took = (sum > 0) || (ls > 0) || (getDiaryDose(window.todayIsoFn()) > 0);
     card.classList.toggle('flipped', took);
+
+    // обновим маленькие алерты, если «сегодня» поменялось
+    try{ window.renderPillAlert?.(); }catch(_){}
+    try{ window.renderStockAlert?.(); }catch(_){}
   }
+
   window.renderReminder = renderReminder;
 
   // bootstrap
@@ -3120,26 +3248,6 @@ window.addEventListener('storage', (e) => {
   }
 });
 
-// === Mini calendar nav fix (previous/next week) ===
-(function () {
-  if (window.__calNavBound) return;  // уже привязано выше — ничего не делаем
-  const prev = document.getElementById('calPrev') ||
-               document.querySelector('.cal-prev, [data-cal-nav="prev"]');
-  const next = document.getElementById('calNext') ||
-               document.querySelector('.cal-next, [data-cal-nav="next"]');
-  // calOffset уже используется рендером превью недели
-  if (typeof window.calOffset !== 'number') window.calOffset = 0;
-
-  function go(dir) {
-    window.calOffset += dir * 7;   // -7 назад, +7 вперёд
-    if (typeof window.renderCalPreview === 'function') {
-      window.renderCalPreview();
-    }
-  }
-
-  prev && prev.addEventListener('click', (e) => { e.preventDefault(); e.stopPropagation(); go(-1); });
-  next && next.addEventListener('click', (e) => { e.preventDefault(); e.stopPropagation(); go(+1); });
-})();
 
 // === Haptic on "Добавить" button ===
 (function () {
@@ -3239,6 +3347,31 @@ window.addEventListener('storage', (e) => {
   transition: width .6s cubic-bezier(.2,.8,.2,1);
 }
 .pill-scale{display:flex; justify-content:space-between; font-size:12px; color:var(--text-lo); padding:0 2px}
+/* === calendar-like mood paint for main preview === */
+#calPreview .day{
+  position: relative;
+  isolation: isolate;
+}
+
+#calPreview .day::after{
+  content:"";
+  position:absolute;
+  inset:-6px;
+  border-radius:inherit;
+  background:
+    var(--moodBg, transparent),
+    radial-gradient(120% 90% at 50% 20%,
+      var(--glowC, transparent) 0 45%, transparent 60%);
+  filter: blur(10px) saturate(1.05);
+  mix-blend-mode: screen;
+  z-index:0;
+  pointer-events:none;
+}
+
+/* контент поверх свечения */
+#calPreview .day .day-num{ position: relative; z-index: 2; }
+#calPreview .day .marks{ z-index: 2; }
+
 
 </style>
 
@@ -3360,67 +3493,57 @@ document.addEventListener('DOMContentLoaded', syncReminderUI);
 })();
 </script>
 <script>
-/* === Stock alert renderer (зелёный) === */
-(function(){
-  const K_LEFT='rt_capsules_left', K_THRESH='rt_capsules_threshold', K_ON='rt_capsules_alert_enabled';
-
-  function n(x){ x=Number(x); return Number.isFinite(x)?x:0; }
-  const on =()=> (localStorage.getItem(K_ON)||'0')==='1';
-
-  function text(){
-    if(!on()) return null;
-    const left = n(localStorage.getItem(K_LEFT)||0);
-    const thr  = n(localStorage.getItem(K_THRESH)||0);
-    if(left>0 && thr>0 && left<=thr) return `осталось ${left} капсул`;
-    return null;
-  }
-
+  /* === Stock badge (capsules left) — FINAL === */
   (function(){
-  const K_LEFT='rt_capsules_left', K_THRESH='rt_capsules_threshold', K_ON='rt_capsules_alert_enabled';
-  const num = x => (x=Number(x), Number.isFinite(x)?x:0);
-  const on  = () => (localStorage.getItem(K_ON)||'0')==='1';
-
-  function render(){
-    const left = num(localStorage.getItem(K_LEFT)||0);
-    const thr  = num(localStorage.getItem(K_THRESH)||0);
-    const low  = on() && thr>0 && left>0 && left<=thr;
-
-    document.querySelectorAll('[data-stock-spot]').forEach(host=>{
-      let el = host.querySelector('.pill-alert--stock');
-      if(!el){
-        el = document.createElement('span');
-        el.className = 'pill-alert pill-alert--stock';
-        host.appendChild(el);
-      }
-      // статично показываем остаток всегда
-      el.textContent = `${left} капсул`;
-      // анимация/подсветка только при тревоге
-      el.classList.toggle('is-low', low);
-    });
-  }
-
-  window.addEventListener('storage', e=>{
-    if([K_LEFT,K_THRESH,K_ON,'rt_capsules_left_bump','rt_capsules_threshold_bump','rt_capsules_alert_bump'].includes(e.key)) render();
-  });
-  document.addEventListener('visibilitychange', ()=>{ if(!document.hidden) render(); });
-  render();
-  window.renderStockAlert = render;
-})();
-  // реагируем на изменения из других страниц
-  window.addEventListener('storage', e=>{
-    if([K_LEFT,K_THRESH,K_ON,'rt_capsules_alert_bump','rt_capsules_left_bump','rt_capsules_threshold_bump'].includes(e.key)){
-      render();
+    const K_LEFT   = 'rt_capsules_left';
+    const K_THRESH = 'rt_capsules_threshold';
+    const K_ON     = 'rt_capsules_alert_enabled';
+  
+    const num = (v) => { v = Number(v); return Number.isFinite(v) ? v : NaN; };
+    const on  = () => (localStorage.getItem(K_ON) || '0') === '1';
+  
+    function render(){
+      const enabled = on();
+      const rawLeft = localStorage.getItem(K_LEFT);   // важно: null, если пользователь ещё не вводил
+      const left    = num(rawLeft);
+  
+      const rawThr = localStorage.getItem(K_THRESH);
+      const thr    = num(rawThr);
+  
+      document.querySelectorAll('[data-stock-spot]').forEach(host=>{
+        let el = host.querySelector('.pill-alert--stock');
+  
+        // выключено или значение ещё не задано (не показываем "0" просто так)
+        if (!enabled || rawLeft === null || !Number.isFinite(left)){
+          if (el) el.remove();
+          return;
+        }
+  
+        if (!el){
+          el = document.createElement('span');
+          el.className = 'pill-alert pill-alert--stock';
+          host.appendChild(el);
+        }
+  
+        const leftRounded = Math.max(0, Math.round(left));
+        el.textContent = `осталось ${leftRounded} капсул`;
+  
+        const low = Number.isFinite(thr) && thr > 0 && leftRounded <= Math.round(thr);
+        el.classList.toggle('is-low', low);
+      });
     }
-  });
-  document.addEventListener('visibilitychange',()=>{ if(!document.hidden) render(); });
-
-  // экспорт
-  window.renderStockAlert = render;
-
-  // первичный рендер
-  render();
-})();
-</script>
+  
+    document.addEventListener('visibilitychange', ()=>{ if(!document.hidden) render(); });
+    document.addEventListener('DOMContentLoaded', render);
+    window.addEventListener('storage', (e)=>{
+      if ([K_LEFT,K_THRESH,K_ON,'rt_capsules_left_bump','rt_capsules_threshold_bump','rt_capsules_alert_bump'].includes(e.key)) render();
+    });
+  
+    window.renderStockAlert = render;
+    render();
+  })();
+  </script>
+  
 
 <style>
 .pill-alert--stock{
@@ -3472,36 +3595,8 @@ document.addEventListener('DOMContentLoaded', syncReminderUI);
 
 </style>
 
-<script>
-/* ЗЕЛЁНЫЙ АЛЕРТ — рендерим в [data-stock-spot] */
-(function(){
-  const K_LEFT='rt_capsules_left', K_THRESH='rt_capsules_threshold', K_ON='rt_capsules_alert_enabled';
-  const num=(k,d=0)=>{const v=parseInt(localStorage.getItem(k)||d,10);return Number.isFinite(v)?v:0;}
-  const on =()=> (localStorage.getItem(K_ON)||'0')==='1';
 
-  function text(){
-    if(!on()) return null;
-    const left=num(K_LEFT,0), thr=num(K_THRESH,0);
-    if(left>0 && thr>0 && left<=thr) return `осталось ${left} капсул`;
-    return null;
-  }
-  function render(){
-    document.querySelectorAll('[data-stock-spot]').forEach(host=>{
-      let el=host.querySelector('.pill-alert--stock');
-      const t=text();
-      if(!t){ el?.remove(); return; }
-      if(!el){ el=document.createElement('span'); el.className='pill-alert--stock'; host.appendChild(el); }
-      el.textContent=t;
-    });
-  }
-  window.addEventListener('storage', e=>{
-    if([K_LEFT,K_THRESH,K_ON,'rt_capsules_left_bump','rt_capsules_threshold_bump','rt_capsules_alert_bump'].includes(e.key)) render();
-  });
-  document.addEventListener('visibilitychange', ()=>{ if(!document.hidden) render(); });
-  render();
-  window.renderStockAlert=render;
-})();
-</script>
+  
 <script>
 (function bootstrapTgIdentity(){
   const tg = window.Telegram?.WebApp;
@@ -3732,7 +3827,7 @@ if (cur && cur.complete && cur.naturalWidth > 0) return;
   #rtTourOverlay{
     position:fixed; inset:0;
     z-index: var(--rt-tour-z-overlay);
-    background: rgba(0,0,0,.28);
+    background: rgba(0,0,0,.12);
     backdrop-filter: blur(10px) saturate(1.15);
     -webkit-backdrop-filter: blur(10px) saturate(1.15);
     opacity:0; pointer-events:none;
@@ -3741,7 +3836,7 @@ if (cur && cur.complete && cur.naturalWidth > 0) return;
   #rtTourOverlay.is-on{ opacity:1; pointer-events:auto; }
 
   .rt-tour-focus{
-    position:relative !important;
+    /* position is set in JS only when needed (for z-index) */
     z-index: var(--rt-tour-z-focus) !important;
     box-shadow:
       0 0 0 2px rgba(255,255,255,.10),
@@ -3749,10 +3844,29 @@ if (cur && cur.complete && cur.naturalWidth > 0) return;
       0 18px 44px rgba(0,0,0,.45),
       0 0 34px rgba(66,227,184,.30);
     border-radius: 18px;
+    }
+  .rt-tour-focus.rt-tour-strong{
+    box-shadow:
+      0 0 0 2px rgba(255,255,255,.14),
+      0 0 0 4px rgba(66,227,184,.92),
+      0 0 0 10px rgba(66,227,184,.18),
+      0 22px 60px rgba(0,0,0,.55),
+      0 0 52px rgba(66,227,184,.44);
+    animation: rtTourPulse 1.15s ease-in-out infinite;
   }
+  @keyframes rtTourPulse{
+    0%,100%{ filter: brightness(1); }
+    50%{ filter: brightness(1.08); }
+  }
+
+  /* step-2 helper: show which modes were visited */
+  #doseSeg button.rt-tour-visited{
+    box-shadow: inset 0 0 0 2px rgba(66,227,184,.65), 0 10px 24px rgba(66,227,184,.14);
+  }
+
   
   .rt-tour-reveal{
-    position:relative !important;
+    /* position is set in JS only when needed (for z-index) */
     z-index: var(--rt-tour-z-focus) !important;
     box-shadow:none !important;
   }
@@ -3782,7 +3896,7 @@ if (cur && cur.complete && cur.naturalWidth > 0) return;
     width:min(380px, calc(100vw - 28px));
     padding: 14px 14px 12px;
     border-radius: 18px;
-    background: rgba(14, 21, 33, .86);
+    background: rgba(14, 21, 33, .96);
     box-shadow: 0 22px 60px rgba(0,0,0,.55), 0 0 0 1px rgba(255,255,255,.08);
     color: rgba(232,243,255,.96);
     opacity:0;
@@ -3790,10 +3904,14 @@ if (cur && cur.complete && cur.naturalWidth > 0) return;
     transform: translateY(6px);
     transition: opacity .16s ease, transform .16s ease;
   }
+  #rtTourPop.rt-solid{
+  background: rgba(10,16,28,.96);
+  border: 1px solid rgba(255,255,255,.10);
+}
   #rtTourPop.is-on{ opacity:1; pointer-events:auto; transform: translateY(0); }
   #rtTourPop .rt-title{ font-weight:800; font-size: 16px; margin:0 0 6px; letter-spacing:.2px; }
-  #rtTourPop .rt-text{ margin:0; font-size: 13px; line-height:1.35; opacity:.92; }
-  #rtTourPop .rt-sub{ margin-top:8px; font-size: 12px; opacity:.7; }
+  #rtTourPop .rt-text{ margin:0; font-size: 13px; line-height:1.35; opacity:1; }
+  #rtTourPop .rt-sub{ margin-top:8px; font-size: 12px; opacity:.92; }
   #rtTourPop .rt-actions{
     display:flex; gap:10px; justify-content:space-between; align-items:center;
     margin-top: 12px;
@@ -3852,7 +3970,7 @@ if (cur && cur.complete && cur.naturalWidth > 0) return;
   <div class="rt-actions">
     <div class="rt-left">
       <button class="rt-btn secondary" id="rtTourSkip" type="button">Пропустить</button>
-      <button class="rt-btn secondary" id="rtTourFree" type="button" title="Перейти дальше без выполнения действия">Дальше</button>
+      <button class="rt-btn secondary" id="rtTourFree" type="button" title="Перейти дальше без выполнения действия">Следующий шаг</button>
     </div>
     <button class="rt-btn primary" id="rtTourNext" type="button">Далее</button>
   </div>
@@ -3913,6 +4031,7 @@ let cleanupWait = null;
       try{
         el.classList.remove('rt-tour-focus','rt-tour-radius-inherit');
         el.removeAttribute('data-rt-tour-focus');
+              restorePositioned(el);
       }catch(_){}
     });
     focused = [];
@@ -3921,6 +4040,7 @@ let cleanupWait = null;
       try{
         el.classList.remove('rt-tour-reveal','rt-tour-radius-inherit');
         el.removeAttribute('data-rt-tour-reveal');
+              restorePositioned(el);
       }catch(_){}
     });
     revealed = [];
@@ -3946,50 +4066,162 @@ let cleanupWait = null;
 
   function clamp(v, a, b){ return Math.max(a, Math.min(b, v)); }
 
-  function placeUI(targetRect){
-    const pad = 10;
-    const vw = window.innerWidth, vh = window.innerHeight;
 
-    // pointer near top-right of target
-    if (targetRect){
-      const px = clamp(targetRect.right - 8, 14, vw - 14);
-      const py = clamp(targetRect.top + 10, 14, vh - 14);
-      pointer.style.left = px + 'px';
-      pointer.style.top  = py + 'px';
-    } else {
-      pointer.style.left = (vw/2) + 'px';
-      pointer.style.top  = (vh/2) + 'px';
+function ensurePositioned(el){
+  try{
+    const cs = getComputedStyle(el);
+    if (cs.position === 'static'){
+      // remember inline position so we can restore
+      if (!el.dataset.rtTourPrevPos) el.dataset.rtTourPrevPos = (el.style.position || '');
+      el.dataset.rtTourWasStatic = '1';
+      el.style.position = 'relative';
     }
+  }catch(_){}
+}
 
-    // popover position: below if possible, else above, else center
-    const popW = Math.min(380, vw - 28);
-    pop.style.width = popW + 'px';
-    pop.style.maxWidth = popW + 'px';
+function restorePositioned(el){
+  try{
+    if (el.dataset.rtTourWasStatic === '1'){
+      const prev = el.dataset.rtTourPrevPos || '';
+      if (prev) el.style.position = prev;
+      else el.style.removeProperty('position');
+    }
+    delete el.dataset.rtTourWasStatic;
+    delete el.dataset.rtTourPrevPos;
+  }catch(_){}
+}
 
-    let x = 14, y = 14;
-    if(targetRect){
-      const belowY = targetRect.bottom + 14;
-      const aboveY = targetRect.top - 14;
+  function rectIntersects(a,b){
+  if(!a || !b) return false;
+  return !(a.right <= b.left || a.left >= b.right || a.bottom <= b.top || a.top >= b.bottom);
+}
 
-      // try below
-      if (belowY + pop.offsetHeight < vh - 14){
-        y = belowY;
-      } else if (aboveY - pop.offsetHeight > 14){
-        y = aboveY - pop.offsetHeight;
-      } else {
-        y = clamp((vh - pop.offsetHeight)/2, 14, vh - pop.offsetHeight - 14);
-      }
+function placeUI(targetRect, avoidRect, step){
+  const vw = window.innerWidth, vh = window.innerHeight;
+  const SAFE = 14;
+  const GAP  = 14;
 
-      x = clamp(targetRect.left, 14, vw - popW - 14);
+  // pointer near top-right of target
+  if (targetRect){
+    const px = clamp(targetRect.right - 8, SAFE, vw - SAFE);
+    const py = clamp(targetRect.top + 10, SAFE, vh - SAFE);
+    pointer.style.left = px + 'px';
+    pointer.style.top  = py + 'px';
+  } else {
+    pointer.style.left = (vw/2) + 'px';
+    pointer.style.top  = (vh/2) + 'px';
+  }
+
+  // popover width
+  const popW = Math.min(380, vw - 28);
+  pop.style.width = popW + 'px';
+  pop.style.maxWidth = popW + 'px';
+
+  // measure height after content render
+  const popH = pop.offsetHeight || 200;
+
+  const align = (step && step.popAlign) || 'start'; // start|center|end
+  const preferred = (step && step.popPlacement) || null;
+
+  const xAligned = (rect)=>{
+    if (!rect) return clamp((vw - popW)/2, SAFE, vw - popW - SAFE);
+    if (align === 'center') return clamp(rect.left + (rect.width - popW)/2, SAFE, vw - popW - SAFE);
+    if (align === 'end')    return clamp(rect.right - popW, SAFE, vw - popW - SAFE);
+    return clamp(rect.left, SAFE, vw - popW - SAFE); // start
+  };
+
+  const avoid = avoidRect || targetRect;
+
+  // --- No target: keep stable (center if requested, otherwise top offset) ---
+  if (!targetRect){
+    const x = clamp((vw - popW)/2, SAFE, vw - popW - SAFE);
+    let y;
+    if (preferred === 'center'){
+      y = clamp((vh - popH)/2, SAFE, vh - popH - SAFE);
     } else {
-      y = clamp((vh - pop.offsetHeight)/2, 14, vh - pop.offsetHeight - 14);
-      x = clamp((vw - popW)/2, 14, vw - popW - 14);
+      const topOffset = (step && typeof step.topOffset === 'number') ? step.topOffset : 92;
+      y = clamp(SAFE + topOffset, SAFE, vh - popH - SAFE);
     }
     pop.style.left = x + 'px';
     pop.style.top  = y + 'px';
+    return;
   }
 
+  // --- With target: try to NOT cover the avoid-rect (focus/reveal) ---
+  const candidates = [];
+  const push = (p)=>{ if(p && !candidates.includes(p)) candidates.push(p); };
+
+  // preference first
+  push(preferred);
+
+  // default placements (WITHOUT center fallback)
+  ['below','above','right','left'].forEach(push);
+
+  // allow center ONLY if explicitly asked
+  if (preferred === 'center') push('center');
+
+  let best = null;
+  let bestOverlap = Infinity;
+
+  for (const p of candidates){
+    let x = SAFE, y = SAFE;
+
+    if (p === 'below'){
+      x = xAligned(targetRect);
+      y = targetRect.bottom + GAP;
+    } else if (p === 'above'){
+      x = xAligned(targetRect);
+      y = targetRect.top - GAP - popH;
+    } else if (p === 'right'){
+      x = targetRect.right + GAP;
+      y = clamp(targetRect.top, SAFE, vh - popH - SAFE);
+    } else if (p === 'left'){
+      x = targetRect.left - GAP - popW;
+      y = clamp(targetRect.top, SAFE, vh - popH - SAFE);
+    } else { // center
+      x = (vw - popW)/2;
+      y = (vh - popH)/2;
+    }
+
+    x = clamp(x, SAFE, vw - popW - SAFE);
+    y = clamp(y, SAFE, vh - popH - SAFE);
+
+    const candRect = { left:x, top:y, right:x+popW, bottom:y+popH };
+
+    // compute overlap area with avoid
+    let overlap = 0;
+    if (avoid && rectIntersects(candRect, avoid)){
+      const ix = Math.max(0, Math.min(candRect.right, avoid.right) - Math.max(candRect.left, avoid.left));
+      const iy = Math.max(0, Math.min(candRect.bottom, avoid.bottom) - Math.max(candRect.top, avoid.top));
+      overlap = ix * iy;
+    }
+
+    // perfect: no overlap
+    if (!avoid || overlap === 0){
+      best = {x,y};
+      bestOverlap = 0;
+      break;
+    }
+
+    // otherwise, keep best minimal overlap
+    if (overlap < bestOverlap){
+      best = {x,y};
+      bestOverlap = overlap;
+    }
+  }
+
+  // last-resort fallback
+  if (!best){
+    best = { x: clamp((vw - popW)/2, SAFE, vw - popW - SAFE),
+             y: clamp(SAFE + 92, SAFE, vh - popH - SAFE) };
+  }
+
+  pop.style.left = best.x + 'px';
+  pop.style.top  = best.y + 'px';
+}
+
   function setContent(step, idx, total){
+    pop.classList.toggle('rt-solid', !!step.solid);
     elStep.textContent = `Шаг ${idx+1} из ${total}`;
     elTitle.textContent = step.title || '—';
     elText.textContent  = step.text  || '';
@@ -4145,12 +4377,12 @@ function attachRequire(step){
     }
 
     const step = list[st.idx];
-    if (!step){
-      visible(false);
-      clearFocus();
-      markDone();
-      return;
-    }
+if (!step){
+  visible(false);
+  clearFocus();
+  // НЕ markDone! Просто прячем тур на неподдерживаемой странице
+  return;
+}
 
     // cleanup previous
     if (cleanupWait){ try{ cleanupWait(); }catch(_){ } cleanupWait=null; }
@@ -4172,6 +4404,7 @@ function attachRequire(step){
     revealed = reveals;
     revealed.forEach(el=>{
       try{
+        ensurePositioned(el);
         el.classList.add('rt-tour-reveal');
         if (step.radiusInherit) el.classList.add('rt-tour-radius-inherit');
         el.setAttribute('data-rt-tour-reveal','1');
@@ -4180,6 +4413,7 @@ function attachRequire(step){
 
     focused.forEach(el=>{
       try{
+        ensurePositioned(el);
         el.classList.add('rt-tour-focus');
         if (step.radiusInherit) el.classList.add('rt-tour-radius-inherit');
         el.setAttribute('data-rt-tour-focus','1');
@@ -4203,9 +4437,14 @@ function attachRequire(step){
 
     // position after layout
     setTimeout(()=>{
-      const r = rectUnion(focused);
-      placeUI(r);
-      const wantPointer = (step.pointer !== false) && !!r;
+      const rFocus = rectUnion(focused);
+      let avoidEls = focused.slice();
+      const mode = (step && step.avoidCover) || 'focus';
+      if (mode === 'reveal') avoidEls = revealed.slice();
+      else if (mode === 'all') avoidEls = focused.concat(revealed);
+      const rAvoid = rectUnion(avoidEls);
+      placeUI(rFocus, rAvoid, step);
+      const wantPointer = (step.pointer !== false) && !!rFocus;
       pointer.classList.toggle('is-on', wantPointer);
     }, 0);
   }
@@ -4280,12 +4519,33 @@ function attachRequire(step){
   btnNext?.addEventListener('click', ()=> next(false));
   overlay?.addEventListener('click', (e)=>{ e.preventDefault(); e.stopPropagation(); });
 
-  window.addEventListener('resize', ()=>{
+  function rtTourRecalcUI(){
     if (!overlay.classList.contains('is-on')) return;
-    const r = rectUnion(focused);
-    placeUI(r);
-    pointer.classList.toggle('is-on', (currentStep()?.pointer !== false) && !!r);
-  });
+    const step = currentStep();
+    const rFocus = rectUnion(focused);
+
+    let avoidEls = focused.slice();
+    const mode = (step && step.avoidCover) || 'focus';
+    if (mode === 'reveal') avoidEls = revealed.slice();
+    else if (mode === 'all') avoidEls = focused.concat(revealed);
+
+    const rAvoid = rectUnion(avoidEls);
+    placeUI(rFocus, rAvoid, step);
+    pointer.classList.toggle('is-on', (step?.pointer !== false) && !!rFocus);
+  }
+
+  window.addEventListener('resize', rtTourRecalcUI);
+
+  // keep popover pinned if user scrolls
+  let __rtTourRAF = null;
+  window.addEventListener('scroll', ()=>{
+    if (!overlay.classList.contains('is-on')) return;
+    if (__rtTourRAF) return;
+    __rtTourRAF = requestAnimationFrame(()=>{
+      __rtTourRAF = null;
+      rtTourRecalcUI();
+    });
+  }, {passive:true});
 
   // -------- Steps mapping (editable) --------
   const pick = {
@@ -4297,79 +4557,172 @@ function attachRequire(step){
   const STEPS = {
     
 main: [
-      {
-        title: 'Добро пожаловать в Roaccutane Tracker',
-        text: 'Покажу, как отмечать приём, смотреть прогресс, вести дневник и анализы.',
-        focus: [],
-        pointer: false,
-        nextLabel: 'Начать',
-      },
-      {
-        title: 'Цель курса',
-        text: 'Нажмите «Мин./Опт./Макс.» — выберите цель. Кольца показывают прогресс к целям, а полоска ниже — прогресс к выбранной цели и %.',
-        reveal: ['#cardProgress'],
-        focus: ['#doseSeg button'],
+{
+  title: 'Добро пожаловать в Retiora',
+  text: 'Покажу, как отмечать приём, смотреть прогресс, вести дневник и анализы.',
+  focus: [],
+  pointer: false,
+  nextLabel: 'Начать',
+  solid: true,
+  popPlacement: 'center',
+  popAlign: 'center',
+},
+{
+  title: '🎯 Цель курса',
+  text: 'Три режима можно переключать между собой (Минимум/Оптимум/Максимум), внизу показана полоса прогресса.',
+  reveal: ['#cardProgress'],
+  focus: ['#doseSeg'],
+  radiusInherit: true,
+  popPlacement: 'above',
+
+  popAlign: 'center',
+  avoidCover: 'reveal',
+  require: 'manual',
+  autoNext: true,
+  onEnter({ setSatisfied }){
+    try { setSatisfied(false); } catch(_){}
+    const seg = document.getElementById('doseSeg');
+    if (!seg) { setSatisfied(true); return; }
+
+    const need = new Set(['min','opt','max']);
+    const seen = new Set();
+    const btns = Array.from(seg.querySelectorAll('button[data-mode]'));
+
+    const markBtn = (mode)=>{
+      if (!mode || !need.has(mode)) return;
+      seen.add(mode);
+      const b = seg.querySelector(`button[data-mode="${mode}"]`);
+      if (b) b.classList.add('rt-tour-visited');
+    };
+
+    const active = seg.querySelector('button.active[data-mode]');
+    if (active) markBtn(active.dataset.mode);
+
+    const onClick = (e)=>{
+      const b = e.target && e.target.closest ? e.target.closest('button[data-mode]') : null;
+      if (!b) return;
+      markBtn(b.dataset.mode);
+
+      if (seen.size >= 3){
+        setSatisfied(true);
+        setTimeout(()=> next(false), 120);
+      }
+    };
+
+    seg.addEventListener('click', onClick, true);
+
+    return ()=>{
+      seg.removeEventListener('click', onClick, true);
+      btns.forEach(b=> b.classList.remove('rt-tour-visited'));
+    };
+  },
+},
+{
+  title: '💊 Дозировка и капсулы',
+  text: 'Дозу можно вводить вручную или менять кнопками «− / +». Тип капсулы тоже переключается здесь.',
+  reveal: ['#cardDose'],
+  focus: ['#mg', '#mgMinus', '#mgPlus', '#capSeg'],
+  radiusInherit: true,
+  popPlacement: 'above',
+  popAlign: 'center',
+  avoidCover: 'reveal',
+  onEnter(){
+    const cap = $('#capType');
+    if (cap) cap.hidden = false;
+  },
+},
+{
+  title: '✅ Сохранить приём',
+  text: 'Нажмите «Добавить». Прогресс обновится. При включенных напоминаниях, карточка напоминания станет зелёной, сигнал о приёме перестанет мигать.',
+  reveal: ['#cardDose', '#cardProgress', '#cardReminder'],
+  focus: ['#save'],
+  radiusInherit: true,
+  popPlacement: 'above',
+  popAlign: 'center',
+  avoidCover: 'focus',
+  require: {type:'click', selector:'#save'},
+  autoNext: true,
+  onEnter(){
+    const btn = document.querySelector('#save');
+    if (!btn) return;
+    btn.classList.add('rt-tour-strong');
+    return ()=> btn.classList.remove('rt-tour-strong');
+  },
+},
+
+
+{
+  title: '🗓️ Календарь',
+text: 'Быстрый обзор недели. Нажатием на кнопку «Открыть» вы перейдете на страницу Календаря.',
+reveal: ['#cardCalendar'],
+focus: ['#openCalendarBtn'],
         radiusInherit: true,
-        require: {type:'click', selector:'#doseSeg button'},
-      },
-      {
-        title: 'Отметить приём',
-        text: 'Выставьте дозу, тип капсулы и дату.',
-        reveal: ['#cardDose'],
-        focus: ['#mg', '#mgMinus', '#mgPlus', '#capSeg', '#date'],
-        radiusInherit: true,
+        popPlacement: 'above',
+popAlign: 'center',
+avoidCover: 'reveal',
         onEnter(){
-          // показать блок типа капсулы на время обучения
-          const cap = $('#capType');
-          if (cap) cap.hidden = false;
-        },
+  const btn = document.querySelector('#openCalendarBtn');
+  if (!btn) return;
+
+  const prev = {
+    pe: btn.style.pointerEvents,
+    dis: btn.disabled,
+    aria: btn.getAttribute('aria-disabled'),
+    op: btn.style.opacity,
+  };
+
+  btn.style.pointerEvents = 'none';
+  try{ btn.disabled = true; }catch(_){}
+  btn.setAttribute('aria-disabled','true');
+  btn.style.opacity = '0.65';
+
+  return ()=>{
+    btn.style.pointerEvents = prev.pe || '';
+    try{ btn.disabled = !!prev.dis; }catch(_){}
+    if (prev.aria == null) btn.removeAttribute('aria-disabled');
+    else btn.setAttribute('aria-disabled', prev.aria);
+    btn.style.opacity = prev.op || '';
+  };
+},
       },
       {
-        title: 'Сохранить приём',
-        text: 'Нажмите «Добавить». Прогресс обновится, появится мотивация, а карточка станет зелёной.',
-        reveal: ['#cardDose', '#cardProgress', '#cardReminder'],
-        focus: ['#save'],
-        radiusInherit: true,
-        require: {type:'click', selector:'#save'},
-      },
-      {
-        title: 'Календарь',
-        text: 'Быстрый обзор недели. «Открыть» — полный календарь.',
-        reveal: ['#cardCalendar'],
-        focus: ['#openCalendarBtn', '#calPrev', '#calNext'],
-        radiusInherit: true,
-      },
-      {
-        title: 'Напоминания',
+        title: '⏰ Напоминания',
         text: 'Включите напоминание и выберите время.',
         reveal: ['#cardReminder'],
         focus: ['#remCtrl input', '#remTime'],
         radiusInherit: true,
+        popPlacement: 'above',
+popAlign: 'center',
+avoidCover: 'reveal',
         extra(){
           return `
             <div class="rt-extras">
-              <div class="rt-notif"><b>🔔 Roaccutane Tracker</b><span class="muted">Пора принять препарат</span></div>
-              <div class="rt-notif"><b>🧴 Roaccutane Tracker</b><span class="muted">Капсул осталось мало — пора докупить</span></div>
+              <div class="rt-notif"><b>🔔 Retiora — Retinoid & Isotretinoin Tracker </b><span class="muted">Пора принять препарат</span></div>
+              <div class="rt-notif"><b>🧴 Retiora — Retinoid & Isotretinoin Tracker</b><span class="muted">Капсул осталось мало — пора докупить</span></div>
             </div>
           `;
         }
       },
       {
-        title: 'FAQ',
-        text: 'Тут короткие подсказки по курсу.',
-        reveal: ['#cardFAQ'],
-        focus: ['#cardFAQ a.chip'],
-        radiusInherit: true,
-      },
+        title: '❓ FAQ',
+  text: 'Короткие подсказки по курсу.',
+  reveal: ['#cardFAQ'],
+  focus: ['#cardFAQ a.chip'],
+  radiusInherit: true,
+  avoidCover: 'reveal',
+  popPlacement: 'above',
+},
       {
-        title: 'Обнулить всё',
+        title: '🧹 Обнулить всё',
         text: 'Удалит журнал и кэш на этом устройстве. Профиль останется.',
         reveal: ['#cardReset'],
         focus: ['#resetBtn'],
-        radiusInherit: true,
-      },
+        avoidCover: 'reveal',
+  popPlacement: 'above',
+  radiusInherit: true,
+},
       {
-        title: 'Нижнее меню',
+        title: '📌 Нижнее меню',
         text: 'Внизу — разделы приложения. Откройте «Календарь», чтобы продолжить.',
         reveal: ['nav.tabbar'],
         focus: ['nav.tabbar a[href*="calendar.html"]'],
@@ -4459,8 +4812,8 @@ main: [
         radiusInherit: true,
         extraHTML: `
           <div class="rt-preview">
-            <div class="rt-notif"><b>Roaccutane Tracker</b><span class="muted">09:00 • Пора принять препарат</span></div>
-            <div class="rt-notif"><b>Roaccutane Tracker</b><span class="muted">Осталось ≤ 10 капсул • Пора купить</span></div>
+            <div class="rt-notif"><b>Retiora — Retinoid & Isotretinoin Tracker</b><span class="muted">09:00 • Пора принять препарат</span></div>
+            <div class="rt-notif"><b>Retiora — Retinoid & Isotretinoin Tracker</b><span class="muted">Осталось ≤ 10 капсул • Пора купить</span></div>
           </div>
         `,
         require: [

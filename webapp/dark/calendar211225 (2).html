@@ -4,7 +4,7 @@
   <meta charset="utf-8"/>
   <meta name="viewport" content="width=device-width, initial-scale=1"/>
   <meta name="view-transition" content="same-origin">
-  <title>Календарь — Roaccutane Tracker</title>
+  <title>Календарь — Retiora — Retinoid & Isotretinoin Tracker</title>
   <style>
     :root{
   --bg: #0b0f16;
@@ -119,6 +119,12 @@
 
 /* кнопку уводим вправо */
 .sheet-row .right{ margin-left:auto; }
+/* side-effects icons (как в myprofile) */
+.se-icons{ display:inline-flex; gap:8px; align-items:center; flex-wrap:wrap; vertical-align:middle; }
+.se-ico{
+  width:24px; height:24px; object-fit:contain;
+  filter: drop-shadow(0 2px 6px rgba(0,0,0,.35));
+}
     .month-nav{
       display:flex;
       align-items:center;
@@ -127,7 +133,7 @@
     .nav-btn{
       appearance:none;
       border:0;
-      border-radius: 14px;
+      border-radius: 12px;
       width:40px; height:40px;
       display:grid; place-items:center;
       color:var(--text);
@@ -324,7 +330,8 @@ user-select: none;
 
 .dose .capsule{ grid-area: cap; }
 .dose .val{ grid-area: val; }
-.dose .unit{ display:none; }
+.dose .unit{ display:inline-block; opacity:.85; }
+
 /* === MOOD FX (только синий = частицы; мята = люминисценция; зелёный = малахит) === */
 .day::before{
   content:"";
@@ -497,53 +504,112 @@ user-select: none;
       background: linear-gradient(90deg, rgba(255,120,120,.20), rgba(255,196,0,.20), rgba(40,210,150,.20));
     }
     
-    /* --- TABBAR --- */
-    .tabbar{
-      position: fixed; left:0; right:0; bottom:0;
-      padding: 10px 12px calc(10px + env(safe-area-inset-bottom));
-      background: transparent;
-      z-index: 50; pointer-events: none; /* контейнер сквозной */
-    }
-    .tabbar-inner{
-      max-width: 1100px; margin: 0 auto;
-      display: grid; grid-template-columns: repeat(5, 1fr); gap: 10px;
-      align-items: center;
-      pointer-events: auto; /* кликается */
-    }
-    .tab{
-      display:flex; flex-direction:column; align-items:center; justify-content:center; gap:6px;
-      padding: 10px 8px; min-height: 56px;
-      border-radius: 16px;
-      color: var(--muted); text-decoration:none; font-size:12px; font-weight:600;
-      background: rgba(255,255,255,.04);
-      box-shadow: var(--shadow-soft);
-      transition: transform .12s ease, box-shadow .2s ease, background .2s ease, color .2s ease;
-    }
-    .tab svg{ width:22px; height:22px; opacity:.9; }
-    .tab:active{ transform: translateY(1px); }
-    .tab.active{
-      color: var(--text);
+    /* --- BOTTOM NAV (как в labs.html) --- */
+    .bottom-nav{
+      position: fixed; left: 0; right: 0; bottom: 0;
+      z-index: 1400;
+      /* адаптивные отступы + safe-area (чуть компактнее, чтобы подписи влезали) */
+      padding:
+        clamp(4px, 1.6vw, 8px)
+        max(env(safe-area-inset-left), clamp(8px, 2vw, 12px))
+        calc(clamp(4px, 1.6vw, 8px) + env(safe-area-inset-bottom))
+        max(env(safe-area-inset-right), clamp(8px, 2vw, 12px));
+      display: grid;
+      grid-template-columns: repeat(5, minmax(0, 1fr));
+      gap: clamp(5px, 1.4vw, 8px);
+
       background:
-        radial-gradient(200px 120px at 50% -40%, rgba(255,255,255,.08), transparent 70%),
-        linear-gradient(180deg, rgba(255,255,255,.10), rgba(255,255,255,.04));
+        radial-gradient(120% 140% at 50% -30%, rgba(255,255,255,.06) 0%, rgba(0,0,0,0) 58%),
+        linear-gradient(180deg, rgba(16,24,36,.92) 0%, rgba(10,16,24,.94) 100%);
+      border-top: 1px solid rgba(255,255,255,.08);
       box-shadow:
-        inset 0 1px 0 rgba(255,255,255,.15),
-        0 10px 26px rgba(0,0,0,.35),
+        0 -16px 34px rgba(0,0,0,.50),
+        inset 0  1px  0 rgba(255,255,255,.08);
+      backdrop-filter: saturate(120%) blur(10px);
+      -webkit-backdrop-filter: saturate(120%) blur(10px);
+    }
+    .bottom-nav .tab{
+      min-width: 0;
+      display:flex; flex-direction:column; align-items:center; justify-content:center;
+      gap: clamp(3px, 1vw, 5px);
+      height: clamp(44px, 12vw, 56px);
+      padding: clamp(5px, 1.4vw, 7px) clamp(5px, 1.4vw, 9px);
+      text-decoration:none;
+      border-radius: clamp(12px, 3.5vw, 16px);
+      border: 1px solid rgba(255,255,255,.10);
+      background:
+        radial-gradient(200px 120px at 50% -40%, rgba(255,255,255,.06), transparent 70%),
+        linear-gradient(180deg, rgba(16,25,40,.92), rgba(11,16,25,.96));
+      color:#b7c5dd;
+      font-size: clamp(9.5px, 2.6vw, 11.5px);
+      font-weight:800; letter-spacing:.12px;
+      box-shadow:
+        10px 10px 22px rgba(0,0,0,.42),
+        -10px -10px 22px rgba(255,255,255,.025),
+        inset 0 1px 0 rgba(255,255,255,.06),
+        inset 0 -1px 0 rgba(0,0,0,.35);
+      user-select:none;
+      -webkit-tap-highlight-color: transparent;
+      transition: transform .12s ease, filter .12s ease, box-shadow .2s ease;
+    }
+    .bottom-nav .tab svg{
+      width: clamp(16px, 4.8vw, 20px);
+      height: clamp(16px, 4.8vw, 20px);
+      opacity:.95;
+      flex: 0 0 auto;
+    }
+    .bottom-nav .tab span{
+      line-height: 1.05;
+      max-width: 100%;
+      overflow: visible;
+      text-overflow: clip;
+      white-space: normal;
+      text-align: center;
+      word-break: break-word;
+      hyphens: auto;
+      display: block;
+      padding: 0 2px;
+    }
+    .bottom-nav .tab:active{ transform: translateY(1px) }
+    .bottom-nav .tab.active{
+      color: #dbe7ff;
+      background:
+        radial-gradient(220px 140px at 50% -40%, rgba(158,197,255,.10), transparent 72%),
+        linear-gradient(180deg, rgba(17,29,48,.94), rgba(12,19,31,.98));
+      box-shadow:
+        inset 0 1px 0 rgba(255,255,255,.08),
+        inset 0 -1px 0 rgba(0,0,0,.35),
+        0 10px 26px rgba(0,0,0,.42),
         0 0 0 1px rgba(255,255,255,.06);
     }
-    body[data-theme="light"] .tab{
-      background: rgba(14,27,42,.04);
-      box-shadow: 6px 8px 16px rgba(14,27,42,.06), -6px -6px 14px rgba(255,255,255,.8);
-      color: #5e6b82;
+    .bottom-nav .tab.active span::after{
+      content:""; display:block; height:2px; border-radius:2px;
+      background: rgba(158,197,255,.95);
+      opacity:.9; margin-top:4px; width: 100%;
     }
-    body[data-theme="light"] .tab.active{
-      background: linear-gradient(180deg, #ffffff, #f6f8fb);
-      box-shadow: 8px 10px 20px rgba(14,27,42,.12), -6px -6px 14px rgba(255,255,255,.9);
-      color:#0e1b2a;
+    /* запас под навигацию, если где-то нужен */
+    .bottom-spacer{ height: var(--nav-h, calc(86px + env(safe-area-inset-bottom))); }
+
+    @media (max-width: 420px){
+      .bottom-nav{
+        padding: 8px max(env(safe-area-inset-left),10px)
+                 calc(8px + env(safe-area-inset-bottom))
+                 max(env(safe-area-inset-right),10px);
+        gap: 8px;
+      }
+      .bottom-nav .tab{ height: 56px; padding: 6px 8px; border-radius: 16px; font-size: 11.5px; }
+      .bottom-nav .tab svg{ width: 20px; height: 20px; }
+    }
+    @media (max-width: 340px){
+      .bottom-nav .tab{ height: 52px; padding: 6px; font-size: 11px; }
+      .bottom-nav .tab svg{ width: 19px; height: 19px; }
     }
 
+
+    
+
     /* === RANGE SELECT (п.4) === */
-.grid.dragging { user-select: none; }
+    .grid.dragging { user-select: none; touch-action: none; }
 .day.in-range {
   outline: 2px dashed var(--accent, #8bdcff);
   outline-offset: -4px;
@@ -609,7 +675,9 @@ user-select: none;
     @media (max-width: 360px){
       .tabbar-inner{ gap:6px; }
       .tab{ min-height: 46px; padding: 8px; }
-      .tab span{ display:none; } /* hide labels to fit */
+      .tabbar-inner .tab span{ display:none; } /* hide labels to fit (only old tabbar) */
+    
+      .bottom-nav .tab span{ display:block !important; }
     }
 
 /* === OVERRIDE: marks pinned bottom-left and not stretched === */
@@ -695,10 +763,13 @@ html::view-transition-new(root){
   ::view-transition-group(portal){ animation:none!important; clip-path:none!important; }
 }
 /* компактнее bottom-sheet */
-.sheet{ font-size: clamp(14px, 1.9vw, 16px); }
-.sheet .sheet-title{ font-size: clamp(16px, 2.2vw, 18px); }
-.sheet .badge{ font-size: 12px; }
-.sheet .sheet-row strong{ font-size: 15px; }
+.sheet{ font-size: clamp(13px, 1.8vw, 15px); }
+.sheet .sheet-title{ font-size: clamp(15px, 2.0vw, 17px); }
+.sheet .badge{ font-size: 11px; }
+.sheet .sheet-row strong{ font-size: 14px; }
+
+/* когда выделяем диапазон — не даём странице скроллиться */
+.grid.dragging { touch-action: none; }
 
 </style>
 <style id="pill-alert-style">
@@ -727,11 +798,6 @@ html::view-transition-new(root){
     }catch(_){}
     return 0;
   }
-  // Тумблер "Цвет под настроение" (берём тот же ключ, что в diary.html)
-const TINT_KEY = 'rt.moodTintOn';
-function isTintOn(){
-  return (localStorage.getItem(TINT_KEY) ?? '1') !== '0';
-}
   function render(){
     const need=getTodayMg()<=0;
     document.querySelectorAll('[data-pill-spot]').forEach(spot=>{
@@ -763,7 +829,7 @@ function isTintOn(){
   }catch(_){}
 })();
 </script>
-  <div class="brand">Roaccutane Tracker</div>
+<div class="brand">Retiora — Retinoid & Isotretinoin Tracker</div>
 
   <div class="app-title">Календарь<span data-pill-spot></span><span data-stock-spot></span></div>
 
@@ -801,29 +867,27 @@ function isTintOn(){
   </div>
 
   <!-- Bottom navigation -->
-  <nav class="tabbar" role="navigation" aria-label="Главная навигация">
-    <div class="tabbar-inner">
-      <a class="tab" href="main.html" aria-label="Главная">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M3 10.5 12 3l9 7.5v9a1 1 0 0 1-1 1h-5v-6H9v6H4a1 1 0 0 1-1-1v-9z" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"/></svg>
-        <span>Главная</span>
-      </a>
-      <a class="tab active" href="calendar.html" aria-current="page" aria-label="Календарь">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><rect x="3" y="4" width="18" height="18" rx="3" stroke-width="1.7"/><path d="M16 2v4M8 2v4M3 10h18" stroke-width="1.7" stroke-linecap="round"/></svg>
-        <span>Календарь</span>
-      </a>
-      <a class="tab" href="myprofile.html" aria-label="Профиль">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><circle cx="12" cy="8" r="4" stroke-width="1.7"/><path d="M4 21a8 8 0 0 1 16 0" stroke-width="1.7" stroke-linecap="round"/></svg>
-        <span>Профиль</span>
-      </a>
-      <a class="tab" href="diary.html" aria-label="Фотодневник">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><rect x="3" y="5" width="18" height="14" rx="3" stroke-width="1.7"/><path d="M9 10l2 2 3-3 4 5H6l3-4z" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"/></svg>
-        <span>Фотодневник</span>
-      </a>
-      <a class="tab" href="labs.html" aria-label="Анализы">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M9 3v6l-5 8a3 3 0 0 0 2.6 4.5h10.8A3 3 0 0 0 20 17l-5-8V3" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"/></svg>
-        <span>Анализы</span>
-      </a>
-    </div>
+  <nav class="bottom-nav" role="navigation" aria-label="Главная навигация">
+    <a class="tab" id="navHome" href="main.html" aria-label="Главная">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M3 10.5 12 3l9 7.5v9a1 1 0 0 1-1 1h-5v-6H9v6H4a1 1 0 0 1-1-1v-9z" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"/></svg>
+      <span>Главная</span>
+    </a>
+    <a class="tab active" id="navCalendar" href="calendar.html" aria-current="page" aria-label="Календарь">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><rect x="3" y="4" width="18" height="18" rx="3" stroke-width="1.7"/><path d="M16 2v4M8 2v4M3 10h18" stroke-width="1.7" stroke-linecap="round"/></svg>
+      <span>Календарь</span>
+    </a>
+    <a class="tab" id="navProfile" href="myprofile.html" aria-label="Профиль">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><circle cx="12" cy="8" r="4" stroke-width="1.7"/><path d="M4 21a8 8 0 0 1 16 0" stroke-width="1.7" stroke-linecap="round"/></svg>
+      <span>Профиль</span>
+    </a>
+    <a class="tab" id="navDiary" href="diary.html" aria-label="Фотодневник">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><rect x="3" y="5" width="18" height="14" rx="3" stroke-width="1.7"/><path d="M9 10l2 2 3-3 4 5H6l3-4z" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"/></svg>
+      <span>Фотодневник</span>
+    </a>
+    <a class="tab" id="navLabs" href="labs.html" aria-label="Анализы">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M9 3v6l-5 8a3 3 0 0 0 2.6 4.5h10.8A3 3 0 0 0 20 17l-5-8V3" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"/></svg>
+      <span>Анализы</span>
+    </a>
   </nav>
 
 <script>
@@ -943,6 +1007,11 @@ function finalizeRange() {
   const pad = n => String(n).padStart(2,'0');
   const iso = d => `${d.getFullYear()}-${pad(d.getMonth()+1)}-${pad(d.getDate())}`;
   const getDiary = () => { try{ return JSON.parse(localStorage.getItem('rt.diary.v1')||'{}'); } catch(e){ return {}; } };
+  // Тумблер "Цвет под настроение" (должен работать в этом же скрипте)
+const TINT_KEY = 'rt.moodTintOn';
+function isTintOn(){
+  return (localStorage.getItem(TINT_KEY) ?? '1') !== '0';
+}
   function moodEmoji(v){
     if(v == null) return '—';
     if(v <= -3) return '😵‍💫';
@@ -1074,6 +1143,31 @@ function sideEffectsCount(entry){
   let n=0; for(const k in se){ if(Number(se[k])>0) n++; }
   return n;
 }
+// === Side-effects icons (как в myprofile) ===
+const SE_META = {
+  lips_dry:    { label: 'Сухость губ',  file: 'lips_dry.png' },
+  skin_dry:    { label: 'Сухость кожи', file: 'skin_dry.png' },
+  muscle_pain: { label: 'Боль в суставах/мышцах', file: 'muscle_pain.png' },
+  headache:    { label: 'Головная боль', file: 'headache.png' },
+};
+
+function sideEffectsIconsHTML(entry){
+  try{
+    const se = (entry && entry.sideEffects && typeof entry.sideEffects === 'object') ? entry.sideEffects : {};
+    const icons = [];
+    for (const key of Object.keys(SE_META)){
+      const v = Number(se[key] || 0);
+      if (v > 0){
+        const meta  = SE_META[key];
+        const src1  = new URL('../assets/sideeffects/' + meta.file, location.href).toString();
+        const src2  = new URL('./assets/sideeffects/'  + meta.file, location.href).toString(); // fallback если папка assets лежит рядом
+        const title = meta.label + (v ? (' • ' + v + '/3') : '');
+        icons.push(`<img class="se-ico" src="${src1}" onerror="this.onerror=null;this.src='${src2}'" alt="${meta.label}" title="${title}">`);
+      }
+    }
+    return icons.length ? (`<span class="se-icons">${icons.join('')}</span>`) : '';
+  }catch(_){ return ''; }
+}
 
 // цвет свечения по индексу
 function moodGlow(idx){
@@ -1112,6 +1206,7 @@ function moodGlow(idx){
 
 function render(){
   const year   = current.getFullYear();
+  const tintOn = isTintOn();
   const month  = current.getMonth();
   const daysTotal = new Date(year, month + 1, 0).getDate();
 
@@ -1185,34 +1280,45 @@ cell.className = 'day' + (isToday ? ' today' : '') + (missed ? ' missed' : '');
 cell.setAttribute('data-date', id);
 if (day === 1) cell.style.gridColumnStart = String(startCol + 1);
 
-// свечение: пропуск = красный; иначе по самочувствию; если данных нет — по дозе/без свечения
-const glow = missed ? missGlow()
-           : (moodIdx != null ? moodGlow(moodIdx) : 'transparent');
+// 1) Свечение: пропуск = красный; иначе по самочувствию (только если tintOn)
+let glow = missed ? missGlow()
+        : (tintOn && moodIdx != null ? moodGlow(moodIdx) : 'transparent');
 cell.style.setProperty('--glowC', glow);
-// цветной фон по самочувствию (как на твоём скрине)
-if (moodIdx != null){
+
+// 2) Цветной фон по самочувствию (только если tintOn)
+if (tintOn && moodIdx != null){
   cell.style.setProperty('--moodBg', moodBg(moodIdx));
 } else {
   cell.style.removeProperty('--moodBg');
 }
 
-// если самочувствия нет, но есть доза — даём зелёное свечение heatmap
+// 3) Если самочувствия нет (или tintOff), но есть доза — зелёный heatmap
 if (glow === 'transparent' && dose > 0 && !missed){
-  cell.style.setProperty('--glowC', heatColor(dose, maxDose));
+  glow = heatColor(dose, maxDose);
+  cell.style.setProperty('--glowC', glow);
 }
-// эффекты частиц/бликов по самочувствию
-if (moodIdx === 4) cell.classList.add('mood-4'); // Неплохо (синий + искры)
-if (moodIdx === 5) cell.classList.add('mood-5'); // Хорошо (мята + искры)
-if (moodIdx === 6) cell.classList.add('mood-6'); // Отлично (зелёный + “драгоценный” блик)
+
+// 4) Эффекты mood-4/5/6 — только если tintOn
+cell.classList.remove('mood-4','mood-5','mood-6');
+if (tintOn){
+  if (moodIdx === 4) cell.classList.add('mood-4');
+  if (moodIdx === 5) cell.classList.add('mood-5');
+  if (moodIdx === 6) cell.classList.add('mood-6');
+}
+
 // контент
 const doseClass = `dose${taken ? ' taken' : ''}`;
 cell.innerHTML = `
   <div class="day-num">${day}</div>
   <div class="marks">
     <div class="${doseClass}" style="${dose ? '' : 'opacity:.0;'}">
-      <span class="capsule" aria-hidden="true"></span>
-      <span class="val">${dose ? dose : ''}</span>
-    </div>
+  <span class="capsule" aria-hidden="true"></span>
+  <span class="doseText">
+    <span class="val">${dose ? dose : ''}</span>
+    <span class="unit">${dose ? 'мг' : ''}</span>
+  </span>
+</div>
+
     <div class="mood">${(mood==null?"":moodEmoji(mood))}</div>
   </div>
 `;
@@ -1235,9 +1341,11 @@ cell.addEventListener('pointerdown', (e)=>{
   setPortalXYFromEvent(e);
 
   pressTimer = setTimeout(()=>{
-    longPressed = true;
-    goDiary(id);
-  }, LONG_MS);
+  // блокируем только если реально началось выделение (drag.active)
+  if (drag.active) return;
+  longPressed = true;
+  goDiary(id);
+}, LONG_MS);
 });
 
 function onMove(e){
@@ -1296,15 +1404,22 @@ grid.appendChild(cell);
     ? firstSentenceWithEllipsis(noteRaw)
     : 'Записей нет. Нажмите и удерживайте день, чтобы открыть дневник.';
 
-  // Побочки: показываем только если есть (>0)
-  const seCount = sideEffectsCount(e2);
+ // Побочки: 3 состояния
+// 1) если sideEffects никогда не задавались → ничего не показываем
+// 2) если sideEffects заданы, но все 0 → "Побочек - 0"
+// 3) если есть >0 → иконки
+const seRecorded = !!(e2 && Object.prototype.hasOwnProperty.call(e2,'sideEffects'));
+const seIcons = seRecorded ? sideEffectsIconsHTML(e2) : '';
+const sePart  = seRecorded ? (seIcons || `<span class="muted">Побочек  0</span>`) : '';
+
 
   sheetBody.innerHTML = `
     <div class="sheet-row">
       <div class="badge">Самочувствие:</div>
       <div>
         <strong>${moodWord}</strong>
-        ${seCount > 0 ? `<span class="muted" style="margin-left:10px">• побочки: ${seCount}</span>` : ''}
+        ${sePart ? `<span class="muted" style="margin:0 10px">•</span>${sePart}` : ''}
+
       </div>
     </div>
 
@@ -1556,7 +1671,8 @@ if (btn){
 })();
 window.addEventListener('keydown', (e)=>{ if(e.key === 'Escape') closeSheet(); });
   window.addEventListener('storage', (e)=>{
- if (e.key === 'rt.diary.v1' || e.key === 'rt.diary.bump' || e.key === 'rt.diary.v2') render();
+    if (e.key === 'rt.diary.v1' || e.key === 'rt.diary.bump' || e.key === 'rt.diary.v2' || e.key === 'rt.moodTintOn') render();
+
 
 });
 // на всякий — обновляемся, когда пользователь вернулся на страницу
@@ -1619,32 +1735,122 @@ document.addEventListener('visibilitychange', ()=>{ if (!document.hidden) render
 })();
 
 
-  // === RANGE SELECT (п.4): делегирование по .day ===
-grid.addEventListener('pointerdown', (e) => {
-  const cell = e.target.closest('.day[data-date]');
-  if (!cell) return;
+  // === RANGE SELECT (phones fix): touch on coarse pointers, pointer on desktop ===
+const IS_COARSE = window.matchMedia && window.matchMedia('(pointer: coarse)').matches;
+const RANGE_START_THR = 10;   // важно: меньше, чем MOVE_TOL=12, но long-press мы уже защитили
+const RANGE_PAD = 14;
+
+function rangeCellFromXY(x, y){
+  const el = document.elementFromPoint(x, y);
+  let cell = el && el.closest ? el.closest('.day[data-date]') : null;
+  if (cell) return cell;
+
+  // попадание в gap между ячейками
+  for (const c of grid.querySelectorAll('.day[data-date]')){
+    const r = c.getBoundingClientRect();
+    if (x >= r.left - RANGE_PAD && x <= r.right + RANGE_PAD &&
+        y >= r.top  - RANGE_PAD && y <= r.bottom + RANGE_PAD) return c;
+  }
+  return null;
+}
+
+function rangeArm(cell, x, y){
+  drag.pending = true;
+  drag.active  = false;
+  drag.start   = cell.dataset.date;
+  drag.over    = cell.dataset.date;
+  drag.x0 = x; drag.y0 = y;
+}
+
+function rangeEnsureActive(){
+  if (drag.active) return;
   drag.active = true;
-  drag.start = cell.dataset.date;
-  drag.over  = cell.dataset.date;
   grid.classList.add('dragging');
   highlightRange(drag.start, drag.over);
-});
+}
 
-grid.addEventListener('pointerover', (e) => {
-  if (!drag.active) return;
-  const cell = e.target.closest('.day[data-date]');
+function rangeUpdate(x, y){
+  const cell = rangeCellFromXY(x, y);
   if (!cell) return;
-  drag.over = cell.dataset.date;
+  const id = cell.dataset.date;
+  if (id === drag.over) return;
+  drag.over = id;
   highlightRange(drag.start, drag.over);
-});
+}
 
-const finishDrag = () => {
-  if (!drag.active) return;
+function rangeFinish(){
+  if (!drag.active){
+    drag.pending = false;
+    return;
+  }
+  drag.pending = false;
   finalizeRange();
-};
-grid.addEventListener('pointerup', finishDrag);
-grid.addEventListener('pointercancel', finishDrag);
-document.addEventListener('pointerup', finishDrag);
+}
+
+if (IS_COARSE){
+  // --- PHONE/TABLET: touch events (реально работает на мобилках) ---
+  grid.addEventListener('touchstart', (e)=>{
+    const cell = e.target.closest('.day[data-date]');
+    if (!cell) return;
+    const t = e.touches[0];
+    rangeArm(cell, t.clientX, t.clientY);
+  }, {passive:true});
+
+  grid.addEventListener('touchmove', (e)=>{
+    if (!drag.pending && !drag.active) return;
+    const t = e.touches[0];
+    const x = t.clientX, y = t.clientY;
+
+    if (!drag.active){
+      const dx = x - (drag.x0 || 0), dy = y - (drag.y0 || 0);
+      if (dx*dx + dy*dy < RANGE_START_THR*RANGE_START_THR) return;
+      rangeEnsureActive();
+    }
+
+    rangeUpdate(x, y);
+
+    // ключевое: как только drag активен — гасим скролл страницы
+    if (e.cancelable) e.preventDefault();
+  }, {passive:false});
+
+  grid.addEventListener('touchend', rangeFinish, {passive:true});
+  grid.addEventListener('touchcancel', ()=>{
+    drag.pending = false;
+    drag.active = false;
+    grid.classList.remove('dragging');
+  }, {passive:true});
+
+} else {
+  // --- DESKTOP: pointer events (мышь/трекпад) ---
+  grid.addEventListener('pointerdown', (e)=>{
+    const cell = e.target.closest('.day[data-date]');
+    if (!cell) return;
+    rangeArm(cell, e.clientX, e.clientY);
+    drag.pointerId = e.pointerId;
+  }, {passive:true});
+
+  grid.addEventListener('pointermove', (e)=>{
+    if (!drag.pending && !drag.active) return;
+
+    if (!drag.active){
+      const dx = e.clientX - (drag.x0 || 0), dy = e.clientY - (drag.y0 || 0);
+      if (dx*dx + dy*dy < (RANGE_START_THR*RANGE_START_THR)) return;
+      rangeEnsureActive();
+      try { grid.setPointerCapture(drag.pointerId); } catch(_){}
+    }
+
+    rangeUpdate(e.clientX, e.clientY);
+    e.preventDefault();
+  }, {passive:false});
+
+  const end = ()=>{
+    try { if (drag.pointerId != null) grid.releasePointerCapture(drag.pointerId); } catch(_){}
+    rangeFinish();
+  };
+  grid.addEventListener('pointerup', end);
+  grid.addEventListener('pointercancel', end);
+  document.addEventListener('pointerup', end);
+}
 
   render();
 })();
@@ -1771,7 +1977,7 @@ document.addEventListener('pointerup', finishDrag);
     0 -16px 34px rgba(0,0,0,.55),
     inset 0  1px  0 rgba(255,255,255,.10),
     inset 0 -1px  0 rgba(0,0,0,.35);
-  padding: 14px 14px 16px;
+  padding: 9px 10px 10px;
 }
 #sheet.active{
   opacity: 1; visibility: visible; pointer-events: auto;
@@ -1782,12 +1988,19 @@ document.addEventListener('pointerup', finishDrag);
     visibility 0s;
 }
 
+
+#sheetBody{
+  max-height: min(42vh, 360px);
+  overflow: auto;
+  -webkit-overflow-scrolling: touch;
+  padding-bottom: 2px;
+}
 /* таббар поверх и кликабелен */
-nav.tabbar{ z-index: 1400 !important; }
-body.sheet-open nav.tabbar{ pointer-events: auto !important; }
+nav.bottom-nav{ z-index: 1400 !important; }
+body.sheet-open nav.bottom-nav{ pointer-events: auto !important; }
 /* ——— ручка перетягивания ——— */
 .drag-handle{
-  width: 48px; height: 6px; margin: 2px auto 10px; border-radius: 999px;
+  width: 44px; height: 5px; margin: 1px auto 6px; border-radius: 999px;
   background: linear-gradient(180deg, rgba(255,255,255,.38), rgba(255,255,255,.06));
   box-shadow:
     inset 0 1px 0 rgba(255,255,255,.35),
@@ -1797,7 +2010,7 @@ body.sheet-open nav.tabbar{ pointer-events: auto !important; }
 
 /* ——— шапка шита ——— */
 .sheet-head{
-  display:flex; align-items:center; gap:10px; padding: 4px 2px 10px;
+  display:flex; align-items:center; gap:8px; padding: 3px 2px 7px;
 }
 .sheet-title{
   flex:1; font-weight:800; letter-spacing:.2px;
@@ -1807,8 +2020,8 @@ body.sheet-open nav.tabbar{ pointer-events: auto !important; }
 /* ——— неоморфные строки ——— */
 .sheet-row{
   display:flex; align-items:center; justify-content:space-between;
-  gap: 12px; padding: 12px 14px; margin: 10px 0;
-  border-radius: 14px;
+  gap: 8px; padding: 7px 10px; margin: 6px 0;
+  border-radius: 12px;
   background: linear-gradient(180deg, rgba(255,255,255,.03), rgba(255,255,255,.015));
   box-shadow:
     10px 10px 22px rgba(0,0,0,.45),               /* нижняя правая внешняя */
@@ -1823,7 +2036,7 @@ body.sheet-open nav.tabbar{ pointer-events: auto !important; }
 /* ——— бейджи ——— */
 .badge{
   display:inline-flex; align-items:center; gap:6px;
-  padding: 6px 10px; border-radius: 999px;
+  padding: 4px 8px; border-radius: 999px;
   font-weight:700; letter-spacing:.2px;
   background: linear-gradient(180deg, rgba(255,255,255,.10), rgba(255,255,255,.02));
   border: 1px solid rgba(255,255,255,.10);
@@ -1836,7 +2049,7 @@ body.sheet-open nav.tabbar{ pointer-events: auto !important; }
 /* ——— капсульная кнопка (правая) ——— */
 .right, .pill{
   appearance:none; border:0; cursor:pointer; user-select:none;
-  padding: 10px 14px; border-radius: 14px; font-weight:800;
+  padding: 8px 12px; border-radius: 13px; font-weight:800;
   color:#0b1620; background:
     linear-gradient(180deg,#58edd2,#17d6c8 60%,#10c2bd);
   box-shadow:
@@ -1879,31 +2092,27 @@ body.sheet-open nav.tabbar{ pointer-events: auto !important; }
   opacity: .95;
 }
 
-
 </style>
 
 
 
 <!-- RT_TOUR_V1: guided tour (spotlight + CTA) -->
-<style id="rtTourStyle">
-  :root{
-  --rt-tour-z-overlay: 9500;
-  --rt-tour-z-tabbar:  9600;   /* таббар выше оверлея (чтобы НЕ размывался) */
-  --rt-tour-z-focus:   9605;   /* подсветка выше таббара */
-  --rt-tour-z-pointer: 9606;
-  --rt-tour-z-pop:     9607;
+<style id="rtTourStyle">:root{
+    --rt-tour-z-overlay: 9500;
+    --rt-tour-z-focus: 9501;
+    --rt-tour-z-pointer: 9502;
+    --rt-tour-z-pop: 9503;
+    --rt-tour-accent: rgba(66, 227, 184, 1);
+    --rt-tour-accentSoft: rgba(66, 227, 184, .35);
+    --rt-tour-z-tabbar: 9605;
+    --rt-tour-overlay-bottom: calc(var(--tabbar-h) + 14px);
 
-  --rt-tour-accent: rgba(66, 227, 184, 1);
-  --rt-tour-accentSoft: rgba(66, 227, 184, .35);
-  /* Когда тур активен — таббар всегда сверху и не размывается оверлеем */
-body.rt-tour-on nav.tabbar{
-  z-index: var(--rt-tour-z-tabbar) !important;
-}
-
-}
-
+  }
   #rtTourOverlay{
-    position:fixed; inset:0;
+    position:fixed;
+    top:0; left:0; right:0;
+    bottom: var(--rt-tour-overlay-bottom);
+
     z-index: var(--rt-tour-z-overlay);
     background: rgba(0,0,0,.28);
     backdrop-filter: blur(10px) saturate(1.15);
@@ -2012,6 +2221,57 @@ body.rt-tour-on nav.tabbar{
   }
   .rt-notif b{ font-weight:800; }
   .rt-notif .muted{ opacity:.72; display:block; margin-top:2px; }
+
+/* When tour is active — keep bottom nav above overlay (not blurred) */
+body.rt-tour-on nav.bottom-nav{
+  z-index: var(--rt-tour-z-tabbar) !important;
+  pointer-events: auto !important;
+}
+/* чтобы "20 мг" всегда было в одной строке */
+.dose .doseText{
+  display:inline-flex;
+  align-items:baseline;
+  gap:4px;
+  white-space:nowrap;
+}
+
+/* мобильная раскладка: капсула сверху, ниже "20 мг" */
+@media (max-width:520px){
+  .grid .day .dose{
+    display:flex !important;
+    flex-direction:column;
+    align-items:flex-start;
+    gap:2px;
+  }
+}
+
+/* FINAL MOBILE OVERRIDE: капсула сверху, ниже "20 мг" в одну строку */
+@media (max-width: 520px){
+  .grid .day .dose{
+    display:flex !important;
+    flex-direction:column !important;
+    align-items:flex-start !important;
+    gap:2px !important;
+  }
+
+  .grid .day .dose .capsule{
+    display:inline-block !important;
+    width:16px;
+    height:10px;
+  }
+
+  .grid .day .dose .doseText{
+    display:inline-flex !important;
+    align-items:baseline;
+    gap:4px;
+    white-space:nowrap !important; /* ключевое: "20 мг" не переносится */
+  }
+
+  .grid .day .dose .unit{
+    display:inline !important;
+    opacity:.85;
+  }
+} 
 </style>
 
 <div id="rtTourOverlay" aria-hidden="true"></div>
@@ -2050,18 +2310,6 @@ body.rt-tour-on nav.tabbar{
   const btnSkip = $('#rtTourSkip');
   const btnFree = $('#rtTourFree');
   const btnNext = $('#rtTourNext');
-  // Блокируем клики везде, кроме попапа тура и подсвеченных элементов (focus)
-function isAllowedTarget(t){
-  return !!(t && (t.closest('#rtTourPop') || t.closest('[data-rt-tour-focus]')));
-}
-function tourGuard(e){
-  if (!overlay.classList.contains('is-on')) return;
-  if (isAllowedTarget(e.target)) return;
-  e.preventDefault();
-  e.stopPropagation();
-  e.stopImmediatePropagation();
-}
-
 
   function pageKey(){
     const p = (location.pathname.split('/').pop() || '').toLowerCase();
@@ -2114,26 +2362,12 @@ let cleanupWait = null;
   }
 
   function visible(on){
-  overlay.classList.toggle('is-on', !!on);
-  pop.classList.toggle('is-on', !!on);
-  overlay.setAttribute('aria-hidden', on ? 'false' : 'true');
-  if(!on) pointer.classList.remove('is-on');
-
-  // флаг на body для поднятия tabbar по z-index
-  document.body.classList.toggle('rt-tour-on', !!on);
-
-  // глобальная защита: кликается только focus и сам попап тура
-  if (on){
-    document.addEventListener('pointerdown', tourGuard, true);
-    document.addEventListener('click', tourGuard, true);
-    document.addEventListener('touchstart', tourGuard, true);
-  } else {
-    document.removeEventListener('pointerdown', tourGuard, true);
-    document.removeEventListener('click', tourGuard, true);
-    document.removeEventListener('touchstart', tourGuard, true);
+    document.body.classList.toggle('rt-tour-on', !!on);
+    overlay.classList.toggle('is-on', !!on);
+    pop.classList.toggle('is-on', !!on);
+    overlay.setAttribute('aria-hidden', on ? 'false' : 'true');
+    if(!on) pointer.classList.remove('is-on');
   }
-}
-
 
   function rectUnion(els){
     const rs = els.map(e=> e.getBoundingClientRect()).filter(r=> r.width && r.height);
@@ -2660,12 +2894,12 @@ main: [
       {
         title: 'Нижнее меню',
         text: 'Внизу — разделы приложения. Откройте «Календарь», чтобы продолжить.',
-        reveal: ['nav.tabbar'],
-        focus: ['nav.tabbar a[href*="calendar.html"]'],
+        reveal: ['nav.bottom-nav'],
+        focus: ['nav.bottom-nav a[href*="calendar.html"]'],
         avoidCover: 'reveal',
         popPlacement: 'above',
         radiusInherit: true,
-        primary: { label:'К календарю', click:'nav.tabbar a[href*="calendar.html"]', nextPage:'calendar' },
+        primary: { label:'К календарю', click:'nav.bottom-nav a[href*="calendar.html"]', nextPage:'calendar' },
       },
     ],
 
@@ -2674,22 +2908,22 @@ main: [
  [
       {
         title: 'День в календаре',
-        text: 'Тапните по любому дню — снизу появится краткая карточка.',
+        text: 'Тапните по любому дню — снизу появится карточка. Если зажать день на 1 секунду, откроется дневник этого дня.',
         reveal: ['#card'],
-        focus: ['#grid .day'],
+        focus: () => pick.calendarDay(),
         radiusInherit: true,
-        require: { type:'click', selector:'#grid .day' },
-autoNext: true,
+        require: {type:'click', selector:'#grid .day'},
+        autoNext: true,
       },
       {
-  title: 'Карточка дня',
-  text: 'Снизу — самочувствие, доза и заметка. «Открыть дневник» — подробности.',
-  reveal: ['#sheet'],
-  focus: ['#sheet', '#openDiary', '#doseEdit'],
-  radiusInherit: true,
-  avoidCover: 'reveal',
-  popPlacement: 'above',
-},
+        title: 'Карточка дня',
+        text: 'Снизу — самочувствие, доза и заметка. «Открыть дневник» — подробности.',
+        reveal: ['#sheet'],
+        focus: ['#sheet', '#openDiary', '#doseEdit'],
+        radiusInherit: true,
+        avoidCover: 'reveal',
+        popPlacement: 'above',
+      },
       {
         title: 'Заполнить сразу несколько дней',
         text: 'Проведите пальцем по нескольким дням — появится ввод дозы для всех выбранных.',
@@ -2714,66 +2948,17 @@ autoNext: true,
         },
       },
       {
-        title: 'Быстрый переход в дневник',
-        text: 'Зажмите день на 1 секунду — так вы быстро откроете дневник этого дня.',
-        reveal: ['#card'],
-        focus: () => pick.calendarDay(),
-        radiusInherit: true,
-        // practice long-press without реального перехода
-        require: 'manual',
-        onEnter: ({setSatisfied})=>{
-          setSatisfied(false);
-          const grid = $('#grid');
-          if(!grid) { setSatisfied(true); return null; }
-
-          let t=null, active=false;
-
-          const down = (e)=>{
-            const dayEl = e.target && e.target.closest && e.target.closest('.day');
-            if(!dayEl) return;
-
-            // блокируем штатный обработчик на время практики (чтобы не улететь в дневник)
-            try{ e.stopImmediatePropagation(); }catch(_){}
-            try{ e.stopPropagation(); }catch(_){}
-            try{ e.preventDefault(); }catch(_){}
-
-            active = true;
-            clearTimeout(t);
-            t = setTimeout(()=>{
-              if(!active) return;
-              setSatisfied(true);
-            }, 850);
-          };
-          const up = ()=>{
-            active = false;
-            clearTimeout(t);
-          };
-
-          grid.addEventListener('pointerdown', down, true);
-          window.addEventListener('pointerup', up, true);
-          window.addEventListener('pointercancel', up, true);
-
-          return ()=>{
-            clearTimeout(t);
-            grid.removeEventListener('pointerdown', down, true);
-            window.removeEventListener('pointerup', up, true);
-            window.removeEventListener('pointercancel', up, true);
-          };
-        },
-      },
-      {
         title: 'Профиль',
         text: 'Перейдите в профиль — там врач, напоминания и дневник.',
-        reveal: ['nav.tabbar'],
-        focus: ['nav.tabbar a[href$="myprofile.html"]'],
+        reveal: ['nav.bottom-nav'],
+        focus: ['nav.bottom-nav a[href$="myprofile.html"]'],
         avoidCover: 'reveal',
         popPlacement: 'above',
         radiusInherit: true,
-        primary: { label:'Перейти', click:'nav.tabbar a[href$="myprofile.html"]', nextPage:'myprofile' },
+        primary: { label:'Перейти', click:'nav.bottom-nav a[href$="myprofile.html"]', nextPage:'myprofile' },
       },
     ],
-
-    myprofile: [
+myprofile: [
       {
         title: 'Лечащий врач',
         text: 'Введите код врача (его выдаёт врач). После прикрепления дождитесь, пока врач примет заявку.',

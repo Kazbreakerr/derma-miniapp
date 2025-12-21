@@ -4,7 +4,7 @@
   <meta charset="utf-8"/>
   <meta name="viewport" content="width=device-width, initial-scale=1"/>
   <meta name="view-transition" content="same-origin">
-  <title>Календарь — Roaccutane Tracker</title>
+  <title>Календарь — Retiora — Retinoid & Isotretinoin Tracker</title>
   <style>
     :root{
   --bg: #0b0f16;
@@ -119,6 +119,12 @@
 
 /* кнопку уводим вправо */
 .sheet-row .right{ margin-left:auto; }
+/* side-effects icons (как в myprofile) */
+.se-icons{ display:inline-flex; gap:8px; align-items:center; flex-wrap:wrap; vertical-align:middle; }
+.se-ico{
+  width:24px; height:24px; object-fit:contain;
+  filter: drop-shadow(0 2px 6px rgba(0,0,0,.35));
+}
     .month-nav{
       display:flex;
       align-items:center;
@@ -324,7 +330,8 @@ user-select: none;
 
 .dose .capsule{ grid-area: cap; }
 .dose .val{ grid-area: val; }
-.dose .unit{ display:none; }
+.dose .unit{ display:inline-block; opacity:.85; }
+
 /* === MOOD FX (только синий = частицы; мята = люминисценция; зелёный = малахит) === */
 .day::before{
   content:"";
@@ -543,7 +550,7 @@ user-select: none;
     }
 
     /* === RANGE SELECT (п.4) === */
-.grid.dragging { user-select: none; }
+    .grid.dragging { user-select: none; touch-action: none; }
 .day.in-range {
   outline: 2px dashed var(--accent, #8bdcff);
   outline-offset: -4px;
@@ -700,6 +707,9 @@ html::view-transition-new(root){
 .sheet .badge{ font-size: 12px; }
 .sheet .sheet-row strong{ font-size: 15px; }
 
+/* когда выделяем диапазон — не даём странице скроллиться */
+.grid.dragging { touch-action: none; }
+
 </style>
 <style id="pill-alert-style">
   .pill-alert{
@@ -758,7 +768,7 @@ html::view-transition-new(root){
   }catch(_){}
 })();
 </script>
-  <div class="brand">Roaccutane Tracker</div>
+<div class="brand">Retiora — Retinoid & Isotretinoin Tracker</div>
 
   <div class="app-title">Календарь<span data-pill-spot></span><span data-stock-spot></span></div>
 
@@ -938,6 +948,11 @@ function finalizeRange() {
   const pad = n => String(n).padStart(2,'0');
   const iso = d => `${d.getFullYear()}-${pad(d.getMonth()+1)}-${pad(d.getDate())}`;
   const getDiary = () => { try{ return JSON.parse(localStorage.getItem('rt.diary.v1')||'{}'); } catch(e){ return {}; } };
+  // Тумблер "Цвет под настроение" (должен работать в этом же скрипте)
+const TINT_KEY = 'rt.moodTintOn';
+function isTintOn(){
+  return (localStorage.getItem(TINT_KEY) ?? '1') !== '0';
+}
   function moodEmoji(v){
     if(v == null) return '—';
     if(v <= -3) return '😵‍💫';
@@ -1069,6 +1084,31 @@ function sideEffectsCount(entry){
   let n=0; for(const k in se){ if(Number(se[k])>0) n++; }
   return n;
 }
+// === Side-effects icons (как в myprofile) ===
+const SE_META = {
+  lips_dry:    { label: 'Сухость губ',  file: 'lips_dry.png' },
+  skin_dry:    { label: 'Сухость кожи', file: 'skin_dry.png' },
+  muscle_pain: { label: 'Боль в суставах/мышцах', file: 'muscle_pain.png' },
+  headache:    { label: 'Головная боль', file: 'headache.png' },
+};
+
+function sideEffectsIconsHTML(entry){
+  try{
+    const se = (entry && entry.sideEffects && typeof entry.sideEffects === 'object') ? entry.sideEffects : {};
+    const icons = [];
+    for (const key of Object.keys(SE_META)){
+      const v = Number(se[key] || 0);
+      if (v > 0){
+        const meta  = SE_META[key];
+        const src1  = new URL('../assets/sideeffects/' + meta.file, location.href).toString();
+        const src2  = new URL('./assets/sideeffects/'  + meta.file, location.href).toString(); // fallback если папка assets лежит рядом
+        const title = meta.label + (v ? (' • ' + v + '/3') : '');
+        icons.push(`<img class="se-ico" src="${src1}" onerror="this.onerror=null;this.src='${src2}'" alt="${meta.label}" title="${title}">`);
+      }
+    }
+    return icons.length ? (`<span class="se-icons">${icons.join('')}</span>`) : '';
+  }catch(_){ return ''; }
+}
 
 // цвет свечения по индексу
 function moodGlow(idx){
@@ -1107,6 +1147,7 @@ function moodGlow(idx){
 
 function render(){
   const year   = current.getFullYear();
+  const tintOn = isTintOn();
   const month  = current.getMonth();
   const daysTotal = new Date(year, month + 1, 0).getDate();
 
@@ -1180,34 +1221,45 @@ cell.className = 'day' + (isToday ? ' today' : '') + (missed ? ' missed' : '');
 cell.setAttribute('data-date', id);
 if (day === 1) cell.style.gridColumnStart = String(startCol + 1);
 
-// свечение: пропуск = красный; иначе по самочувствию; если данных нет — по дозе/без свечения
-const glow = missed ? missGlow()
-           : (moodIdx != null ? moodGlow(moodIdx) : 'transparent');
+// 1) Свечение: пропуск = красный; иначе по самочувствию (только если tintOn)
+let glow = missed ? missGlow()
+        : (tintOn && moodIdx != null ? moodGlow(moodIdx) : 'transparent');
 cell.style.setProperty('--glowC', glow);
-// цветной фон по самочувствию (как на твоём скрине)
-if (moodIdx != null){
+
+// 2) Цветной фон по самочувствию (только если tintOn)
+if (tintOn && moodIdx != null){
   cell.style.setProperty('--moodBg', moodBg(moodIdx));
 } else {
   cell.style.removeProperty('--moodBg');
 }
 
-// если самочувствия нет, но есть доза — даём зелёное свечение heatmap
+// 3) Если самочувствия нет (или tintOff), но есть доза — зелёный heatmap
 if (glow === 'transparent' && dose > 0 && !missed){
-  cell.style.setProperty('--glowC', heatColor(dose, maxDose));
+  glow = heatColor(dose, maxDose);
+  cell.style.setProperty('--glowC', glow);
 }
-// эффекты частиц/бликов по самочувствию
-if (moodIdx === 4) cell.classList.add('mood-4'); // Неплохо (синий + искры)
-if (moodIdx === 5) cell.classList.add('mood-5'); // Хорошо (мята + искры)
-if (moodIdx === 6) cell.classList.add('mood-6'); // Отлично (зелёный + “драгоценный” блик)
+
+// 4) Эффекты mood-4/5/6 — только если tintOn
+cell.classList.remove('mood-4','mood-5','mood-6');
+if (tintOn){
+  if (moodIdx === 4) cell.classList.add('mood-4');
+  if (moodIdx === 5) cell.classList.add('mood-5');
+  if (moodIdx === 6) cell.classList.add('mood-6');
+}
+
 // контент
 const doseClass = `dose${taken ? ' taken' : ''}`;
 cell.innerHTML = `
   <div class="day-num">${day}</div>
   <div class="marks">
     <div class="${doseClass}" style="${dose ? '' : 'opacity:.0;'}">
-      <span class="capsule" aria-hidden="true"></span>
-      <span class="val">${dose ? dose : ''}</span>
-    </div>
+  <span class="capsule" aria-hidden="true"></span>
+  <span class="doseText">
+    <span class="val">${dose ? dose : ''}</span>
+    <span class="unit">${dose ? 'мг' : ''}</span>
+  </span>
+</div>
+
     <div class="mood">${(mood==null?"":moodEmoji(mood))}</div>
   </div>
 `;
@@ -1230,9 +1282,11 @@ cell.addEventListener('pointerdown', (e)=>{
   setPortalXYFromEvent(e);
 
   pressTimer = setTimeout(()=>{
-    longPressed = true;
-    goDiary(id);
-  }, LONG_MS);
+  // блокируем только если реально началось выделение (drag.active)
+  if (drag.active) return;
+  longPressed = true;
+  goDiary(id);
+}, LONG_MS);
 });
 
 function onMove(e){
@@ -1291,15 +1345,22 @@ grid.appendChild(cell);
     ? firstSentenceWithEllipsis(noteRaw)
     : 'Записей нет. Нажмите и удерживайте день, чтобы открыть дневник.';
 
-  // Побочки: показываем только если есть (>0)
-  const seCount = sideEffectsCount(e2);
+ // Побочки: 3 состояния
+// 1) если sideEffects никогда не задавались → ничего не показываем
+// 2) если sideEffects заданы, но все 0 → "Побочек - 0"
+// 3) если есть >0 → иконки
+const seRecorded = !!(e2 && Object.prototype.hasOwnProperty.call(e2,'sideEffects'));
+const seIcons = seRecorded ? sideEffectsIconsHTML(e2) : '';
+const sePart  = seRecorded ? (seIcons || `<span class="muted">Побочек  0</span>`) : '';
+
 
   sheetBody.innerHTML = `
     <div class="sheet-row">
       <div class="badge">Самочувствие:</div>
       <div>
         <strong>${moodWord}</strong>
-        ${seCount > 0 ? `<span class="muted" style="margin-left:10px">• побочки: ${seCount}</span>` : ''}
+        ${sePart ? `<span class="muted" style="margin:0 10px">•</span>${sePart}` : ''}
+
       </div>
     </div>
 
@@ -1551,7 +1612,8 @@ if (btn){
 })();
 window.addEventListener('keydown', (e)=>{ if(e.key === 'Escape') closeSheet(); });
   window.addEventListener('storage', (e)=>{
- if (e.key === 'rt.diary.v1' || e.key === 'rt.diary.bump' || e.key === 'rt.diary.v2') render();
+    if (e.key === 'rt.diary.v1' || e.key === 'rt.diary.bump' || e.key === 'rt.diary.v2' || e.key === 'rt.moodTintOn') render();
+
 
 });
 // на всякий — обновляемся, когда пользователь вернулся на страницу
@@ -1614,32 +1676,122 @@ document.addEventListener('visibilitychange', ()=>{ if (!document.hidden) render
 })();
 
 
-  // === RANGE SELECT (п.4): делегирование по .day ===
-grid.addEventListener('pointerdown', (e) => {
-  const cell = e.target.closest('.day[data-date]');
-  if (!cell) return;
+  // === RANGE SELECT (phones fix): touch on coarse pointers, pointer on desktop ===
+const IS_COARSE = window.matchMedia && window.matchMedia('(pointer: coarse)').matches;
+const RANGE_START_THR = 10;   // важно: меньше, чем MOVE_TOL=12, но long-press мы уже защитили
+const RANGE_PAD = 14;
+
+function rangeCellFromXY(x, y){
+  const el = document.elementFromPoint(x, y);
+  let cell = el && el.closest ? el.closest('.day[data-date]') : null;
+  if (cell) return cell;
+
+  // попадание в gap между ячейками
+  for (const c of grid.querySelectorAll('.day[data-date]')){
+    const r = c.getBoundingClientRect();
+    if (x >= r.left - RANGE_PAD && x <= r.right + RANGE_PAD &&
+        y >= r.top  - RANGE_PAD && y <= r.bottom + RANGE_PAD) return c;
+  }
+  return null;
+}
+
+function rangeArm(cell, x, y){
+  drag.pending = true;
+  drag.active  = false;
+  drag.start   = cell.dataset.date;
+  drag.over    = cell.dataset.date;
+  drag.x0 = x; drag.y0 = y;
+}
+
+function rangeEnsureActive(){
+  if (drag.active) return;
   drag.active = true;
-  drag.start = cell.dataset.date;
-  drag.over  = cell.dataset.date;
   grid.classList.add('dragging');
   highlightRange(drag.start, drag.over);
-});
+}
 
-grid.addEventListener('pointerover', (e) => {
-  if (!drag.active) return;
-  const cell = e.target.closest('.day[data-date]');
+function rangeUpdate(x, y){
+  const cell = rangeCellFromXY(x, y);
   if (!cell) return;
-  drag.over = cell.dataset.date;
+  const id = cell.dataset.date;
+  if (id === drag.over) return;
+  drag.over = id;
   highlightRange(drag.start, drag.over);
-});
+}
 
-const finishDrag = () => {
-  if (!drag.active) return;
+function rangeFinish(){
+  if (!drag.active){
+    drag.pending = false;
+    return;
+  }
+  drag.pending = false;
   finalizeRange();
-};
-grid.addEventListener('pointerup', finishDrag);
-grid.addEventListener('pointercancel', finishDrag);
-document.addEventListener('pointerup', finishDrag);
+}
+
+if (IS_COARSE){
+  // --- PHONE/TABLET: touch events (реально работает на мобилках) ---
+  grid.addEventListener('touchstart', (e)=>{
+    const cell = e.target.closest('.day[data-date]');
+    if (!cell) return;
+    const t = e.touches[0];
+    rangeArm(cell, t.clientX, t.clientY);
+  }, {passive:true});
+
+  grid.addEventListener('touchmove', (e)=>{
+    if (!drag.pending && !drag.active) return;
+    const t = e.touches[0];
+    const x = t.clientX, y = t.clientY;
+
+    if (!drag.active){
+      const dx = x - (drag.x0 || 0), dy = y - (drag.y0 || 0);
+      if (dx*dx + dy*dy < RANGE_START_THR*RANGE_START_THR) return;
+      rangeEnsureActive();
+    }
+
+    rangeUpdate(x, y);
+
+    // ключевое: как только drag активен — гасим скролл страницы
+    if (e.cancelable) e.preventDefault();
+  }, {passive:false});
+
+  grid.addEventListener('touchend', rangeFinish, {passive:true});
+  grid.addEventListener('touchcancel', ()=>{
+    drag.pending = false;
+    drag.active = false;
+    grid.classList.remove('dragging');
+  }, {passive:true});
+
+} else {
+  // --- DESKTOP: pointer events (мышь/трекпад) ---
+  grid.addEventListener('pointerdown', (e)=>{
+    const cell = e.target.closest('.day[data-date]');
+    if (!cell) return;
+    rangeArm(cell, e.clientX, e.clientY);
+    drag.pointerId = e.pointerId;
+  }, {passive:true});
+
+  grid.addEventListener('pointermove', (e)=>{
+    if (!drag.pending && !drag.active) return;
+
+    if (!drag.active){
+      const dx = e.clientX - (drag.x0 || 0), dy = e.clientY - (drag.y0 || 0);
+      if (dx*dx + dy*dy < (RANGE_START_THR*RANGE_START_THR)) return;
+      rangeEnsureActive();
+      try { grid.setPointerCapture(drag.pointerId); } catch(_){}
+    }
+
+    rangeUpdate(e.clientX, e.clientY);
+    e.preventDefault();
+  }, {passive:false});
+
+  const end = ()=>{
+    try { if (drag.pointerId != null) grid.releasePointerCapture(drag.pointerId); } catch(_){}
+    rangeFinish();
+  };
+  grid.addEventListener('pointerup', end);
+  grid.addEventListener('pointercancel', end);
+  document.addEventListener('pointerup', end);
+}
 
   render();
 })();
@@ -1874,8 +2026,1008 @@ body.sheet-open nav.tabbar{ pointer-events: auto !important; }
   opacity: .95;
 }
 
-
 </style>
+
+
+
+<!-- RT_TOUR_V1: guided tour (spotlight + CTA) -->
+<style id="rtTourStyle">:root{
+    --rt-tour-z-overlay: 9500;
+    --rt-tour-z-focus: 9501;
+    --rt-tour-z-pointer: 9502;
+    --rt-tour-z-pop: 9503;
+    --rt-tour-accent: rgba(66, 227, 184, 1);
+    --rt-tour-accentSoft: rgba(66, 227, 184, .35);
+    --rt-tour-z-tabbar: 9605;
+    --rt-tour-overlay-bottom: calc(var(--tabbar-h) + 14px);
+
+  }
+  #rtTourOverlay{
+    position:fixed;
+    top:0; left:0; right:0;
+    bottom: var(--rt-tour-overlay-bottom);
+
+    z-index: var(--rt-tour-z-overlay);
+    background: rgba(0,0,0,.28);
+    backdrop-filter: blur(10px) saturate(1.15);
+    -webkit-backdrop-filter: blur(10px) saturate(1.15);
+    opacity:0; pointer-events:none;
+    transition: opacity .18s ease;
+  }
+  #rtTourOverlay.is-on{ opacity:1; pointer-events:auto; }
+
+  .rt-tour-focus{
+    /* position is set in JS only when needed (for z-index) */
+    z-index: var(--rt-tour-z-focus) !important;
+    box-shadow:
+      0 0 0 2px rgba(255,255,255,.10),
+      0 0 0 3px rgba(66,227,184,.55),
+      0 18px 44px rgba(0,0,0,.45),
+      0 0 34px rgba(66,227,184,.30);
+    border-radius: 18px;
+  }
+  
+  .rt-tour-reveal{
+    /* position is set in JS only when needed (for z-index) */
+    z-index: var(--rt-tour-z-focus) !important;
+    box-shadow:none !important;
+  }
+.rt-tour-focus.rt-tour-radius-inherit{ border-radius: inherit; }
+
+  #rtTourPointer{
+    position:fixed;
+    z-index: var(--rt-tour-z-pointer);
+    width: 12px; height: 12px; border-radius: 999px;
+    background: var(--rt-tour-accent);
+    box-shadow: 0 0 0 6px rgba(66,227,184,.18), 0 10px 24px rgba(0,0,0,.35);
+    transform: translate(-50%,-50%);
+    opacity:0;
+    pointer-events:none;
+    transition: opacity .12s ease;
+    animation: rtTourBounce 1.05s ease-in-out infinite;
+  }
+  #rtTourPointer.is-on{ opacity:1; }
+  @keyframes rtTourBounce{
+    0%,100%{ transform: translate(-50%,-50%) translateY(0); }
+    50%{ transform: translate(-50%,-50%) translateY(-8px); }
+  }
+
+  #rtTourPop{
+    position:fixed;
+    z-index: var(--rt-tour-z-pop);
+    width:min(380px, calc(100vw - 28px));
+    padding: 14px 14px 12px;
+    border-radius: 18px;
+    background: rgba(14, 21, 33, .86);
+    box-shadow: 0 22px 60px rgba(0,0,0,.55), 0 0 0 1px rgba(255,255,255,.08);
+    color: rgba(232,243,255,.96);
+    opacity:0;
+    pointer-events:none;
+    transform: translateY(6px);
+    transition: opacity .16s ease, transform .16s ease;
+  }
+  #rtTourPop.is-on{ opacity:1; pointer-events:auto; transform: translateY(0); }
+  #rtTourPop .rt-title{ font-weight:800; font-size: 16px; margin:0 0 6px; letter-spacing:.2px; }
+  #rtTourPop .rt-text{ margin:0; font-size: 13px; line-height:1.35; opacity:.92; }
+  #rtTourPop .rt-sub{ margin-top:8px; font-size: 12px; opacity:.7; }
+  #rtTourPop .rt-actions{
+    display:flex; gap:10px; justify-content:space-between; align-items:center;
+    margin-top: 12px;
+  }
+  #rtTourPop .rt-actions .rt-left{ display:flex; gap:10px; align-items:center; }
+  #rtTourPop .rt-btn{
+    appearance:none; border:none; cursor:pointer;
+    padding: 10px 14px;
+    border-radius: 14px;
+    font-weight: 800;
+    letter-spacing:.2px;
+    font-size: 13px;
+  }
+  #rtTourPop .rt-btn.secondary{
+    background: rgba(255,255,255,.10);
+    color: rgba(232,243,255,.92);
+  }
+  #rtTourPop .rt-btn.primary{
+    background: linear-gradient(180deg, rgba(66,227,184,1), rgba(41,182,201,1));
+    color:#061019;
+    box-shadow: 0 10px 28px rgba(66,227,184,.22);
+  }
+  #rtTourPop .rt-btn.primary:disabled{
+    opacity:.55; cursor:not-allowed;
+  }
+  #rtTourPop .rt-step{
+    font-size: 12px; opacity:.55;
+  }
+
+  /* notification preview inside popover */
+  .rt-preview{
+    margin-top:10px;
+    display:grid;
+    gap:8px;
+  }
+  .rt-notif{
+    border-radius: 14px;
+    padding: 10px 12px;
+    background: rgba(255,255,255,.06);
+    box-shadow: inset 0 0 0 1px rgba(255,255,255,.06);
+    font-size: 12px;
+    line-height:1.25;
+  }
+  .rt-notif b{ font-weight:800; }
+  .rt-notif .muted{ opacity:.72; display:block; margin-top:2px; }
+
+/* When tour is active — keep bottom nav above overlay (not blurred) */
+body.rt-tour-on nav.tabbar{
+  z-index: var(--rt-tour-z-tabbar) !important;
+  pointer-events: auto !important;
+}
+/* чтобы "20 мг" всегда было в одной строке */
+.dose .doseText{
+  display:inline-flex;
+  align-items:baseline;
+  gap:4px;
+  white-space:nowrap;
+}
+
+/* мобильная раскладка: капсула сверху, ниже "20 мг" */
+@media (max-width:520px){
+  .grid .day .dose{
+    display:flex !important;
+    flex-direction:column;
+    align-items:flex-start;
+    gap:2px;
+  }
+}
+
+/* FINAL MOBILE OVERRIDE: капсула сверху, ниже "20 мг" в одну строку */
+@media (max-width: 520px){
+  .grid .day .dose{
+    display:flex !important;
+    flex-direction:column !important;
+    align-items:flex-start !important;
+    gap:2px !important;
+  }
+
+  .grid .day .dose .capsule{
+    display:inline-block !important;
+    width:16px;
+    height:10px;
+  }
+
+  .grid .day .dose .doseText{
+    display:inline-flex !important;
+    align-items:baseline;
+    gap:4px;
+    white-space:nowrap !important; /* ключевое: "20 мг" не переносится */
+  }
+
+  .grid .day .dose .unit{
+    display:inline !important;
+    opacity:.85;
+  }
+} 
+</style>
+
+<div id="rtTourOverlay" aria-hidden="true"></div>
+<div id="rtTourPointer" aria-hidden="true"></div>
+
+<div id="rtTourPop" role="dialog" aria-modal="true" aria-label="Обучение приложению">
+  <div class="rt-step" id="rtTourStep">Шаг</div>
+  <h3 class="rt-title" id="rtTourTitle">—</h3>
+  <p class="rt-text" id="rtTourText">—</p>
+  <div id="rtTourExtra"></div>
+  <div class="rt-actions">
+    <div class="rt-left">
+      <button class="rt-btn secondary" id="rtTourSkip" type="button">Пропустить</button>
+      <button class="rt-btn secondary" id="rtTourFree" type="button" title="Перейти дальше без выполнения действия">Дальше</button>
+    </div>
+    <button class="rt-btn primary" id="rtTourNext" type="button">Далее</button>
+  </div>
+</div>
+
+<script id="rtTourScript">
+(function(){
+  const VERSION = 1;
+  const STATE_KEY = 'rt.tour.v' + VERSION;
+  const DONE_KEY  = 'rt.tour.done.v' + VERSION;
+
+  const $  = (s, r=document) => r.querySelector(s);
+  const $$ = (s, r=document) => Array.from(r.querySelectorAll(s));
+
+  const overlay = $('#rtTourOverlay');
+  const pop     = $('#rtTourPop');
+  const pointer = $('#rtTourPointer');
+  const elStep  = $('#rtTourStep');
+  const elTitle = $('#rtTourTitle');
+  const elText  = $('#rtTourText');
+  const elExtra = $('#rtTourExtra');
+  const btnSkip = $('#rtTourSkip');
+  const btnFree = $('#rtTourFree');
+  const btnNext = $('#rtTourNext');
+
+  function pageKey(){
+    const p = (location.pathname.split('/').pop() || '').toLowerCase();
+    return p.replace(/\.html(\?.*)?$/,'') || 'main';
+  }
+
+  function loadState(){
+    try{
+      const s = JSON.parse(localStorage.getItem(STATE_KEY) || 'null');
+      if (!s || typeof s !== 'object') return null;
+      return s;
+    }catch(_){ return null; }
+  }
+  function saveState(s){
+    try{ localStorage.setItem(STATE_KEY, JSON.stringify(s)); }catch(_){}
+  }
+  function isDone(){
+    try{ return localStorage.getItem(DONE_KEY) === '1'; }catch(_){ return false; }
+  }
+  function markDone(){
+    try{ localStorage.setItem(DONE_KEY, '1'); }catch(_){}
+    try{ localStorage.removeItem(STATE_KEY); }catch(_){}
+  }
+
+  let focused = [];
+  
+  let revealed = [];
+let cleanupWait = null;
+  let cleanupEnter = null;
+  let satisfied = false;
+
+  function clearFocus(){
+    focused.forEach(el=>{
+      try{
+        el.classList.remove('rt-tour-focus','rt-tour-radius-inherit');
+        el.removeAttribute('data-rt-tour-focus');
+              restorePositioned(el);
+      }catch(_){}
+    });
+    focused = [];
+
+    revealed.forEach(el=>{
+      try{
+        el.classList.remove('rt-tour-reveal','rt-tour-radius-inherit');
+        el.removeAttribute('data-rt-tour-reveal');
+              restorePositioned(el);
+      }catch(_){}
+    });
+    revealed = [];
+  }
+
+  function visible(on){
+    document.body.classList.toggle('rt-tour-on', !!on);
+    overlay.classList.toggle('is-on', !!on);
+    pop.classList.toggle('is-on', !!on);
+    overlay.setAttribute('aria-hidden', on ? 'false' : 'true');
+    if(!on) pointer.classList.remove('is-on');
+  }
+
+  function rectUnion(els){
+    const rs = els.map(e=> e.getBoundingClientRect()).filter(r=> r.width && r.height);
+    if(!rs.length) return null;
+    let left=rs[0].left, top=rs[0].top, right=rs[0].right, bottom=rs[0].bottom;
+    rs.forEach(r=>{
+      left=Math.min(left,r.left); top=Math.min(top,r.top);
+      right=Math.max(right,r.right); bottom=Math.max(bottom,r.bottom);
+    });
+    return {left, top, right, bottom, width:right-left, height:bottom-top};
+  }
+
+  function clamp(v, a, b){ return Math.max(a, Math.min(b, v)); }
+
+
+function ensurePositioned(el){
+  try{
+    const cs = getComputedStyle(el);
+    if (cs.position === 'static'){
+      // remember inline position so we can restore
+      if (!el.dataset.rtTourPrevPos) el.dataset.rtTourPrevPos = (el.style.position || '');
+      el.dataset.rtTourWasStatic = '1';
+      el.style.position = 'relative';
+    }
+  }catch(_){}
+}
+
+function restorePositioned(el){
+  try{
+    if (el.dataset.rtTourWasStatic === '1'){
+      const prev = el.dataset.rtTourPrevPos || '';
+      if (prev) el.style.position = prev;
+      else el.style.removeProperty('position');
+    }
+    delete el.dataset.rtTourWasStatic;
+    delete el.dataset.rtTourPrevPos;
+  }catch(_){}
+}
+
+  function rectIntersects(a,b){
+  if(!a || !b) return false;
+  return !(a.right <= b.left || a.left >= b.right || a.bottom <= b.top || a.top >= b.bottom);
+}
+
+function placeUI(targetRect, avoidRect, step){
+  const vw = window.innerWidth, vh = window.innerHeight;
+  const SAFE = 14;
+  const GAP  = 14;
+
+  // pointer near top-right of target
+  if (targetRect){
+    const px = clamp(targetRect.right - 8, SAFE, vw - SAFE);
+    const py = clamp(targetRect.top + 10, SAFE, vh - SAFE);
+    pointer.style.left = px + 'px';
+    pointer.style.top  = py + 'px';
+  } else {
+    pointer.style.left = (vw/2) + 'px';
+    pointer.style.top  = (vh/2) + 'px';
+  }
+
+  // popover width
+  const popW = Math.min(380, vw - 28);
+  pop.style.width = popW + 'px';
+  pop.style.maxWidth = popW + 'px';
+
+  // measure height after content render
+  const popH = pop.offsetHeight || 200;
+
+  const align = (step && step.popAlign) || 'start'; // start|center|end
+  const preferred = (step && step.popPlacement) || null;
+
+  const xAligned = (rect)=>{
+    if (!rect) return clamp((vw - popW)/2, SAFE, vw - popW - SAFE);
+    if (align === 'center') return clamp(rect.left + (rect.width - popW)/2, SAFE, vw - popW - SAFE);
+    if (align === 'end')    return clamp(rect.right - popW, SAFE, vw - popW - SAFE);
+    return clamp(rect.left, SAFE, vw - popW - SAFE); // start
+  };
+
+  const candidates = [];
+  const push = (p)=>{ if(p && !candidates.includes(p)) candidates.push(p); };
+  push(preferred);
+  ['below','above','right','left','center'].forEach(push);
+
+  let best = { x: SAFE, y: SAFE };
+
+  const avoid = avoidRect || targetRect;
+
+  for (const p of candidates){
+    let x = SAFE, y = SAFE;
+
+    if (!targetRect){
+      x = clamp((vw - popW)/2, SAFE, vw - popW - SAFE);
+      y = clamp((vh - popH)/2, SAFE, vh - popH - SAFE);
+      best = {x,y};
+      break;
+    }
+
+    if (p === 'below'){
+      x = xAligned(targetRect);
+      y = targetRect.bottom + GAP;
+    } else if (p === 'above'){
+      x = xAligned(targetRect);
+      y = targetRect.top - GAP - popH;
+    } else if (p === 'right'){
+      x = targetRect.right + GAP;
+      y = clamp(targetRect.top, SAFE, vh - popH - SAFE);
+    } else if (p === 'left'){
+      x = targetRect.left - GAP - popW;
+      y = clamp(targetRect.top, SAFE, vh - popH - SAFE);
+    } else { // center
+      x = (vw - popW)/2;
+      y = (vh - popH)/2;
+    }
+
+    x = clamp(x, SAFE, vw - popW - SAFE);
+    y = clamp(y, SAFE, vh - popH - SAFE);
+
+    const candRect = { left:x, top:y, right:x+popW, bottom:y+popH };
+
+    // Prefer placements that do not cover the avoid-rect (usually the revealed context)
+    if (!avoid || !rectIntersects(candRect, avoid) || p === 'center'){
+      best = {x,y};
+      break;
+    }
+
+    // fallback candidate (keep last tried)
+    best = {x,y};
+  }
+
+  pop.style.left = best.x + 'px';
+  pop.style.top  = best.y + 'px';
+}
+
+  function setContent(step, idx, total){
+    elStep.textContent = `Шаг ${idx+1} из ${total}`;
+    elTitle.textContent = step.title || '—';
+    elText.textContent  = step.text  || '';
+    elExtra.innerHTML   = step.extraHTML || '';
+    btnNext.textContent = (step.primary && step.primary.label) ? step.primary.label : (step.nextLabel || 'Далее');
+  }
+
+  function setSatisfied(v){
+    satisfied = !!v;
+    const must = currentStep()?.require;
+    // show "Дальше" only when there is an action requirement
+    if (btnFree) btnFree.style.display = must ? '' : 'none';
+    if (!must){
+      btnNext.disabled = false;
+      return;
+    }
+    btnNext.disabled = !satisfied;
+  }
+
+  function currentStep(){
+    const key = pageKey();
+    const list = STEPS[key] || [];
+    const st = loadState();
+    const idx = st?.idx ?? 0;
+    return list[idx] || null;
+  }
+
+  function ensureTargets(step){
+    let els = [];
+    const addEl = (e)=>{
+      if(!e || !(e instanceof Element)) return;
+      if (e.offsetParent === null && getComputedStyle(e).position !== 'fixed') return; // hidden
+      els.push(e);
+    };
+
+    if (typeof step.focus === 'function'){
+      try{
+        const res = step.focus();
+        (Array.isArray(res) ? res : [res]).forEach(addEl);
+      }catch(_){}
+    } else if (Array.isArray(step.focus)){
+      step.focus.forEach(sel=>{
+        if (typeof sel === 'string'){
+          $$(sel).forEach(addEl);
+        }
+      });
+    }
+
+    // if nothing found and step can be skipped automatically
+    if (!els.length && step.skipIfMissing) return null;
+    return els;
+  }
+
+  
+  function ensureReveal(step){
+    let els = [];
+    const addEl = (e)=>{
+      if(!e || !(e instanceof Element)) return;
+      if (e.offsetParent === null && getComputedStyle(e).position !== 'fixed') return; // hidden
+      els.push(e);
+    };
+
+    if (typeof step.reveal === 'function'){
+      try{
+        const res = step.reveal();
+        (Array.isArray(res) ? res : [res]).forEach(addEl);
+      }catch(_){}
+    } else if (Array.isArray(step.reveal)){
+      step.reveal.forEach(sel=>{
+        if (typeof sel === 'string'){
+          $$(sel).forEach(addEl);
+        }
+      });
+    }
+    return els;
+  }
+
+function attachRequire(step){
+    if (!step.require) { setSatisfied(true); return null; }
+    if (step.require === 'manual') { setSatisfied(false); return null; }
+
+    setSatisfied(false);
+
+    // generic "any of" support
+    const reqs = Array.isArray(step.require) ? step.require : [step.require];
+    const off = [];
+
+    const mark = ()=>{
+      setSatisfied(true);
+      if (step.autoNext && !step.primary){
+        // auto-advance only if it's an in-page step
+        setTimeout(next, 80);
+      }
+    };
+
+    reqs.forEach(req=>{
+      const type = req.type || 'click';
+      const sel  = req.selector;
+      if (!sel) return;
+
+      const handler = (e)=>{
+        const hit = e.target && (e.target.closest ? e.target.closest(sel) : null);
+        if (!hit) return;
+        if (req.preventDefault) { try{ e.preventDefault(); }catch(_){ } }
+        if (req.stopPropagation) {
+          try{ e.stopImmediatePropagation(); }catch(_){}
+          try{ e.stopPropagation(); }catch(_){}
+        }
+        mark();
+      };
+
+      if (type === 'input'){
+        const inputHandler = (e)=>{
+          const hit = e.target && (e.target.closest ? e.target.closest(sel) : null);
+          if (!hit) return;
+          // allow "non-empty" requirement
+          if (req.nonEmpty){
+            const v = (hit.value ?? '').toString().trim();
+            if (!v) return;
+          }
+          mark();
+        };
+        document.addEventListener('input', inputHandler, true);
+        off.push(()=> document.removeEventListener('input', inputHandler, true));
+      } else if (type === 'change'){
+        document.addEventListener('change', handler, true);
+        off.push(()=> document.removeEventListener('change', handler, true));
+      } else { // click
+        document.addEventListener('click', handler, true);
+        off.push(()=> document.removeEventListener('click', handler, true));
+      }
+    });
+
+    return ()=> off.forEach(fn=>{ try{ fn(); }catch(_){ } });
+  }
+
+  function attachEnter(step){
+    if (typeof step.onEnter !== 'function') return null;
+    try{ return step.onEnter({setSatisfied}); }catch(_){ return null; }
+  }
+
+  function show(){
+    const key = pageKey();
+    const list = STEPS[key] || [];
+    const st = loadState() || {active:false, page:key, idx:0};
+
+    if (!st.active) return;
+    if (st.page !== key){
+      // если пользователь ушёл руками на другую страницу — продолжаем с первого шага этой страницы
+      st.page = key;
+      st.idx  = 0;
+      saveState(st);
+    }
+
+    const step = list[st.idx];
+    if (!step){
+      visible(false);
+      clearFocus();
+      markDone();
+      return;
+    }
+
+    // cleanup previous
+    if (cleanupWait){ try{ cleanupWait(); }catch(_){ } cleanupWait=null; }
+    if (cleanupEnter){ try{ cleanupEnter(); }catch(_){ } cleanupEnter=null; }
+    clearFocus();
+
+    // targets
+    const targets = ensureTargets(step);
+    if (targets === null){
+      // auto-skip this step
+      next();
+      return;
+    }
+
+    focused = targets || [];
+
+    // reveal (visible context without glow)
+    const reveals = ensureReveal(step) || [];
+    revealed = reveals;
+    revealed.forEach(el=>{
+      try{
+        ensurePositioned(el);
+        el.classList.add('rt-tour-reveal');
+        if (step.radiusInherit) el.classList.add('rt-tour-radius-inherit');
+        el.setAttribute('data-rt-tour-reveal','1');
+      }catch(_){}
+    });
+
+    focused.forEach(el=>{
+      try{
+        ensurePositioned(el);
+        el.classList.add('rt-tour-focus');
+        if (step.radiusInherit) el.classList.add('rt-tour-radius-inherit');
+        el.setAttribute('data-rt-tour-focus','1');
+      }catch(_){}
+    });
+
+    // scroll to first target
+    if (focused[0] && focused[0].scrollIntoView){
+      try{ focused[0].scrollIntoView({behavior:'smooth', block:'center', inline:'center'}); }catch(_){}
+    }
+
+    // content + positioning
+    visible(true);
+    setContent(step, st.idx, list.length);
+
+    // attach enter hook (e.g. long-press practice)
+    cleanupEnter = attachEnter(step);
+
+    // requirements gating
+    cleanupWait = attachRequire(step);
+
+    // position after layout
+    setTimeout(()=>{
+      const rFocus = rectUnion(focused);
+      let avoidEls = focused.slice();
+      const mode = (step && step.avoidCover) || 'focus';
+      if (mode === 'reveal') avoidEls = revealed.slice();
+      else if (mode === 'all') avoidEls = focused.concat(revealed);
+      const rAvoid = rectUnion(avoidEls);
+      placeUI(rFocus, rAvoid, step);
+      const wantPointer = (step.pointer !== false) && !!rFocus;
+      pointer.classList.toggle('is-on', wantPointer);
+    }, 0);
+  }
+
+  function navigateTo(page){
+    const base = location.pathname.replace(/[^\/]*$/, '');
+    const url  = base + page + '.html';
+    location.href = url;
+  }
+
+  function next(force=false){
+    const key = pageKey();
+    const list = STEPS[key] || [];
+    const st = loadState() || {active:true, page:key, idx:0};
+
+    // if current step defines primary click (CTA), handle it
+    const step = list[st.idx];
+    if (step?.primary?.click){
+      const target = $(step.primary.click);
+      if (target){
+        // if click leads to navigation, persist the next page step beforehand
+        if (step.primary.nextPage){
+          saveState({active:true, page: step.primary.nextPage, idx:0});
+        }
+        try{ target.click(); }catch(_){}
+        return;
+      }
+      // fallback to navigation if element missing
+      if (step.primary.nextPage){
+        saveState({active:true, page: step.primary.nextPage, idx:0});
+        navigateTo(step.primary.nextPage);
+        return;
+      }
+    }
+
+    // normal flow
+    if (step?.primary?.nextPage){
+      saveState({active:true, page: step.primary.nextPage, idx:0});
+      navigateTo(step.primary.nextPage);
+      return;
+    }
+
+    st.idx = (st.idx ?? 0) + 1;
+
+    if (st.idx >= list.length){
+      // finish this page: if there's an explicit nextPageForFinish, go there; otherwise mark done
+      if (step?.nextPageOnFinish){
+        saveState({active:true, page: step.nextPageOnFinish, idx:0});
+        navigateTo(step.nextPageOnFinish);
+        return;
+      }
+      visible(false);
+      clearFocus();
+      markDone();
+      return;
+    }
+
+    saveState(st);
+    show();
+  }
+
+  function skip(){
+    visible(false);
+    clearFocus();
+    if (cleanupWait){ try{ cleanupWait(); }catch(_){ } cleanupWait=null; }
+    if (cleanupEnter){ try{ cleanupEnter(); }catch(_){ } cleanupEnter=null; }
+    markDone();
+  }
+
+  btnSkip?.addEventListener('click', skip);
+  btnFree?.addEventListener('click', ()=> next(true));
+  btnNext?.addEventListener('click', ()=> next(false));
+  overlay?.addEventListener('click', (e)=>{ e.preventDefault(); e.stopPropagation(); });
+
+  window.addEventListener('resize', ()=>{
+    if (!overlay.classList.contains('is-on')) return;
+    const r = rectUnion(focused);
+    placeUI(r);
+    pointer.classList.toggle('is-on', (currentStep()?.pointer !== false) && !!r);
+  });
+
+  // -------- Steps mapping (editable) --------
+  const pick = {
+    calendarDay(){
+      return $('.day.today') || $('.day');
+    }
+  };
+
+  const STEPS = {
+    
+main: [
+      {
+        title: 'Добро пожаловать в Roaccutane Tracker',
+        text: 'Покажу, как отмечать приём, смотреть прогресс, вести дневник и анализы.',
+        focus: [],
+        pointer: false,
+        nextLabel: 'Начать',
+      },
+      {
+        title: 'Цель курса',
+        text: 'Выберите Мин/Опт/Макс. Круги и полоска — ваш прогресс.',
+        reveal: ['#cardProgress'],
+        focus: ['#doseSeg button'],
+        radiusInherit: true,
+        require: {type:'click', selector:'#doseSeg button'},
+      },
+      {
+        title: 'Отметить приём',
+        text: 'Выставьте дозу, тип капсулы и дату.',
+        reveal: ['#cardDose'],
+        focus: ['#mg', '#mgMinus', '#mgPlus', '#capSeg', '#date'],
+        radiusInherit: true,
+        onEnter(){
+          // показать блок типа капсулы на время обучения
+          const cap = $('#capType');
+          if (cap) cap.hidden = false;
+        },
+      },
+      {
+        title: 'Сохранить приём',
+        text: 'Нажмите «Добавить». Прогресс обновится, появится мотивация, а карточка станет зелёной.',
+        reveal: ['#cardDose', '#cardProgress', '#cardReminder'],
+        focus: ['#save'],
+        radiusInherit: true,
+        require: {type:'click', selector:'#save'},
+      },
+      {
+        title: 'Календарь',
+        text: 'Быстрый обзор недели. «Открыть» — полный календарь.',
+        reveal: ['#cardCalendar'],
+        focus: ['#openCalendarBtn', '#calPrev', '#calNext'],
+        radiusInherit: true,
+      },
+      {
+        title: 'Напоминания',
+        text: 'Включите напоминание и выберите время.',
+        reveal: ['#cardReminder'],
+        focus: ['#remCtrl input', '#remTime'],
+        radiusInherit: true,
+        extra(){
+          return `
+            <div class="rt-extras">
+              <div class="rt-notif"><b>🔔 Roaccutane Tracker</b><span class="muted">Пора принять препарат</span></div>
+              <div class="rt-notif"><b>🧴 Roaccutane Tracker</b><span class="muted">Капсул осталось мало — пора докупить</span></div>
+            </div>
+          `;
+        }
+      },
+      {
+        title: 'FAQ',
+        text: 'Тут короткие подсказки по курсу.',
+        reveal: ['#cardFAQ'],
+        focus: ['#cardFAQ a.chip'],
+        avoidCover: 'reveal',
+        popPlacement: 'above',
+        radiusInherit: true,
+      },
+      {
+        title: 'Обнулить всё',
+        text: 'Удалит журнал и кэш на этом устройстве. Профиль останется.',
+        reveal: ['#cardReset'],
+        focus: ['#resetBtn'],
+        avoidCover: 'reveal',
+        popPlacement: 'above',
+        radiusInherit: true,
+      },
+      {
+        title: 'Нижнее меню',
+        text: 'Внизу — разделы приложения. Откройте «Календарь», чтобы продолжить.',
+        reveal: ['nav.tabbar'],
+        focus: ['nav.tabbar a[href*="calendar.html"]'],
+        avoidCover: 'reveal',
+        popPlacement: 'above',
+        radiusInherit: true,
+        primary: { label:'К календарю', click:'nav.tabbar a[href*="calendar.html"]', nextPage:'calendar' },
+      },
+    ],
+
+
+    calendar:
+ [
+      {
+        title: 'День в календаре',
+        text: 'Тапните по любому дню — снизу появится карточка. Если зажать день на 1 секунду, откроется дневник этого дня.',
+        reveal: ['#card'],
+        focus: () => pick.calendarDay(),
+        radiusInherit: true,
+        require: {type:'click', selector:'#grid .day'},
+        autoNext: true,
+      },
+      {
+        title: 'Карточка дня',
+        text: 'Снизу — самочувствие, доза и заметка. «Открыть дневник» — подробности.',
+        reveal: ['#sheet'],
+        focus: ['#sheet', '#openDiary', '#doseEdit'],
+        radiusInherit: true,
+        avoidCover: 'reveal',
+        popPlacement: 'above',
+      },
+      {
+        title: 'Заполнить сразу несколько дней',
+        text: 'Проведите пальцем по нескольким дням — появится ввод дозы для всех выбранных.',
+        reveal: ['#card'],
+        focus: ['#grid'],
+        radiusInherit: true,
+        require: 'manual',
+        onEnter: ({setSatisfied})=>{
+          setSatisfied(false);
+          const orig = window.prompt;
+          if (typeof orig !== 'function') { setSatisfied(true); return null; }
+          window.prompt = function(msg, def){
+            const res = orig.call(this, msg, def);
+            try{
+              if (typeof msg === 'string' && msg.startsWith('Установить одинаковую дозу')) {
+                if (res !== null && String(res).trim() !== '') setTimeout(()=>setSatisfied(true), 0);
+              }
+            }catch(_){}
+            return res;
+          };
+          return ()=>{ try{ window.prompt = orig; }catch(_){ } };
+        },
+      },
+      {
+        title: 'Профиль',
+        text: 'Перейдите в профиль — там врач, напоминания и дневник.',
+        reveal: ['nav.tabbar'],
+        focus: ['nav.tabbar a[href$="myprofile.html"]'],
+        avoidCover: 'reveal',
+        popPlacement: 'above',
+        radiusInherit: true,
+        primary: { label:'Перейти', click:'nav.tabbar a[href$="myprofile.html"]', nextPage:'myprofile' },
+      },
+    ],
+myprofile: [
+      {
+        title: 'Лечащий врач',
+        text: 'Введите код врача (его выдаёт врач). После прикрепления дождитесь, пока врач примет заявку.',
+        focus: ['#docCodeInput', '#docBindBtn', '#doctorMeta'],
+        radiusInherit: true,
+        require: {type:'input', selector:'#docCodeInput', nonEmpty:true},
+      },
+      {
+        title: 'Напоминания',
+        text: 'Включите напоминания о приёме и о закупке капсул — чтобы не забывать.',
+        focus: ['#remToggle', '#remTime', '#remStock', '#stockThreshold'],
+        radiusInherit: true,
+        extraHTML: `
+          <div class="rt-preview">
+            <div class="rt-notif"><b>Roaccutane Tracker</b><span class="muted">09:00 • Пора принять препарат</span></div>
+            <div class="rt-notif"><b>Roaccutane Tracker</b><span class="muted">Осталось ≤ 10 капсул • Пора купить</span></div>
+          </div>
+        `,
+        require: [
+          {type:'click', selector:'#remToggle'},
+          {type:'click', selector:'#remStock'},
+          {type:'change', selector:'#remTime'},
+        ],
+      },
+      {
+        title: 'Дневник',
+        text: 'Откройте дневник — там самочувствие, побочки, фото и заметки.',
+        focus: ['a[href$="diary.html"].tab', 'a[href$="diary.html"]', '#openDiaryBtn'],
+        skipIfMissing: true,
+        radiusInherit: true,
+        primary: { label:'Перейти', click:'a[href$="diary.html"]', nextPage:'diary' },
+      },
+    ],
+
+    diary: [
+      {
+        title: 'Самочувствие',
+        text: 'Это ваш пушистый друг: он показывает общее состояние на сегодня. Побочки тоже влияют на самочувствие. Подвиньте ползунок и нажмите «Подтвердить» — это увидит ваш врач.',
+        focus: ['#moodScene', '#moodBar', '#confirmMood'],
+        radiusInherit: true,
+        require: {type:'click', selector:'#confirmMood'},
+      },
+      {
+        title: 'Побочные эффекты',
+        text: 'Отметьте побочки — они тоже влияют на самочувствие. Эти данные будут передаваться вашему врачу.',
+        focus: ['#seList'],
+        radiusInherit: true,
+        require: {type:'input', selector:'#seList input[type="range"][data-key]'},
+      },
+      {
+        title: 'Анализы',
+        text: 'Переходим к анализам — там контроль показателей и сохранение отчётов.',
+        focus: ['nav.navbar a[href$="labs.html"]', '.bottom-nav #navLabs', 'a[href$=\"labs.html\"]'],
+        radiusInherit: true,
+        primary: { label:'Перейти', click:'a[href$="labs.html"]', nextPage:'labs' },
+      },
+    ],
+
+    labs: [
+      {
+        title: 'Пол и нормы',
+        text: 'Выберите пол — так нормы и подсказки будут точнее.',
+        focus: ['#sexSeg'],
+        radiusInherit: true,
+        require: {type:'click', selector:'#sexSeg button'},
+      },
+      {
+        title: 'Введите значения',
+        text: 'Введите показатели из бланка (например, АЛТ) — справа появится статус.',
+        focus: ['.field[data-key="ALT"]', '.field[data-key="ALT"] input'],
+        radiusInherit: true,
+        require: {type:'input', selector:'.field[data-key="ALT"] input', nonEmpty:true},
+      },
+      {
+        title: 'Сохранить',
+        text: 'Нажмите «Сохранить значения» — данные сохранятся на этом устройстве.',
+        focus: ['#saveBtn'],
+        radiusInherit: true,
+        require: {type:'click', selector:'#saveBtn'},
+      },
+      {
+        title: 'Готово',
+        text: 'Вы освоили основные функции. Тур можно будет включить снова из настроек (если добавим кнопку).',
+        focus: ['#pageRoot'],
+        skipIfMissing: true,
+        radiusInherit: true,
+      },
+    ],
+  };
+
+  // -------- Autostart --------
+  function shouldAutostart(){
+    if (isDone()) return false;
+
+    const st = loadState();
+    if (st?.active) return true; // продолжить на любой странице
+
+    // новый запуск — только с main
+    return pageKey() === 'main';
+  }
+
+  function start(){
+    saveState({active:true, page: pageKey(), idx:0});
+    show();
+  }
+
+  function init(){
+    const st = loadState();
+
+    // если тур уже идёт — просто показываем текущий шаг на этой странице
+    if (st?.active){
+      setTimeout(()=>{ show(); }, 120);
+      return;
+    }
+
+    // иначе — автостарт только на main
+    if (shouldAutostart()){
+      setTimeout(()=>{ start(); }, 220);
+    }
+  }
+
+  if (document.readyState === 'loading'){
+    document.addEventListener('DOMContentLoaded', init);
+  } else {
+    init();
+  }
+
+  // Expose small API (optional)
+  window.RTTour = {
+    start: ()=>{ try{ localStorage.removeItem(DONE_KEY); }catch(_){ } start(); },
+    stop: skip,
+  };
+})();
+</script>
+<!-- /RT_TOUR_V1 -->
 
 </body>
 </html>

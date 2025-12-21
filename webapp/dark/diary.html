@@ -1420,6 +1420,40 @@ header{
   /* hidden-fix: гарантируем, что атрибут hidden всегда скрывает элементы */
   [hidden]{ display:none !important; }
 </style>
+<!-- PATCH v2: ONLY requested fixes (compare photo area bigger + compact header on phones) -->
+<style id="requested-fixes-v2">
+/* 1) Compare modal: make photo area truly tall (works even if dvh is unsupported) */
+.cmp-panel{
+  display:flex !important;
+  flex-direction:column !important;
+  height: calc(100vh - env(safe-area-inset-top) - env(safe-area-inset-bottom) - 28px) !important;
+  max-height: calc(100vh - env(safe-area-inset-top) - env(safe-area-inset-bottom) - 28px) !important;
+}
+.cmp-controls{ flex:0 0 auto !important; }
+.cmp-panel .compare{
+  flex:1 1 auto !important;
+  height:auto !important;
+  aspect-ratio:auto !important;
+  min-height: 240px !important;
+}
+
+/* 2) Diary header: make brand/title/date nav compact on phones */
+@media (max-width: 560px){
+  :root{ --topbar-bleed: 12px !important; }
+  header .wrap{ padding: 10px 12px !important; }
+  .wrap.topbar{ padding: 2px 0 !important; gap: 4px !important; }
+  .brand{ font-size: 13px !important; line-height: 1.15 !important; }
+  .app-title{ font-size: 22px !important; margin: 2px 0 6px !important; padding-left: 0 !important; }
+  .day-nav{ margin-top: 6px !important; gap: 10px !important; }
+  .day-nav .center-stack{ padding: 10px 12px !important; gap: 6px !important; border-radius: 16px !important; }
+  #dayChip{ padding: 8px 10px !important; font-size: 13px !important; }
+  .nav-arrow{ width: 44px !important; height: 44px !important; border-radius: 14px !important; }
+}
+@media (max-width: 380px){
+  .app-title{ font-size: 20px !important; }
+}
+</style>
+
 </head>
 <body>
 <script>

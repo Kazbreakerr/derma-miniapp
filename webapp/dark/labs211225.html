@@ -51,17 +51,16 @@
     /* ===== Header ===== */
     header{
       position: sticky; top: 0; z-index: 5;
-      padding: clamp(8px, 2.2vw, 14px) 16px;
+      padding: 14px 16px;
       background: transparent;
       backdrop-filter: blur(6px);
     }
-    .app-title{ font-weight:800; letter-spacing:.2px; font-size: clamp(13px, 3.6vw, 15.5px); line-height:1.15; }
+    .app-title{ font-weight:800; letter-spacing:.2px; }
 
     /* ===== Layout ===== */
     .wrap{
       max-width: 920px; width:100%;
-      margin: 0 auto;
-      padding: clamp(10px, 2.4vw, 16px) 16px;
+      margin: 0 auto; padding: 16px;
       box-sizing: border-box; flex:1 0 auto;
     }
     .card{
@@ -126,16 +125,6 @@
     .chip.bad{ color:#ef6a6a; background:#1f0f12 }
 
     .toolbar{display:flex; align-items:center; gap:10px; flex-wrap:wrap}
-
-/* Labs filters (sex/age) */
-.labs-filters{ display:flex; align-items:center; gap:12px; flex-wrap:wrap; }
-.labs-group{ display:inline-flex; align-items:center; gap:10px; white-space:nowrap; }
-.labs-group strong{ font-weight:800; }
-/* keep label + buttons together and compact on phones */
-@media (max-width: 520px){
-  .labs-filters{ display:grid; grid-template-columns: 1fr; gap:10px; }
-  .seg button{ padding: 9px 12px; }
-}
     .btn{
       appearance:none; border:1px solid var(--border);
       background: linear-gradient(180deg, #0f1624, #111a2a);
@@ -223,51 +212,30 @@
     .bottom-nav{
       position: fixed; left: 0; right: 0; bottom: 0;
       z-index: 2000;
-      /* adaptive paddings so it always fits */
-      padding:
-        clamp(6px, 2.2vw, 12px)
-        max(env(safe-area-inset-left), clamp(10px, 2.2vw, 14px))
-        calc(clamp(6px, 2.2vw, 12px) + env(safe-area-inset-bottom))
-        max(env(safe-area-inset-right), clamp(10px, 2.2vw, 14px));
+      padding: 12px max(env(safe-area-inset-left),14px) calc(12px + env(safe-area-inset-bottom)) max(env(safe-area-inset-right),14px);
       display: grid;
-      grid-template-columns: repeat(5, minmax(0, 1fr));
-      gap: clamp(6px, 1.8vw, 10px);
+      grid-template-columns: repeat(5, 1fr);
+      gap: 10px;
       background: var(--card);
       border-top: 1px solid var(--border);
       box-shadow: var(--shadow-up), var(--shadow-down);
       backdrop-filter: saturate(120%) blur(6px);
     }
     .tab{
-      min-width: 0; /* allow shrinking */
-      display:flex; flex-direction:column; align-items:center; justify-content:center;
-      gap: clamp(4px, 1.2vw, 6px);
-      height: clamp(50px, 14vw, 64px);
-      padding: clamp(6px, 1.8vw, 8px) clamp(6px, 1.8vw, 10px);
+      display:flex; flex-direction:column; align-items:center; justify-content:center; gap:6px;
+      height: 64px;
+      padding: 8px 10px;
       text-decoration:none;
-      border-radius: clamp(14px, 4vw, 18px);
+      border-radius: 18px;
       border: 1px solid var(--border);
       background: linear-gradient(180deg, #101928, #0c121d);
       color:#b7c5dd;
-      font-size: clamp(10.5px, 2.8vw, 12.5px);
-      font-weight:800; letter-spacing:.2px;
+      font-size:12.5px; font-weight:800; letter-spacing:.2px;
       box-shadow: var(--shadow-up), var(--shadow-down);
       user-select:none;
-      -webkit-tap-highlight-color: transparent;
     }
-    .tab svg{
-      width: clamp(18px, 5.2vw, 22px);
-      height: clamp(18px, 5.2vw, 22px);
-      opacity:.95; stroke:#c6d2e8;
-      flex: 0 0 auto;
-    }
-    .tab span{
-      line-height:1;
-      max-width:100%;
-      overflow:hidden;
-      text-overflow:ellipsis;
-      white-space:nowrap;
-      display:block;
-    }
+    .tab svg{ width:22px; height:22px; opacity:.95; stroke:#c6d2e8 }
+    .tab span{ line-height:1; }
     .tab:active{ transform: translateY(1px) }
     .tab.active{
       background: linear-gradient(180deg, #111d30, #0c131f);
@@ -279,8 +247,7 @@
       content:""; display:block; height:2px; border-radius:2px; background:#9ec5ff;
       opacity:.9; margin-top:4px; width: 100%;
     }
-    /* JS can set exact spacer height; fallback keeps content above nav */
-    .bottom-spacer{ height: var(--nav-h, calc(86px + env(safe-area-inset-bottom))); }
+    .bottom-spacer{ height: calc(86px + env(safe-area-inset-bottom)); }
 
     /* Page fade for navigation */
 
@@ -375,29 +342,23 @@
       <div class="muted">Классические показатели во время курса ретиноидов. Введите свои значения — справа увидите норму и статус. Диапазоны ориентировочные, ориентируйтесь на бланк вашей лаборатории.</div>
     </div>
 
-    
-<div class="card" style="margin-bottom:14px;">
-  <div class="toolbar" style="justify-content:space-between; margin-bottom:8px;">
-    <div class="labs-filters">
-      <div class="labs-group">
-        <strong>Пол:</strong>
-        <div class="seg" id="sexSeg">
-          <button type="button" data-sex="female" class="active">Ж</button>
-          <button type="button" data-sex="male">М</button>
-        </div>
-      </div>
-
-      <div class="labs-group">
-        <strong>Возраст:</strong>
-        <div class="seg" id="ageSeg">
-          <button type="button" data-age="u16">&lt; 16</button>
-          <button type="button" data-age="adult" class="active">16+</button>
-        </div>
-      </div>
-    </div>
-
-    <div class="muted" id="updatedLbl">Не сохранено</div>
+    <div class="card" style="margin-bottom:14px;">
+      <div class="toolbar" style="justify-content:space-between; margin-bottom:8px;">
+        <div class="toolbar" style="gap:12px;">
+          <strong>Пол:</strong>
+          <div class="seg" id="sexSeg">
+            <button type="button" data-sex="female" class="active">Ж</button>
+            <button type="button" data-sex="male">М</button>
+          </div>
+          <strong style="margin-left:10px;">Возраст:</strong>
+  <div class="seg" id="ageSeg">
+    <button type="button" data-age="u16">&lt; 16</button>
+    <button type="button" data-age="adult" class="active">16+</button>
   </div>
+</div>
+        </div>
+        <div class="muted" id="updatedLbl">Не сохранено</div>
+      </div>
 
       <div class="grid cols-2">
         <div class="grid">
