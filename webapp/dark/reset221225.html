@@ -395,25 +395,6 @@ html[data-theme="light"] .cancel{
   }
 </style>
 
-
-<style id="reset-button-tapfix">
-  /* Fix mobile tap highlight / focus overlay that may render outside rounded corners */
-  .hold-btn{
-    -webkit-tap-highlight-color: transparent !important;
-    -webkit-appearance: none !important;
-    appearance: none !important;
-    outline: none !important;
-    background-clip: padding-box !important;
-    clip-path: inset(0 round 16px);
-    -webkit-mask-image: -webkit-radial-gradient(white, black);
-    isolation: isolate;
-  }
-  .hold-btn:focus,
-  .hold-btn:focus-visible{ outline: none !important; }
-  .hold-btn::-moz-focus-inner{ border:0; padding:0; }
-  .hold-btn .progress{ border-radius: inherit; }
-</style>
-
 </head>
 <body>
 <script>

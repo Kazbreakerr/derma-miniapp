@@ -505,23 +505,7 @@ user-select: none;
       background: linear-gradient(90deg, rgba(255,120,120,.20), rgba(255,196,0,.20), rgba(40,210,150,.20));
     }
     
-    
-    /* --- TOP SLOT: кнопка планирования (в основном календаре) / полоска соблюдения (в планировании) --- */
-    .top-slot{
-      margin: 2px 4px 12px;
-      display:flex;
-      flex-direction:column;
-      gap:10px;
-    }
-    .top-slot .stats-pill{ margin:0; }
-    .top-slot .planner-btn{ width:100%; justify-content:center; }
-
-    /* режимы: в основном календаре показываем кнопку, в планировании — полоску + нижний «К календарю» */
-    body:not(.plan-mode) #statsPill{ display:none; }
-    body.plan-mode #openPlannerTop{ display:none; }
-    body:not(.plan-mode) #plannerRow{ display:none; }
-    body.plan-mode #plannerRow{ display:flex; }
-/* --- BOTTOM NAV (как в labs.html) --- */
+    /* --- BOTTOM NAV (как в labs.html) --- */
     .bottom-nav{
       position: fixed; left: 0; right: 0; bottom: 0;
       z-index: 1400;
@@ -628,15 +612,11 @@ user-select: none;
     /* === RANGE SELECT (п.4) === */
     .grid.dragging { user-select: none; touch-action: none; }
 .day.in-range {
-  outline: 2px solid rgba(90,167,255,.85);
-  outline-offset: -3px;
+  outline: 2px dashed var(--accent, #8bdcff);
+  outline-offset: -4px;
   border-radius: 14px; /* как у .day */
-  box-shadow:
-    0 0 0 1px rgba(255,255,255,.08),
-    0 10px 28px rgba(90,167,255,.22),
-    inset 0 1px 0 rgba(255,255,255,.06);
 }
-.day.in-range .inner { transform: scale(0.985); }
+.day.in-range .inner { transform: scale(0.98); }
 
 /* === SELECTED & TODAY === */
 .day.selected{
@@ -852,7 +832,7 @@ html::view-transition-new(root){
 </script>
 <div class="brand">Retiora — Retinoid & Isotretinoin Tracker</div>
 
-  <div class="app-title"><span id="pageTitle">Календарь</span><span data-pill-spot></span><span data-stock-spot></span></div>
+  <div class="app-title">Календарь<span data-pill-spot></span><span data-stock-spot></span></div>
 
   <div class="calendar-card" id="card">
     <div class="header">
@@ -863,9 +843,7 @@ html::view-transition-new(root){
       </div>
       <button class="pill" id="todayBtn">Сегодня</button>
     </div>
-    <div class="top-slot" id="topSlot">
-      <button class="pill planner-btn" id="openPlannerTop" type="button">🗓️ Спланировать приёмы</button>
-      <div class="stats-pill" id="statsPill" aria-live="polite">
+    <div class="stats-pill" id="statsPill" aria-live="polite">
       <span>💊 <b id="statMg">0 мг</b></span>
       <span class="dot">•</span>
       <span>⏰ пропусков <b id="statMiss">0</b></span>
@@ -875,16 +853,8 @@ html::view-transition-new(root){
         <span id="statBar"></span>
       </div>
     </div>
-    </div>
     <div class="weekday-row" id="weekdayRow"></div>
     <div class="grid" id="grid"></div>
-
-    <div class="planner-row" id="plannerRow">
-      <button class="pill planner-btn" id="openPlanner" type="button">← К календарю</button>
-      <div class="plan-hint" id="planHint" hidden>
-        Тапните день или выделите диапазон, чтобы задать планируемую дозировку. План будет показан в основном календаре.
-      </div>
-    </div>
   </div>
 
   <div class="scrim" id="scrim" aria-hidden="true"></div>
@@ -911,26 +881,6 @@ html::view-transition-new(root){
       </div>
     </div>
   </div>
-
-  <!-- Neomorphism планируемая дозировка (для календаря планирования) -->
-  <div class="rt-modal" id="planModal" aria-hidden="true">
-    <div class="rt-modal__backdrop" data-close="1"></div>
-    <div class="rt-modal__dialog" role="dialog" aria-modal="true" aria-label="Планируемая дозировка">
-      <div class="rt-modal__title" id="planModalTitle">План приёма</div>
-      <div class="rt-modal__sub" id="planModalSub">Какую дозировку вы планируете?</div>
-      <input class="rt-modal__input" id="planModalInput" inputmode="numeric" type="number" min="0" step="1" placeholder="0">
-      <div class="rt-modal__actions rt-modal__actions--plan">
-        <button class="rt-btn-neo" type="button" id="planModalClear">Очистить</button>
-        <div class="rt-modal__actionsRight">
-          <button class="rt-btn-neo" type="button" id="planModalCancel">Отмена</button>
-          <button class="rt-btn-neo rt-btn-neo--primary" type="button" id="planModalOk">Сохранить</button>
-        </div>
-      </div>
-    </div>
-  </div>
-
-  <!-- Mini info card (planner long-press) -->
-  <div class="plan-peek" id="planPeek" aria-hidden="true"></div>
 
   <!-- Bottom navigation -->
   <nav class="bottom-nav" role="navigation" aria-label="Главная навигация">
@@ -974,197 +924,6 @@ html::view-transition-new(root){
   const doseModalOk     = document.getElementById('doseModalOk');
   const doseModalCancel = document.getElementById('doseModalCancel');
   const doseModalClose  = doseModal ? doseModal.querySelector('[data-close]') : null;
-
-  // --- Plan modal (календарь планирования) ---
-  const planModal       = document.getElementById('planModal');
-  const planModalInput  = document.getElementById('planModalInput');
-  const planModalTitle  = document.getElementById('planModalTitle');
-  const planModalSub    = document.getElementById('planModalSub');
-  const planModalOk     = document.getElementById('planModalOk');
-  const planModalCancel = document.getElementById('planModalCancel');
-  const planModalClear  = document.getElementById('planModalClear');
-  const planModalClose  = planModal ? planModal.querySelector('[data-close]') : null;
-  const planPeek = document.getElementById('planPeek');
-  let planPeekTimer = null;
-
-  function getFactMgForDay(id){
-    try{
-      const d1 = (typeof getDiary === 'function') ? (getDiary()[id] || null) : null;
-      const n = (d1 && (d1.dose || d1.mg)) ? Number(d1.dose || d1.mg) : 0;
-      return (Number.isFinite(n) && n > 0) ? Math.round(n) : 0;
-    }catch(_){ return 0; }
-  }
-
-  function hidePlanPeek(){
-    if (!planPeek) return;
-    planPeek.classList.remove('active');
-    planPeek.setAttribute('aria-hidden','true');
-  }
-
-  function showPlanPeek(id, x, y){
-    if (!planPeek) return;
-    const m = getPlanMg(id);
-    const n = getFactMgForDay(id);
-
-    let msg = '';
-    if (m == null) msg = 'План на день не задан';
-    else if (!n)  msg = 'Ты ещё не выпил запланированную дозу';
-    else          msg = `Выпито ${n} мг из ${m} мг`;
-
-    planPeek.textContent = msg;
-    planPeek.style.left = '14px';
-    planPeek.style.top  = '90px';
-    planPeek.classList.add('active');
-    planPeek.setAttribute('aria-hidden','false');
-
-    // позиционирование около пальца/курсора
-    requestAnimationFrame(()=>{
-      const r = planPeek.getBoundingClientRect();
-      const pad = 10;
-      let left = (x || 0) - r.width/2;
-      let top  = (y || 0) - r.height - 14;
-
-      left = Math.max(pad, Math.min(window.innerWidth - r.width - pad, left));
-      // чуть ниже шапки
-      const minTop = 64;
-      top = Math.max(minTop, Math.min(window.innerHeight - r.height - pad, top));
-
-      planPeek.style.left = `${left}px`;
-      planPeek.style.top  = `${top}px`;
-    });
-
-    clearTimeout(planPeekTimer);
-    planPeekTimer = setTimeout(hidePlanPeek, 1600);
-  }
-
-
-  function openPlanModal(initialValue, {count=1} = {}){
-    return new Promise((resolve)=>{
-      if (!planModal || !planModalInput || !planModalOk || !planModalCancel || !planModalClear) return resolve(null);
-
-      const close = (val)=>{
-        planModal.classList.remove('active');
-        planModal.setAttribute('aria-hidden','true');
-        planModalOk.onclick = null;
-        planModalCancel.onclick = null;
-        planModalClear.onclick = null;
-        if (planModalClose) planModalClose.onclick = null;
-        document.removeEventListener('keydown', onKey);
-        resolve(val);
-      };
-
-      const onKey = (e)=>{
-        if (e.key === 'Escape') return close(null);
-        if (e.key === 'Enter')  return close({action:'set', value: planModalInput.value});
-      };
-
-      const multi = (count && count > 1);
-      if (planModalTitle) planModalTitle.textContent = 'План приёма';
-      if (planModalSub)   planModalSub.textContent   = multi
-        ? 'Какую дозировку вы планируете для выбранных дней?'
-        : 'Какую дозировку вы планируете?';
-      planModalOk.textContent = multi ? 'Применить' : 'Сохранить';
-
-      planModalInput.value = (initialValue === 0 || initialValue) ? String(initialValue) : '';
-      planModal.classList.add('active');
-      planModal.setAttribute('aria-hidden','false');
-      document.addEventListener('keydown', onKey);
-
-      requestAnimationFrame(()=>{
-        try{ planModalInput.focus(); planModalInput.select?.(); }catch(_){ }
-      });
-
-      planModalOk.onclick     = ()=> close({action:'set', value: planModalInput.value});
-      planModalCancel.onclick = ()=> close(null);
-      planModalClear.onclick  = ()=> close({action:'clear'});
-      if (planModalClose) planModalClose.onclick = ()=> close(null);
-    });
-  }
-
-  // --- Planned doses storage ---
-  const PLAN_KEY = 'rt.plan.v1';
-  function loadPlan(){
-    try{ return JSON.parse(localStorage.getItem(PLAN_KEY)||'{}') || {}; }catch(_){ return {}; }
-  }
-  function savePlan(plan){
-    localStorage.setItem(PLAN_KEY, JSON.stringify(plan||{}));
-    try{
-      localStorage.setItem('rt.plan.bump', Date.now().toString());
-      localStorage.removeItem('rt.plan.bump');
-    }catch(_){ }
-  }
-  function getPlanMg(id){
-    const plan = loadPlan();
-    const v = plan ? plan[id] : null;
-    const n = Number(v);
-    return Number.isFinite(n) && n > 0 ? Math.round(n) : null;
-  }
-  function setPlanForIds(ids, mg){
-    const plan = loadPlan();
-    for (const id of ids){
-      if (mg == null || !Number.isFinite(Number(mg)) || Number(mg) <= 0){
-        delete plan[id];
-      } else {
-        plan[id] = Math.max(0, Math.round(Number(mg)));
-      }
-    }
-    savePlan(plan);
-  }
-
-  async function editPlan(ids){
-    if (!ids || !ids.length) return;
-    const initial = (ids.length === 1) ? (getPlanMg(ids[0]) ?? '') : '';
-    const res = await openPlanModal(initial, {count: ids.length});
-    if (!res) return;
-
-    if (res.action === 'clear'){
-      setPlanForIds(ids, null);
-      render();
-      return;
-    }
-
-    const num = Number(String(res.value ?? '').replace(',', '.'));
-    if (!Number.isFinite(num)) return;
-    const mg = Math.max(0, Math.round(num));
-    if (mg <= 0) setPlanForIds(ids, null);
-    else setPlanForIds(ids, mg);
-
-    render();
-  }
-
-  // --- View mode: main vs plan ---
-  const pageTitleEl = document.getElementById('pageTitle');
-  const openPlannerBtn = document.getElementById('openPlanner');
-  const openPlannerTopBtn = document.getElementById('openPlannerTop');
-  const plannerRowEl = document.getElementById('plannerRow');
-  const planHintEl = document.getElementById('planHint');
-
-  let viewMode = (()=>{
-    try{ return sessionStorage.getItem('rt.calendar.view') || 'main'; }catch(_){ return 'main'; }
-  })();
-  function isPlanMode(){ return viewMode === 'plan'; }
-
-  function setViewMode(mode){
-    viewMode = (mode === 'plan') ? 'plan' : 'main';
-    try{ sessionStorage.setItem('rt.calendar.view', viewMode); }catch(_){ }
-    document.body.classList.toggle('plan-mode', isPlanMode());
-
-    if (pageTitleEl) pageTitleEl.textContent = isPlanMode() ? 'Календарь планирования' : 'Календарь';
-    if (openPlannerTopBtn) openPlannerTopBtn.style.display = isPlanMode() ? 'none' : '';
-    if (openPlannerBtn) openPlannerBtn.style.display = isPlanMode() ? '' : 'none';
-    if (plannerRowEl) plannerRowEl.style.display = isPlanMode() ? 'flex' : 'none';
-    if (planHintEl) planHintEl.hidden = !isPlanMode();
-
-    try{
-      if (isPlanMode() && typeof closeSheet === 'function') closeSheet();
-    }catch(_){ }
-    try{
-      if (openDiaryBtn) openDiaryBtn.style.display = isPlanMode() ? 'none' : '';
-      if (statsPill) statsPill.style.display = isPlanMode() ? '' : 'none';
-    }catch(_){ }
-
-    render();
-  }
 
   function openDoseModal(initialValue){
     return new Promise((resolve)=>{
@@ -1235,10 +994,6 @@ html::view-transition-new(root){
   const statMiss = $("#statMiss");
   const statAdh = $("#statAdh");
   const statBar = $("#statBar");
-  const openPlannerBtn2 = document.getElementById('openPlanner');
-  const openPlannerTopBtn2 = document.getElementById('openPlannerTop');
-  if (openPlannerTopBtn2){ openPlannerTopBtn2.addEventListener('click', ()=> setViewMode('plan')); }
-  if (openPlannerBtn2){ openPlannerBtn2.addEventListener('click', ()=> setViewMode('main')); }
   // === RANGE SELECT (п.4): состояние + утилиты ===
 let drag = { active:false, start:null, over:null, moved:false, x:0, y:0 };
 const DRAG_THRESHOLD = 8; // px
@@ -1284,13 +1039,6 @@ function finalizeRange() {
   if (cells.length < 2) return; // одиночный тап — по старым правилам
 
   const ids = cells.map(el => el.dataset.date);
-
-  // В план-режиме — задаём планируемую дозу для диапазона
-  if (typeof isPlanMode === 'function' && isPlanMode()){
-    editPlan(ids);
-    return;
-  }
-
   const doseStr = prompt(`Установить одинаковую дозу (мг) для ${ids.length} дней:`, '');
   if (doseStr === null || doseStr.trim() === '') return;
 
@@ -1584,87 +1332,55 @@ const valence    = (wellnessV2 != null) ? wellnessV2    // diary v2
                                        : normalizeMoodV1(mood); // v1 -> 0..100
 const moodIdx    = (valence != null) ? moodIndexFromValence(valence) : null;
 
-const planMg = getPlanMg(id);
 
 const cell = document.createElement('div');
-cell.className = 'day' + (isToday ? ' today' : '') + ((!isPlanMode() && missed) ? ' missed' : '');
+cell.className = 'day' + (isToday ? ' today' : '') + (missed ? ' missed' : '');
 cell.setAttribute('data-date', id);
 if (day === 1) cell.style.gridColumnStart = String(startCol + 1);
 
-// 1) Свечение/фон: в plan-режиме убираем «настроение» и heatmap, оставляем только статусы плана
-let glow = 'transparent';
-if (!isPlanMode() && missed){
-  glow = missGlow();
-} else if (!isPlanMode()){
-  // обычный режим: пропуск/самочувствие/доза-heatmap
-  glow = (tintOn && moodIdx != null) ? moodGlow(moodIdx) : 'transparent';
-}
+// 1) Свечение: пропуск = красный; иначе по самочувствию (только если tintOn)
+let glow = missed ? missGlow()
+        : (tintOn && moodIdx != null ? moodGlow(moodIdx) : 'transparent');
 cell.style.setProperty('--glowC', glow);
 
-// 2) Цветной фон по самочувствию (только в обычном режиме)
-if (!isPlanMode() && tintOn && moodIdx != null){
+// 2) Цветной фон по самочувствию (только если tintOn)
+if (tintOn && moodIdx != null){
   cell.style.setProperty('--moodBg', moodBg(moodIdx));
 } else {
   cell.style.removeProperty('--moodBg');
 }
 
-// 3) Если самочувствия нет (или tintOff), но есть доза — зелёный heatmap (только в обычном режиме)
-if (!isPlanMode() && glow === 'transparent' && dose > 0 && !missed){
+// 3) Если самочувствия нет (или tintOff), но есть доза — зелёный heatmap
+if (glow === 'transparent' && dose > 0 && !missed){
   glow = heatColor(dose, maxDose);
   cell.style.setProperty('--glowC', glow);
 }
 
-// 4) Эффекты mood-4/5/6 — только если tintOn и только в обычном режиме
+// 4) Эффекты mood-4/5/6 — только если tintOn
 cell.classList.remove('mood-4','mood-5','mood-6');
-if (!isPlanMode() && tintOn){
+if (tintOn){
   if (moodIdx === 4) cell.classList.add('mood-4');
   if (moodIdx === 5) cell.classList.add('mood-5');
   if (moodIdx === 6) cell.classList.add('mood-6');
 }
 
-// 5) Статусы плана
-// В основном календаре НЕ показываем статусы плана (чтобы не путать с выделением диапазона).
-// В «Календаре планирования» показываем только “выпито ровно по плану”.
-cell.classList.remove('plan-planned','plan-matched','plan-under','plan-over');
-if (isPlanMode() && !missed && planMg != null && planMg > 0){
-  const n = Number(dose)||0;
-  const m = Number(planMg)||0;
-  if (n > 0 && n === m) cell.classList.add('plan-matched');
-}
-
 // контент
-if (isPlanMode()){
-  const pDose = planMg ? Number(planMg) : 0;
-  cell.classList.add('plan-view');
-  cell.innerHTML = `
-    <div class="day-num">${day}</div>
-    <div class="marks">
-      <div class="dose taken" style="${pDose ? '' : 'opacity:.0;'}">
-        <span class="capsule" aria-hidden="true"></span>
-        <span class="doseText">
-          <span class="val">${pDose ? pDose : ''}</span>
-          <span class="unit">${pDose ? 'мг' : ''}</span>
-        </span>
-      </div>
-    </div>
-  `;
-} else {
-  const doseClass = `dose${taken ? ' taken' : ''}`;
-  cell.innerHTML = `
-    <div class="day-num">${day}</div>
-    <div class="marks">
-      <div class="${doseClass}" style="${dose ? '' : 'opacity:.0;'}">
-        <span class="capsule" aria-hidden="true"></span>
-        <span class="doseText">
-          <span class="val">${dose ? dose : ''}</span>
-          <span class="unit">${dose ? 'мг' : ''}</span>
-        </span>
-      </div>
+const doseClass = `dose${taken ? ' taken' : ''}`;
+cell.innerHTML = `
+  <div class="day-num">${day}</div>
+  <div class="marks">
+    <div class="${doseClass}" style="${dose ? '' : 'opacity:.0;'}">
+  <span class="capsule" aria-hidden="true"></span>
+  <span class="doseText">
+    <span class="val">${dose ? dose : ''}</span>
+    <span class="unit">${dose ? 'мг' : ''}</span>
+  </span>
+</div>
 
-      <div class="mood">${(mood==null?"":moodEmoji(mood))}</div>
-    </div>
-  `;
-}
+    <div class="mood">${(mood==null?"":moodEmoji(mood))}</div>
+  </div>
+`;
+
 
  // Короткий тап — снизу «краткая инфа», долгий — портал→дневник (c порогом движения)
 let pressTimer = null, longPressed = false, startX = 0, startY = 0, moved = false;
@@ -1682,13 +1398,12 @@ cell.addEventListener('pointerdown', (e)=>{
   cell.style.viewTransitionName = 'portal';
   setPortalXYFromEvent(e);
 
-  if (!isPlanMode())
-    pressTimer = setTimeout(()=>{
-      // блокируем только если реально началось выделение (drag.active)
-      if (drag.active) return;
-      longPressed = true;
-      goDiary(id);
-    }, LONG_MS);
+  pressTimer = setTimeout(()=>{
+  // блокируем только если реально началось выделение (drag.active)
+  if (drag.active) return;
+  longPressed = true;
+  goDiary(id);
+}, LONG_MS);
 });
 
 function onMove(e){
@@ -1721,7 +1436,6 @@ grid.appendChild(cell);
   }
 }
   function openSheet(id, data){
-  if (typeof isPlanMode === 'function' && isPlanMode()) return;
   const d1 = data || getDiary()[id] || null;        // v1 (для дозы)
   const db2 = loadDiaryV2();                         // v2
   const e2  = (db2.entries && db2.entries[id]) || null;
@@ -1735,10 +1449,8 @@ grid.appendChild(cell);
     : (readWellnessV2(id) ?? normalizeMoodV1(d1?.mood));
   const moodWord = (valence != null) ? textFromV(valence) : '—';
 
-  // Доза (факт / план)
-  const nMg = (d1 && (d1.dose || d1.mg)) ? Number(d1.dose || d1.mg) : null;
-  const mMg = getPlanMg(id);
-  const doseText = `${(nMg!=null && nMg>0) ? (Math.round(nMg)+' мг') : '—'} / ${(mMg!=null && mMg>0) ? (Math.round(mMg)+' мг') : '—'}`;
+  // Доза
+  const doseText = d1 && (d1.dose || d1.mg) ? (d1.dose || d1.mg) + ' мг' : '—';
 
     // Комментарий: берём из v2 (notes), если пусто — пробуем старые поля из v1 (comment|note|notes)
   let noteRaw = (e2 && typeof e2.notes === 'string') ? e2.notes.trim() : '';
@@ -2023,7 +1735,7 @@ if (btn){
 })();
 window.addEventListener('keydown', (e)=>{ if(e.key === 'Escape') closeSheet(); });
   window.addEventListener('storage', (e)=>{
-    if (e.key === 'rt.diary.v1' || e.key === 'rt.diary.bump' || e.key === 'rt.diary.v2' || e.key === 'rt.moodTintOn' || e.key === PLAN_KEY || e.key === 'rt.plan.bump') render();
+    if (e.key === 'rt.diary.v1' || e.key === 'rt.diary.bump' || e.key === 'rt.diary.v2' || e.key === 'rt.moodTintOn') render();
 
 
 });
@@ -2033,69 +1745,33 @@ document.addEventListener('visibilitychange', ()=>{ if (!document.hidden) render
 
 /* Надёжный короткий тап на мобильных — с порогом движения и без открытия во время drag-range */
 (function(){
-  let downId = null, t0 = 0, x0 = 0, y0 = 0, lastX = 0, lastY = 0, moved = false;
-  let longTO = null, longFired = false;
+  let downId = null, t0 = 0, x0 = 0, y0 = 0, moved = false;
   const TAP_MS = 300, TAP_MOVE = 12;
-  const LONG_MS = 420;
-
-  const clearLong = ()=>{
-    if (longTO){ clearTimeout(longTO); longTO = null; }
-  };
 
   grid.addEventListener('pointerdown', (e)=>{
     const c = e.target.closest('.day[data-date]');
     if (!c) return;
-
-    hidePlanPeek();
-
     downId = c.dataset.date;
     t0 = performance.now();
     const p = (e.touches?.[0]) || e;
-    x0 = lastX = p.clientX ?? 0;
-    y0 = lastY = p.clientY ?? 0;
-    moved = false;
-    longFired = false;
-
-    clearLong();
-    longTO = setTimeout(()=>{
-      if (!downId || moved || drag.active) return;
-      if (isPlanMode()){
-        longFired = true;
-        showPlanPeek(downId, lastX, lastY);
-        try{ navigator.vibrate && navigator.vibrate(8); }catch(_){}
-      }
-    }, LONG_MS);
+    x0 = p.clientX ?? 0; y0 = p.clientY ?? 0; moved = false;
   });
 
   document.addEventListener('pointermove', (e)=>{
-    if (!downId) return;
+    if (!downId || moved) return;
     const p = (e.touches?.[0]) || e;
-    const cx = p.clientX ?? 0, cy = p.clientY ?? 0;
-    lastX = cx; lastY = cy;
-    const dx = cx - x0, dy = cy - y0;
-    if (dx*dx + dy*dy > TAP_MOVE*TAP_MOVE){
-      moved = true;
-      clearLong();
-    }
+    const dx = (p.clientX ?? 0) - x0, dy = (p.clientY ?? 0) - y0;
+    if (dx*dx + dy*dy > TAP_MOVE*TAP_MOVE) moved = true;
   }, {passive:true});
 
   const onUp = (e)=>{
     if (!downId) return;
-    clearLong();
-
-    // если сработал long-press (показали подсказку), то это не тап
-    if (longFired){
-      downId = null;
-      return;
-    }
-
     const dt = performance.now() - t0;
     const longPress = dt > TAP_MS;
 
     if (longPress || moved || drag.active){
-      downId = null;
-      return;
-    }
+  downId = null; return;
+}
 
     const p = (e.changedTouches?.[0]) || e;
     const el = document.elementFromPoint(p.clientX, p.clientY);
@@ -2105,16 +1781,22 @@ document.addEventListener('visibilitychange', ()=>{ if (!document.hidden) render
     grid.querySelectorAll('.day.selected').forEach(el => el.classList.remove('selected'));
     const cur = grid.querySelector(`.day[data-date="${id}"]`);
     if (cur) cur.classList.add('selected');
-    if (isPlanMode()) editPlan([id]);
-    else openSheet(id);
+    openSheet(id);
 
     downId = null;
   };
 
   document.addEventListener('pointerup', onUp, {passive:true});
-  document.addEventListener('pointercancel', ()=>{ clearLong(); downId=null; }, {passive:true});
   document.addEventListener('touchend',  onUp, {passive:true});
-})();;
+
+  grid.addEventListener('click', (e)=>{
+    const c = e.target.closest('.day[data-date]');
+    if (!c || moved || drag.active) return;
+    grid.querySelectorAll('.day.selected').forEach(el => el.classList.remove('selected'));
+    c.classList.add('selected');
+    openSheet(c.dataset.date);
+  });
+})();
 
 
   // === RANGE SELECT (phones fix): touch on coarse pointers, pointer on desktop ===
@@ -2234,7 +1916,7 @@ if (IS_COARSE){
   document.addEventListener('pointerup', end);
 }
 
-  setViewMode(viewMode);
+  render();
 })();
 
 </script>
@@ -2570,105 +2252,6 @@ body.sheet-open nav.bottom-nav{ pointer-events: auto !important; }
     inset 0 2px 12px rgba(0,0,0,.55),
     inset 0 1px 0 rgba(255,255,255,.35),
     0 8px 18px rgba(0,0,0,.35);
-}
-
-/* === Planner UI (второй календарь: планирование) === */
-.planner-row{ margin-top: 12px; display:flex; flex-direction:column; gap:8px; }
-.planner-btn{
-  width:100%;
-  display:flex;
-  align-items:center;
-  justify-content:center;
-  gap:10px;
-
-  position: relative;
-  overflow: hidden;
-  will-change: transform;
-}
-.planner-btn::after{
-  content:"";
-  position:absolute;
-  inset:-40px;
-  background: radial-gradient(circle at 50% 40%, rgba(255,255,255,.35), transparent 58%);
-  opacity:0;
-  transform: scale(.75);
-  transition: opacity .25s ease, transform .25s ease;
-  pointer-events:none;
-}
-.planner-btn:active{
-  transform: translateY(2px) scale(.985);
-}
-.planner-btn:active::after{
-  opacity:.9;
-  transform: scale(1);
-  transition: none;
-}
-@media (prefers-reduced-motion:reduce){
-  .planner-btn, .planner-btn::after{ transition:none !important; }
-}
-.plan-hint{ font-size:12px; line-height:1.25; color: var(--muted); opacity:.95; padding: 0 6px; }
-body.plan-mode .day{ cursor:pointer; }
-body.plan-mode .day .mood{ display:none !important; }
-
-/* статусы плана
-   В основном календаре статусы плана не подсвечиваем.
-   В «Календаре планирования» подсвечиваем ТОЛЬКО когда выпито ровно по плану. */
-.day.plan-planned,
-.day.plan-under,
-.day.plan-over{
-  /* намеренно без спец-обводок (не используем) */
-  box-shadow: var(--shadow-soft);
-}
-.day.plan-matched{
-  /* выпито ровно по плану — зелёная сияющая обводка */
-  box-shadow:
-    0 0 0 2px rgba(46, 229, 157, .42),
-    0 12px 30px rgba(46, 229, 157, .18),
-    inset 0 1px 0 rgba(255,255,255,.08),
-    var(--shadow-soft);
-}
-/* пропуск — красная обводка (приоритет) */
-.day.missed{
-  box-shadow:
-    0 0 0 2px rgba(255, 92, 92, .48),
-    0 12px 30px rgba(255, 92, 92, .18),
-    inset 0 1px 0 rgba(255,255,255,.06),
-    var(--shadow-soft);
-}
-
-/* actions layout for plan modal */
-.rt-modal__actions--plan{ justify-content:space-between; align-items:center; }
-.rt-modal__actionsRight{ display:flex; gap:10px; }
-
-/* --- Planner long-press mini card --- */
-.plan-peek{
-  position: fixed;
-  z-index: 1750;
-  left: 14px;
-  top: 90px;
-  max-width: min(320px, calc(100vw - 28px));
-  padding: 10px 12px;
-  border-radius: 14px;
-  background: linear-gradient(180deg, rgba(10,18,26,.92), rgba(6,12,18,.88));
-  border: 1px solid rgba(255,255,255,.08);
-  color: rgba(232,244,255,.95);
-  font-weight: 800;
-  font-size: 13px;
-  line-height: 1.25;
-  box-shadow:
-    0 18px 42px rgba(0,0,0,.55),
-    inset 0 1px 0 rgba(255,255,255,.07),
-    inset 0 -1px 0 rgba(0,0,0,.45);
-  backdrop-filter: blur(10px) saturate(120%);
-  -webkit-backdrop-filter: blur(10px) saturate(120%);
-  opacity: 0;
-  transform: translateY(6px) scale(.98);
-  transition: opacity .16s ease, transform .16s ease;
-  pointer-events: none;
-}
-.plan-peek.active{
-  opacity: 1;
-  transform: translateY(0) scale(1);
 }
 
 /* ——— светлая «вписать дозировку» ——— */
