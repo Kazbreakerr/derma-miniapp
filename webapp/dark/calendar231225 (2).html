@@ -188,7 +188,7 @@ user-select: none;
 
     /* текущая неделя — чуть крупнее (≈+6% по высоте) */
     .day.week-current{
-      min-height: calc(var(--day-h) * 1.01);
+      min-height: calc(var(--day-h) * 1.02);
       padding: 5px;
       border-radius: 17px;
     }
@@ -640,10 +640,23 @@ user-select: none;
 }
 
 .day.today{
-  /* мягкая подсветка сегодняшнего дня (если уже есть — можно оставить свой) */
+  /* Сегодня — заметная, но аккуратная обводка (по умолчанию, оба режима). */
+  outline: 3px solid rgba(66,227,184,.88);
+  outline-offset: -3px;
   box-shadow:
-    0 0 0 2px rgba(255,255,255,.16),
-    0 8px 24px rgba(66,227,184,.25),
+    0 0 0 1px rgba(255,255,255,.10),
+    0 0 22px rgba(66,227,184,.30),
+    0 0 44px rgba(90,167,255,.16),
+    inset 0 1px 0 rgba(255,255,255,.06);
+}
+
+/* Если выбранный день = сегодня, усиливаем контраст (но без «кислоты») */
+.day.today.selected{
+  outline-color: rgba(255,255,255,.72);
+  box-shadow:
+    0 0 0 1px rgba(255,255,255,.14),
+    0 0 26px rgba(66,227,184,.34),
+    0 0 52px rgba(90,167,255,.22),
     inset 0 1px 0 rgba(255,255,255,.06);
 }
 
@@ -858,20 +871,27 @@ body.plan-mode .day:active{
 }
 body.plan-mode .day .mood{ display:none !important; }
 
-/* В plan-mode делаем сегодняшнюю дату чуть заметнее */
-body.plan-mode .day.today{ position: relative; }
-body.plan-mode .day.today::before{
-  content:"";
-  position:absolute;
-  inset:-3px;
-  border-radius:inherit;
+/* В plan-mode «сегодня» должно гореть постоянно и ОТДЕЛЬНЫМ цветом (не как выделение/диапазон). */
+body.plan-mode .day.today{
+  outline: 3px solid rgba(66,227,184,.95);
+  outline-offset: -3px;
   box-shadow:
-    0 0 0 2px rgba(66,227,184,.45),
-    0 10px 26px rgba(66,227,184,.18);
-  pointer-events:none;
-  z-index:1;
+    0 0 0 1px rgba(255,255,255,.12),
+    0 0 26px rgba(66,227,184,.32),
+    0 0 52px rgba(167,120,255,.22),
+    inset 0 1px 0 rgba(255,255,255,.06);
 }
 
+/* Если человек выделил другой день/диапазон — «сегодня» всё равно заметно. */
+body.plan-mode .day.today.selected,
+body.plan-mode .day.today.in-range{
+  outline-color: rgba(66,227,184,.98);
+  box-shadow:
+    0 0 0 1px rgba(255,255,255,.14),
+    0 0 28px rgba(66,227,184,.34),
+    0 0 56px rgba(167,120,255,.26),
+    inset 0 1px 0 rgba(255,255,255,.06);
+}
 body.plan-mode .day-num{ color: rgba(234, 248, 255, .92); text-shadow: 0 1px 0 rgba(0,0,0,.24); }
 body.plan-mode .dose-badge{ color: rgba(214, 242, 255, .86); }
 
@@ -2036,19 +2056,31 @@ if (btn){
 
   document.getElementById('prev').onclick = ()=>{ current.setMonth(current.getMonth()-1); render(); };
   document.getElementById('next').onclick = ()=>{ current.setMonth(current.getMonth()+1); render(); };
-  document.getElementById('todayBtn').onclick = ()=>{
+  document.getElementById('todayBtn').onclick = async ()=>{
     const now = new Date();
+    const id  = iso(now);
+
+    // Переключаемся на месяц «сегодня» и перерисовываем сетку
     current = new Date(now.getFullYear(), now.getMonth(), 1);
     render();
 
-    // подсветить и показать «сегодня» (и в основном календаре, и в режиме планирования)
-    const id = iso(now);
+    // Подсветить ячейку «сегодня» (selected) и прокрутить к ней
     const cur = grid.querySelector(`.day[data-date="${id}"]`);
     if (cur){
       grid.querySelectorAll('.day.selected').forEach(el => el.classList.remove('selected'));
       cur.classList.add('selected');
       try{ cur.scrollIntoView({behavior:'smooth', block:'center', inline:'center'}); }catch(_){}
     }
+
+    // В главном календаре: открыть bottom sheet дня
+    // В режиме планирования: открыть неоморфный модал планируемой дозы
+    try{
+      if (isPlanMode()){
+        editPlan([id]);
+      } else {
+        openSheet(id);
+      }
+    }catch(_){}
   };
   
   // Swipe down to close the sheet
@@ -2384,10 +2416,21 @@ if (IS_COARSE){
   const num=(k,d=0)=>{const v=parseInt(localStorage.getItem(k)||d,10);return Number.isFinite(v)?v:0;}
   const on =()=> (localStorage.getItem(K_ON)||'0')==='1';
 
+  function capWord(n){
+  n = Math.abs(Math.trunc(Number(n) || 0));
+  const n100 = n % 100;
+  const n10  = n % 10;
+  if (n100 >= 11 && n100 <= 14) return 'капсул';
+  if (n10 === 1) return 'капсула';
+  if (n10 >= 2 && n10 <= 4) return 'капсулы';
+  return 'капсул';
+}
+
   function text(){
     if(!on()) return null;
     const left=num(K_LEFT,0), thr=num(K_THRESH,0);
-    if(left>0 && thr>0 && left<=thr) return `осталось ${left} капсул`;
+    return `осталось ${left} ${capWord(left)}`;
+
     return null;
   }
   function render(){
