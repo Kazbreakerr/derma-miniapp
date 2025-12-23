@@ -112,17 +112,75 @@ try{
   .pos-left{transform:translate(calc(-50% - 130px),-50%) scale(0.56)}
   .pos-right{transform:translate(calc(-50% + 130px),-50%) scale(0.56)}
 
-  /* компактнее карточки (≈ -10%) */
-  #cardDose{ padding:14px; }
+  /* компактнее карточки */
   #cardFAQ{ padding:14px; }
   #cardReset{ padding:14px; }
 
+  /* === DOSE CARD: еще компактнее (~ -15%) + stepper в одну строку с вводом === */
+  #cardDose{ padding:12px; text-align:center; }
+  #cardDose h2{ margin-bottom:6px !important; font-size:18px; }
+
+  /* раскладка элементов карточки: аккуратная колонка */
+  #cardDose .dose-row{
+    flex-direction:column;
+    gap:10px;
+    align-items:center;
+    justify-content:center;
+  }
+  #cardDose .dose-label{ font-weight:800; }
+
+  /* mg + (-/+) всегда в одной строке */
+  #cardDose .mg-wrap{
+    flex-wrap:nowrap;
+    align-items:flex-start; /* чтобы кнопки выравнивались по полю ввода, а не по подсказке */
+    gap:6px;
+    justify-content:center;
+  }
+  #cardDose .mg-wrap #mg{
+    width:102px;
+    height:38px;
+    padding:8px 10px;
+    border-radius:11px;
+  }
+  #cardDose .mg-col{ gap:5px; align-items:center; }
+  #cardDose .cap-hint{ font-size:11px; padding:2px 9px; }
+  #cardDose .subhints{ display:flex; gap:6px; align-items:center; justify-content:center; }
+  #cardDose .cap-hint{ border:0; background:rgba(255,255,255,.08); color:rgba(235,252,255,.92); box-shadow:0 6px 14px rgba(0,0,0,.25) inset, 0 10px 26px rgba(0,0,0,.18); }
+  #cardDose .cap-hint[hidden]{ display:none; }
+  #cardDose .cap-hint--plan{ opacity:.92; }
+  #cardDose .cap-hint--plan:active{ transform:translateY(1px); }
+
+
+  #cardDose .stepper{ gap:6px; }
+  #cardDose .stepper .step{
+    width:38px;
+    height:38px;
+    border-radius:11px;
+    font-size:18px;
+  }
+
+  #cardDose #date{
+    width:min(165px, 100%) !important;
+  }
+  #cardDose input[type="date"]{
+    padding:8px 10px;
+    font-size:15px;
+    border-radius:11px;
+  }
+
+  #cardDose .dose-save{
+    height:46px;
+    border-radius:16px;
+    font-size:15px;
+    margin-top:10px;
+  }
+
   /* чуть меньше кнопки выбора капсулы */
   #capType .seg .seg-btn{
-    height:36px;
-    padding:0 14px;
-    border-radius:13px;
-    font-size:0.95em;
+    height:32px;
+    padding:0 12px;
+    border-radius:12px;
+    font-size:0.9em;
   }
 }
 
@@ -440,10 +498,11 @@ body.light .seg button{
   position:absolute; inset:0; border-radius:999px;
   background:#0E1726; border:1px solid var(--border);
   box-shadow: inset 0 1px 2px rgba(0,0,0,.35);
+  overflow:hidden;
   transition: background .18s ease, border-color .18s ease;
 }
 .toggle .slider::after{
-  content:""; position:absolute; width:26px; height:26px; left:2px; top:1.5px;
+  content:""; position:absolute; width:26px; height:26px; left:2px; top:2px;
   background:#fff; border-radius:50%; box-shadow:0 1px 2px rgba(0,0,0,.25);
   transition: transform .18s ease;
 }
@@ -494,6 +553,128 @@ body.light .seg button{
   box-shadow:0 2px 6px rgba(0,0,0,.25);
 }
 .stepper .step:active{ transform:scale(.98) }
+
+/* Capsule hint near mg input */
+.mg-col{ display:flex; flex-direction:column; gap:6px }
+.cap-hint{
+  display:inline-flex; align-items:center; justify-content:center;
+  align-self:flex-start;
+  padding:3px 10px;
+  border-radius:999px;
+  font-size:12px;
+  font-weight:900;
+  letter-spacing:.2px;
+  color:rgba(233,246,255,.82);
+  background:rgba(255,255,255,.06);
+  border:1px solid rgba(255,255,255,.12);
+  box-shadow: inset 0 1px 0 rgba(255,255,255,.08), 0 6px 16px rgba(0,0,0,.22);
+}
+.cap-hint[hidden]{ display:none }
+
+/* Dose block: centered + compact + neumorph button */
+#cardDose{ text-align:center; }
+#cardDose h2{ text-align:center; }
+
+#cardDose .dose-row{
+  flex-wrap:wrap;
+  gap:12px;
+  align-items:center;
+  justify-content:center;
+}
+#cardDose .dose-label{ font-weight:800; }
+#cardDose .mg-wrap{ justify-content:center; }
+#cardDose .mg-col{ align-items:center; }
+#cardDose .cap-hint{ align-self:center; }
+
+#cardDose #capType{
+  justify-content:center;
+  margin-left:0;
+  width:100%;
+}
+#cardDose .date-wrap{
+  justify-content:center;
+  width:100%;
+}
+#cardDose #date{ width:min(180px, 100%) }
+
+#cardDose .dose-save{
+  position:relative;
+  overflow:hidden;
+  width:min(340px, 94%);
+  height:54px;
+  margin:12px auto 0;
+  border-radius:18px;
+  font-weight:900;
+  font-size:16px;
+  letter-spacing:.2px;
+  color:rgba(233,246,255,.92);
+  background: linear-gradient(180deg, rgba(255,255,255,.06), rgba(0,0,0,.14));
+  border:1px solid rgba(255,255,255,.10);
+  box-shadow:
+    14px 14px 30px rgba(0,0,0,.55),
+    -10px -10px 24px rgba(255,255,255,.05),
+    inset 0 1px 0 rgba(255,255,255,.10),
+    inset 0 -10px 18px rgba(0,0,0,.35);
+}
+#cardDose .dose-save::before{
+  content:"";
+  position:absolute;
+  inset:1px;
+  border-radius:inherit;
+  pointer-events:none;
+  background:
+    radial-gradient(120px 60px at 20% 18%, rgba(34,211,238,.34), rgba(34,211,238,0) 60%),
+    radial-gradient(140px 70px at 80% 0%, rgba(20,184,166,.26), rgba(20,184,166,0) 60%);
+  opacity:.9;
+}
+#cardDose .dose-save::after{
+  content:"";
+  position:absolute;
+  inset:0;
+  border-radius:inherit;
+  pointer-events:none;
+  background: linear-gradient(180deg, rgba(255,255,255,.14), rgba(255,255,255,0) 45%);
+  mix-blend-mode:soft-light;
+  opacity:.75;
+}
+#cardDose .dose-save:active{
+  transform: translateY(1px);
+  box-shadow:
+    inset 10px 10px 22px rgba(0,0,0,.55),
+    inset -8px -8px 18px rgba(255,255,255,.06),
+    inset 0 1px 0 rgba(255,255,255,.08);
+}
+
+
+/* Dose lock state (past/future restrictions) */
+#cardDose.dose-locked .dose-row{ opacity:.75; }
+#cardDose.dose-locked #mg,
+#cardDose.dose-locked .stepper .step,
+#cardDose.dose-locked #capSeg .seg-btn{
+  opacity:.65;
+  pointer-events:none;
+}
+#cardDose.dose-locked .dose-save{
+  opacity:.55;
+  pointer-events:none;
+}
+
+.lock-hint{
+  margin-top:8px;
+  font-size:13px;
+  line-height:1.25;
+  opacity:.92;
+}
+.lock-hint.locked{ color:rgba(255,255,255,.80); }
+.lock-hint.locked::before{ content:"🔒 "; }
+.lock-hint:not(.locked)::before{ content:"ℹ️ "; }
+
+
+@media (max-width: 520px){
+  #cardDose h2{ margin-bottom:6px }
+  #cardDose .dose-row{ gap:10px }
+  #cardDose .dose-save{ height:52px; border-radius:16px }
+}
 @media (max-width:420px){
   .mg-wrap #mg{ width:100px }
 }
@@ -893,6 +1074,7 @@ const need = enabled && getTodayMg()<=0;
     try { applyDiaryToMain(diaryGet()); } catch(_){}
     try { renderCalPreview(); } catch(_){}
     try { updateSummary(); } catch(_){}
+    try { updatePlanHint(); } catch(_){}
     render();
   }
 });
@@ -1345,25 +1527,43 @@ document.addEventListener('DOMContentLoaded', () => {
     <section class="card section" id="cardDose" aria-labelledby="dose-title">
       <div class="glow"></div>
       <h2 id="dose-title" style="margin-bottom:8px">Отметить приём</h2>
-      <div class="row">
-        <div>Мг:</div>
+
+      <div class="row dose-row">
+        <div class="dose-label">Мг:</div>
+
         <div class="mg-wrap">
-          <input id="mg" type="number" step="10" value="20" inputmode="numeric" pattern="\d*" aria-label="Доза в миллиграммах">
+          <div class="mg-col">
+            <input id="mg" type="number" step="10" value="20" inputmode="numeric" pattern="\d*" aria-label="Доза в миллиграммах">
+            <div class="subhints" aria-live="polite">
+            <button type="button" id="capHint" class="cap-hint" aria-label="Подсказка по капсулам" hidden></button>
+            <button type="button" id="planHint" class="cap-hint cap-hint--plan" aria-label="Запланированная доза. Нажмите, чтобы подставить в поле" hidden></button>
+          </div>
+          </div>
+
           <div class="stepper">
             <button type="button" id="mgMinus" class="step" aria-label="Уменьшить на 10 мг">−</button>
             <button type="button" id="mgPlus"  class="step" aria-label="Увеличить на 10 мг">+</button>
           </div>
         </div>
+
         <div class="ctrl" id="capType" hidden>
-  <label class="ctrl-label">Тип капсулы</label>
-  <div id="capSeg" class="seg" style="grid-template-columns:repeat(2,1fr)"></div>
-</div>
+          <label class="ctrl-label">Тип капсулы</label>
+          <div id="capSeg" class="seg" style="grid-template-columns:repeat(2,1fr)"></div>
+        </div>
+
         <div class="date-wrap">
-  <div>Дата:</div>
-        <input id="date" type="date" style="width:180px"></div>
-        <button id="save" class="cta">Добавить</button>
+          <div>Дата:</div>
+          <input id="date" type="date" style="width:180px">
+        </div>
       </div>
-      <div id="doseHint" class="muted" style="margin-top:8px"></div>
+
+      <button id="save" class="cta dose-save">Добавить</button>
+
+      <div id="lockHint" class="muted lock-hint" aria-live="polite"></div>
+
+      <!-- убрано по просьбе: "Последний приём / Сегодня" -->
+      <div id="doseHint" class="muted" style="display:none"></div>
+
       <div id="saveStatus" class="muted" style="margin-top:8px"></div>
     </section>
 
@@ -1433,8 +1633,8 @@ document.addEventListener('DOMContentLoaded', () => {
 
     <section class="card section" id="cardReset" aria-labelledby="reset-title" style="border-color:#3a1f2b;background:linear-gradient(180deg,#141824,#0f1624)">
       <h2 id="reset-title" style="margin-bottom:6px;color:#ffd7db">Обнулить всё</h2>
-      <div class="muted" style="margin-bottom:10px">Будут удалены: журнал приёмов, настройки напоминаний, локальные кэши прогресса. Профиль останется.</div>
-      <button id="resetBtn" class="cta" style="background:#151018;border:1px solid #a11a28;color:#ffd7db">Перейти к обнулению</button>
+      <div class="muted" style="margin-bottom:8px;line-height:1.25">Удалим журнал, напоминания, и ваши данные дневника и прогресса.</div>
+      <button id="resetBtn" class="cta" style="background:#151018;border:1px solid #a11a28;color:#ffd7db;display:block;width:min(360px,100%);margin:0 auto">Перейти к обнулению</button>
     </section>
 
     <footer>Приложение не даёт медицинских рекомендаций. Решения — только с врачом.</footer>
@@ -1902,7 +2102,7 @@ updateSegLabels();
           if (AUTO_SELECT_ON_SNAP && !grid.querySelector('.day-card.selected')){
             const iso = best.getAttribute('data-iso');
             const inp = document.getElementById('date');
-            if (iso && inp) { inp.value = iso; renderCalPreview(); }
+            if (iso && inp) { inp.value = iso; try{ updatePlanHint(); }catch(_){} renderCalPreview(); }
           }
         }
       }
@@ -2167,8 +2367,8 @@ else {
   </div>
 `;
     cell.addEventListener('click', ()=>{
-      const inp = document.getElementById('date'); if (inp) inp.value = iso;
-      renderCalPreview();
+      if (typeof setMainDate === 'function') setMainDate(iso, {from:'cal'});
+      else { const inp = document.getElementById('date'); if (inp) inp.value = iso; try{ updatePlanHint(); }catch(_){ } }
     });
     box.appendChild(cell);
   }
@@ -2372,8 +2572,9 @@ async function loadAll(){
     try{ recalcDaysPerView?.(); }catch(_){}
     try{ renderCalPreview?.(); }catch(_){}
     try{ updateDoseHint?.(); }catch(_){}
-    try{ applyDiaryToMain?.(diaryGet?.()); renderCalPreview?.(); }catch(_){}
-    try{ syncDiaryFromIntakes?.(); }catch(_){}
+    try{ applyDiaryToMain?.(diaryGet?.()); renderCalPreview?.(); }catch(_){ }
+    try{ syncDiaryFromIntakes?.(); }catch(_){ }
+    try{ updatePlanHint?.(); }catch(_){ }
 
   }catch(e){
     // оффлайн-фоллбек
@@ -2398,6 +2599,14 @@ try{
   if (mgElInput) {
     mgElInput.addEventListener('input', () => {
       try { syncChipsSelection?.(); } catch(_) {}
+    });
+  
+    // Закрыть клавиатуру по "Enter/Готово" (мобилки)
+    mgElInput.addEventListener('keydown', (e) => {
+      if (e.key === 'Enter') {
+        e.preventDefault();
+        try { mgElInput.blur(); } catch (_) {}
+      }
     });
   }
 }
@@ -2525,6 +2734,17 @@ if (saveBtn) {
 
     const mg  = Number(mgEl?.value || 0);
     const iso = String(dateEl?.value || todayISO()).slice(0,10);
+
+    // блокировка прошлых/будущих дат
+    try{
+      const stEdit = (typeof computeDoseEditState === 'function') ? computeDoseEditState(iso) : { editable:true };
+      if (!stEdit.editable){
+        if (st) st.textContent = 'Редактирование этой даты заблокировано';
+        try{ applyDoseEditLock(iso); }catch(_){}
+        return;
+      }
+    }catch(_){}
+
     if (!(mg > 0)) {
       if (st) st.textContent = 'Введите дозу > 0';
       return;
@@ -2580,6 +2800,8 @@ if (saveBtn) {
       try { renderCalPreview(); } catch(_) {}
       try { updateSummary(); } catch(_) {}
       try { updateDoseHint(); } catch(_) {}
+      try { updatePlanHint(); } catch(_) {}
+      try { applyDoseEditLock(iso); } catch(_) {}
       try { window.renderReminder && window.renderReminder(); } catch(_) {}
       try { window.renderPillAlert && window.renderPillAlert(); } catch(_) {}
          // <<< добавить эту строку
@@ -2944,27 +3166,221 @@ function renderReminder(){
 // Dose hint: "Последний приём: {N} мг • Сегодня: {X} мг"
 function updateDoseHint(){
   try{
-    const hint = document.getElementById('doseHint'); if (!hint) return;
-    let last = 0, today = 0;
-    const todayIso = (function(){ const d=new Date(); d.setMinutes(d.getMinutes()-d.getTimezoneOffset()); return d.toISOString().slice(0,10); })();
-    if (Array.isArray(DOSES) && DOSES.length){
-      last = Number(DOSES[0]?.mg || DOSES[0]?.mg_taken || 0) || 0;
-      for(const x of DOSES){
-        const iso = String(x.date||'').slice(0,10);
-        if (iso === todayIso) today += Number(x.mg||x.mg_taken||0) || 0;
-      }
-    }
-    const cap = Number(localStorage.getItem('rt.capsule_mg')||0);
+    const capHint = document.getElementById('capHint');
+    if (!capHint) return;
+
     const mgInput = Number(document.getElementById('mg')?.value || 0);
-    let capInfo = '';
+    const cap = Number(localStorage.getItem('rt.capsule_mg')||0);
+
     if (cap > 0 && mgInput > 0){
       const exact = (mgInput % cap) === 0;
       const n = exact ? (mgInput/cap) : Math.ceil(mgInput/cap);
-      capInfo = ` • ≈${n} капс.`;
+      capHint.textContent = `≈${n} капс.`;
+      capHint.hidden = false;
+    }else{
+      capHint.textContent = '';
+      capHint.hidden = true;
     }
-    hint.textContent = `Последний приём: ${fmtInt(last)} мг • Сегодня: ${fmtInt(today)} мг${capInfo}`;
   }catch(_){}
 }
+
+// === Planned dose hint (from calendar planning) ===
+function plannedMgForDate(iso){
+  try{
+    iso = String(iso||'').slice(0,10);
+    if(!/^\d{4}-\d{2}-\d{2}$/.test(iso)) return 0;
+
+    // 1) Источник №1: план из режима планирования календаря
+    // calendar.html хранит его в localStorage: rt.plan.v1 = { "YYYY-MM-DD": mg, ... }
+    try{
+      const plan = JSON.parse(localStorage.getItem('rt.plan.v1')||'{}') || {};
+      const n = Number(plan[iso]);
+      if (Number.isFinite(n) && n > 0) return Math.round(n);
+    }catch(_){}
+
+    // 2) Фоллбек: если когда-то появятся явные план-поля в дневнике (НО НЕ rec.dose)
+    const diary = diaryGet();
+    const rec = diary && diary[iso];
+    if(!rec) return 0;
+    const explicit = Number(rec.plan ?? rec.planned ?? rec.plan_mg ?? rec.planned_mg ?? rec.plannedDose ?? rec.target_mg);
+    return (Number.isFinite(explicit) && explicit > 0) ? Math.round(explicit) : 0;
+  }catch(_){ return 0; }
+}
+
+function updatePlanHint(){
+  try{
+    const btn = document.getElementById('planHint');
+    const dateEl = document.getElementById('date');
+    if(!btn || !dateEl) return;
+
+    const iso = String(dateEl.value || todayISO()).slice(0,10);
+    const mg  = plannedMgForDate(iso);
+
+    if (mg > 0){
+      btn.textContent = `По плану: ${mg} мг`;
+      btn.dataset.mg = String(mg);
+      btn.hidden = false;
+    } else {
+      btn.textContent = '';
+      btn.dataset.mg = '';
+      btn.hidden = true;
+    }
+  }catch(_){}
+}
+
+/* === Date selection + edit locks (past/future restrictions) === */
+function _isoToUTCday(iso){
+  iso = String(iso||'').slice(0,10);
+  const m = /^(\d{4})-(\d{2})-(\d{2})$/.exec(iso);
+  if(!m) return null;
+  const y = +m[1], mo = +m[2]-1, d = +m[3];
+  return Math.floor(Date.UTC(y, mo, d) / 86400000);
+}
+function _daysDiff(aISO, bISO){
+  const a = _isoToUTCday(aISO), b = _isoToUTCday(bISO);
+  if (a==null || b==null) return 0;
+  return a - b;
+}
+function takenMgForDate(iso){
+  try{
+    iso = String(iso||'').slice(0,10);
+    const d = diaryGet();
+    const rec = d && d[iso];
+    const mg = Number(rec?.dose ?? rec?.mg ?? 0) || 0;
+    if (mg > 0) return Math.round(mg);
+  }catch(_){}
+  try{
+    let sum = 0;
+    (Array.isArray(window.DOSES) ? window.DOSES : []).forEach(x=>{
+      const k = String(x.date||'').slice(0,10);
+      if (k === iso) sum += Number(x.mg||x.mg_taken||0) || 0;
+    });
+    return Math.round(sum) || 0;
+  }catch(_){ return 0; }
+}
+function computeDoseEditState(iso){
+  iso = String(iso||'').slice(0,10);
+  const today = todayISO();
+  const diff = _daysDiff(iso, today); // selected - today
+  const planned = plannedMgForDate(iso);
+  const taken   = takenMgForDate(iso);
+
+  let editable = true;
+  let reason   = 'today';
+
+  if (diff > 0){
+    editable = false; reason = 'future';
+  } else if (diff < -1){
+    editable = false; reason = 'older';
+  } else if (diff === -1){
+    // yesterday: можно редактировать до конца текущего дня, но если план уже выполнен — блок
+    if (planned > 0 && taken >= planned){
+      editable = false; reason = 'yesterday_done';
+    } else {
+      editable = true; reason = 'yesterday';
+    }
+  } else {
+    editable = true; reason = 'today';
+  }
+
+  // общий запрет: если это прошедшая дата и план выполнен/перевыполнен — блокируем
+  if (diff < 0 && planned > 0 && taken >= planned){
+    editable = false;
+    reason = (diff === -1) ? 'yesterday_done' : 'past_done';
+  }
+
+  return { iso, today, diff, planned, taken, editable, reason };
+}
+function applyDoseEditLock(iso){
+  const st = computeDoseEditState(iso);
+
+  const card = document.getElementById('cardDose');
+  const mgEl = document.getElementById('mg');
+  const minus= document.getElementById('mgMinus');
+  const plus = document.getElementById('mgPlus');
+  const save = document.getElementById('save');
+  const lockHint = document.getElementById('lockHint');
+
+  if (card) card.classList.toggle('dose-locked', !st.editable);
+
+  const dis = !st.editable;
+  try{ if (mgEl) mgEl.disabled = dis; }catch(_){}
+  try{ if (minus) minus.disabled = dis; }catch(_){}
+  try{ if (plus) plus.disabled = dis; }catch(_){}
+  try{ if (save) save.disabled = dis; }catch(_){}
+
+  // капсулы 10/20 или 8/16
+  try{
+    document.querySelectorAll('#capSeg .seg-btn').forEach(b=>{
+      try{ b.disabled = dis; }catch(_){ b.setAttribute('aria-disabled', dis ? 'true' : 'false'); }
+    });
+  }catch(_){}
+
+  // для заблокированных дат показываем "выпито" (прошлое) или "по плану" (будущее) прямо в поле мг
+  try{
+    if (mgEl && dis){
+      if (st.diff > 0){
+        mgEl.value = String(st.planned > 0 ? st.planned : 0);
+      } else if (st.diff < 0){
+        mgEl.value = String(st.taken || 0);
+      }
+      try{ updateDoseHint(); }catch(_){}
+    }
+  }catch(_){}
+
+  // внешний индикатор + текст
+  try{
+    if (lockHint){
+      lockHint.classList.toggle('locked', dis);
+
+      let msg = '';
+      if (st.diff > 0){
+        msg = 'Будущая дата — отметить приём нельзя.';
+      } else if (st.diff === 0){
+        msg = (st.taken>0) ? `Сегодня уже отмечено: ${st.taken} мг.` : 'Сегодня: отметьте приём.';
+      } else if (st.diff === -1){
+        if (st.editable){
+          msg = (st.taken>0)
+            ? `Вчера уже отмечено: ${st.taken} мг. Можно добавить до 23:59 сегодня.`
+            : 'Вчера: можно добавить приём до 23:59 сегодня.';
+        } else {
+          msg = (st.planned>0)
+            ? `Вчерашняя доза по плану уже выполнена (${st.taken}/${st.planned} мг) — редактирование заблокировано.`
+            : 'Вчера: редактирование заблокировано.';
+        }
+      } else {
+        msg = (st.taken>0)
+          ? `Прошлая дата — редактирование недоступно. Выпито: ${st.taken} мг.`
+          : 'Прошлая дата — редактирование недоступно.';
+      }
+
+      lockHint.textContent = msg;
+      lockHint.hidden = !msg;
+    }
+  }catch(_){}
+
+  return st;
+}
+function setMainDate(iso, opts){
+  try{
+    iso = String(iso||'').slice(0,10);
+    if (!/^\d{4}-\d{2}-\d{2}$/.test(iso)) iso = todayISO();
+
+    if (opts && opts.resetCal){
+      try{ window.calOffset = 0; }catch(_){}
+    }
+
+    const dateEl = document.getElementById('date');
+    if (dateEl) dateEl.value = iso;
+
+    try{ updatePlanHint(); }catch(_){}
+    try{ applyDoseEditLock(iso); }catch(_){}
+    try{ renderCalPreview(); }catch(_){}
+  }catch(_){}
+}
+
+
+
 
 // Stepper (+/- 10 мг)
 (function wireStepper(){
@@ -2999,10 +3415,34 @@ document.addEventListener('DOMContentLoaded', ()=>{
 });
 // Моментальная инициализация UI (работает даже без бэка)
 document.addEventListener('DOMContentLoaded', () => {
-  try { document.getElementById('date').value = todayISO(); } catch(_){}
+  try{
+    const t = todayISO();
+    const dateEl = document.getElementById('date');
+    if (dateEl){
+      dateEl.value = t; // всегда сегодня при входе
+      dateEl.addEventListener('change', ()=>{ setMainDate(dateEl.value, {from:'input'}); });
+    }
+    try{ window.calOffset = 0; }catch(_){}
+  }catch(_){}
   try { setupCapsulesUI('roaccutane'); } catch(_){}
-  try { recalcDaysPerView(); renderCalPreview(); } catch(_){}
+  try {
+    const ph = document.getElementById('planHint');
+    ph && ph.addEventListener('click', ()=>{
+      const mg = Number(ph.dataset.mg || 0);
+      if (mg > 0){
+        const mgEl = document.getElementById('mg');
+        if (mgEl && !mgEl.disabled) mgEl.value = String(mg);
+        updateDoseHint();
+      }
+    });
+  } catch(_){ }
+  try { recalcDaysPerView(); setMainDate(todayISO(), {from:'boot', resetCal:true}); } catch(_){}
   try { updateSummary(); updateDoseHint(); window.renderReminder && window.renderReminder(); } catch(_){}
+  try{
+    // если страница вернулась из bfcache — всё равно сбрасываем на сегодня
+    window.addEventListener('pageshow', ()=>{ try{ setMainDate(todayISO(), {from:'pageshow', resetCal:true}); }catch(_){} });
+  }catch(_){}
+
 });
 </script>
 <script id="day-slate-js">
@@ -4653,7 +5093,7 @@ main: [
 
 {
   title: '🗓️ Календарь',
-text: 'Быстрый обзор недели. Нажатием на кнопку «Открыть» вы перейдете на страницу Календаря.',
+text: 'Быстрый обзор недели. Перемещаться между неделем можно свайпом влево или вправо. Кнопка «Открыть» переведёт Вас на страницу Календаря.',
 reveal: ['#cardCalendar'],
 focus: ['#openCalendarBtn'],
         radiusInherit: true,

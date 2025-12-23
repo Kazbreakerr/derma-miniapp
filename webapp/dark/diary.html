@@ -367,7 +367,7 @@ main.wrap{ padding-top: 8px; }
   border:1px solid var(--border);
   box-shadow:0 8px 18px rgba(0,0,0,.25), inset 0 0 0 1px rgba(255,255,255,.03);
   display:flex; align-items:center;
-  cursor:pointer; user-select:none; -webkit-user-select:none; touch-action: pan-x;
+  cursor:pointer; user-select:none; -webkit-user-select:none; touch-action: none;
 }
 #moodBar{ touch-action: pan-y; user-select:none; -webkit-user-select:none; }
 .bar .rail{
@@ -407,6 +407,10 @@ main.wrap{ padding-top: 8px; }
 }
 .bar.drag .knob{ transition:none }
 
+/* PERF: меньше лагов при перетягивании */
+.mood-scene img{ will-change: transform, opacity; transform: translateZ(0); }
+.bar{ -webkit-tap-highlight-color: transparent; }
+
 .bar.is-locked{ cursor: default; opacity:.92; }
 
 
@@ -441,7 +445,7 @@ main.wrap{ padding-top: 8px; }
   .actions-row{display:flex; gap:10px; flex-wrap:wrap}
     .cmp-kind-switch{
     display:flex;
-    gap:6px;
+    gap:4px;
     flex-wrap:wrap;
   }
   .cmp-kind-btn{
@@ -1011,6 +1015,28 @@ textarea::placeholder{
   will-change: transform, opacity, object-position;
 }
 
+
+/* video-анимация настроения (показываем только после подтверждения)
+   Делаем "бесшовный" луп через 2 видео-слоя + кросс-фейд в конце */
+.mood-scene .mood-video{
+  position:absolute; inset:0;
+  width:100%; height:100%;
+  object-fit: cover;
+  border-radius: inherit;
+  opacity: 0;
+  transition: opacity .42s cubic-bezier(.2,.8,.2,1);
+  pointer-events:none;
+  will-change: opacity;
+}
+/* активный слой */
+.mood-scene.is-video .mood-video.is-active{ opacity: 1; }
+/* при видео — прячем статичные кадры */
+.mood-scene.is-video img{ opacity: 0 !important; }
+
+/* пауза по тапу на шар */
+.mood-scene.is-video.is-paused .mood-video.is-active{ filter: saturate(.98) brightness(.98); }
+.mood-scene.is-video.is-paused .mood-video:not(.is-active){ opacity: 0 !important; }
+.mood-scene.is-video.is-paused::after{ content:""; display:none; }
 /* чтобы ничто не «подкрашивало» под твоими PNG */
 .mood-stage::before{ content:none !important; }
 /* === 3) Capsule stage (same skin, no seams) === */
@@ -1062,7 +1088,7 @@ textarea::placeholder{
     inset 0 1px 0 rgba(255,255,255,.06),
     inset 0 -10px 20px rgba(0,0,0,.22);
   border:0;
-  user-select:none; -webkit-user-select:none; touch-action: pan-x;
+  user-select:none; -webkit-user-select:none; touch-action: none;
 }
 .bar .rail{
   position:absolute; left:14px; right:14px; top:50%; height:6px; transform:translateY(-50%);
@@ -1277,7 +1303,7 @@ header{
       let b=spot.querySelector('.pill-alert');
       if(!need){ if(b) b.remove(); return; }
       if(!b){ b=document.createElement('span'); b.className='pill-alert'; b.title='Сегодня доза не отмечена'; spot.appendChild(b); }
-      b.textContent=(window.innerWidth<420?'доза':'препарат');
+      b.textContent='препарат';
     });
   }
   window.addEventListener('storage',e=>{
@@ -1572,7 +1598,7 @@ header{
 .app-title{
   display:flex;
   align-items:center;
-  gap:8px;
+  gap:6px;
   flex-wrap:nowrap;
 }
 .app-title__text{
@@ -1586,7 +1612,7 @@ header{
   font-weight: 800;
   opacity: .86;
   position: relative;
-  padding-left: 10px;
+  padding-left: 6px;
 }
 .course-day::before{
   content:"•";
@@ -1599,11 +1625,12 @@ header{
 .app-badges{
   display:inline-flex;
   align-items:center;
-  gap:6px;
+  gap:4px;
   white-space:nowrap;
-  flex:1 1 auto;
+  flex:0 0 auto;          /* НЕ растягиваем вправо */
   min-width:0;
-  justify-content:flex-end;
+  justify-content:flex-start;
+  margin-left:2px;        /* почти вплотную к "День N" */
 }
 .app-badges > span{
   display:inline-flex;
@@ -1702,8 +1729,11 @@ header{
    <div class="mood-stage">
   <!-- Полноэкранная сцена с фоном и шаром (2 слоя для кросс-фейда) -->
   <div class="mood-scene" id="moodScene">
-    <img id="sceneBottom" alt="" decoding="async">
+        <img id="sceneBottom" alt="" decoding="async">
     <img id="sceneTop"    alt="" decoding="async" style="opacity:0">
+    <!-- 2 видео-слоя для плавного "бесшовного" лупа (кросс-фейд в конце) -->
+    <video id="moodVideoA" class="mood-video" muted playsinline preload="metadata" disablepictureinpicture></video>
+    <video id="moodVideoB" class="mood-video" muted playsinline preload="metadata" disablepictureinpicture></video>
   </div>
 </div>
 
@@ -2285,6 +2315,249 @@ SCENES.forEach(s=>{ const i=new Image(); i.decoding='async'; i.src=s.src; });
 const sceneBottom = document.getElementById('sceneBottom');
 const sceneTop    = document.getElementById('sceneTop');
 
+
+// Видео-анимации для подтверждённого настроения (циклично, БЕЗ резкого перескока)
+// ВАЖНО: файлы лежат в ../media относительно этой страницы: verybad.mp4 ... fine.mp4
+const moodSceneEl = document.getElementById('moodScene');
+const moodVideoA  = document.getElementById('moodVideoA');
+const moodVideoB  = document.getElementById('moodVideoB');
+
+const MOOD_VIDEO_SRC = [
+  '../media/verybad.mp4', // 0
+  '../media/bad.mp4',     // 1
+  '../media/soso.mp4',    // 2
+  '../media/neutral.mp4', // 3
+  '../media/notbad.mp4',  // 4
+  '../media/good.mp4',    // 5
+  '../media/fine.mp4'     // 6
+];
+
+function __idxFromValence(v){
+  v = Number(v);
+  if (!Number.isFinite(v)) v = 50;
+  return Math.max(0, Math.min(6, Math.round((v/100) * 6)));
+}
+
+// --- seamless loop: 2 слоя видео + кросс-фейд на стыке ---
+const __moodSmooth = {
+  src: '',
+  running: false,
+  paused: false,
+  swapping: false,
+  active: null,
+  idle: null,
+  tmr: 0,
+  fadeMs: 420,      // длительность кросс-фейда (сделали плавнее)
+  crossSec: 0.48    // за сколько секунд до конца начинаем подмену (чуть раньше для плавности)
+};
+
+function __prepVid(v, src){
+  if (!v) return;
+  try{
+    v.muted = true;
+    v.playsInline = true;
+    v.loop = false;                 // луп делаем сами (иначе будет резкий "jump")
+    v.preload = 'auto';
+  }catch(_){}
+  if (v.dataset.src !== src){
+    v.dataset.src = src;
+    v.src = src;
+    try{ v.load(); }catch(_){}
+  }
+}
+
+function __playSafe(v){
+  if (!v) return;
+  try{
+    const p = v.play();
+    if (p && typeof p.catch === 'function') p.catch(()=>{});
+  }catch(_){}
+}
+
+function __pauseSafe(v){ try{ v && v.pause(); }catch(_){ } }
+
+function __setActive(v, on){
+  if (!v) return;
+  v.classList.toggle('is-active', !!on);
+}
+
+function __tickSmooth(){
+  clearTimeout(__moodSmooth.tmr);
+  if (!__moodSmooth.running) return;
+
+  // если на паузе — просто перепланируем тик
+  if (__moodSmooth.paused){
+    __moodSmooth.tmr = setTimeout(__tickSmooth, 220);
+    return;
+  }
+
+  const a = __moodSmooth.active;
+  if (!a){
+    __moodSmooth.tmr = setTimeout(__tickSmooth, 220);
+    return;
+  }
+
+  const dur = Number(a.duration);
+  const cur = Number(a.currentTime);
+
+  // пока метаданные не готовы — подождём
+  if (!Number.isFinite(dur) || dur <= 0 || !Number.isFinite(cur)){
+    __moodSmooth.tmr = setTimeout(__tickSmooth, 120);
+    return;
+  }
+
+  const rem = dur - cur;
+
+  // начинаем кросс-фейд чуть до конца
+  if (!__moodSmooth.swapping && rem <= (__moodSmooth.crossSec + 0.12)){
+    __moodSmooth.swapping = true;
+
+    const b = __moodSmooth.idle;
+    __prepVid(b, __moodSmooth.src);
+
+    // стартуем "второй" слой с самого начала
+    try{ b.currentTime = 0; }catch(_){}
+    __playSafe(b);
+
+    // включаем b и выключаем a — CSS сделает плавный фейд
+    __setActive(b, true);
+    __setActive(a, false);
+
+    // через fadeMs закрепляем swap и ставим старое видео на паузу
+    setTimeout(()=>{
+      __pauseSafe(a);
+      __moodSmooth.active = b;
+      __moodSmooth.idle   = a;
+      __moodSmooth.swapping = false;
+    }, __moodSmooth.fadeMs + 40);
+  }
+
+  // экономим CPU: если до конца далеко — реже тикаем
+  const next = rem > 1.0 ? 220 : 70;
+  __moodSmooth.tmr = setTimeout(__tickSmooth, next);
+}
+
+function startMoodVideoSeamless(src){
+  if (!moodSceneEl || !moodVideoA || !moodVideoB) return;
+
+  // уже играет этот же src — просто убеждаемся, что видим/играем
+  if (__moodSmooth.running && __moodSmooth.src === src){
+    moodSceneEl.classList.add('is-video');
+    moodSceneEl.classList.remove('is-paused');
+    __moodSmooth.paused = false;
+    __playSafe(__moodSmooth.active);
+    __tickSmooth();
+    return;
+  }
+
+  stopMoodVideoSeamless();
+
+  __moodSmooth.src = src;
+  __moodSmooth.running = true;
+  __moodSmooth.paused = false;
+  __moodSmooth.swapping = false;
+  __moodSmooth.active = moodVideoA;
+  __moodSmooth.idle   = moodVideoB;
+
+  moodSceneEl.classList.add('is-video');
+  moodSceneEl.classList.remove('is-paused');
+
+  __prepVid(__moodSmooth.active, src);
+  __prepVid(__moodSmooth.idle,   src);
+
+  // стартуем основной слой
+  __setActive(__moodSmooth.active, true);
+  __setActive(__moodSmooth.idle, false);
+
+  try{ __moodSmooth.active.currentTime = 0; }catch(_){}
+  __playSafe(__moodSmooth.active);
+
+  __tickSmooth();
+}
+
+function stopMoodVideoSeamless(){
+  clearTimeout(__moodSmooth.tmr);
+  __moodSmooth.tmr = 0;
+  __moodSmooth.running = false;
+  __moodSmooth.paused = false;
+  __moodSmooth.swapping = false;
+
+  __pauseSafe(moodVideoA);
+  __pauseSafe(moodVideoB);
+
+  __setActive(moodVideoA, false);
+  __setActive(moodVideoB, false);
+
+  if (moodSceneEl){
+    moodSceneEl.classList.remove('is-video');
+    moodSceneEl.classList.remove('is-paused');
+  }
+}
+
+function toggleMoodVideoPause(){
+  if (!__moodSmooth.running || !moodSceneEl) return;
+  __moodSmooth.paused = !__moodSmooth.paused;
+
+  if (__moodSmooth.paused){
+    moodSceneEl.classList.add('is-paused');
+    __pauseSafe(moodVideoA);
+    __pauseSafe(moodVideoB);
+  } else {
+    moodSceneEl.classList.remove('is-paused');
+    __playSafe(__moodSmooth.active);
+    __tickSmooth();
+  }
+}
+
+// тап по шару: остановить/продолжить (только когда видео реально показано)
+try{
+  moodSceneEl?.addEventListener('click', ()=>{
+    if (!moodSceneEl.classList.contains('is-video')) return;
+    toggleMoodVideoPause();
+  });
+}catch(_){}
+
+// доп: не даём браузеру показывать системные оверлеи/контекст-меню на таче
+try{
+  moodSceneEl?.addEventListener('contextmenu', (e)=> e.preventDefault());
+  moodSceneEl?.addEventListener('pointerdown', (e)=> { if (moodSceneEl.classList.contains('is-video')) e.preventDefault(); }, {passive:false});
+}catch(_){}
+
+
+// публичные хелперы (используются ниже в логике закрепления)
+function showMoodVideo(idx){
+  idx = Math.max(0, Math.min(6, Number(idx)||0));
+  const src = MOOD_VIDEO_SRC[idx];
+  if (!src) return;
+  startMoodVideoSeamless(src);
+}
+
+function hideMoodVideo(){
+  stopMoodVideoSeamless();
+}
+
+// Показываем видео только если настроение подтверждено И закреплено
+function refreshMoodVideoForISO(iso){
+  try{
+    const e = getEntry(iso);
+    const pinned = !!e?.moodPinned;
+    const saved  = !!e?.wellnessSaved;
+    if (pinned && saved){
+      const v = (typeof e?.wellness_user === 'number')
+        ? e.wellness_user
+        : (typeof e?.wellness === 'number' ? e.wellness : 50);
+      showMoodVideo(__idxFromValence(v));
+      return;
+    }
+  }catch(_){}
+  hideMoodVideo();
+}
+
+try{
+  window.refreshMoodVideoForISO = refreshMoodVideoForISO;
+  window.showMoodVideo = showMoodVideo;
+  window.hideMoodVideo = hideMoodVideo;
+}catch(_){}
 // Линейная интерполяция
 function lerp(a,b,t){ return a + (b-a)*t; }
 
@@ -2362,12 +2635,7 @@ function tweenValence(from, to, ms = 220){
     const x01 = v / 100;
     const bar = document.getElementById('moodBar');
     if (bar) bar.style.setProperty('--x', x01);
-
-    const knob = document.getElementById('moodKnob');
-    if (knob) knob.style.left = v + '%';
-
-    const fill = document.getElementById('moodFill') || document.querySelector('.mood-fill');
-    if (fill) fill.style.width = v + '%';
+    // (perf) позицию ручки рисуем только через CSS var --x, без inline left/width
 
     // кросс-фейд и "камера" (центр/зум)
     updateFurByValence(v);
@@ -2390,6 +2658,7 @@ function tweenValence(from, to, ms = 220){
     if (fromUser){
       moodTouched = true;
       window.__moodPendingIdx = curIdx;
+      try{ if (!__moodPinned) hideMoodVideo(); }catch(_){ }
       try{
         const btn = document.getElementById('confirmMood');
         if (btn && !__moodPinned) btn.classList.add('is-ready');
@@ -2408,51 +2677,78 @@ function tweenValence(from, to, ms = 220){
     if (curIdx !== prev) haptic();
   }
 
-// --- плавный drag без дёрганий, снап на отпускании ---
+// --- плавный drag (оптимизировано для мобилок): кеш геометрии + rAF-батч ---
 let sdrag = false, spid = 0;
+let __barLeft = 0, __barW = 1;
+let __dragRaf = 0, __pendingX01 = null;
 
-function clientToX01(cx){
+function cacheBarGeo(){
   const r = bar.getBoundingClientRect();
-  const left  = r.left + 14;
-  const right = r.right - 14;
-  const x = (cx - left) / (right - left);
+  __barLeft = r.left + 14;
+  __barW    = Math.max(1, r.width - 28);
+}
+function clientToX01(cx){
+  const x = (cx - __barLeft) / __barW;
   return Math.max(0, Math.min(1, x));
 }
 function previewValence(x01){
-  const v = x01 * 100;
-  window.valence = v;
-  bar.style.setProperty('--x', x01);
-  if (knob) {
-  const w = bar.getBoundingClientRect().width;
-  knob.style.left = (14 + x01 * (w - 28)) + 'px';
+  __pendingX01 = x01;
+  if (__dragRaf) return;
+  __dragRaf = requestAnimationFrame(() => {
+    __dragRaf = 0;
+    const x = (__pendingX01 == null) ? 0 : __pendingX01;
+    __pendingX01 = null;
+
+    const v = x * 100;
+    window.valence = v;
+    bar.style.setProperty('--x', x);
+
+    // обновляем визуал (шарики/картинки) максимум 60fps
+    updateFurByValence(v);
+    updateSceneByValence(v);
+  });
 }
 
-  updateFurByValence(v);
-  updateSceneByValence(v);
-}
-
-bar.addEventListener('pointerdown', e => {
+// 1) старт перетягивания
+bar.addEventListener('pointerdown', (e) => {
   if (__moodPinned) return;
   e.preventDefault();
+
   spid = e.pointerId;
   sdrag = true;
   bar.classList.add('drag');
-  bar.setPointerCapture(spid);
+
+  cacheBarGeo();
+  try{ bar.setPointerCapture(spid); }catch(_){}
+
   previewValence(clientToX01(e.clientX));
 });
-window.addEventListener('pointermove', e => {
+
+// 2) движение (с rAF)
+window.addEventListener('pointermove', (e) => {
   if (!sdrag) return;
   e.preventDefault();
   previewValence(clientToX01(e.clientX));
-}, {passive:false});
-window.addEventListener('pointerup', e => {
+}, { passive:false });
+
+// 3) отпускание + снап
+window.addEventListener('pointerup', (e) => {
   if (!sdrag) return;
   sdrag = false;
   bar.classList.remove('drag');
   try{ bar.releasePointerCapture(spid); }catch(_){}
-    const idx = Math.round(clientToX01(e.clientX) * 6);
-  applyIndex(idx, true);                    // фиксируем настроение
+
+  const x01 = clientToX01(e.clientX);
+  previewValence(x01);                 // добиваем финальный кадр
+  const idx = Math.round(x01 * 6);
+  applyIndex(idx, true);               // фиксируем настроение
 });
+
+// 4) пересчет геометрии, если экран/ориентация поменялись
+window.addEventListener('resize', () => {
+  if (!sdrag) cacheBarGeo();
+}, { passive:true });
+
 
   // клавиатура
   bar.tabIndex = 0;
@@ -2570,7 +2866,8 @@ if (cmpKindButtons.length){
 
   cmpKindButtons.forEach(btn=>{
     const kind = btn.dataset.cmpKind === 'body' ? 'body' : 'face';
-    if (kind === compareKind) btn.classList.add('is-active');
+    // гарантируем: активна ровно одна кнопка (исправляет случай, когда обе подсвечены)
+    btn.classList.toggle('is-active', kind === compareKind);
 
     btn.addEventListener('click', ()=>{
       compareKind = kind;
@@ -3727,7 +4024,9 @@ function setMoodPinned(pinned){
       }
     }
   }catch(_){ }
+  try{ window.refreshMoodVideoForISO && window.refreshMoodVideoForISO(selectedISO()); }catch(_){ }
 }
+
 function loadMoodPinnedFromEntry(dateISO){
   try{
     const e = getEntry(dateISO);
@@ -3956,7 +4255,7 @@ function updateDayChip(dateISO){
     }
   }catch(_){ }
 
-  // дата: гарантируем одну строку на телефонах
+  // дата: гарантируем одну строку на телефонах (и ВЕЗДЕ показываем год)
   const w = Math.min(window.innerWidth || 9999, document.documentElement.clientWidth || 9999);
 
   let line = '';
@@ -3969,11 +4268,14 @@ function updateDayChip(dateISO){
     const weekday = new Intl.DateTimeFormat('ru-RU',{weekday:'short'}).format(d).replace('.', '');
     const dd = new Intl.DateTimeFormat('ru-RU',{day:'2-digit'}).format(d);
     const mon = new Intl.DateTimeFormat('ru-RU',{month:'short'}).format(d).replace('.', '');
-    line = `${weekday}, ${dd} ${mon}`; // коротко (без года)
+    const yy = d.getFullYear();
+    line = `${weekday}, ${dd} ${mon} ${yy}`; // коротко, но с годом
   } else {
     const weekday = new Intl.DateTimeFormat('ru-RU',{weekday:'short'}).format(d).replace('.', '');
-    const dateFmt = new Intl.DateTimeFormat('ru-RU',{day:'2-digit', month:'long', year:'numeric'}).format(d);
-    line = `${weekday}, ${dateFmt}`;
+    const dd = new Intl.DateTimeFormat('ru-RU',{day:'2-digit'}).format(d);
+    const monLong = new Intl.DateTimeFormat('ru-RU',{month:'long'}).format(d);
+    const yy = d.getFullYear();
+    line = `${weekday}, ${dd} ${monLong} ${yy}`; // без "г.", чтобы влезало
   }
   const relEl      = document.getElementById('relLabel');
 const courseTitle = document.getElementById('courseTitle'); // <-- новое
@@ -3990,6 +4292,16 @@ if (dayText) dayText.textContent = line;
     photosChip.textContent = new Intl.DateTimeFormat('ru-RU',{day:'2-digit',month:'2-digit',year:'numeric'}).format(d);
   }
 }
+
+
+// UI-хук: отмечаем сохранённость самочувствия (и место для будущих эффектов)
+function setMoodSavedUI(saved){
+  try{
+    const sec = document.getElementById('moodSection');
+    if (sec) sec.classList.toggle('is-saved', !!saved);
+  }catch(_){}
+}
+
 function loadIntoUI(dateISO){
   moodTouched = false;  // новый день — считаем, что ползунок пока не трогали
   const entry = getEntry(dateISO);
@@ -4033,6 +4345,7 @@ requestAnimationFrame(() => {
 
   notesEl.value = entry.notes || '';
   setMoodSavedUI(!!entry.wellnessSaved);
+  try{ window.refreshMoodVideoForISO && window.refreshMoodVideoForISO(dateISO); }catch(_){ }
 
   refreshCompare();
 }
@@ -4252,11 +4565,23 @@ function init(){
   const K_LEFT='rt_capsules_left', K_THRESH='rt_capsules_threshold', K_ON='rt_capsules_alert_enabled';
   const num=(k,d=0)=>{const v=parseInt(localStorage.getItem(k)||d,10);return Number.isFinite(v)?v:0;}
   const on =()=> (localStorage.getItem(K_ON)||'0')==='1';
-
+  function capWord(n){
+  n = Math.abs(Math.trunc(Number(n) || 0));
+  const n100 = n % 100;
+  const n10  = n % 10;
+  if (n100 >= 11 && n100 <= 14) return 'капсул';
+  if (n10 === 1) return 'капсула';
+  if (n10 >= 2 && n10 <= 4) return 'капсулы';
+  return 'капсул';
+}
   function text(){
     if(!on()) return null;
     const left=num(K_LEFT,0), thr=num(K_THRESH,0);
-    if(left>0 && thr>0 && left<=thr) return (window.innerWidth<420 ? `ост. ${left} капс.` : `осталось ${left} капсул`);
+    if(left>0 && thr>0 && left<=thr) {
+  return (window.innerWidth<420)
+    ? `ост. ${left} капс.`
+    : `осталось ${left} ${capWord(left)}`;
+}
     return null;
   }
   function render(){

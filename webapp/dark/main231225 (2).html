@@ -144,6 +144,12 @@ try{
   }
   #cardDose .mg-col{ gap:5px; align-items:center; }
   #cardDose .cap-hint{ font-size:11px; padding:2px 9px; }
+  #cardDose .subhints{ display:flex; gap:6px; align-items:center; justify-content:center; }
+  #cardDose .cap-hint{ border:0; background:rgba(255,255,255,.08); color:rgba(235,252,255,.92); box-shadow:0 6px 14px rgba(0,0,0,.25) inset, 0 10px 26px rgba(0,0,0,.18); }
+  #cardDose .cap-hint[hidden]{ display:none; }
+  #cardDose .cap-hint--plan{ opacity:.92; }
+  #cardDose .cap-hint--plan:active{ transform:translateY(1px); }
+
 
   #cardDose .stepper{ gap:6px; }
   #cardDose .stepper .step{
@@ -492,10 +498,11 @@ body.light .seg button{
   position:absolute; inset:0; border-radius:999px;
   background:#0E1726; border:1px solid var(--border);
   box-shadow: inset 0 1px 2px rgba(0,0,0,.35);
+  overflow:hidden;
   transition: background .18s ease, border-color .18s ease;
 }
 .toggle .slider::after{
-  content:""; position:absolute; width:26px; height:26px; left:2px; top:1.5px;
+  content:""; position:absolute; width:26px; height:26px; left:2px; top:2px;
   background:#fff; border-radius:50%; box-shadow:0 1px 2px rgba(0,0,0,.25);
   transition: transform .18s ease;
 }
@@ -593,7 +600,7 @@ body.light .seg button{
 #cardDose .dose-save{
   position:relative;
   overflow:hidden;
-  width:min(360px, 100%);
+  width:min(340px, 94%);
   height:54px;
   margin:12px auto 0;
   border-radius:18px;
@@ -1042,6 +1049,7 @@ const need = enabled && getTodayMg()<=0;
     try { applyDiaryToMain(diaryGet()); } catch(_){}
     try { renderCalPreview(); } catch(_){}
     try { updateSummary(); } catch(_){}
+    try { updatePlanHint(); } catch(_){}
     render();
   }
 });
@@ -1501,7 +1509,10 @@ document.addEventListener('DOMContentLoaded', () => {
         <div class="mg-wrap">
           <div class="mg-col">
             <input id="mg" type="number" step="10" value="20" inputmode="numeric" pattern="\d*" aria-label="Доза в миллиграммах">
-            <span id="capHint" class="cap-hint" aria-live="polite" hidden></span>
+            <div class="subhints" aria-live="polite">
+            <button type="button" id="capHint" class="cap-hint" aria-label="Подсказка по капсулам" hidden></button>
+            <button type="button" id="planHint" class="cap-hint cap-hint--plan" aria-label="Запланированная доза. Нажмите, чтобы подставить в поле" hidden></button>
+          </div>
           </div>
 
           <div class="stepper">
@@ -2064,7 +2075,7 @@ updateSegLabels();
           if (AUTO_SELECT_ON_SNAP && !grid.querySelector('.day-card.selected')){
             const iso = best.getAttribute('data-iso');
             const inp = document.getElementById('date');
-            if (iso && inp) { inp.value = iso; renderCalPreview(); }
+            if (iso && inp) { inp.value = iso; try{ updatePlanHint(); }catch(_){} renderCalPreview(); }
           }
         }
       }
@@ -2560,6 +2571,14 @@ try{
   if (mgElInput) {
     mgElInput.addEventListener('input', () => {
       try { syncChipsSelection?.(); } catch(_) {}
+    });
+  
+    // Закрыть клавиатуру по "Enter/Готово" (мобилки)
+    mgElInput.addEventListener('keydown', (e) => {
+      if (e.key === 'Enter') {
+        e.preventDefault();
+        try { mgElInput.blur(); } catch (_) {}
+      }
     });
   }
 }
@@ -3124,6 +3143,58 @@ function updateDoseHint(){
   }catch(_){}
 }
 
+// === Planned dose hint (from calendar planning / per-day diary) ===
+function plannedMgForDate(iso){
+  try{
+    iso = String(iso||'').slice(0,10);
+    if(!/^\d{4}-\d{2}-\d{2}$/.test(iso)) return 0;
+
+    // primary source: local per-day diary (calendar writes here)
+    const diary = diaryGet();
+    const rec = diary && diary[iso];
+    if(!rec) return 0;
+
+    // explicit planned fields (if появятся позже)
+    const explicit = Number(rec.plan ?? rec.planned ?? rec.plan_mg ?? rec.planned_mg ?? rec.plannedDose ?? rec.target_mg);
+    if (Number.isFinite(explicit) && explicit > 0) return Math.round(explicit);
+
+    const dose = Number(rec.dose ?? rec.mg ?? 0);
+    if (!(dose > 0)) return 0;
+
+    // если доза стоит на будущем дне — это точно план
+    const t = todayISO();
+    if (iso > t) return Math.round(dose);
+
+    // на сегодня тоже показываем как «план», даже если день уже отмечен в календаре
+    if (iso === t) return Math.round(dose);
+
+    // для прошедших дней — не показываем как план
+    return 0;
+  }catch(_){ return 0; }
+}
+
+function updatePlanHint(){
+  try{
+    const btn = document.getElementById('planHint');
+    const dateEl = document.getElementById('date');
+    if(!btn || !dateEl) return;
+
+    const iso = String(dateEl.value || todayISO()).slice(0,10);
+    const mg  = plannedMgForDate(iso);
+
+    if (mg > 0){
+      btn.textContent = `План: ${mg} мг`;
+      btn.dataset.mg = String(mg);
+      btn.hidden = false;
+    } else {
+      btn.textContent = '';
+      btn.dataset.mg = '';
+      btn.hidden = true;
+    }
+  }catch(_){}
+}
+
+
 // Stepper (+/- 10 мг)
 (function wireStepper(){
   const minus = document.getElementById('mgMinus');
@@ -3158,9 +3229,21 @@ document.addEventListener('DOMContentLoaded', ()=>{
 // Моментальная инициализация UI (работает даже без бэка)
 document.addEventListener('DOMContentLoaded', () => {
   try { document.getElementById('date').value = todayISO(); } catch(_){}
+  try { document.getElementById('date').addEventListener('change', ()=>{ updatePlanHint(); }); } catch(_){ }
   try { setupCapsulesUI('roaccutane'); } catch(_){}
+  try {
+    const ph = document.getElementById('planHint');
+    ph && ph.addEventListener('click', ()=>{
+      const mg = Number(ph.dataset.mg || 0);
+      if (mg > 0){
+        const mgEl = document.getElementById('mg');
+        if (mgEl) mgEl.value = String(mg);
+        updateDoseHint();
+      }
+    });
+  } catch(_){ }
   try { recalcDaysPerView(); renderCalPreview(); } catch(_){}
-  try { updateSummary(); updateDoseHint(); window.renderReminder && window.renderReminder(); } catch(_){}
+  try { updateSummary(); updateDoseHint(); updatePlanHint(); window.renderReminder && window.renderReminder(); } catch(_){}
 });
 </script>
 <script id="day-slate-js">

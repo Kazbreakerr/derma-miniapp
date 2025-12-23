@@ -301,23 +301,38 @@ main.wrap{ padding-top: 8px; }
 #moodSection .mood-pin{
   position:relative;
   display:block;
-  width: min(280px, 100%);
+  width: min(260px, 100%);
   margin: 10px auto 0;
-  height: 48px;
-  padding: 0 16px;
+  min-height: 44px;
+  padding: 10px 16px;
   border-radius: 999px;
   border: 1px solid rgba(255,255,255,.10);
   background: linear-gradient(180deg, rgba(255,255,255,.08), rgba(0,0,0,.18));
   color: rgba(255,255,255,.92);
   font-weight: 900;
-  font-size: 14px;
-  letter-spacing: .15px;
+  font-size: 13px;
+  letter-spacing: .12px;
+  line-height: 1.12;
   box-shadow:
     -8px -8px 16px rgba(255,255,255,.035),
      10px 12px 22px rgba(0,0,0,.55),
      inset 0 1px 0 rgba(255,255,255,.08);
   transition: transform .08s ease, filter .18s ease, box-shadow .18s ease;
   -webkit-tap-highlight-color: transparent;
+}
+.mood-pin .sub{
+  display:block;
+  font-weight:700;
+  font-size:12px;
+  opacity:.75;
+  margin-top:2px;
+}
+.mood-pin.is-ready{ filter:brightness(1.06) saturate(1.05); }
+.mood-pin.shake{ animation:rtShake .22s ease-in-out; }
+@keyframes rtShake{0%{transform:translateX(0)}25%{transform:translateX(-4px)}50%{transform:translateX(4px)}75%{transform:translateX(-3px)}100%{transform:translateX(0)}}
+@media (max-width:420px){
+  .mood-pin{ min-height:42px; padding: 9px 14px; font-size:12.5px; }
+  .mood-pin .sub{ font-size:11px; }
 }
 
 #moodSection .mood-pin:hover{ filter:brightness(1.06); }
@@ -426,7 +441,7 @@ main.wrap{ padding-top: 8px; }
   .actions-row{display:flex; gap:10px; flex-wrap:wrap}
     .cmp-kind-switch{
     display:flex;
-    gap:6px;
+    gap:4px;
     flex-wrap:wrap;
   }
   .cmp-kind-btn{
@@ -1205,16 +1220,42 @@ header{
 
 </style>
 <style id="pill-alert-style">
-  .pill-alert{
-    display:inline-flex;align-items:center;justify-content:center;
-    margin-left:10px;padding:2px 8px;border-radius:10px;
-    font-weight:800;font-size:12px;letter-spacing:.2px;
-    color:#fff;background:#ff4242;
-    box-shadow:0 0 0 0 rgba(255,66,66,.65);
-    animation:hazard 1.15s steps(2,start) infinite;
-  }
-  @keyframes hazard{to{opacity:.38;box-shadow:0 0 0 10px rgba(255,66,66,0)}}
-  @media (prefers-reduced-motion:reduce){.pill-alert{animation:none}}
+ .pill-alert{
+  display:inline-flex;align-items:center;justify-content:center;
+  height:20px;
+  padding:0 7px;
+  border-radius:999px;
+  font-weight:900;
+  font-size:10px;
+  letter-spacing:.12px;
+  white-space:nowrap;
+
+  /* чтобы не ломали шапку на узких экранах */
+  max-width:34vw;
+  overflow:hidden;
+  text-overflow:ellipsis;
+
+  color:#fff;
+  background:#ff4242;
+  border:1px solid rgba(255,255,255,.12);
+  box-shadow:0 0 0 0 rgba(255,66,66,.55);
+  animation:hazard 1.15s steps(2,start) infinite;
+}
+
+.pill-alert--stock{
+  background:#10b981;
+  border:1px solid rgba(16,185,129,.45);
+  box-shadow:0 0 14px rgba(16,185,129,.18);
+  animation:none;
+}
+
+@keyframes hazard{to{opacity:.38;box-shadow:0 0 0 10px rgba(255,66,66,0)}}
+@media (prefers-reduced-motion:reduce){.pill-alert{animation:none}}
+
+@media (max-width:420px){
+  .pill-alert{ height:18px; padding:0 6px; font-size:9px; max-width:38vw; }
+}
+
 </style>
 
 <script id="pill-alert-script">
@@ -1235,8 +1276,8 @@ header{
     document.querySelectorAll('[data-pill-spot]').forEach(spot=>{
       let b=spot.querySelector('.pill-alert');
       if(!need){ if(b) b.remove(); return; }
-      if(!b){ b=document.createElement('span'); b.className='pill-alert'; b.textContent='препарат';
-        b.title='Сегодня доза не отмечена'; spot.appendChild(b); }
+      if(!b){ b=document.createElement('span'); b.className='pill-alert'; b.title='Сегодня доза не отмечена'; spot.appendChild(b); }
+      b.textContent='препарат';
     });
   }
   window.addEventListener('storage',e=>{
@@ -1530,37 +1571,51 @@ header{
 /* Заголовок "Дневник" + День N + мини-алерты — в одну линию */
 .app-title{
   display:flex;
-  align-items:baseline;
-  gap:10px;
+  align-items:center;
+  gap:6px;
   flex-wrap:nowrap;
 }
-
-.app-title__text{ white-space:nowrap; }
-
+.app-title__text{
+  white-space:nowrap;
+  flex:0 0 auto;
+}
 .course-day{
   white-space:nowrap;
+  flex:0 0 auto;
   font-size: 13px;
-  font-weight: 700;
-  opacity: .85;
+  font-weight: 800;
+  opacity: .86;
   position: relative;
-  padding-left: 10px;
+  padding-left: 6px;
 }
-
-/* разделитель "•" перед Днём курса */
 .course-day::before{
   content:"•";
   position:absolute;
   left:0;
-  opacity:.5;
+  top:50%;
+  transform:translateY(-50%);
+  opacity:.55;
 }
-
 .app-badges{
   display:inline-flex;
-  gap:8px;
   align-items:center;
+  gap:4px;
   white-space:nowrap;
+  flex:0 0 auto;          /* НЕ растягиваем вправо */
+  min-width:0;
+  justify-content:flex-start;
+  margin-left:2px;        /* почти вплотную к "День N" */
 }
-
+.app-badges > span{
+  display:inline-flex;
+  align-items:center;
+  min-width:0;
+}
+.app-badges .pill-alert{
+  max-width: 46vw;
+  overflow:hidden;
+  text-overflow:ellipsis;
+}
 
 /* 2) Diary header: make brand/title/date nav compact on phones */
 @media (max-width: 560px){
@@ -1660,7 +1715,7 @@ header{
           <div class="center-mark" aria-hidden="true"></div>
           <div class="knob" id="moodKnob"></div>
         </div>
-        <button class="btn btn-primary mood-pin" id="confirmMood">Закрепить настроение</button>
+        <button class="btn btn-primary mood-pin" id="confirmMood">Подтвердить</button>
       </div>
     </div>
   </section>
@@ -2063,8 +2118,8 @@ async function flushCurrentEntry(){
     // обновляем wellness только если:
     // 1) ползунок трогали в этом дне, ИЛИ
     // 2) в записи уже был wellness (старые сохранённые дни)
-    const hasExistingWellness = typeof entry.wellness === 'number';
-    if (typeof window.valence !== 'undefined' && (moodTouched || hasExistingWellness)){
+    const canCommitWellness = !!entry.moodPinned || !!entry.wellnessSaved;
+    if (typeof window.valence !== 'undefined' && canCommitWellness){
       entry.wellness = Math.round(Number(window.valence)||0);
     }
     if (notesEl) entry.notes = String(notesEl.value || '').trim();
@@ -2332,36 +2387,17 @@ function tweenValence(from, to, ms = 220){
     const from = (typeof window.valence === 'number') ? window.valence : idxToPercent(prev);
     const to   = idxToPercent(curIdx);
 
-    // если это именно действие пользователя – фиксируем настроение
+    // если это именно действие пользователя – помечаем как "выбрано", но НЕ сохраняем
     if (fromUser){
       moodTouched = true;
-      const iso = (typeof selectedISO === 'function') ? selectedISO() : currentISO();
-
-      // V2 — для календаря и главной
-      try {
-        putV2Wellness(iso, to);
-      } catch(_) {}
-
-      // локальная запись дня
-      try {
-        const entry = getEntry(iso);
-
-// РУЧНОЕ (базовое) настроение дня:
-entry.wellness_user = to;
-
-// оставим wellness для совместимости (может использоваться где-то ещё)
-entry.wellness = to;
-
-entry.wellnessSaved = true;
-putEntry(entry);
-        if (typeof syncDiaryDebounced === 'function') syncDiaryDebounced();
-      } catch(_) {}
+      window.__moodPendingIdx = curIdx;
+      try{
+        const btn = document.getElementById('confirmMood');
+        if (btn && !__moodPinned) btn.classList.add('is-ready');
+      }catch(_){}
     }
 
-    // подстраиваем фон под настроение (работает и при начальной загрузке)
-    if (typeof updateColorsByValence === 'function') {
-      try { updateColorsByValence(to); } catch(_) {}
-    }
+    // фон/инфа НЕ меняются до подтверждения
 
     // плавная анимация шарика/сцены
     tweenValence(from, to, 260);
@@ -2535,7 +2571,8 @@ if (cmpKindButtons.length){
 
   cmpKindButtons.forEach(btn=>{
     const kind = btn.dataset.cmpKind === 'body' ? 'body' : 'face';
-    if (kind === compareKind) btn.classList.add('is-active');
+    // гарантируем: активна ровно одна кнопка (исправляет случай, когда обе подсвечены)
+    btn.classList.toggle('is-active', kind === compareKind);
 
     btn.addEventListener('click', ()=>{
       compareKind = kind;
@@ -3684,7 +3721,12 @@ function setMoodPinned(pinned){
     const btn = document.getElementById('confirmMood');
     if (btn){
       btn.classList.toggle('is-pressed', __moodPinned);
-      btn.textContent = __moodPinned ? 'Настроение закреплено ✓' : 'Подтвердить';
+      btn.classList.toggle('is-ready', false);
+      if (__moodPinned){
+        btn.innerHTML = 'Настроение закреплено ✓<span class="sub">Нажмите, чтобы открепить</span>';
+      } else {
+        btn.innerHTML = 'Подтвердить';
+      }
     }
   }catch(_){ }
 }
@@ -3695,7 +3737,44 @@ function loadMoodPinnedFromEntry(dateISO){
   }catch(_){ setMoodPinned(false); }
 }
 
-// === Server sync toggle (временный флаг) ===
+// === Mood commit (apply to colors + save) ===
+function commitMoodIndex(idx, iso){
+  try{
+    iso = iso || (typeof selectedISO === 'function' ? selectedISO() : currentISO());
+  }catch(_){}
+  idx = Math.max(0, Math.min(6, Math.round(+idx || 0)));
+const v = (idx/6) * 100;
+
+  // V2 — календарь/главная
+  try{ putV2Wellness(iso, v); }catch(_){}
+
+  // локальная запись дня
+  try{
+    const entry = getEntry(iso);
+    entry.wellness_user = v; // ручное настроение
+    entry.wellness      = v; // совместимость
+    entry.wellnessSaved = true;
+    entry.moodPinned    = true;
+    putEntry(entry);
+  }catch(_){}
+
+  // обновим фон/инфу только сейчас
+  try{
+    if (typeof updateColorsByValence === 'function'){
+      if (typeof isTintOn !== 'function' || isTintOn()) updateColorsByValence(v);
+    }
+  }catch(_){}
+
+  // пинок другим вкладкам/страницам
+  try{
+    localStorage.setItem('rt.diary.bump', Date.now().toString());
+    localStorage.removeItem('rt.diary.bump');
+  }catch(_){}
+
+  try{ if (typeof syncDiaryDebounced === 'function') syncDiaryDebounced(); }catch(_){}
+}
+
+ // === Server sync toggle (временный флаг) ===
 const ENABLE_SERVER_SYNC = false; // пока backend даёт 500 — работаем оффлайн
 // === API helpers (положи ПЕРЕД /* ===== Notes ===== */) ===
 const _qs = new URLSearchParams(location.search);
@@ -3879,7 +3958,7 @@ function updateDayChip(dateISO){
     }
   }catch(_){ }
 
-  // дата: гарантируем одну строку на телефонах
+  // дата: гарантируем одну строку на телефонах (и ВЕЗДЕ показываем год)
   const w = Math.min(window.innerWidth || 9999, document.documentElement.clientWidth || 9999);
 
   let line = '';
@@ -3892,11 +3971,14 @@ function updateDayChip(dateISO){
     const weekday = new Intl.DateTimeFormat('ru-RU',{weekday:'short'}).format(d).replace('.', '');
     const dd = new Intl.DateTimeFormat('ru-RU',{day:'2-digit'}).format(d);
     const mon = new Intl.DateTimeFormat('ru-RU',{month:'short'}).format(d).replace('.', '');
-    line = `${weekday}, ${dd} ${mon}`; // коротко (без года)
+    const yy = d.getFullYear();
+    line = `${weekday}, ${dd} ${mon} ${yy}`; // коротко, но с годом
   } else {
     const weekday = new Intl.DateTimeFormat('ru-RU',{weekday:'short'}).format(d).replace('.', '');
-    const dateFmt = new Intl.DateTimeFormat('ru-RU',{day:'2-digit', month:'long', year:'numeric'}).format(d);
-    line = `${weekday}, ${dateFmt}`;
+    const dd = new Intl.DateTimeFormat('ru-RU',{day:'2-digit'}).format(d);
+    const monLong = new Intl.DateTimeFormat('ru-RU',{month:'long'}).format(d);
+    const yy = d.getFullYear();
+    line = `${weekday}, ${dd} ${monLong} ${yy}`; // без "г.", чтобы влезало
   }
   const relEl      = document.getElementById('relLabel');
 const courseTitle = document.getElementById('courseTitle'); // <-- новое
@@ -4062,11 +4144,35 @@ if (confirmMood){
     const iso = selectedISO();
     const entry = getEntry(iso);
 
-    entry.moodPinned = !entry.moodPinned;
-    putEntry(entry);
+    // если уже закреплено — открепляем (без изменения сохранённого настроения)
+    if (entry.moodPinned){
+      entry.moodPinned = false;
+      putEntry(entry);
+      setMoodPinned(false);
+      try{ window.__moodPendingIdx = null; }catch(_){}
+      try{ moodTouched = false; }catch(_){}
+      try{ confirmMood.classList.remove('is-ready'); }catch(_){}
+      try{ if (typeof syncDiaryDebounced === 'function') syncDiaryDebounced(); }catch(_){ }
+      return;
+    }
 
-    setMoodPinned(!!entry.moodPinned);
-    try{ if (typeof syncDiaryDebounced === 'function') syncDiaryDebounced(); }catch(_){ }
+    // подтверждаем выбранное настроение (только если пользователь реально выбрал)
+    const pending = (typeof window.__moodPendingIdx === 'number') ? window.__moodPendingIdx : null;
+    if (!moodTouched || pending === null){
+      // лёгкий фидбек
+      try{
+        confirmMood.classList.add('shake');
+        setTimeout(()=>confirmMood.classList.remove('shake'), 220);
+      }catch(_){}
+      return;
+    }
+
+    commitMoodIndex(pending, iso);
+    setMoodPinned(true);
+
+    try{ window.__moodPendingIdx = null; }catch(_){}
+    try{ moodTouched = false; }catch(_){}
+    try{ confirmMood.classList.remove('is-ready'); }catch(_){}
   });
 }
 
@@ -4155,7 +4261,7 @@ function init(){
   function text(){
     if(!on()) return null;
     const left=num(K_LEFT,0), thr=num(K_THRESH,0);
-    if(left>0 && thr>0 && left<=thr) return `осталось ${left} капсул`;
+    if(left>0 && thr>0 && left<=thr) return (window.innerWidth<420 ? `ост. ${left} капс.` : `осталось ${left} капсул`);
     return null;
   }
   function render(){

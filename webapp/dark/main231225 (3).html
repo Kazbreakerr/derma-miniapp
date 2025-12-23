@@ -144,12 +144,6 @@ try{
   }
   #cardDose .mg-col{ gap:5px; align-items:center; }
   #cardDose .cap-hint{ font-size:11px; padding:2px 9px; }
-  #cardDose .subhints{ display:flex; gap:6px; align-items:center; justify-content:center; }
-  #cardDose .cap-hint{ border:0; background:rgba(255,255,255,.08); color:rgba(235,252,255,.92); box-shadow:0 6px 14px rgba(0,0,0,.25) inset, 0 10px 26px rgba(0,0,0,.18); }
-  #cardDose .cap-hint[hidden]{ display:none; }
-  #cardDose .cap-hint--plan{ opacity:.92; }
-  #cardDose .cap-hint--plan:active{ transform:translateY(1px); }
-
 
   #cardDose .stepper{ gap:6px; }
   #cardDose .stepper .step{
@@ -338,17 +332,6 @@ body.light .seg button{
   
     /* FAQ decoration */
     .faq-deco{position:absolute; right:-10px; top:-10px; opacity:.18; width:140px; height:140px; pointer-events:none}
-
-    /* FAQ + Reset: центрируем контент */
-    #cardFAQ, #cardReset{ text-align:center; }
-    #cardFAQ .faq-chips{
-      display:flex;
-      flex-wrap:wrap;
-      justify-content:center;
-      gap:10px;
-      margin-top:6px;
-    }
-    #cardFAQ .faq-chips .chip{ margin:0; }
     @media (max-width: 380px){
       .seg button{ padding:6px 8px; font-size:14px }
     }
@@ -582,6 +565,15 @@ body.light .seg button{
 }
 .cap-hint[hidden]{ display:none }
 
+/* Planned dose hint pill */
+.subhints{ display:flex; gap:6px; flex-wrap:wrap; justify-content:center; }
+#cardDose .subhints{ justify-content:center; }
+.cap-hint--plan{
+  background: rgba(34,211,238,.10);
+  border-color: rgba(34,211,238,.18);
+  color: rgba(233,246,255,.92);
+}
+
 /* Dose block: centered + compact + neumorph button */
 #cardDose{ text-align:center; }
 #cardDose h2{ text-align:center; }
@@ -655,31 +647,6 @@ body.light .seg button{
     inset -8px -8px 18px rgba(255,255,255,.06),
     inset 0 1px 0 rgba(255,255,255,.08);
 }
-
-
-/* Dose lock state (past/future restrictions) */
-#cardDose.dose-locked .dose-row{ opacity:.75; }
-#cardDose.dose-locked #mg,
-#cardDose.dose-locked .stepper .step,
-#cardDose.dose-locked #capSeg .seg-btn{
-  opacity:.65;
-  pointer-events:none;
-}
-#cardDose.dose-locked .dose-save{
-  opacity:.55;
-  pointer-events:none;
-}
-
-.lock-hint{
-  margin-top:8px;
-  font-size:13px;
-  line-height:1.25;
-  opacity:.92;
-}
-.lock-hint.locked{ color:rgba(255,255,255,.80); }
-.lock-hint.locked::before{ content:"🔒 "; }
-.lock-hint:not(.locked)::before{ content:"ℹ️ "; }
-
 
 @media (max-width: 520px){
   #cardDose h2{ margin-bottom:6px }
@@ -1085,7 +1052,6 @@ const need = enabled && getTodayMg()<=0;
     try { applyDiaryToMain(diaryGet()); } catch(_){}
     try { renderCalPreview(); } catch(_){}
     try { updateSummary(); } catch(_){}
-    try { updatePlanHint(); } catch(_){}
     render();
   }
 });
@@ -1150,7 +1116,9 @@ function setupCapsulesUI(forceDrug){
       b.classList.toggle('active', Number(b.dataset.mg) === mg);
     });
     try { updateDoseHint(); } catch(_) {}
-  }
+      try { updatePlanHint(); } catch(_) {}
+      try { applyDoseDateRules(); } catch(_) {}
+}
 
   seg.querySelectorAll('button').forEach(b=>{
     b.addEventListener('click', ()=> select(Number(b.dataset.mg)));
@@ -1545,10 +1513,10 @@ document.addEventListener('DOMContentLoaded', () => {
         <div class="mg-wrap">
           <div class="mg-col">
             <input id="mg" type="number" step="10" value="20" inputmode="numeric" pattern="\d*" aria-label="Доза в миллиграммах">
-            <div class="subhints" aria-live="polite">
-            <button type="button" id="capHint" class="cap-hint" aria-label="Подсказка по капсулам" hidden></button>
-            <button type="button" id="planHint" class="cap-hint cap-hint--plan" aria-label="Запланированная доза. Нажмите, чтобы подставить в поле" hidden></button>
-          </div>
+            <div class="subhints">
+              <span id="capHint" class="cap-hint" aria-live="polite" hidden></span>
+              <span id="planHint" class="cap-hint cap-hint--plan" aria-live="polite" hidden></span>
+            </div>
           </div>
 
           <div class="stepper">
@@ -1569,8 +1537,6 @@ document.addEventListener('DOMContentLoaded', () => {
       </div>
 
       <button id="save" class="cta dose-save">Добавить</button>
-
-      <div id="lockHint" class="muted lock-hint" aria-live="polite"></div>
 
       <!-- убрано по просьбе: "Последний приём / Сегодня" -->
       <div id="doseHint" class="muted" style="display:none"></div>
@@ -1637,18 +1603,15 @@ document.addEventListener('DOMContentLoaded', () => {
       </svg>
       <h2 style="margin-bottom:8px">FAQ</h2>
       <div class="muted" style="margin:-6px 0 10px">Короткие подсказки и советы по курсу.</div>
-      <div class="faq-chips">
-        <a href="faq.html#start"  class="chip" data-vt-link>Как начать</a>
-        <a href="faq.html#dose"   class="chip" data-vt-link>Дозировка</a>
-        <a href="faq.html#missed" class="chip" data-vt-link>Пропуск дозы</a>
-        <a href="faq.html#sidefx" class="chip" data-vt-link>Побочки</a>
-      </div>
+      <a href="faq.html#start"  class="chip" data-vt-link>Как начать</a>
+<a href="faq.html#dose"   class="chip" data-vt-link>Дозировка</a>
+<a href="faq.html#missed" class="chip" data-vt-link>Пропуск дозы</a>
     </section>
 
     <section class="card section" id="cardReset" aria-labelledby="reset-title" style="border-color:#3a1f2b;background:linear-gradient(180deg,#141824,#0f1624)">
       <h2 id="reset-title" style="margin-bottom:6px;color:#ffd7db">Обнулить всё</h2>
-      <div class="muted" style="margin-bottom:8px;line-height:1.25">Удалим журнал, напоминания и кэш. Профиль останется.</div>
-      <button id="resetBtn" class="cta" style="background:#151018;border:1px solid #a11a28;color:#ffd7db;display:block;width:min(360px,100%);margin:0 auto">Перейти к обнулению</button>
+      <div class="muted" style="margin-bottom:10px">Будут удалены: журнал приёмов, настройки напоминаний, локальные кэши прогресса. Профиль останется.</div>
+      <button id="resetBtn" class="cta" style="background:#151018;border:1px solid #a11a28;color:#ffd7db">Перейти к обнулению</button>
     </section>
 
     <footer>Приложение не даёт медицинских рекомендаций. Решения — только с врачом.</footer>
@@ -2116,7 +2079,7 @@ updateSegLabels();
           if (AUTO_SELECT_ON_SNAP && !grid.querySelector('.day-card.selected')){
             const iso = best.getAttribute('data-iso');
             const inp = document.getElementById('date');
-            if (iso && inp) { inp.value = iso; try{ updatePlanHint(); }catch(_){} renderCalPreview(); }
+            if (iso && inp) { inp.value = iso; renderCalPreview(); }
           }
         }
       }
@@ -2381,8 +2344,8 @@ else {
   </div>
 `;
     cell.addEventListener('click', ()=>{
-      if (typeof setMainDate === 'function') setMainDate(iso, {from:'cal'});
-      else { const inp = document.getElementById('date'); if (inp) inp.value = iso; try{ updatePlanHint(); }catch(_){ } }
+      const inp = document.getElementById('date'); if (inp) inp.value = iso;
+      rtOnMainDateChanged();
     });
     box.appendChild(cell);
   }
@@ -2577,7 +2540,13 @@ async function loadAll(){
     const dateEl = document.getElementById('date');
     if (dateEl) {
       try { dateEl.value = todayISO(); } catch(_) {}
-      dateEl.addEventListener('change', ()=>{ try{ renderCalPreview?.(); }catch(_){} });
+      try{ updatePlanHint?.(); }catch(_){}
+      try{ applyDoseDateRules?.(); }catch(_){}
+dateEl.addEventListener('change', ()=>{
+        try{ renderCalPreview?.(); }catch(_){}
+        try{ updatePlanHint?.(); }catch(_){}
+        try{ applyDoseDateRules?.(); }catch(_){}
+      });
     }
 
     // мягкие вызовы — даже если какая-то функция отсутствует, не роняем страницу
@@ -2586,16 +2555,17 @@ async function loadAll(){
     try{ recalcDaysPerView?.(); }catch(_){}
     try{ renderCalPreview?.(); }catch(_){}
     try{ updateDoseHint?.(); }catch(_){}
-    try{ applyDiaryToMain?.(diaryGet?.()); renderCalPreview?.(); }catch(_){ }
-    try{ syncDiaryFromIntakes?.(); }catch(_){ }
-    try{ updatePlanHint?.(); }catch(_){ }
+    try{ applyDiaryToMain?.(diaryGet?.()); renderCalPreview?.(); }catch(_){}
+    try{ syncDiaryFromIntakes?.(); }catch(_){}
 
   }catch(e){
     // оффлайн-фоллбек
 renderChips('roaccutane');
 setupCapsulesUI('roaccutane'); // ← форсируем 10/20 мг
 const dateEl = document.getElementById('date');
-if (dateEl) try { dateEl.value = todayISO(); } catch(_){}
+if (dateEl) try { dateEl.value = todayISO(); } catch(_) {}
+try{ updatePlanHint?.(); }catch(_){}
+try{ applyDoseDateRules?.(); }catch(_){}
 try{
   recalcDaysPerView?.();
   renderCalPreview?.();
@@ -2748,17 +2718,21 @@ if (saveBtn) {
 
     const mg  = Number(mgEl?.value || 0);
     const iso = String(dateEl?.value || todayISO()).slice(0,10);
-
-    // блокировка прошлых/будущих дат
+    // защита: если дата заблокирована правилами — не сохраняем
+    try{ applyDoseDateRules?.(); }catch(_){}
     try{
-      const stEdit = (typeof computeDoseEditState === 'function') ? computeDoseEditState(iso) : { editable:true };
-      if (!stEdit.editable){
-        if (st) st.textContent = 'Редактирование этой даты заблокировано';
-        try{ applyDoseEditLock(iso); }catch(_){}
+      const today = (typeof _todayIsoLocal === 'function') ? _todayIsoLocal() : (new Date(Date.now()-new Date().getTimezoneOffset()*60000)).toISOString().slice(0,10);
+      const age = (typeof _daysDiffUTC === 'function') ? _daysDiffUTC(today, iso) : 0;
+      const taken = (typeof _takenMgForDate === 'function') ? _takenMgForDate(iso) : 0;
+      const plan = plannedMgForDate(iso);
+      let locked = false;
+      if (age >= 2 && taken > 0) locked = true;
+      if (age === 1 && plan > 0 && taken >= plan) locked = true;
+      if (locked){
+        if (st) st.textContent = 'Редактирование этой даты закрыто';
         return;
       }
     }catch(_){}
-
     if (!(mg > 0)) {
       if (st) st.textContent = 'Введите дозу > 0';
       return;
@@ -2814,8 +2788,6 @@ if (saveBtn) {
       try { renderCalPreview(); } catch(_) {}
       try { updateSummary(); } catch(_) {}
       try { updateDoseHint(); } catch(_) {}
-      try { updatePlanHint(); } catch(_) {}
-      try { applyDoseEditLock(iso); } catch(_) {}
       try { window.renderReminder && window.renderReminder(); } catch(_) {}
       try { window.renderPillAlert && window.renderPillAlert(); } catch(_) {}
          // <<< добавить эту строку
@@ -3198,264 +3170,311 @@ function updateDoseHint(){
   }catch(_){}
 }
 
-// === Planned dose hint (from calendar planning) ===
-function plannedMgForDate(iso){
+
+
+// === Date rules for dose editing (past days lock) ===
+function _todayIsoLocal(){
+  const d = new Date();
+  d.setMinutes(d.getMinutes() - d.getTimezoneOffset());
+  return d.toISOString().slice(0,10);
+}
+function _daysDiffUTC(aISO,bISO){
   try{
-    iso = String(iso||'').slice(0,10);
-    if(!/^\d{4}-\d{2}-\d{2}$/.test(iso)) return 0;
-
-    // 1) Источник №1: план из режима планирования календаря
-    // calendar.html хранит его в localStorage: rt.plan.v1 = { "YYYY-MM-DD": mg, ... }
-    try{
-      const plan = JSON.parse(localStorage.getItem('rt.plan.v1')||'{}') || {};
-      const n = Number(plan[iso]);
-      if (Number.isFinite(n) && n > 0) return Math.round(n);
-    }catch(_){}
-
-    // 2) Фоллбек: если когда-то появятся явные план-поля в дневнике (НО НЕ rec.dose)
-    const diary = diaryGet();
-    const rec = diary && diary[iso];
-    if(!rec) return 0;
-    const explicit = Number(rec.plan ?? rec.planned ?? rec.plan_mg ?? rec.planned_mg ?? rec.plannedDose ?? rec.target_mg);
-    return (Number.isFinite(explicit) && explicit > 0) ? Math.round(explicit) : 0;
+    const a = Date.parse(String(aISO).slice(0,10) + 'T00:00:00Z');
+    const b = Date.parse(String(bISO).slice(0,10) + 'T00:00:00Z');
+    return Math.floor((a-b)/86400000);
   }catch(_){ return 0; }
 }
-
-function updatePlanHint(){
-  try{
-    const btn = document.getElementById('planHint');
-    const dateEl = document.getElementById('date');
-    if(!btn || !dateEl) return;
-
-    const iso = String(dateEl.value || todayISO()).slice(0,10);
-    const mg  = plannedMgForDate(iso);
-
-    if (mg > 0){
-      btn.textContent = `По плану: ${mg} мг`;
-      btn.dataset.mg = String(mg);
-      btn.hidden = false;
-    } else {
-      btn.textContent = '';
-      btn.dataset.mg = '';
-      btn.hidden = true;
-    }
-  }catch(_){}
-}
-
-/* === Date selection + edit locks (past/future restrictions) === */
-function _isoToUTCday(iso){
-  iso = String(iso||'').slice(0,10);
-  const m = /^(\d{4})-(\d{2})-(\d{2})$/.exec(iso);
-  if(!m) return null;
-  const y = +m[1], mo = +m[2]-1, d = +m[3];
-  return Math.floor(Date.UTC(y, mo, d) / 86400000);
-}
-function _daysDiff(aISO, bISO){
-  const a = _isoToUTCday(aISO), b = _isoToUTCday(bISO);
-  if (a==null || b==null) return 0;
-  return a - b;
-}
-function takenMgForDate(iso){
+function _takenMgForDate(iso){
   try{
     iso = String(iso||'').slice(0,10);
+    if(!/^[0-9]{4}-[0-9]{2}-[0-9]{2}$/.test(iso)) return 0;
     const d = diaryGet();
     const rec = d && d[iso];
-    const mg = Number(rec?.dose ?? rec?.mg ?? 0) || 0;
-    if (mg > 0) return Math.round(mg);
+    if(!rec) return 0;
+    if(rec.miss === true || rec.taken === false) return 0;
+    const mg = Number(rec.dose ?? rec.mg ?? 0);
+    return (Number.isFinite(mg) && mg > 0) ? Math.round(mg) : 0;
+  }catch(_){ return 0; }
+}
+function applyDoseDateRules(){
+  try{
+    const dateEl = document.getElementById('date');
+    const mgEl   = document.getElementById('mg');
+    const minus  = document.getElementById('mgMinus');
+    const plus   = document.getElementById('mgPlus');
+    const saveBtn= document.getElementById('save');
+    const st     = document.getElementById('saveStatus');
+    const capSeg = document.getElementById('capSeg');
+    if(!dateEl || !mgEl) return;
+
+    const isoSel  = String(dateEl.value || _todayIsoLocal()).slice(0,10);
+    const isoToday = _todayIsoLocal();
+
+    // age: 0=today, 1=yesterday, 2=day before yesterday...
+    const age = _daysDiffUTC(isoToday, isoSel);
+
+    const taken = _takenMgForDate(isoSel);
+    const plan  = plannedMgForDate(isoSel);
+
+    let locked = false;
+    let reason = '';
+
+    if (age >= 2){
+      // Старые дни: редактирование запрещаем, если уже есть запись (чтобы не переписывать историю),
+      // но если записи вообще нет — можно заполнить пропуск.
+      if (taken > 0){
+        locked = true;
+        reason = 'Прошлая дата закрыта';
+      }
+    } else if (age === 1){
+      // Вчера: можно дозаполнять, но если уже совпало с планом — закрываем
+      if (plan > 0 && taken >= plan){
+        locked = true;
+        reason = 'Приём за вчера уже закрыт';
+      }
+    } else if (age < 0){
+      // Будущие даты: оставляем доступными (если захочешь — скажи, и я заблокирую)
+      locked = false;
+    }
+
+    // Применяем блокировки к контролам
+    const toDisable = !!locked;
+
+    // капсулы (тип) — тоже блокируем, чтобы не было путаницы
+    try{
+      capSeg?.querySelectorAll('button').forEach(b=> b.disabled = toDisable);
+    }catch(_){}
+
+    if (minus) minus.disabled = toDisable;
+    if (plus)  plus.disabled  = toDisable;
+    if (saveBtn) saveBtn.disabled = toDisable;
+
+    if (toDisable){
+      mgEl.disabled = true;
+      // показать выпитое как справку
+      mgEl.value = String(taken || 0);
+      if (st){
+        st.textContent = taken > 0
+          ? `Вы выпили: ${taken} мг • ${reason}`
+          : reason;
+      }
+    } else {
+      mgEl.disabled = false;
+      // статус не трогаем, если там сейчас системные сообщения "Сохраняю..." и т.п.
+      if (st && /редактирование|закрыт|Вы выпили/.test(st.textContent||'')) st.textContent = '';
+    }
+
   }catch(_){}
+
+// Planned dose hint: reads planned dose from calendar planning mode (localStorage) and shows "По плану: N мг"
+function rtNormalizeISO(v){
+  return String(v || '').slice(0,10);
+}
+function rtParseJSON(key){
+  try{ return JSON.parse(localStorage.getItem(key) || 'null'); }catch(_){ return null; }
+}
+function rtLocalMidnight(iso){
+  const d = new Date(iso + 'T00:00:00');
+  d.setHours(0,0,0,0);
+  return d;
+}
+function rtDaysDiff(aIso, bIso){
+  // a - b (in days), using local midnight
+  const a = rtLocalMidnight(rtNormalizeISO(aIso)).getTime();
+  const b = rtLocalMidnight(rtNormalizeISO(bIso)).getTime();
+  return Math.round((a - b) / 86400000);
+}
+function rtGetTakenMgForDate(iso){
+  iso = rtNormalizeISO(iso) || (window.todayISO ? todayISO() : new Date().toISOString().slice(0,10));
+  // 1) cache "today"
+  try{
+    const tIso = localStorage.getItem('derma_today_iso');
+    if (tIso === iso){
+      const mg = Number(localStorage.getItem('derma_today_mg')||0);
+      if (mg > 0) return mg;
+    }
+  }catch(_){}
+  // 2) diary v1 (aggregated by day)
+  try{
+    const d = JSON.parse(localStorage.getItem('rt.diary.v1')||'{}');
+    const rec = d && d[iso];
+    if (rec){
+      if (rec.miss === true || rec.taken === false) return 0;
+      const mg = Number(rec.dose ?? rec.mg ?? 0);
+      if (mg > 0) return mg;
+    }
+  }catch(_){}
+  // 3) DOSES list (sum)
   try{
     let sum = 0;
     (Array.isArray(window.DOSES) ? window.DOSES : []).forEach(x=>{
-      const k = String(x.date||'').slice(0,10);
+      const k = (window.normalizeDate ? normalizeDate(x.date) : String(x.date||'')).slice(0,10);
       if (k === iso) sum += Number(x.mg||x.mg_taken||0) || 0;
     });
-    return Math.round(sum) || 0;
-  }catch(_){ return 0; }
+    return sum > 0 ? sum : 0;
+  }catch(_){}
+  return 0;
 }
-function computeDoseEditState(iso){
-  iso = String(iso||'').slice(0,10);
-  const today = todayISO();
-  const diff = _daysDiff(iso, today); // selected - today
-  const planned = plannedMgForDate(iso);
-  const taken   = takenMgForDate(iso);
+function rtPlannedMgForDate(iso){
+  iso = rtNormalizeISO(iso);
+  if (!iso) return 0;
 
-  let editable = true;
-  let reason   = 'today';
+  // A) Known JSON maps (most common)
+  const keys = [
+    'rt.plan.v1','rt.plans.v1','rt.planner.v1','rt.schedule.v1',
+    'rt.dosePlan.v1','rt.dose_plan.v1','rt.plannedDose.v1','rt.calendar.plan.v1',
+    'rt.planDose','rt.plan_dose','rt.dose_plans','rt.dosePlan'
+  ];
+  for (const k of keys){
+    const obj = rtParseJSON(k);
+    if (obj && typeof obj === 'object'){
+      const v = obj[iso] ?? obj[iso.replace(/-/g,'')] ?? null;
+      const mg = Number(v);
+      if (Number.isFinite(mg) && mg > 0) return mg;
+    }
+  }
+
+  // B) diary v1 fields (if planning is stored per-day)
+  try{
+    const d = JSON.parse(localStorage.getItem('rt.diary.v1')||'{}');
+    const rec = d && d[iso];
+    if (rec && typeof rec === 'object'){
+      const v = rec.plan ?? rec.planned ?? rec.planned_mg ?? rec.planDose ?? rec.plan_mg ?? rec.schedule ?? null;
+      const mg = Number(v);
+      if (Number.isFinite(mg) && mg > 0) return mg;
+    }
+  }catch(_){}
+
+  // C) diary v2 fields (if planning is stored in v2 entries)
+  try{
+    const db = rtParseJSON('rt.diary.v2');
+    const e = db && db.entries && db.entries[iso];
+    if (e && typeof e === 'object'){
+      const v = e.plan ?? e.planned ?? e.planned_mg ?? e.planDose ?? e.plan_mg ?? e.schedule ?? null;
+      const mg = Number(v);
+      if (Number.isFinite(mg) && mg > 0) return mg;
+    }
+  }catch(_){}
+
+  // D) Heuristic: per-date key like "rt.plan.2025-12-23" or "..._2025-12-23"
+  try{
+    for (let i=0; i<localStorage.length; i++){
+      const k = localStorage.key(i) || '';
+      if (!k) continue;
+      if (k.includes(iso) && /plan|planned|planner|schedule/i.test(k)){
+        const raw = localStorage.getItem(k);
+        const mg = Number(raw);
+        if (Number.isFinite(mg) && mg > 0) return mg;
+        try{
+          const obj = JSON.parse(raw||'null');
+          const mg2 = Number(obj?.mg ?? obj?.dose ?? obj?.planned ?? obj?.plan ?? 0);
+          if (Number.isFinite(mg2) && mg2 > 0) return mg2;
+        }catch(_){}
+      }
+    }
+  }catch(_){}
+
+  return 0;
+}
+function rtUpdatePlanHint(){
+  const el = document.getElementById('planHint');
+  const dateEl = document.getElementById('date');
+  if (!el || !dateEl) return;
+  const iso = rtNormalizeISO(dateEl.value) || (window.todayISO ? todayISO() : new Date().toISOString().slice(0,10));
+  const mg = rtPlannedMgForDate(iso);
+  if (mg > 0){
+    el.textContent = `По плану: ${mg} мг`;
+    el.hidden = false;
+  } else {
+    el.textContent = '';
+    el.hidden = true;
+  }
+}
+function rtApplyDoseDateRules(){
+  const dateEl = document.getElementById('date');
+  const mgEl   = document.getElementById('mg');
+  const minus  = document.getElementById('mgMinus');
+  const plus   = document.getElementById('mgPlus');
+  const save   = document.getElementById('save');
+  const seg    = document.getElementById('capSeg');
+  const st     = document.getElementById('saveStatus');
+
+  if (!dateEl || !mgEl) return;
+
+  const today = (window.todayISO ? todayISO() : new Date().toISOString().slice(0,10));
+  const iso   = rtNormalizeISO(dateEl.value) || today;
+  const diff  = rtDaysDiff(iso, today); // selected - today
+
+  const plan  = rtPlannedMgForDate(iso);
+  const taken = rtGetTakenMgForDate(iso);
+
+  let locked = false;
+  let msg    = '';
 
   if (diff > 0){
-    editable = false; reason = 'future';
-  } else if (diff < -1){
-    editable = false; reason = 'older';
+    locked = true;
+    msg = 'Будущий день — отметка недоступна.';
+  } else if (diff <= -2){
+    locked = true;
+    msg = 'Прошлый день — редактирование закрыто.';
   } else if (diff === -1){
-    // yesterday: можно редактировать до конца текущего дня, но если план уже выполнен — блок
-    if (planned > 0 && taken >= planned){
-      editable = false; reason = 'yesterday_done';
+    // вчера: разрешаем до конца текущего дня, НО если план уже выполнен — блокируем
+    if (plan > 0 && taken >= plan && taken > 0){
+      locked = true;
+      msg = 'Вчерашний день уже выполнен по плану.';
+    }
+  }
+
+  // apply disabled/enabled
+  mgEl.disabled = !!locked;
+  if (minus) minus.disabled = !!locked;
+  if (plus)  plus.disabled  = !!locked;
+  if (save)  save.disabled  = !!locked;
+  if (seg){
+    seg.querySelectorAll('button').forEach(b=> b.disabled = !!locked);
+    seg.classList.toggle('is-locked', !!locked);
+  }
+
+  // show info value for past days
+  if (locked){
+    if (taken > 0) mgEl.value = String(taken);
+    else if (diff > 0) mgEl.value = '0';
+  }
+
+  if (st){
+    // If unlocked, don't overwrite normal "Сохранено ✓"
+    if (locked){
+      st.textContent = msg;
     } else {
-      editable = true; reason = 'yesterday';
+      // keep previous "Сохранено" if any, but clear lock message
+      if (st.textContent && /закрыто|недоступна|выполнен/i.test(st.textContent)) st.textContent = '';
     }
-  } else {
-    editable = true; reason = 'today';
   }
-
-  // общий запрет: если это прошедшая дата и план выполнен/перевыполнен — блокируем
-  if (diff < 0 && planned > 0 && taken >= planned){
-    editable = false;
-    reason = (diff === -1) ? 'yesterday_done' : 'past_done';
-  }
-
-  return { iso, today, diff, planned, taken, editable, reason };
 }
-function applyDoseEditLock(iso){
-  const st = computeDoseEditState(iso);
-
-  const card = document.getElementById('cardDose');
-  const mgEl = document.getElementById('mg');
-  const minus= document.getElementById('mgMinus');
-  const plus = document.getElementById('mgPlus');
-  const save = document.getElementById('save');
-  const lockHint = document.getElementById('lockHint');
-
-  if (card) card.classList.toggle('dose-locked', !st.editable);
-
-  const dis = !st.editable;
-  try{ if (mgEl) mgEl.disabled = dis; }catch(_){}
-  try{ if (minus) minus.disabled = dis; }catch(_){}
-  try{ if (plus) plus.disabled = dis; }catch(_){}
-  try{ if (save) save.disabled = dis; }catch(_){}
-
-  // капсулы 10/20 или 8/16
-  try{
-    document.querySelectorAll('#capSeg .seg-btn').forEach(b=>{
-      try{ b.disabled = dis; }catch(_){ b.setAttribute('aria-disabled', dis ? 'true' : 'false'); }
-    });
-  }catch(_){}
-
-  // для заблокированных дат показываем "выпито" (прошлое) или "по плану" (будущее) прямо в поле мг
-  try{
-    if (mgEl && dis){
-      if (st.diff > 0){
-        mgEl.value = String(st.planned > 0 ? st.planned : 0);
-      } else if (st.diff < 0){
-        mgEl.value = String(st.taken || 0);
-      }
-      try{ updateDoseHint(); }catch(_){}
-    }
-  }catch(_){}
-
-  // внешний индикатор + текст
-  try{
-    if (lockHint){
-      lockHint.classList.toggle('locked', dis);
-
-      let msg = '';
-      if (st.diff > 0){
-        msg = 'Будущая дата — отметить приём нельзя.';
-      } else if (st.diff === 0){
-        msg = (st.taken>0) ? `Сегодня уже отмечено: ${st.taken} мг.` : 'Сегодня: отметьте приём.';
-      } else if (st.diff === -1){
-        if (st.editable){
-          msg = (st.taken>0)
-            ? `Вчера уже отмечено: ${st.taken} мг. Можно добавить до 23:59 сегодня.`
-            : 'Вчера: можно добавить приём до 23:59 сегодня.';
-        } else {
-          msg = (st.planned>0)
-            ? `Вчерашняя доза по плану уже выполнена (${st.taken}/${st.planned} мг) — редактирование заблокировано.`
-            : 'Вчера: редактирование заблокировано.';
-        }
-      } else {
-        msg = (st.taken>0)
-          ? `Прошлая дата — редактирование недоступно. Выпито: ${st.taken} мг.`
-          : 'Прошлая дата — редактирование недоступно.';
-      }
-
-      lockHint.textContent = msg;
-      lockHint.hidden = !msg;
-    }
-  }catch(_){}
-
-  return st;
-}
-function setMainDate(iso, opts){
-  try{
-    iso = String(iso||'').slice(0,10);
-    if (!/^\d{4}-\d{2}-\d{2}$/.test(iso)) iso = todayISO();
-
-    if (opts && opts.resetCal){
-      try{ window.calOffset = 0; }catch(_){}
-    }
-
-    const dateEl = document.getElementById('date');
-    if (dateEl) dateEl.value = iso;
-
-    try{ updatePlanHint(); }catch(_){}
-    try{ applyDoseEditLock(iso); }catch(_){}
-    try{ renderCalPreview(); }catch(_){}
-  }catch(_){}
+function rtOnMainDateChanged(){
+  try{ rtUpdatePlanHint(); }catch(_){}
+  try{ rtApplyDoseDateRules(); }catch(_){}
+  try{ updateDoseHint(); }catch(_){}
+  try{ renderCalPreview(); }catch(_){}
 }
 
+// aliases used by existing wiring in this file
+function updatePlanHint(){ return rtUpdatePlanHint(); }
+function applyDoseDateRules(){ return rtApplyDoseDateRules(); }
+}
 
-
-
-// Stepper (+/- по выбранному типу капсулы)
+// Stepper (+/- 10 мг)
 (function wireStepper(){
   const minus = document.getElementById('mgMinus');
   const plus  = document.getElementById('mgPlus');
   const input = document.getElementById('mg');
   if (!input) return;
-
-  function detectDefaultCapsuleStep(){
-    // если выбор типа капсулы ещё не сделан/скрыт — подстрахуемся по препарату
-    let drugRaw = (window.PLAN && window.PLAN.drug) || localStorage.getItem('rt_drug') || '';
-    try {
-      const rt = JSON.parse(localStorage.getItem('rt') || '{}');
-      drugRaw = drugRaw || rt?.plan?.drug || rt?.plan?.selectedDrug || rt?.drug || '';
-    } catch (_) {}
-    const drug = String(drugRaw||'').toLowerCase().trim();
-
-    if (/(акнекутан|акнеккутан|aknekutan)/i.test(drug)) return 8; // дефолт для Акнеккутана
-    if (/(роаккутан|роакутан|roaccutane|roacc|sotret|сотрет|verocutan|verokutan|верокутан|верокут)/i.test(drug)) return 10;
-    return 10;
-  }
-
-  function stepNow(){
-    const v = Number(localStorage.getItem('rt.capsule_mg') || 0);
-    if (Number.isFinite(v) && v > 0) return v;
-    return detectDefaultCapsuleStep();
-  }
-
-  function clamp(v){
-    v = Math.round(Number(v) || 0);
-    if (v < 0) v = 0;
-    if (v > 1000) v = 1000;
-    return v;
-  }
-
-  function refreshLabels(){
-    const s = stepNow();
-    if (minus) minus.setAttribute('aria-label', `Уменьшить на ${s} мг`);
-    if (plus)  plus.setAttribute('aria-label',  `Увеличить на ${s} мг`);
-  }
-
-  function dec(){
-    const s = stepNow();
-    input.value = String(clamp((Number(input.value)||0) - s));
-    refreshLabels();
-    updateDoseHint();
-  }
-
-  function inc(){
-    const s = stepNow();
-    input.value = String(clamp((Number(input.value)||0) + s));
-    refreshLabels();
-    updateDoseHint();
-  }
-
-  minus?.addEventListener('click', dec);
-  plus?.addEventListener('click',  inc);
-  input?.addEventListener('input', ()=>{ refreshLabels(); updateDoseHint(); });
-
-  // первичная установка лейблов
-  try{ refreshLabels(); }catch(_){ }
+  const STEP = 10;
+  function clamp(v){ v = Math.round(v/STEP)*STEP; if (v<0) v=0; if (v>1000) v=1000; return v; }
+  minus?.addEventListener('click', ()=>{ input.value = clamp((Number(input.value)||0) - STEP); updateDoseHint(); });
+  plus?.addEventListener('click',  ()=>{ input.value = clamp((Number(input.value)||0) + STEP); updateDoseHint(); });
+  input?.addEventListener('input', ()=>{ updateDoseHint(); });
 })();
 
 
@@ -3478,34 +3497,10 @@ document.addEventListener('DOMContentLoaded', ()=>{
 });
 // Моментальная инициализация UI (работает даже без бэка)
 document.addEventListener('DOMContentLoaded', () => {
-  try{
-    const t = todayISO();
-    const dateEl = document.getElementById('date');
-    if (dateEl){
-      dateEl.value = t; // всегда сегодня при входе
-      dateEl.addEventListener('change', ()=>{ setMainDate(dateEl.value, {from:'input'}); });
-    }
-    try{ window.calOffset = 0; }catch(_){}
-  }catch(_){}
+  try { document.getElementById('date').value = todayISO(); } catch(_){}
   try { setupCapsulesUI('roaccutane'); } catch(_){}
-  try {
-    const ph = document.getElementById('planHint');
-    ph && ph.addEventListener('click', ()=>{
-      const mg = Number(ph.dataset.mg || 0);
-      if (mg > 0){
-        const mgEl = document.getElementById('mg');
-        if (mgEl && !mgEl.disabled) mgEl.value = String(mg);
-        updateDoseHint();
-      }
-    });
-  } catch(_){ }
-  try { recalcDaysPerView(); setMainDate(todayISO(), {from:'boot', resetCal:true}); } catch(_){}
+  try { recalcDaysPerView(); renderCalPreview(); } catch(_){}
   try { updateSummary(); updateDoseHint(); window.renderReminder && window.renderReminder(); } catch(_){}
-  try{
-    // если страница вернулась из bfcache — всё равно сбрасываем на сегодня
-    window.addEventListener('pageshow', ()=>{ try{ setMainDate(todayISO(), {from:'pageshow', resetCal:true}); }catch(_){} });
-  }catch(_){}
-
 });
 </script>
 <script id="day-slate-js">
@@ -4005,15 +4000,6 @@ document.addEventListener('DOMContentLoaded', syncReminderUI);
     const num = (v) => { v = Number(v); return Number.isFinite(v) ? v : NaN; };
     const on  = () => (localStorage.getItem(K_ON) || '0') === '1';
   
-    const capWord = (n) => {
-  n = Math.abs(Math.trunc(Number(n) || 0));
-  const n100 = n % 100, n10 = n % 10;
-  if (n100 >= 11 && n100 <= 14) return 'капсул';
-  if (n10 === 1) return 'капсула';
-  if (n10 >= 2 && n10 <= 4) return 'капсулы';
-  return 'капсул';
-};
-
     function render(){
       const enabled = on();
       const rawLeft = localStorage.getItem(K_LEFT);   // важно: null, если пользователь ещё не вводил
@@ -4038,8 +4024,7 @@ document.addEventListener('DOMContentLoaded', syncReminderUI);
         }
   
         const leftRounded = Math.max(0, Math.round(left));
-        el.textContent = `осталось ${leftRounded} ${capWord(leftRounded)}`;
-
+        el.textContent = `осталось ${leftRounded} капсул`;
   
         const low = Number.isFinite(thr) && thr > 0 && leftRounded <= Math.round(thr);
         el.classList.toggle('is-low', low);

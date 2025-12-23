@@ -1051,11 +1051,21 @@ document.getElementById('navProfile').addEventListener('click', (e)=>{ e.prevent
   const K_LEFT='rt_capsules_left', K_THRESH='rt_capsules_threshold', K_ON='rt_capsules_alert_enabled';
   const num=(k,d=0)=>{const v=parseInt(localStorage.getItem(k)||d,10);return Number.isFinite(v)?v:0;}
   const on =()=> (localStorage.getItem(K_ON)||'0')==='1';
+  function capWord(n){
+  n = Math.abs(Math.trunc(Number(n) || 0));
+  const n100 = n % 100;
+  const n10  = n % 10;
+  if (n100 >= 11 && n100 <= 14) return 'капсул';
+  if (n10 === 1) return 'капсула';
+  if (n10 >= 2 && n10 <= 4) return 'капсулы';
+  return 'капсул';
+}
 
   function text(){
     if(!on()) return null;
     const left=num(K_LEFT,0), thr=num(K_THRESH,0);
-    if(left>0 && thr>0 && left<=thr) return `осталось ${left} капсул`;
+    return `осталось ${left} ${capWord(left)}`;
+
     return null;
   }
   function render(){
@@ -1975,5 +1985,56 @@ document.getElementById('navProfile').addEventListener('click', (e)=>{ e.prevent
 })();
 </script>
 <!-- /RT_TOUR_V1 -->
+
+<style id="reports-mobile-fix-v2">
+/* ===== Reports: prevent horizontal overflow on narrow screens ===== */
+
+/* base: never let cards/items expand wider than the viewport */
+html, body { max-width: 100vw; overflow-x: hidden; }
+.wrap { max-width: 100%; overflow-x: hidden; }
+.card { max-width: 100%; }
+
+/* report containers */
+.rep-list, .rep-item, .rep-toggle, .rep-panel { max-width: 100%; min-width: 0; box-sizing: border-box; }
+.rep-item { overflow: hidden; } /* clip any accidental visual bleed */
+.rep-toggle { width: 100%; box-sizing: border-box; }
+
+/* allow title to shrink/wrap instead of pushing layout */
+.rep-title { min-width: 0; overflow-wrap: anywhere; word-break: break-word; }
+
+/* table: if it doesn't fit, scroll inside, not the page */
+.rep-body { max-width: 100%; overflow-x: auto; -webkit-overflow-scrolling: touch; }
+.rep-body .rep-table{
+  display: table;         /* override earlier display:block hacks */
+  width: 100%;
+  min-width: 520px;       /* makes small screens scroll horizontally inside panel */
+  table-layout: fixed;
+}
+.rep-body .rep-table th,
+.rep-body .rep-table td{
+  white-space: normal;
+  overflow-wrap: anywhere;
+  word-break: break-word;
+}
+
+/* phone layout: move badges to второй ряд, чтобы ничего не выпирало */
+@media (max-width: 420px){
+  .rep-toggle{
+    flex-wrap: wrap;
+    justify-content: flex-start;
+  }
+  .chev{ margin-left: auto; }
+  .rep-meta{
+    flex: 1 1 100%;
+    margin-top: 6px;
+    justify-content: flex-start;
+    white-space: normal;
+  }
+  .badge{
+    max-width: 100%;
+  }
+}
+</style>
+
 </body>
 </html>
