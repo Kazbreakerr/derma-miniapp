@@ -2296,7 +2296,7 @@ const SPRITES = [
   { at: 100, src: '../assets/mood/22.webp', hue: 120, sat: 85, light: 55, label:'Отлично' }  // ЗЕЛЁНОЕ свечение
 ];
 // предзагрузка
-SPRITES.forEach(s=>{ const i=new Image(); i.decoding='async'; i.src=s.src; try{ i.decode && i.decode(); }catch(_){ } });
+SPRITES.forEach(s=>{ const i=new Image(); i.decoding='async'; i.src=s.src; });
 
 // Полные сцены (фон + шар) слева→вправо + калибровка «камеры»
 const SCENES = [
@@ -2310,13 +2310,11 @@ const SCENES = [
   { at: 100, src: '../assets/mood/22.webp', x:50, y:56, zoom:1.02 }, // синий — тоже крупнее
 ];
 // предзагрузка (оставляем как было)
-SCENES.forEach(s=>{ const i=new Image(); i.decoding='async'; i.src=s.src; try{ i.decode && i.decode(); }catch(_){ } });
+SCENES.forEach(s=>{ const i=new Image(); i.decoding='async'; i.src=s.src; });
 
 // Ссылки на <img> сцен (нижний слой + верхний для кросс-фейда)
 const sceneBottom = document.getElementById('sceneBottom');
 const sceneTop    = document.getElementById('sceneTop');
-// fast-preview кеш: чтобы во время drag не дергать object-position/scale каждый кадр
-let __sceneFastIdx = -1;
 
 
 // Видео-анимации для подтверждённого настроения (циклично, БЕЗ резкого перескока)
@@ -2609,8 +2607,7 @@ try{
 function lerp(a,b,t){ return a + (b-a)*t; }
 
 // Обновление сцены по значению 0..100 (гладкий фокус и масштаб)
-function updateSceneByValence(v, fast){
-  fast = !!fast;            // v = 0..100
+function updateSceneByValence(v){            // v = 0..100
   const n = SCENES.length - 1;
   const x = (v/100)*n;                       // 0..6
   const i  = Math.floor(x);
@@ -2624,22 +2621,6 @@ function updateSceneByValence(v, fast){
     if (sceneBottom.src !== s1.src) sceneBottom.src = s1.src;
     if (sceneTop.src    !== s2.src) sceneTop.src    = s2.src;
     sceneTop.style.opacity = t;              // кросс-фейд соседей
-  }
-
-  // fast preview while dragging: не интерполируем object-position/scale каждый кадр (очень тяжело на мобилках)
-  if (fast){
-    const idx = Math.max(0, Math.min(n, Math.round(x)));
-    if (idx !== __sceneFastIdx){
-      __sceneFastIdx = idx;
-      const s = SCENES[idx];
-      const pos = `${s.x}% ${s.y}%`;
-      if (sceneBottom) sceneBottom.style.objectPosition = pos;
-      if (sceneTop)    sceneTop.style.objectPosition    = pos;
-      const sc = `scale(${s.zoom})`;
-      if (sceneBottom) sceneBottom.style.transform = sc;
-      if (sceneTop)    sceneTop.style.transform    = sc;
-    }
-    return;
   }
 
   // сглаженный «взгляд камеры»
@@ -2660,41 +2641,13 @@ let __furLastI  = -1;
 let __furLastI2 = -1;
 let __furLastH = null, __furLastS = null, __furLastL = null;
 let __moodStageElCached = null;
-let __furFastIdx = -1;
 
-function updateFurByValence(v, fast){
-  fast = !!fast;           // v = 0..100
+function updateFurByValence(v){           // v = 0..100
   const n = SPRITES.length - 1;
   const x = (v/100)*n;                    // 0..6
   const i  = Math.floor(x);
   const i2 = Math.min(i + 1, n);
   const t  = x - i;                       // доля между кадрами
-
-  // fast preview: во время drag обновляем только дискретный сегмент (без интерполяции свечения)
-  if (fast){
-    const idx = Math.max(0, Math.min(n, Math.round(x)));
-    if (furBottom && furTop){
-      const src = SPRITES[idx].src;
-      if (__furLastI !== idx){ furBottom.src = src; __furLastI = idx; }
-      if (__furLastI2 !== idx){ furTop.src = src; __furLastI2 = idx; }
-      furTop.style.opacity = 0;
-    }
-    if (idx !== __furFastIdx){
-      __furFastIdx = idx;
-      const s0 = SPRITES[idx];
-      document.documentElement.style.setProperty('--fur-h', String(s0.hue));
-      document.documentElement.style.setProperty('--fur-s', s0.sat + '%');
-      document.documentElement.style.setProperty('--fur-l', s0.light + '%');
-      if (!__moodStageElCached) __moodStageElCached = document.querySelector('#moodSection .mood-stage');
-      const stage = __moodStageElCached;
-      if (stage){
-        stage.style.setProperty('--mood-h', String(s0.hue));
-        stage.style.setProperty('--mood-s', s0.sat + '%');
-        stage.style.setProperty('--mood-l', s0.light + '%');
-      }
-    }
-    return;
-  }
 
   // 1) На мобилках очень дорого каждый кадр переназначать .src,
   //    поэтому меняем src только когда реально меняются индексы.
@@ -2758,8 +2711,8 @@ function tweenValence(from, to, ms = 220){
     // (perf) позицию ручки рисуем только через CSS var --x, без inline left/width
 
     // кросс-фейд и "камера" (центр/зум)
-    updateFurByValence(v, false);
-    updateSceneByValence(v, false);
+    updateFurByValence(v);
+    updateSceneByValence(v);
 
     if (p < 1) __valRaf = requestAnimationFrame(step);
   };
@@ -2799,28 +2752,6 @@ function tweenValence(from, to, ms = 220){
 
 // --- плавный drag (оптимизировано для мобилок): кеш геометрии + rAF-батч ---
 let sdrag = false, spid = 0;
-let __moodDragging = false;
-let __dragStepIdx = -1;
-const __moodSectionEl = document.getElementById('moodSection');
-function __setMoodDragging(on){
-  __moodDragging = !!on;
-  if (__moodSectionEl) __moodSectionEl.classList.toggle('is-dragging', __moodDragging);
-  if (on) __dragStepIdx = -1;
-}
-function __flushPreview(){
-  if (__dragRaf){ cancelAnimationFrame(__dragRaf); __dragRaf = 0; }
-  if (__pendingX01 != null){
-    const x = __pendingX01;
-    __pendingX01 = null;
-    __lastX01 = x;
-    const v = x * 100;
-    window.valence = v;
-    bar.style.setProperty('--x', x);
-    updateFurByValence(v, true);
-    updateSceneByValence(v, true);
-  }
-}
-
 let __barLeft = 0, __barW = 1;
 let __dragRaf = 0, __pendingX01 = null;
 let __lastX01 = 0.5;
@@ -2848,8 +2779,8 @@ function previewValence(x01){
     bar.style.setProperty('--x', x);
 
     // обновляем визуал (шарики/картинки) максимум 60fps
-    updateFurByValence(v, false);
-    updateSceneByValence(v, false);
+    updateFurByValence(v);
+    updateSceneByValence(v);
   });
 }
 
@@ -2861,7 +2792,6 @@ bar.addEventListener('pointerdown', (e) => {
   spid = e.pointerId;
   sdrag = true;
   bar.classList.add('drag');
-  __setMoodDragging(true);
 
   cacheBarGeo();
   try{ bar.setPointerCapture(spid); }catch(_){}
@@ -2872,20 +2802,19 @@ bar.addEventListener('pointerdown', (e) => {
 // 2) движение (с rAF)
 window.addEventListener('pointermove', (e) => {
   if (!sdrag) return;
+  e.preventDefault();
   previewValence(clientToX01(e.clientX));
-}, { passive:true });
+}, { passive:false });
 
 // 3) отпускание + снап
 window.addEventListener('pointerup', (e) => {
   if (!sdrag) return;
   sdrag = false;
   bar.classList.remove('drag');
-  __setMoodDragging(false);
   try{ bar.releasePointerCapture(spid); }catch(_){}
 
   const x01 = clientToX01(e.clientX);
   previewValence(x01);                 // добиваем финальный кадр
-  __flushPreview();
   const idx = Math.round(x01 * 6);
   applyIndex(idx, true);               // фиксируем настроение
 });
@@ -2895,9 +2824,7 @@ window.addEventListener('pointercancel', (e) => {
   if (!sdrag) return;
   sdrag = false;
   bar.classList.remove('drag');
-  __setMoodDragging(false);
   try{ bar.releasePointerCapture(spid); }catch(_){ }
-  __flushPreview();
   const idx = Math.round(__lastX01 * 6);
   applyIndex(idx, true);
 }, { passive:true });
