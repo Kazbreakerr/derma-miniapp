@@ -89,7 +89,6 @@ body{
   color:#cfe9ff; background:rgba(255,255,255,.08); 
   box-shadow: var(--inset-up), var(--inset-dn);
   font-weight:700; letter-spacing:.3px;
-  
 }
 
 /* ===================== CARDS ===================== */
@@ -145,104 +144,65 @@ body{
 
 /* ===================== ACTIONS ===================== */
 .actions{ margin:12px 0 8px; display:flex; justify-content:center; }
-
-/* Кнопка "Начать" — стеклянная/прозрачная, БЕЗ окантовки. Внутри: лёгкие зелёные проблески. */
-.start-wrap{
-  width: clamp(210px, 60vw, 390px);
-  display:inline-block;
-  border-radius: 20px;
-  filter: drop-shadow(0 14px 26px rgba(0,0,0,.38));
-}
-
 .start{
-  width:100%;
   height:54px;
-  padding:0 18px;
-  border-radius: 20px;
-  border: 1px solid rgba(255,255,255,.16);
+  padding:0 22px;
+  width: clamp(240px, 70vw, 460px);
+  border-radius: 999px;
+  border: 1px solid rgba(255,255,255,.22);
   cursor:pointer;
-
   font-size: clamp(15px, 2.2vw, 20px);
-  font-weight:900;
-  letter-spacing:.2px;
-  color: var(--ink);
-  text-shadow: 0 10px 26px rgba(0,0,0,.25);
-
-  /* стеклянная база */
-  background: rgba(255,255,255,.075);
-  backdrop-filter: blur(14px) saturate(155%);
-  -webkit-backdrop-filter: blur(14px) saturate(155%);
-
-  box-shadow:
-    0 14px 30px rgba(0,0,0,.42),
-    inset 0 1px 0 rgba(255,255,255,.16),
-    inset 0 -2px 0 rgba(0,0,0,.22);
-
-  position:relative;
-  overflow:hidden;
-  -webkit-tap-highlight-color: transparent;
-  transition: transform .08s ease, filter .12s ease, box-shadow .12s ease;
-}
-
-/* внутренние "проблески" градиента (зелёный/голубой) */
-.start::before{
-  content:"";
-  position:absolute;
-  inset:-2px;
-  border-radius: inherit;
-  pointer-events:none;
-
-  background:
-    radial-gradient(120% 140% at 18% 25%,
-      rgba(29,209,161,.28) 0%,
-      rgba(29,209,161,0) 56%),
-    radial-gradient(120% 140% at 85% 40%,
-      rgba(69,211,255,.18) 0%,
-      rgba(69,211,255,0) 58%),
-    radial-gradient(120% 140% at 50% 120%,
-      rgba(98,233,255,.12) 0%,
-      rgba(98,233,255,0) 60%);
-  opacity:.9;
-  mix-blend-mode: screen;
-  filter: blur(.2px);
-}
-
-/* лёгкий стеклянный блик (очень мягкий) */
-.start::after{
-  content:"";
-  position:absolute;
-  top:-55%;
-  left:-70%;
-  width:58%;
-  height:210%;
-  border-radius: 40px;
+  font-weight:900; letter-spacing:.2px;
+  color:#06131a;
+  background: linear-gradient(90deg, rgba(98,233,255,.22), rgba(255,143,225,.18), rgba(45,232,192,.22));
   background: linear-gradient(90deg,
-    transparent,
-    rgba(255,255,255,.22),
-    transparent
+    color-mix(in oklab, var(--btnA) 62%, transparent),
+    color-mix(in oklab, #ff8fe1 42%, transparent),
+    color-mix(in oklab, var(--btnC) 62%, transparent)
   );
-  transform: skewX(-18deg);
-  animation: startSheen 4.6s ease-in-out infinite;
-  opacity:.0;
+  backdrop-filter: blur(10px) saturate(140%);
+  -webkit-backdrop-filter: blur(10px) saturate(140%);
+  box-shadow:
+    0 14px 26px rgba(0,0,0,.38),
+    inset 0 1px 0 rgba(255,255,255,.42),
+    inset 0 -2px 0 rgba(0,0,0,.18);
+  transition: transform .08s ease, box-shadow .12s ease, filter .12s ease;
+  position:relative; overflow:hidden;
+  -webkit-tap-highlight-color: transparent;
+}
+.start::before{
+  content:""; position:absolute; inset:1px; border-radius:inherit;
+  background: linear-gradient(180deg, rgba(255,255,255,.28), rgba(255,255,255,.06) 48%, rgba(255,255,255,.02));
   pointer-events:none;
 }
-
-@keyframes startSheen{
-  0%,62%{ transform: translateX(0) skewX(-18deg); opacity:0; }
-  68%{ opacity:.18; }
-  100%{ transform: translateX(240%) skewX(-18deg); opacity:0; }
+.start::after{
+  content:""; position:absolute; inset:-2px; border-radius:inherit;
+  padding:2px;
+  background: conic-gradient(from 0deg,
+    transparent 0 300deg,
+    rgba(98,233,255,0) 300deg,
+    rgba(98,233,255,.95) 318deg,
+    rgba(255,143,225,.95) 334deg,
+    rgba(45,232,192,.95) 350deg,
+    transparent 360deg
+  );
+  animation: startSpin 2.2s linear infinite;
+  -webkit-mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0);
+  -webkit-mask-composite: xor; mask-composite: exclude;
+  filter: drop-shadow(0 0 8px rgba(98,233,255,.35)) drop-shadow(0 0 12px rgba(255,143,225,.22));
+  pointer-events:none;
+  opacity:.95;
 }
+@keyframes startSpin{ to{ transform: rotate(360deg); } }
 
-.start:hover{ filter: brightness(1.04); }
+.start:hover{ filter:brightness(1.03) }
 .start:active{
-  transform: translateY(1px) scale(.995);
+  transform:translateY(1px);
   box-shadow:
-    0 10px 20px rgba(0,0,0,.46),
-    inset 0 1px 0 rgba(255,255,255,.14),
-    inset 0 -2px 0 rgba(0,0,0,.26);
+    0 10px 20px rgba(0,0,0,.42),
+    inset 0 1px 0 rgba(255,255,255,.30),
+    inset 0 -2px 0 rgba(0,0,0,.22);
 }
-
-
 /* ===================== THEME BUTTON (fixed) ===================== */
 .theme-float{ position:fixed; right:16px; bottom: calc(16px + env(safe-area-inset-bottom)); z-index:50; }
 .theme-float button{
@@ -265,14 +225,13 @@ body{
   .cards{ gap:12px; }
   .role{ padding:8px; border-radius:18px; animation:none; }
   .media-btn{ border-radius:12px }
-  .start-wrap{ width:70vw; }
-  .start{ height:52px; }
+  .start{ width:78vw; height:52px; }
 }
 
 /* ===================== REDUCE MOTION ===================== */
 @media (prefers-reduced-motion: reduce){
   .role{ animation:none !important; transition:none !important; }
-  .start-wrap::before,.start-wrap::after,.start::after{ animation:none !important; }
+  .start::after{ animation:none !important; }
 }
 .benefits{
   max-width: 780px;
@@ -332,18 +291,7 @@ body{
 
     <!-- START -->
     <div class="actions">
-      <div class="start-wrap">
-        <button class="start" id="go-next" type="button">Начать</button>
-      
-        <svg class="start-ring" viewBox="0 0 100 52" preserveAspectRatio="none" aria-hidden="true">
-          <!-- базовая тонкая обводка -->
-          <rect class="ring-base" x="2" y="2" width="96" height="48" rx="18" ry="18"></rect>
-      
-          <!-- бегущий яркий сегмент -->
-          <rect class="ring-run" x="2" y="2" width="96" height="48" rx="18" ry="18"></rect>
-        </svg>
-      </div>
-      
+      <button class="start" id="go-next">Начать</button>
     </div>
   </main>
 

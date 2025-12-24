@@ -749,18 +749,30 @@ body.light .btn.btn-reset{
     }catch(_){}
     return 0;
   }
-  function render(){
-    const need=getTodayMg()<=0;
-    document.querySelectorAll('[data-pill-spot]').forEach(spot=>{
-      let b=spot.querySelector('.pill-alert');
-      if(!need){ if(b) b.remove(); return; }
-      if(!b){ b=document.createElement('span'); b.className='pill-alert'; b.textContent='препарат';
-        b.title='Сегодня доза не отмечена'; spot.appendChild(b); }
-    });
-  }
-  window.addEventListener('storage',e=>{
-    if(['rt.diary.v1','derma_today_iso','derma_today_mg'].includes(e.key)) render();
+  function remindEnabled(){
+  const optin = localStorage.getItem('derma_remind_optin');
+  return (optin === '1') || (optin !== '0' && (localStorage.getItem('rem_enabled')||'0') === '1');
+}
+
+function render(){
+  const need = remindEnabled() && (getTodayMg()<=0);
+
+  document.querySelectorAll('[data-pill-spot]').forEach(spot=>{
+    let b=spot.querySelector('.pill-alert');
+    if(!need){ if(b) b.remove(); return; }
+    if(!b){
+      b=document.createElement('span');
+      b.className='pill-alert';
+      b.textContent='препарат';
+      b.title='Сегодня доза не отмечена';
+      spot.appendChild(b);
+    }
   });
+}
+
+window.addEventListener('storage',e=>{
+  if(['rt.diary.v1','derma_today_iso','derma_today_mg','derma_remind_optin','rem_enabled'].includes(e.key)) render();
+});
   document.addEventListener('visibilitychange',()=>{ if(!document.hidden) render(); });
   document.addEventListener('DOMContentLoaded',render);
   window.renderPillAlert = render; // ручной перерендер на всякий
@@ -1008,7 +1020,7 @@ html, body{ max-width:100vw; overflow-x:hidden; }
   </div>
 
   <main class="container">
-      <div class="app-title">Профиль пациента<span data-pill-spot></span><span data-stock-spot></span></div>
+      <div class="app-title rt-titleline"><span class="rt-titletext">Профиль пациента</span><span class="rt-titlebadges"><span data-pill-spot></span><span data-stock-spot></span></span></div>
     <section class="card hero" id="hero">
      <div class="hero-bg-switch" id="heroBgSwitch" aria-label="Фон карточки">
   <button class="b0" data-bg="none" title="Без фона"></button>

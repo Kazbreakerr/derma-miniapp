@@ -113,7 +113,7 @@
       padding: 6px 4px 12px;
     }
     /* ширина бейджей в карточке дня выставляется динамически (по самому длинному тексту) */
-    .sheet-row .badge{ flex:0 0 auto; width: fit-content; max-width: 100%; min-width: 0; white-space: nowrap; }
+    .sheet-row .badge{ flex:0 0 auto; width: var(--sheet-badge-w, auto); min-width: 0; }
 
 /* текстовые значения занимают доступное пространство рядом с бейджем */
 .sheet-row > :not(.badge):not(.right){ flex:1 1 auto; }
@@ -994,31 +994,18 @@ body.plan-mode #plannerSlot{ display:none; }
     }catch(_){}
     return 0;
   }
-  function remindEnabled(){
-  const optin = localStorage.getItem('derma_remind_optin');
-  return (optin === '1') || (optin !== '0' && (localStorage.getItem('rem_enabled')||'0') === '1');
-}
-
-function render(){
-  const need = remindEnabled() && (getTodayMg()<=0);
-
-  document.querySelectorAll('[data-pill-spot]').forEach(spot=>{
-    let b=spot.querySelector('.pill-alert');
-    if(!need){ if(b) b.remove(); return; }
-    if(!b){
-      b=document.createElement('span');
-      b.className='pill-alert';
-      b.textContent='препарат';
-      b.title='Сегодня доза не отмечена';
-      spot.appendChild(b);
-    }
+  function render(){
+    const need=getTodayMg()<=0;
+    document.querySelectorAll('[data-pill-spot]').forEach(spot=>{
+      let b=spot.querySelector('.pill-alert');
+      if(!need){ if(b) b.remove(); return; }
+      if(!b){ b=document.createElement('span'); b.className='pill-alert'; b.textContent='препарат';
+        b.title='Сегодня доза не отмечена'; spot.appendChild(b); }
+    });
+  }
+  window.addEventListener('storage',e=>{
+    if(['rt.diary.v1','derma_today_iso','derma_today_mg'].includes(e.key)) render();
   });
-}
-
-window.addEventListener('storage',e=>{
-  if(['rt.diary.v1','derma_today_iso','derma_today_mg','derma_remind_optin','rem_enabled'].includes(e.key)) render();
-});
-
   document.addEventListener('visibilitychange',()=>{ if(!document.hidden) render(); });
   document.addEventListener('DOMContentLoaded',render);
   window.renderPillAlert = render; // ручной перерендер на всякий
@@ -1091,8 +1078,8 @@ window.addEventListener('storage',e=>{
   <div class="rt-modal" id="doseModal" aria-hidden="true">
     <div class="rt-modal__backdrop" data-close="1"></div>
     <div class="rt-modal__dialog" role="dialog" aria-modal="true" aria-label="Вписать дозировку">
-      <div class="rt-modal__title" id="doseModalTitle">Вписать дозировку</div>
-      <div class="rt-modal__sub" id="doseModalSub">Введите дозу, мг</div>
+      <div class="rt-modal__title">Вписать дозировку</div>
+      <div class="rt-modal__sub">Введите дозу, мг</div>
       <input class="rt-modal__input" id="doseModalInput" inputmode="numeric" type="number" min="0" step="1" placeholder="0">
       <div class="rt-modal__actions">
         <button class="rt-btn-neo" type="button" id="doseModalCancel">Отмена</button>
@@ -1160,8 +1147,6 @@ window.addEventListener('storage',e=>{
   // --- Neomorphism дозировка (замена prompt на кастомное окно) ---
   const doseModal       = document.getElementById('doseModal');
   const doseModalInput  = document.getElementById('doseModalInput');
-  const doseModalTitle  = document.getElementById('doseModalTitle');
-  const doseModalSub    = document.getElementById('doseModalSub');
   const doseModalOk     = document.getElementById('doseModalOk');
   const doseModalCancel = document.getElementById('doseModalCancel');
   const doseModalClose  = doseModal ? doseModal.querySelector('[data-close]') : null;
@@ -1360,7 +1345,7 @@ window.addEventListener('storage',e=>{
     render();
   }
 
-  function openDoseModal(initialValue, opts = {}){
+  function openDoseModal(initialValue){
     return new Promise((resolve)=>{
       if (!doseModal || !doseModalInput || !doseModalOk || !doseModalCancel) return resolve(null);
 
@@ -1380,16 +1365,6 @@ window.addEventListener('storage',e=>{
         if (e.key === 'Enter')  return close(doseModalInput.value);
       };
 
-      // dynamic title/sub for reuse (single day / range)
-      try{
-        const t = (opts && typeof opts === 'object') ? opts.title : null;
-        const s = (opts && typeof opts === 'object') ? opts.sub : null;
-        const p = (opts && typeof opts === 'object') ? opts.placeholder : null;
-        if (doseModalTitle) doseModalTitle.textContent = t || 'Вписать дозировку';
-        if (doseModalSub)   doseModalSub.textContent   = s || 'Введите дозу, мг';
-        if (doseModalInput && p != null) doseModalInput.placeholder = String(p);
-        if (doseModalInput && p == null) doseModalInput.placeholder = '0';
-      }catch(_){}
       doseModalInput.value = (initialValue === 0 || initialValue) ? String(initialValue) : '';
       doseModal.classList.add('active');
       doseModal.classList.add('just-opened');
@@ -1492,7 +1467,7 @@ function saveDiary(d) {
 }
 
 // завершение drag: массовая установка дозы
-async function finalizeRange() {
+function finalizeRange() {
   drag.active = false;
   grid.classList.remove('dragging');
 
@@ -1508,8 +1483,8 @@ async function finalizeRange() {
     return;
   }
 
-    const doseStr = await openDoseModal('', {title:'Установить дозировку', sub:`Одинаково для ${ids.length} дней • мг`});
-  if (doseStr === null || String(doseStr).trim() === '') return;
+  const doseStr = prompt(`Установить одинаковую дозу (мг) для ${ids.length} дней:`, '');
+  if (doseStr === null || doseStr.trim() === '') return;
 
   const dose = Number(doseStr);
   if (!isFinite(dose)) return;
@@ -2002,7 +1977,7 @@ const sePart  = seRecorded ? (seIcons || `<span class="muted">Побочек  0<
     <div class="sheet-row">
       <div class="badge">Доза:</div>
       <strong id="doseVal">${doseText}</strong>
-      <button class="pill right" id="doseEdit" type="button">Вписать дозировку</button>
+      <button class="pill right dose-neo" id="doseEdit" type="button">Вписать дозировку</button>
     </div>
 
     <div class="sheet-row">
@@ -2010,6 +1985,17 @@ const sePart  = seRecorded ? (seIcons || `<span class="muted">Побочек  0<
       <div>${comment}</div>
     </div>
   `;
+
+  // Подгоняем ширину бейджей («Самочувствие:», «Доза:», «Заметка:») под самый длинный текст,
+  // чтобы они занимали минимум места и оставляли больше пространства значениям.
+  (function(){
+    try{
+      const badges = sheetBody.querySelectorAll('.sheet-row .badge');
+      let max = 0;
+      badges.forEach(b => { max = Math.max(max, b.getBoundingClientRect().width); });
+      if (max > 0) sheet.style.setProperty('--sheet-badge-w', Math.ceil(max) + 'px');
+    }catch(_){}
+  })();
 
   openDiaryBtn.onclick = ()=> goDiary(id);
 
@@ -2436,7 +2422,7 @@ function rangeFinish(){
     return;
   }
   drag.pending = false;
-  finalizeRange().catch(()=>{});
+  finalizeRange();
 }
 
 if (IS_COARSE){
@@ -2730,8 +2716,8 @@ body.sheet-open nav.bottom-nav{ pointer-events: auto !important; }
 .sheet-row .value{ font-weight:700; }
 
 /* --- Neomorphism modal for dosing (замена prompt) --- */
-.rt-modal{ position: fixed; inset: 0; z-index: 1700; display:none; align-items:center; justify-content:center; padding: 12vh 14px 14px; }
-.rt-modal.active{ display:flex; }
+.rt-modal{ position: fixed; inset: 0; z-index: 1700; display:none; }
+.rt-modal.active{ display:block; }
 .rt-modal__backdrop{
   position:absolute; inset:0;
   background: rgba(0,0,0,.52);
@@ -2739,9 +2725,11 @@ body.sheet-open nav.bottom-nav{ pointer-events: auto !important; }
   -webkit-backdrop-filter: blur(6px) saturate(120%);
 }
 .rt-modal__dialog{
-  position:relative;
-  width: min(86vw, 360px);
-  padding: 18px 18px 16px;
+  position:absolute;
+  left: 50%; top: 34%;
+  transform: translate(-50%, -50%);
+  width: min(92vw, 380px);
+  padding: 18px 16px 16px;
   border-radius: 18px;
   background:
     radial-gradient(420px 240px at 30% 0%, rgba(255,255,255,.08), transparent 60%),
@@ -2771,7 +2759,7 @@ body.sheet-open nav.bottom-nav{ pointer-events: auto !important; }
     0 10px 26px rgba(0,0,0,.35);
 }
 .rt-modal__input:focus{ border-color: rgba(120, 230, 210, .55); }
-.rt-modal__actions{ display:flex; flex-wrap:wrap; gap: 10px; justify-content:flex-end; align-items:center; margin-top: 14px; }
+.rt-modal__actions{ display:flex; gap: 10px; justify-content:flex-end; margin-top: 14px; }
 .rt-btn-neo{
   border: 1px solid rgba(255,255,255,.10);
   border-radius: 14px;
@@ -2922,8 +2910,8 @@ body.sheet-open nav.bottom-nav{ pointer-events: auto !important; }
 }
 
 /* actions layout for plan modal */
-.rt-modal__actions--plan{ justify-content:space-between; align-items:center; flex-wrap:wrap; }
-.rt-modal__actionsRight{ display:flex; flex-wrap:wrap; gap:10px; justify-content:flex-end; }
+.rt-modal__actions--plan{ justify-content:space-between; align-items:center; }
+.rt-modal__actionsRight{ display:flex; gap:10px; }
 
 /* --- Planner long-press mini card --- */
 .plan-peek{
@@ -3983,7 +3971,6 @@ myprofile: [
     stop: skip,
   };
 })();
-
 </script>
 <!-- /RT_TOUR_V1 -->
 

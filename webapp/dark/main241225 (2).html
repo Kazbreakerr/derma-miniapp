@@ -144,8 +144,7 @@ try{
   }
   #cardDose .mg-col{ gap:5px; align-items:center; }
   #cardDose .cap-hint{ font-size:11px; padding:2px 9px; }
-  #cardDose .subhints{ display:flex; gap:6px; align-items:center; justify-content:center; flex-wrap:nowrap; max-width:100%; }
-  #cardDose .subhints .cap-hint{ white-space:nowrap; }
+  #cardDose .subhints{ display:flex; gap:6px; align-items:center; justify-content:center; }
   #cardDose .cap-hint{ border:0; background:rgba(255,255,255,.08); color:rgba(235,252,255,.92); box-shadow:0 6px 14px rgba(0,0,0,.25) inset, 0 10px 26px rgba(0,0,0,.18); }
   #cardDose .cap-hint[hidden]{ display:none; }
   #cardDose .cap-hint--plan{ opacity:.92; }
@@ -594,12 +593,9 @@ body.light .seg button{
   justify-content:center;
 }
 #cardDose .dose-label{ font-weight:800; }
-#cardDose .mg-wrap{ justify-content:center; align-items:flex-start; }
+#cardDose .mg-wrap{ justify-content:center; }
 #cardDose .mg-col{ align-items:center; }
 #cardDose .cap-hint{ align-self:center; }
-
-#cardDose .subhints{ flex-wrap:nowrap; max-width:100%; }
-
 
 #cardDose #capType{
   justify-content:center;
@@ -970,114 +966,6 @@ body.light .tab.active{ color:#0d1220; background: linear-gradient(180deg, rgba(
   z-index: 10;
 }
 
-
-  /* === Planned dose modal (authentic UI) === */
-  html.rt-modal-open, html.rt-modal-open body{ overflow:hidden; }
-
-  .rt-modal[hidden]{ display:none !important; }
-  .rt-modal{
-    position:fixed; inset:0; z-index:10000;
-    display:flex; align-items:center; justify-content:center;
-    padding:18px;
-    background: rgba(0,0,0,.55);
-    -webkit-backdrop-filter: blur(6px);
-    backdrop-filter: blur(6px);
-  }
-  .rt-modal__panel{
-    width: min(440px, 92vw);
-    border-radius: 20px;
-    padding: 16px;
-    background: rgba(255,255,255,.08);
-    border: 1px solid rgba(255,255,255,.14);
-    box-shadow: 0 18px 50px rgba(0,0,0,.55);
-  }
-  .rt-modal__head{
-    display:flex; align-items:center; justify-content:space-between;
-    gap:10px; margin-bottom: 6px;
-  }
-  .rt-modal__title{
-    font-weight: 800;
-    letter-spacing: .2px;
-    font-size: 18px;
-    color: rgba(232,243,255,.96);
-  }
-  .rt-modal__x{
-    width:36px; height:36px; border-radius: 12px;
-    border: 1px solid rgba(255,255,255,.14);
-    background: rgba(255,255,255,.08);
-    color: rgba(232,243,255,.92);
-    cursor:pointer;
-    box-shadow: 0 6px 18px rgba(0,0,0,.25) inset;
-  }
-  .rt-modal__x:active{ transform: translateY(1px); }
-
-  .rt-modal__sub{
-    color: rgba(232,243,255,.70);
-    font-size: 12px;
-    margin-bottom: 12px;
-  }
-  .rt-modal__label{
-    display:block;
-    font-size: 12px;
-    color: rgba(232,243,255,.78);
-    margin-bottom: 6px;
-  }
-  .rt-modal__input{
-    width:100%;
-    height: 46px;
-    border-radius: 14px;
-    border: 1px solid rgba(255,255,255,.14);
-    background: rgba(8,18,31,.40);
-    color: rgba(232,243,255,.94);
-    padding: 0 12px;
-    box-shadow: 0 6px 16px rgba(0,0,0,.30) inset;
-    outline: none;
-  }
-  .rt-modal__input:focus{
-    border-color: rgba(34,211,238,.55);
-    box-shadow: 0 0 0 2px rgba(34,211,238,.18), 0 6px 16px rgba(0,0,0,.30) inset;
-  }
-  .rt-modal__hint{
-    margin-top: 8px;
-    font-size: 11px;
-    color: rgba(232,243,255,.62);
-  }
-  .rt-modal__err{
-    margin-top: 10px;
-    font-size: 12px;
-    color: rgba(255, 120, 120, .92);
-  }
-  .rt-modal__actions{
-    display:flex; gap:10px;
-    justify-content:flex-end;
-    margin-top: 16px;
-  }
-  .rt-modal__btn{
-    height: 42px;
-    padding: 0 16px;
-    border-radius: 14px;
-    border: 1px solid rgba(255,255,255,.14);
-    cursor:pointer;
-    font-weight: 800;
-    letter-spacing: .2px;
-  }
-  .rt-modal__btn--ghost{
-    background: rgba(255,255,255,.08);
-    color: rgba(232,243,255,.88);
-    box-shadow: 0 6px 16px rgba(0,0,0,.25) inset;
-  }
-  .rt-modal__btn--cta{
-    border: none;
-    background-image: linear-gradient(135deg,#22D3EE 0%, #14B8A6 100%);
-    color:#07121F;
-    box-shadow: 0 10px 26px rgba(0,0,0,.25);
-  }
-  .rt-modal__btn:active{ transform: translateY(1px); }
-
-  @media (prefers-reduced-motion: reduce){
-    .rt-modal__btn, .rt-modal__x{ transition:none !important; }
-  }
-
 </style>
 <style id="neumorphic-skin">
   :root{
@@ -1257,38 +1145,12 @@ function setupCapsulesUI(forceDrug){
 
   wrap.hidden = false;
 
-function maybeAutoSetMgFromCapsule(nextMg){
-  try{
-    const mgEl = document.getElementById('mg');
-    if (!mgEl) return;
-
-    const cur = String(mgEl.value || '').trim();
-    const userEdited = mgEl.dataset.userEdited === '1';
-    const prevAuto   = mgEl.dataset.autoMg;
-
-    // если пользователь уже вводил своё значение — не трогаем (кроме случая, когда там до сих пор автозначение)
-    if (userEdited && cur !== '' && prevAuto && cur !== prevAuto) return;
-
-    // авто-установка, если поле пустое/0/старый дефолт 20 или равно прошлому авто-значению
-    if (cur === '' || cur === '0' || cur === '20' || (prevAuto && cur === prevAuto)){
-      mgEl.value = String(nextMg);
-      mgEl.dataset.autoMg = String(nextMg);
-      try{ updateDoseHint(); }catch(_){}
-    }
-  }catch(_){}
-}
-
-// первичная автоподстановка дозы по выбранному типу капсулы
-maybeAutoSetMgFromCapsule(saved);
-
-
   function select(mg){
     try { localStorage.setItem('rt.capsule_mg', String(mg)); } catch(_) {}
     seg.querySelectorAll('button').forEach(b=>{
       b.classList.toggle('active', Number(b.dataset.mg) === mg);
     });
     try { updateDoseHint(); } catch(_) {}
-    try { maybeAutoSetMgFromCapsule(mg); } catch(_) {}
   }
 
   seg.querySelectorAll('button').forEach(b=>{
@@ -1683,10 +1545,10 @@ document.addEventListener('DOMContentLoaded', () => {
 
         <div class="mg-wrap">
           <div class="mg-col">
-            <input id="mg" type="number" step="10" value="" inputmode="numeric" pattern="\d*" aria-label="Доза в миллиграммах">
+            <input id="mg" type="number" step="10" value="20" inputmode="numeric" pattern="\d*" aria-label="Доза в миллиграммах">
             <div class="subhints" aria-live="polite">
             <button type="button" id="capHint" class="cap-hint" aria-label="Подсказка по капсулам" hidden></button>
-            <button type="button" id="planHint" class="cap-hint cap-hint--plan" aria-label="Запланированная доза. Нажмите, чтобы изменить" hidden></button>
+            <button type="button" id="planHint" class="cap-hint cap-hint--plan" aria-label="Запланированная доза. Нажмите, чтобы подставить в поле" hidden></button>
           </div>
           </div>
 
@@ -2850,7 +2712,6 @@ try{
   const mgElInput = document.getElementById('mg');
   if (mgElInput) {
     mgElInput.addEventListener('input', () => {
-      try { mgElInput.dataset.userEdited = '1'; } catch(_) {}
       try { syncChipsSelection?.(); } catch(_) {}
     });
   
@@ -2863,157 +2724,6 @@ try{
     });
   }
 }
-
-
-// === Styled planned-dose editor (вместо prompt) ===
-(function(){
-  function init(){
-    const modal = document.getElementById('planModal');
-    if(!modal) return false;
-
-    const input  = document.getElementById('planModalInput');
-    const sub    = document.getElementById('planModalSub');
-    const err    = document.getElementById('planModalErr');
-    const okBtn  = document.getElementById('planModalOk');
-    const canBtn = document.getElementById('planModalCancel');
-    const xBtn   = document.getElementById('planModalClose');
-
-    let resolver = null;
-
-    function hide(){
-      modal.hidden = true;
-      modal.setAttribute('aria-hidden','true');
-      document.documentElement.classList.remove('rt-modal-open');
-    }
-    function done(val){
-      try{
-        if(resolver){ resolver(val); }
-      }finally{
-        resolver = null;
-        hide();
-      }
-    }
-
-    function parseVal(){
-      const s = String(input?.value || '').trim();
-      if(s === '') return { mg: 0 };
-      const n = Math.round(Number(s.replace(',', '.')));
-      if(!Number.isFinite(n) || n < 0){
-        return { error: 'Введите число (мг) или оставьте пустым/0 для удаления.' };
-      }
-      return { mg: n };
-    }
-
-    function open(iso, cur){
-      if(err){ err.hidden = true; err.textContent = ''; }
-      if(sub){ sub.textContent = iso ? ('Дата: ' + iso) : ''; }
-      if(input){
-        input.value = (cur && cur > 0) ? String(cur) : '';
-      }
-      modal.dataset.iso = iso || '';
-
-      modal.hidden = false;
-      modal.setAttribute('aria-hidden','false');
-      document.documentElement.classList.add('rt-modal-open');
-
-      setTimeout(() => {
-        try{ input?.focus(); input?.select?.(); }catch(_){}
-      }, 60);
-
-      return new Promise((resolve) => { resolver = resolve; });
-    }
-
-    function cancel(){ done(null); }
-
-    okBtn?.addEventListener('click', () => {
-      const p = parseVal();
-      if(p.error){
-        if(err){
-          err.textContent = p.error;
-          err.hidden = false;
-        }else{
-          alert(p.error);
-        }
-        try{ input?.focus(); }catch(_){}
-        return;
-      }
-      done(p.mg);
-    });
-
-    canBtn?.addEventListener('click', cancel);
-    xBtn?.addEventListener('click', cancel);
-
-    modal.addEventListener('click', (e) => {
-      if(e.target === modal) cancel();
-    });
-
-    modal.addEventListener('keydown', (e) => {
-      if(e.key === 'Escape'){
-        e.preventDefault();
-        cancel();
-      }
-      if(e.key === 'Enter' && document.activeElement === input){
-        e.preventDefault();
-        okBtn?.click();
-      }
-    });
-
-    window.__rtOpenPlanModal = open;
-    return true;
-  }
-
-  if(!init()){
-    document.addEventListener('DOMContentLoaded', init, { once:true });
-  }
-})();
-;
-
-
-// planned dose chip: редактирование "по плану" прямо на main
-{
-  const planBtn = document.getElementById('planHint');
-  const dateEl  = document.getElementById('date');
-  if (planBtn && dateEl){
-    
-    planBtn.addEventListener('click', async () => {
-      try{
-        const iso = String(dateEl.value || todayISO()).slice(0,10);
-        const cur = plannedMgForDate(iso);
-
-        let next = 0;
-
-        if (window.__rtOpenPlanModal){
-          const v = await window.__rtOpenPlanModal(iso, cur);
-          if (v === null) return;
-          next = v;
-        } else {
-          const raw = prompt(
-            `По плану на ${iso} (мг).\nОставьте пусто или введите 0, чтобы убрать план.`,
-            cur > 0 ? String(cur) : ''
-          );
-          if (raw === null) return;
-
-          const s = String(raw).trim();
-          if (s !== ''){
-            next = Math.round(Number(s.replace(',', '.')));
-            if (!Number.isFinite(next) || next < 0){
-              alert('Введите число (мг) или оставьте пустым/0 для удаления.');
-              return;
-            }
-          }
-        }
-
-        setPlannedMgForDate(iso, next);
-
-        try{ updatePlanHint?.(); }catch(_){}
-        try{ renderCalPreview?.(); }catch(_){}
-        try{ applyDoseEditLock?.(iso); }catch(_){}
-      }catch(_){}
-    });
-
-  }
-}
-
 // Показывает пузырь; считает остаток по реальному кумулятиву + текущей дозе
 function showEncouragement(addedMg = 0){
   const phrases = [
@@ -3654,28 +3364,6 @@ function plannedMgForDate(iso){
   }catch(_){ return 0; }
 }
 
-
-function setPlannedMgForDate(iso, mg){
-  try{
-    iso = String(iso||'').slice(0,10);
-    if(!/^\d{4}-\d{2}-\d{2}$/.test(iso)) return false;
-
-    mg = Math.round(Number(mg)||0);
-    if (!Number.isFinite(mg) || mg < 0) mg = 0;
-
-    const KEY = 'rt.plan.v1';
-    let plan = {};
-    try{ plan = JSON.parse(localStorage.getItem(KEY)||'{}') || {}; }catch(_){ plan = {}; }
-
-    if (mg > 0) plan[iso] = mg;
-    else delete plan[iso];
-
-    try{ localStorage.setItem(KEY, JSON.stringify(plan)); }catch(_){}
-    return true;
-  }catch(_){ return false; }
-}
-
-
 function updatePlanHint(){
   try{
     const btn = document.getElementById('planHint');
@@ -3688,11 +3376,12 @@ function updatePlanHint(){
     if (mg > 0){
       btn.textContent = `По плану: ${mg} мг`;
       btn.dataset.mg = String(mg);
+      btn.hidden = false;
     } else {
-      btn.textContent = `По плану: не указано`;
+      btn.textContent = '';
       btn.dataset.mg = '';
+      btn.hidden = true;
     }
-    btn.hidden = false;
   }catch(_){}
 }
 
@@ -3759,15 +3448,6 @@ function computeDoseEditState(iso){
 
   return { iso, today, diff, planned, taken, editable, reason };
 }
-
-function __rtBoldTodayYesterday(s){
-  try{
-    s = String(s||'');
-    // unicode-safe "word boundary" for ru words
-    return s.replace(/(^|[^А-Яа-яЁё])(Вчера|вчера|Сегодня|сегодня)(?=[^А-Яа-яЁё]|$)/g, '$1<b>$2</b>');
-  }catch(_){ return String(s||''); }
-}
-
 function applyDoseEditLock(iso){
   const st = computeDoseEditState(iso);
 
@@ -3819,7 +3499,7 @@ function applyDoseEditLock(iso){
         if (st.editable){
           msg = (st.taken>0)
             ? `Вчера уже отмечено: ${st.taken} мг. Можно добавить до 23:59 сегодня.`
-            : 'Вчера: успейте добавить приём до 23:59! (Если не успели- это можно сделать в календаре.)';
+            : 'Вчера: можно добавить приём до 23:59 сегодня.';
         } else {
           msg = (st.planned>0)
             ? `Вчерашняя доза по плану уже выполнена (${st.taken}/${st.planned} мг) — редактирование заблокировано.`
@@ -3831,7 +3511,7 @@ function applyDoseEditLock(iso){
           : 'Прошлая дата — редактирование недоступно. Можете сделать это в календаре.';
       }
 
-      lockHint.innerHTML = __rtBoldTodayYesterday(msg);
+      lockHint.innerHTML = String(msg).replace(/^(Сегодня|Вчера)/, '<b>$1</b>');
       lockHint.hidden = !msg;
     }
   }catch(_){}
@@ -3865,15 +3545,6 @@ function setMainDate(iso, opts){
   const plus  = document.getElementById('mgPlus');
   const input = document.getElementById('mg');
   if (!input) return;
-// если поле дозы пустое — подставим сохранённый тип капсулы (чтобы не было дефолта 20мг)
-try{
-  const cur = String(input.value || '').trim();
-  const v = Number(localStorage.getItem('rt.capsule_mg') || 0);
-  if ((!cur || cur === '0' || cur === '20') && Number.isFinite(v) && v > 0){
-    input.value = String(v);
-    input.dataset.autoMg = String(v);
-  }
-}catch(_){}
 
   function detectDefaultCapsuleStep(){
     // если выбор типа капсулы ещё не сделан/скрыт — подстрахуемся по препарату
@@ -5916,34 +5587,8 @@ avoidCover: 'reveal',
     stop: skip,
   };
 })();
-
 </script>
 <!-- /RT_TOUR_V1 -->
-
-
-  <!-- Planned dose modal -->
-  <div id="planModal" class="rt-modal" hidden aria-hidden="true">
-    <div class="rt-modal__panel" role="dialog" aria-modal="true" aria-labelledby="planModalTitle">
-      <div class="rt-modal__head">
-        <div class="rt-modal__title" id="planModalTitle">Запланированная доза</div>
-        <button type="button" class="rt-modal__x" id="planModalClose" aria-label="Закрыть">×</button>
-      </div>
-
-      <div class="rt-modal__sub" id="planModalSub">—</div>
-
-      <div class="rt-modal__field">
-        <label class="rt-modal__label" for="planModalInput">По плану (мг)</label>
-        <input id="planModalInput" class="rt-modal__input" type="number" inputmode="numeric" min="0" step="5" placeholder="Например 20">
-        <div class="rt-modal__hint">Оставьте пусто или 0, чтобы убрать план.</div>
-        <div id="planModalErr" class="rt-modal__err" hidden></div>
-      </div>
-
-      <div class="rt-modal__actions">
-        <button type="button" class="rt-modal__btn rt-modal__btn--ghost" id="planModalCancel">Отмена</button>
-        <button type="button" class="rt-modal__btn rt-modal__btn--cta" id="planModalOk">OK</button>
-      </div>
-    </div>
-  </div>
 
 </body>
 </html>

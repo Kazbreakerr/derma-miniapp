@@ -319,6 +319,29 @@
   }
   @keyframes hazard{to{opacity:.38;box-shadow:0 0 0 10px rgba(255,66,66,0)}}
   @media (prefers-reduced-motion:reduce){.pill-alert{animation:none}}
+  /* === Title + alerts in one line === */
+.rt-titleline{
+  display:flex;
+  align-items:center;
+  gap:10px;
+  flex-wrap:nowrap;
+}
+.rt-titletext{ white-space:nowrap; }
+.rt-titlebadges{
+  display:inline-flex;
+  align-items:center;
+  gap:8px;
+  margin-left:6px;
+  white-space:nowrap;
+}
+.rt-titlebadges [data-pill-spot],
+.rt-titlebadges [data-stock-spot]{ display:inline-flex; }
+.rt-titleline .pill-alert{ margin-left:0 !important; }
+@media (max-width:420px){
+  .rt-titleline{ gap:8px; }
+  .rt-titlebadges{ gap:6px; margin-left:4px; }
+}
+
 </style>
 
 <script id="pill-alert-script">
@@ -334,18 +357,31 @@
     }catch(_){}
     return 0;
   }
-  function render(){
-    const need=getTodayMg()<=0;
-    document.querySelectorAll('[data-pill-spot]').forEach(spot=>{
-      let b=spot.querySelector('.pill-alert');
-      if(!need){ if(b) b.remove(); return; }
-      if(!b){ b=document.createElement('span'); b.className='pill-alert'; b.textContent='препарат';
-        b.title='Сегодня доза не отмечена'; spot.appendChild(b); }
-    });
-  }
-  window.addEventListener('storage',e=>{
-    if(['rt.diary.v1','derma_today_iso','derma_today_mg'].includes(e.key)) render();
+  function remindEnabled(){
+  const optin = localStorage.getItem('derma_remind_optin');
+  return (optin === '1') || (optin !== '0' && (localStorage.getItem('rem_enabled')||'0') === '1');
+}
+
+function render(){
+  const need = remindEnabled() && (getTodayMg()<=0);
+
+  document.querySelectorAll('[data-pill-spot]').forEach(spot=>{
+    let b=spot.querySelector('.pill-alert');
+    if(!need){ if(b) b.remove(); return; }
+    if(!b){
+      b=document.createElement('span');
+      b.className='pill-alert';
+      b.textContent='препарат';
+      b.title='Сегодня доза не отмечена';
+      spot.appendChild(b);
+    }
   });
+}
+
+window.addEventListener('storage',e=>{
+  if(['rt.diary.v1','derma_today_iso','derma_today_mg','derma_remind_optin','rem_enabled'].includes(e.key)) render();
+});
+
   document.addEventListener('visibilitychange',()=>{ if(!document.hidden) render(); });
   document.addEventListener('DOMContentLoaded',render);
   window.renderPillAlert = render; // ручной перерендер на всякий
@@ -371,7 +407,7 @@
 
   <div class="wrap page" id="pageRoot">
     <div class="card" style="margin-bottom:14px;">
-      <h1>Анализы<span data-pill-spot></span><span data-stock-spot></span></h1>
+      <h1 class="rt-titleline"><span class="rt-titletext">Анализы</span><span class="rt-titlebadges"><span data-pill-spot></span><span data-stock-spot></span></span></h1>
       <div class="muted">Классические показатели во время курса ретиноидов. Введите свои значения — справа увидите норму и статус. Диапазоны ориентировочные, ориентируйтесь на бланк вашей лаборатории.</div>
     </div>
 
