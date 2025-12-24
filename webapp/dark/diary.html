@@ -597,17 +597,21 @@ main.wrap{ padding-top: 8px; }
 
   display:flex;
   align-items:center;
+  justify-content:center;   /* ✅ центрируем содержимое */
+  text-align:center;        /* ✅ на всякий, если где-то текст станет блочным */
   gap:8px;
+
   width:100%;
   max-width:100%;
 
   white-space:nowrap;
-  overflow:visible;        /* <-- больше не режем */
-  text-overflow:clip;      /* <-- никаких троеточий */
+  overflow:visible;
+  text-overflow:clip;
 
-  font-size: clamp(10px, 3.2vw, 14px); /* авто-уменьшение на телефонах */
+  font-size: clamp(10px, 3.2vw, 14px);
   min-width:0;
 }
+
 
 #dayChip .chip-rel,
 #dayChip .chip-course,

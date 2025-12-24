@@ -181,6 +181,15 @@
 user-select: none;
 -webkit-tap-highlight-color: transparent;
     }
+    /* Мятно-голубой оттенок ТОЛЬКО для основного календаря (не plan-mode) */
+body:not(.plan-mode) .day{
+  background:
+    radial-gradient(220px 100px at 18% 12%, rgba(32, 224, 173, 0.22), transparent 62%),
+    radial-gradient(240px 140px at 85% 22%, rgba(81, 162, 254, 0.11), transparent 65%),
+    radial-gradient(120px 60px at 10% 0%, rgba(255, 255, 255, 0.087), transparent 60%),
+    linear-gradient(180deg, rgba(255,255,255,.04), rgba(255,255,255,.02));
+}
+
     .day:hover{ background:
       radial-gradient(120px 60px at 10% 0%, rgba(255,255,255,.06), transparent 60%),
       linear-gradient(180deg, rgba(255,255,255,.06), rgba(255,255,255,.03)); }
@@ -920,7 +929,7 @@ body.plan-mode .weekday{ color: rgba(188, 216, 230, .60); }
 body.plan-mode .day{
   background:
     radial-gradient(150px 90px at 12% 0%, rgba(70,220,190,.18), transparent 60%),
-    radial-gradient(170px 110px at 88% 100%, rgba(167,120,255,.14), transparent 64%),
+    radial-gradient(170px 110px at 88% 100%, rgba(167, 120, 255, 0.306), transparent 64%),
     linear-gradient(180deg, rgba(14, 41, 62, .90), rgba(9, 23, 36, .92));
   box-shadow: 10px 12px 20px rgba(0,0,0,.44), -10px -10px 20px rgba(255,255,255,.03);
 }
