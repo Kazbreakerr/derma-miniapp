@@ -620,7 +620,7 @@ main.wrap{ padding-top: 8px; }
 }
 
 #dayChip .chip-dateText{
-  flex:1 1 auto;
+  flex:0 1 auto;
   min-width:0;
   overflow:visible;        /* <-- не режем */
   text-overflow:clip;      /* <-- никаких троеточий */
@@ -1736,9 +1736,9 @@ window.addEventListener('storage',e=>{
     <h2>Оценка самочувствия</h2>
     <!-- Режим цветовой подстройки -->
 <div class="tint-row">
-  <span class="muted">Цвет под настроение</span>
+  <span class="muted">Анимация настроения</span>
   <button id="tintSwitch" class="toggler" role="switch"
-          aria-checked="true" aria-label="Цвет под настроение">
+          aria-checked="true" aria-label="Анимация настроения">
     <i></i>
   </button>
 </div>
@@ -2602,6 +2602,10 @@ function hideMoodVideo(){
 // Показываем видео только если настроение подтверждено И закреплено
 function refreshMoodVideoForISO(iso){
   try{
+    // Если пользователь выключил анимации — вообще не запускаем видео
+    const animOn = (localStorage.getItem('rt.moodAnimOn') ?? '1') !== '0';
+    if (!animOn){ hideMoodVideo(); return; }
+
     const e = getEntry(iso);
     const pinned = !!e?.moodPinned;
     const saved  = !!e?.wellnessSaved;
@@ -4774,9 +4778,9 @@ function init(){
   render();
   window.renderStockAlert=render;
 })();
-// ===== Режим цветовой подстройки страницы =====
+// ===== Режим цветовой подстройки страницы (цвет дней под настроение) =====
 const TINT_KEY = 'rt.moodTintOn';
-const BASE_A = '#0B1220';  // твой дефолтный тёмный градиент
+const BASE_A = '#0B1220';  // дефолтный тёмный градиент
 const BASE_B = '#0F1B2E';
 
 function isTintOn(){
@@ -4789,20 +4793,58 @@ function setTintOn(on){
     localStorage.setItem('rt.moodTint.bump', String(Date.now()));
   }catch(_){}
 
-  // если на diary ты тоже используешь tint для фона — оставляем как было
+  // если на diary tint влияет на фон — обновим мягко
   const v = (typeof window.valence === 'number') ? window.valence : 50;
-  if (typeof updateColorsByValence === 'function') updateColorsByValence(v);
+  try{
+    if (typeof updateColorsByValence === 'function') updateColorsByValence(v);
+  }catch(_){}
 }
 
-// Инициализация и клик по тумблеру
+// ===== Настройка: проигрывать анимацию настроения после подтверждения =====
+const MOOD_ANIM_KEY = 'rt.moodAnimOn';
+function isMoodAnimOn(){
+  return (localStorage.getItem(MOOD_ANIM_KEY) ?? '1') !== '0'; // по умолчанию вкл.
+}
+function setMoodAnimOn(on){
+  try{ localStorage.setItem(MOOD_ANIM_KEY, on ? '1' : '0'); }catch(_){}
+
+  // Если выключили — сразу останавливаем видео (это главный анти-лаг)
+  try{
+    if (!on){
+      window.hideMoodVideo && window.hideMoodVideo();
+    } else {
+      window.refreshMoodVideoForISO && window.refreshMoodVideoForISO(selectedISO());
+    }
+  }catch(_){}
+}
+
+// Инициализация:
+// 1) "Цвет дней под настроение" оставляем всегда включённым (без тумблера здесь)
+// 2) тумблер управляет только анимацией настроения
 document.addEventListener('DOMContentLoaded', ()=>{
+  try{ setTintOn(true); }catch(_){}
+
   const sw = document.getElementById('tintSwitch');
   if (!sw) return;
-  sw.setAttribute('aria-checked', isTintOn() ? 'true' : 'false');
+
+  const on = isMoodAnimOn();
+  sw.setAttribute('aria-checked', on ? 'true' : 'false');
+
   sw.addEventListener('click', ()=>{
     const next = !(sw.getAttribute('aria-checked') === 'true');
     sw.setAttribute('aria-checked', next ? 'true' : 'false');
-    setTintOn(next);
+    setMoodAnimOn(next);
+  });
+
+  // синхронизация при изменении в другой вкладке/странице
+  window.addEventListener('storage', (e)=>{
+    if (e.key !== MOOD_ANIM_KEY) return;
+    const v = isMoodAnimOn();
+    sw.setAttribute('aria-checked', v ? 'true' : 'false');
+    try{
+      if (!v) window.hideMoodVideo && window.hideMoodVideo();
+      else window.refreshMoodVideoForISO && window.refreshMoodVideoForISO(selectedISO());
+    }catch(_){}
   });
 });
 

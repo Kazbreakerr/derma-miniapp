@@ -151,8 +151,20 @@ body{
   width: clamp(210px, 60vw, 390px);
   display:inline-block;
   border-radius: 20px;
-  filter: drop-shadow(0 14px 26px rgba(0,0,0,.38));
+  filter: drop-shadow(0 14px 26px rgba(0,0,0,.38));  position: relative; /* чтобы start-ring не создавал чёрный блок ниже */
 }
+
+/* FIX: убираем чёрный прямоугольник от SVG под кнопкой "Начать" */
+.start-ring{
+  position:absolute;
+  inset:0;
+  width:100%;
+  height:100%;
+  pointer-events:none;
+  display:block;
+}
+.start-ring rect{ fill:none; }
+
 
 .start{
   width:100%;

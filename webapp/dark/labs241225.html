@@ -310,18 +310,13 @@
   </style>
   <style id="pill-alert-style">
   .pill-alert{
-  display:inline-flex;align-items:center;justify-content:center;
-  margin-left:10px;
-  padding:2px 7px;
-  border-radius:9px;
-  font-weight:800;
-  font-size:11.5px;
-  letter-spacing:.18px;
-  line-height:1.05;
-  color:#fff;background:#ff4242;
-  box-shadow:0 0 0 0 rgba(255,66,66,.65);
-  animation:hazard 1.15s steps(2,start) infinite;
-}
+    display:inline-flex;align-items:center;justify-content:center;
+    margin-left:10px;padding:2px 8px;border-radius:10px;
+    font-weight:800;font-size:12px;letter-spacing:.2px;
+    color:#fff;background:#ff4242;
+    box-shadow:0 0 0 0 rgba(255,66,66,.65);
+    animation:hazard 1.15s steps(2,start) infinite;
+  }
   @keyframes hazard{to{opacity:.38;box-shadow:0 0 0 10px rgba(255,66,66,0)}}
   @media (prefers-reduced-motion:reduce){.pill-alert{animation:none}}
   /* === Title + alerts in one line === */
@@ -347,12 +342,6 @@
   .rt-titlebadges{ gap:6px; margin-left:4px; }
 }
 
-
-@media (max-width: 360px){
-  .rt-titletext{ font-size:26px; } /* h1 inherits, but this helps a bit on ultra-narrow */
-  .pill-alert{ font-size:11px; padding:2px 6px; }
-  .pill-alert--stock{ font-size:12px; padding:2px 6px; }
-}
 </style>
 
 <script id="pill-alert-script">
@@ -429,7 +418,7 @@ window.addEventListener('storage',e=>{
       <div class="labs-group">
         <strong>Пол:</strong>
         <div class="seg" id="sexSeg">
-          <button type="button" data-sex="female">Ж</button>
+          <button type="button" data-sex="female" class="active">Ж</button>
           <button type="button" data-sex="male">М</button>
         </div>
       </div>
@@ -438,7 +427,7 @@ window.addEventListener('storage',e=>{
         <strong>Возраст:</strong>
         <div class="seg" id="ageSeg">
           <button type="button" data-age="u16">&lt; 16</button>
-          <button type="button" data-age="adult">16+</button>
+          <button type="button" data-age="adult" class="active">16+</button>
         </div>
       </div>
     </div>
@@ -632,121 +621,17 @@ window.addEventListener('orientationchange', fitBottomSpacer);
   const reportsList = document.getElementById('reportsList');
   const saveReportBtn = document.getElementById('saveReportBtn');
 
-  // Helpers: pull sex/age from onboarding/profile (best-effort)
-  function normSex(v){
-    if(v==null) return null;
-    const s = String(v).trim().toLowerCase();
-    if(!s) return null;
-    // accept RU/EN variants
-    if (s==='m' || s==='male' || s==='man' || s==='м' || s.startsWith('муж')) return 'male';
-    if (s==='f' || s==='female' || s==='woman' || s==='ж' || s.startsWith('жен')) return 'female';
-    return null;
-  }
-  function parseDOB(v){
-    if(!v) return null;
-    const s = String(v).trim();
-    let m = s.match(/^(\d{4})[.\-\/](\d{1,2})[.\-\/](\d{1,2})$/); // YYYY-MM-DD
-    if(m){
-      const y=+m[1], mo=+m[2], d=+m[3];
-      const dt = new Date(Date.UTC(y, mo-1, d));
-      return isNaN(dt) ? null : dt;
-    }
-    m = s.match(/^(\d{1,2})[.\-\/](\d{1,2})[.\-\/](\d{4})$/); // DD.MM.YYYY
-    if(m){
-      const d=+m[1], mo=+m[2], y=+m[3];
-      const dt = new Date(Date.UTC(y, mo-1, d));
-      return isNaN(dt) ? null : dt;
-    }
-    return null;
-  }
-  function calcAgeYears(dob){
-    const now = new Date();
-    let age = now.getUTCFullYear() - dob.getUTCFullYear();
-    const m = now.getUTCMonth() - dob.getUTCMonth();
-    if (m < 0 || (m === 0 && now.getUTCDate() < dob.getUTCDate())) age--;
-    return age;
-  }
-  function loadSexAgeFromOnboarding(){
-    // 1) direct scalar keys (if you save them that way from onboarding)
-    const sexKeys = ['rt_sex','rt_gender','derma_sex','derma_gender','onb_sex','onb_gender','onboarding_sex','onboarding_gender','profile_sex','profile_gender'];
-    let sex = null;
-    for(const k of sexKeys){
-      const v = localStorage.getItem(k);
-      const s = normSex(v);
-      if(s){ sex = s; break; }
-    }
-
-    // 2) direct age / dob keys
-    let ageGroup = null;
-    const ageKeys = ['rt_age','derma_age','onb_age','onboarding_age','profile_age'];
-    for(const k of ageKeys){
-      const v = localStorage.getItem(k);
-      if(v!=null && v!=='' && !isNaN(+v)){
-        ageGroup = (+v < 16) ? 'u16' : 'adult';
-        break;
-      }
-    }
-    if(!ageGroup){
-      const dobKeys = ['rt_dob','rt_birthdate','derma_dob','derma_birthdate','onb_dob','onboarding_dob','profile_dob','profile_birthdate'];
-      for(const k of dobKeys){
-        const dob = parseDOB(localStorage.getItem(k));
-        if(dob){
-          const age = calcAgeYears(dob);
-          if(!isNaN(age)){ ageGroup = (age < 16) ? 'u16' : 'adult'; break; }
-        }
-      }
-    }
-
-    // 3) JSON blobs (common pattern for onboarding/profile storage)
-    const jsonKeys = ['rt.profile.v1','rt_profile','derma.profile','derma_profile','profile','user_profile','rt.onboarding','rt_onboarding','onboarding','derma_onboarding','rt.onb.v1','rt_onb_v1','rt_user','derma_user'];
-    for(const k of jsonKeys){
-      const raw = localStorage.getItem(k);
-      if(!raw) continue;
-      try{
-        const o = JSON.parse(raw);
-        if(!o || typeof o !== 'object') continue;
-
-        if(!sex){
-          const s = normSex(o.sex ?? o.gender ?? o.bio_sex ?? o.sexAtBirth ?? o.sex_code ?? o.patient_sex ?? o.patientSex);
-          if(s) sex = s;
-        }
-
-        if(!ageGroup){
-          let ageNum = null;
-          const a = (o.age ?? o.years ?? o.ageYears ?? o.patient_age ?? o.patientAge);
-          if(a!=null && a!=='' && !isNaN(+a)) ageNum = +a;
-
-          if(ageNum==null){
-            const dob = parseDOB(o.dob ?? o.birthdate ?? o.birthDate ?? o.birthday ?? o.birth ?? o.birth_date ?? o.dateOfBirth);
-            if(dob) ageNum = calcAgeYears(dob);
-          }
-          if(ageNum!=null && !isNaN(ageNum)) ageGroup = (ageNum < 16) ? 'u16' : 'adult';
-        }
-
-        if(sex && ageGroup) break;
-      }catch(_){}
-    }
-
-    return { sex, ageGroup };
-  }
-
-// State
-  const __onb = loadSexAgeFromOnboarding();
-  let sex = (__onb.sex) || (localStorage.getItem('labs.sex') || 'female');
-  let ageGroup = (__onb.ageGroup) || (localStorage.getItem('labs.age') || 'adult'); // 'u16' | 'adult'
-  const __lockSex = !!__onb.sex;
-  const __lockAge = !!__onb.ageGroup;
+  // State
+  let sex = (localStorage.getItem('labs.sex') || 'female');
+  let ageGroup = (localStorage.getItem('labs.age') || 'adult'); // 'u16' | 'adult'
   let values = {};
   let photos = JSON.parse(localStorage.getItem('labs.photos') || '[]');
   let reports = JSON.parse(localStorage.getItem('labs.reports') || '[]');
 
   // Sex toggle
-  sexSeg.querySelectorAll('button').forEach(b=>b.classList.remove('active'));
   sexSeg.querySelectorAll('button').forEach(btn=>{
     if(btn.dataset.sex===sex) btn.classList.add('active');
-    btn.disabled = __lockSex;
     btn.addEventListener('click', ()=>{
-      if(__lockSex) return;
       sex = btn.dataset.sex;
       sexSeg.querySelectorAll('button').forEach(b=>b.classList.toggle('active', b===btn));
       localStorage.setItem('labs.sex', sex);
@@ -754,12 +639,9 @@ window.addEventListener('orientationchange', fitBottomSpacer);
 recomputeAll();
     });
   });
-  ageSeg.querySelectorAll('button').forEach(b=>b.classList.remove('active'));
   ageSeg.querySelectorAll('button').forEach(btn=>{
     if(btn.dataset.age===ageGroup) btn.classList.add('active');
-    btn.disabled = __lockAge;
     btn.addEventListener('click', ()=>{
-      if(__lockAge) return;
       ageGroup = btn.dataset.age;
       ageSeg.querySelectorAll('button').forEach(b=>b.classList.toggle('active', b===btn));
       localStorage.setItem('labs.age', ageGroup);
@@ -1246,12 +1128,12 @@ document.getElementById('navProfile').addEventListener('click', (e)=>{ e.prevent
   align-items:center;
   justify-content:center;
   white-space:nowrap;
-  padding:2px 7px;
+  padding:3px 8px;
   border-radius:999px;
   font-weight:700;
-  font-size:12.5px;
+  font-size:14px;
   letter-spacing:.02em;
-  line-height:1.05;
+  line-height:1;
   background:linear-gradient(135deg,#22e6a1,#10b981);
   color:#061a12;
   border:1px solid rgba(255,255,255,.15);

@@ -199,7 +199,48 @@ document.documentElement.dataset.theme = cur;
       display: block !important;
     }
   </style>
-
+<style id="pill-alert-style">
+  .pill-alert{
+    display:inline-flex;align-items:center;justify-content:center;
+    margin-left:10px;padding:2px 8px;border-radius:10px;
+    font-weight:800;font-size:12px;letter-spacing:.2px;
+    color:#fff;background:#ff4242;
+    box-shadow:0 0 0 0 rgba(255,66,66,.65);
+    animation:hazard 1.15s steps(2,start) infinite;
+  }
+  @keyframes hazard{to{opacity:.38;box-shadow:0 0 0 10px rgba(255,66,66,0)}}
+  @media (prefers-reduced-motion:reduce){.pill-alert{animation:none}}
+</style>
+<script id="pill-alert-script">
+(function(){
+  function todayISO(){const d=new Date();d.setMinutes(d.getMinutes()-d.getTimezoneOffset());return d.toISOString().slice(0,10);}
+  function getTodayMg(){
+    const iso=todayISO();
+    try{ const tIso=localStorage.getItem('derma_today_iso');
+      if(tIso===iso){ const mg=+localStorage.getItem('derma_today_mg')||0; if(mg>0) return mg; }
+    }catch(_){}
+    try{ const diary=JSON.parse(localStorage.getItem('rt.diary.v1')||'{}'); const rec=diary[iso];
+      if(rec){ if(rec.miss===true||rec.taken===false) return 0; return +(rec.dose ?? rec.mg ?? 0)||0; }
+    }catch(_){}
+    return 0;
+  }
+  function render(){
+    const need=getTodayMg()<=0;
+    document.querySelectorAll('[data-pill-spot]').forEach(spot=>{
+      let b=spot.querySelector('.pill-alert');
+      if(!need){ if(b) b.remove(); return; }
+      if(!b){ b=document.createElement('span'); b.className='pill-alert'; b.textContent='препарат';
+        b.title='Сегодня доза не отмечена'; spot.appendChild(b); }
+    });
+  }
+  window.addEventListener('storage',e=>{
+    if(['rt.diary.v1','derma_today_iso','derma_today_mg'].includes(e.key)) render();
+  });
+  document.addEventListener('visibilitychange',()=>{ if(!document.hidden) render(); });
+  document.addEventListener('DOMContentLoaded',render);
+  window.renderPillAlert = render;
+})();
+</script>
 
 <style id="faq-top-compact-fix">
   /* Compact top area + keep badges without eating space */
@@ -294,6 +335,9 @@ document.documentElement.dataset.theme = cur;
     <span class="brand-sub" id="brandSub">Retinoid &amp; Isotretinoin Tracker</span>
   </div>
 
+  <div class="status-pills" aria-label="Статусы">
+    <span data-pill-spot></span><span data-stock-spot></span>
+  </div>
 </div>
 
 <section aria-labelledby="faq-title" class="card">
@@ -578,8 +622,83 @@ document.documentElement.dataset.theme = cur;
   }
 })();
 </script>
+<script>
+(function(){
+  const K_LEFT='rt_capsules_left', K_THRESH='rt_capsules_threshold', K_ON='rt_capsules_alert_enabled';
+  const num=(k,d=0)=>{const v=parseInt(localStorage.getItem(k)||d,10);return Number.isFinite(v)?v:0;}
+  const on =()=> (localStorage.getItem(K_ON)||'0')==='1';
 
+  function text(){
+    if(!on()) return null;
+    const left=num(K_LEFT,0), thr=num(K_THRESH,0);
+    if(left>0 && thr>0 && left<=thr) return `осталось ${left} капсул`;
+    return null;
+  }
+  function render(){
+    document.querySelectorAll('[data-stock-spot]').forEach(host=>{
+      let el=host.querySelector('.pill-alert--stock');
+      const t=text();
+      if(!t){ el?.remove(); return; }
+      if(!el){ el=document.createElement('span'); el.className='pill-alert pill-alert--stock'; host.appendChild(el); }
+      el.textContent=t;
+    });
+  }
+  window.addEventListener('storage', e=>{
+    if([K_LEFT,K_THRESH,K_ON,'rt_capsules_left_bump','rt_capsules_threshold_bump','rt_capsules_alert_bump'].includes(e.key)) render();
+  });
+  document.addEventListener('visibilitychange', ()=>{ if(!document.hidden) render(); });
+  render();
+  window.renderStockAlert=render;
+})();
+</script>
+<style>
+.pill-alert--stock{
+  display:inline-flex;
+  align-items:center;
+  justify-content:center;
+  white-space:nowrap;
+  padding:3px 8px;
+  border-radius:999px;
+  font-weight:700;
+  font-size:14px;
+  letter-spacing:.02em;
+  line-height:1;
+  background:linear-gradient(135deg,#22e6a1,#10b981);
+  color:#061a12;
+  border:1px solid rgba(255,255,255,.15);
 
+  /* базовое свечение */
+  box-shadow:
+    0 0 6px rgba(16,185,129,.55),
+    0 0 14px rgba(16,185,129,.35),
+    inset 0 1px 2px rgba(255,255,255,.2);
+
+  transform-origin:center;
+  will-change:transform,box-shadow;
+  animation:stock-breathe 3s ease-in-out infinite;
+}
+
+@keyframes stock-breathe{
+  0%,100%{
+    transform:scale(1);
+    box-shadow:
+      0 0 6px rgba(16,185,129,.55),
+      0 0 14px rgba(16,185,129,.35),
+      inset 0 1px 2px rgba(255,255,255,.2);
+  }
+  50%{
+    transform:scale(0.985);
+    box-shadow:
+      0 0 10px rgba(16,185,129,.75),
+      0 0 22px rgba(16,185,129,.45),
+      inset 0 1px 2px rgba(255,255,255,.25);
+  }
+}
+
+@media (prefers-reduced-motion:reduce){
+  .pill-alert--stock{ animation:none }
+}
+</style>
 <script>
 // Keep in-page anchors on the same document.
 document.addEventListener('click', function(e){

@@ -286,8 +286,8 @@ html[data-theme="light"] .cancel{
     align-items:baseline;
     gap:8px;
     flex-wrap:nowrap;
-    white-space:nowrap !important;
-    min-width:0 !important;
+    white-space:nowrap;
+    min-width:0;
     max-width:100%;
     overflow:hidden;
     text-overflow:ellipsis;
@@ -314,7 +314,7 @@ html[data-theme="light"] .cancel{
   .brand-h1 .tagline{
     font-weight:800;
     opacity:.95;
-    min-width:0 !important;
+    min-width:0;
     overflow:hidden;
     text-overflow:ellipsis;
   }
@@ -370,6 +370,30 @@ html[data-theme="light"] .cancel{
   }
 </style>
 
+<style id="reset-title-fit-patch">
+  /* Заголовок должен помещаться полностью: без троеточия, с переносом на мобиле */
+  #rotTitle.brand-h1{
+    overflow: visible !important;
+    text-overflow: clip !important;
+    max-width: 100% !important;
+    font-size: clamp(16px, 4.8vw, 22px);
+  }
+  #rotTitle.brand-h1,
+  #rotTitle.brand-h1 .tagline{
+    white-space: normal !important;
+  }
+  #rotTitle.brand-h1{ flex-wrap: wrap !important; }
+  #rotTitle.brand-h1 .tagline{
+    overflow: visible !important;
+    text-overflow: clip !important;
+    min-width: 0 !important;
+  }
+  /* На более широких экранах можно оставлять в одну строку */
+  @media (min-width: 560px){
+    #rotTitle.brand-h1{ flex-wrap: nowrap !important; white-space: nowrap !important; }
+    #rotTitle.brand-h1 .tagline{ white-space: nowrap !important; }
+  }
+</style>
 
 
 <style id="reset-button-tapfix">
@@ -388,34 +412,6 @@ html[data-theme="light"] .cancel{
   .hold-btn:focus-visible{ outline: none !important; }
   .hold-btn::-moz-focus-inner{ border:0; padding:0; }
   .hold-btn .progress{ border-radius: inherit; }
-</style>
-
-
-<style id="title-fit-patch">
-  /* ===== Header: title must ALWAYS fit in max 2 lines on any screen (no ellipsis) ===== */
-  .topbar{ flex-wrap:nowrap !important; }
-  .brand-h1{
-    flex:1 1 auto;
-    min-width:0 !important;
-    max-width:100%;
-    margin:0;
-
-    /* allow wrapping (up to 2 lines by JS auto-fit) */
-    white-space:normal !important;
-    overflow:visible !important;
-    text-overflow:clip !important;
-
-    line-height:1.12 !important;
-    letter-spacing:-0.25px !important;
-  }
-  .brand-h1 .brand,
-  .brand-h1 .sep,
-  .brand-h1 .tagline{
-    display:inline !important;
-    white-space:normal !important;
-    overflow:visible !important;
-    text-overflow:clip !important;
-  }
 </style>
 
 </head>
@@ -438,53 +434,41 @@ html[data-theme="light"] .cancel{
         <span class="sep">—</span>
         <span class="tagline" id="rotTag">Retinoid &amp; Isotretinoin Tracker</span>
       </h1>
+      <button id="themeToggle" class="theme-toggle" role="switch" aria-checked="true" aria-label="Переключить тему">
+        <span class="scene light">
+          <svg viewBox="0 0 260 88" preserveAspectRatio="none" xmlns="http://www.w3.org/2000/svg">
+            <defs><linearGradient id="lgLight" x1="0" y1="0" x2="1" y2="0">
+              <stop offset="0%" stop-color="#5ECFC8"/><stop offset="100%" stop-color="#FFD3A3"/></linearGradient>
+            </defs>
+            <rect x="0" y="0" width="260" height="88" rx="0" fill="url(#lgLight)"/>
+            <g fill="#FFF1E2">
+              <g opacity=".85"><circle cx="170" cy="46" r="18"/><circle cx="188" cy="46" r="22"/><circle cx="209" cy="50" r="18"/></g>
+              <g opacity=".35"><circle cx="130" cy="54" r="10"/><circle cx="145" cy="56" r="12"/></g>
+            </g>
+          </svg>
+        </span>
+        <span class="scene dark">
+          <svg viewBox="0 0 260 88" preserveAspectRatio="none" xmlns="http://www.w3.org/2000/svg">
+            <defs><linearGradient id="lgDark" x1="0" y1="0" x2="1" y2="0">
+              <stop offset="0%" stop-color="#1C2140"/><stop offset="100%" stop-color="#2A0F4A"/></linearGradient>
+            </defs>
+            <rect x="0" y="0" width="260" height="88" rx="0" fill="url(#lgDark)"/>
+            <g opacity=".55" style="mix-blend-mode:multiply"><ellipse cx="230" cy="44" rx="58" ry="44" fill="rgba(0,0,0,.22)"/></g>
+            <g opacity=".38" style="mix-blend-mode:multiply"><ellipse cx="236" cy="44" rx="82" ry="60" fill="rgba(0,0,0,.15)"/></g>
+            <g fill="#3B2A6B"><g opacity=".75"><circle cx="86" cy="52" r="22"/><circle cx="110" cy="50" r="18"/><circle cx="132" cy="54" r="22"/></g>
+              <g opacity=".40"><circle cx="46" cy="56" r="18"/><circle cx="64" cy="56" r="14"/></g></g>
+            <g fill="#A98DF7" opacity=".8"><circle cx="136" cy="18" r="1.8"/><circle cx="152" cy="24" r="1.4"/><circle cx="170" cy="20" r="1.3"/><circle cx="186" cy="28" r="1.6"/><circle cx="200" cy="22" r="1.2"/></g>
+          </svg>
+        </span>
+        <span class="thumb"></span>
+      </button>
+    </div>
+    <div class="top-badges" aria-label="Статусы">
+      <span data-pill-spot></span>
+      <span data-stock-spot></span>
+    </div>
 
-<script id="title-fit-script">
-(function(){
-  function getLineHeightPx(el){
-    const cs = getComputedStyle(el);
-    const lh = cs.lineHeight;
-    const fs = parseFloat(cs.fontSize) || 16;
-    if(!lh || lh === 'normal') return fs * 1.12;
-    const v = parseFloat(lh);
-    return (v && v > 0) ? v : (fs * 1.12);
-  }
-
-  function fitTitle(){
-    const el = document.getElementById('rotTitle');
-    if(!el) return;
-
-    // Сбрасываем возможный ellipsis/overflow от других стилей
-    el.style.overflow = 'visible';
-    el.style.textOverflow = 'clip';
-    el.style.whiteSpace = 'normal';
-
-    const maxPx = 26;   // стартовый
-    const minPx = 8;    // минимальный, чтобы влезало на любых экранах
-
-    el.style.fontSize = maxPx + 'px';
-
-    let sz = maxPx;
-    // уменьшаем, пока не уложится максимум в 2 строки
-    while (sz > minPx){
-      const lineH = getLineHeightPx(el);
-      const maxH = lineH * 2 + 1; // +1px допуск
-      if (el.scrollHeight <= maxH) break;
-      sz -= 0.5;
-      el.style.fontSize = sz + 'px';
-    }
-  }
-
-  window.__fitResetTitle = fitTitle;
-
-  const rafFit = () => requestAnimationFrame(fitTitle);
-  document.addEventListener('DOMContentLoaded', rafFit, { once:true });
-  window.addEventListener('resize', rafFit, { passive:true });
-})();
-</script>
-
-</div>
-<div class="card danger" id="dangerCard">
+    <div class="card danger" id="dangerCard">
   <p class="lead">Обнуление данных локально и на сервере:</p>
   <ul class="list">
     <li>Журнал приёмов</li>
@@ -584,7 +568,6 @@ html[data-theme="light"] .cancel{
     setTimeout(()=>{
       tag.textContent = TAGS[i];
       h1.classList.remove('is-fading');
-      try{ window.__fitResetTitle && window.__fitResetTitle(); }catch(_){}
     }, 320);
   }
 
@@ -781,7 +764,7 @@ try {
   display:inline-flex;
   align-items:center;
   justify-content:center;
-  white-space:nowrap !important;
+  white-space:nowrap;
   padding:3px 8px;
   border-radius:999px;
   font-weight:700;
