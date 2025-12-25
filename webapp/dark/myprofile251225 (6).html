@@ -186,8 +186,9 @@ body.light .iconbtn.reset{
     .hero-head{ display:grid; place-items:center; gap:14px; padding:8px 0 12px; }
 
 :root{
-  --profile-ava-size: 250px;        /* размер аватара */
-  --profile-ava-border: 6px;        /* толщина нейтральной окантовки */
+  --profile-ava-size: 250px;        /* ↑ размер аватара с кольцом */
+  --profile-ring-thickness: 6px;   /* ↑ толщина кольца */
+  --profile-ring-gap: 6px;          /* зазор между фото и кольцом */
 }
 
 /* контейнер */
@@ -195,48 +196,19 @@ body.light .iconbtn.reset{
   position: relative;
   width: var(--profile-ava-size);
   height: var(--profile-ava-size);
-  padding: var(--profile-ava-border);
   display: grid;
   place-items: center;
-  overflow: visible;
+  overflow:visible;
 }
 
-/* нейтральная окантовка + лёгкое свечение (без прогресс-кольца) */
-.avatar-wrap::before{
-  content:"";
-  position:absolute;
-  inset:0;
-  border-radius:50%;
-  background:
-    radial-gradient(120% 120% at 30% 18%, rgba(94,207,200,.28), rgba(94,207,200,0) 58%),
-    radial-gradient(120% 120% at 70% 82%, rgba(52,137,255,.16), rgba(52,137,255,0) 60%),
-    linear-gradient(180deg, rgba(255,255,255,.18), rgba(255,255,255,.04));
-  border: 1px solid rgba(255,255,255,.18);
-  box-shadow:
-    0 0 0 1px rgba(0,0,0,.28) inset,
-    0 14px 30px rgba(0,0,0,.22),
-    0 0 22px rgba(35,227,204,.14);
-  pointer-events:none;
-}
-.avatar-wrap::after{
-  content:"";
-  position:absolute;
-  inset: calc(var(--profile-ava-border) - 1px);
-  border-radius:50%;
-  box-shadow:
-    inset 0 1px 2px rgba(255,255,255,.20),
-    inset 0 -8px 18px rgba(0,0,0,.30);
-  pointer-events:none;
-}
 
 /* фото (круг без квадратов) */
 .avatar{
-  width: 100%;
-  height: 100%;
+  width: calc(100% - (var(--profile-ring-thickness) + var(--profile-ring-gap)) * 2);
+  height: calc(100% - (var(--profile-ring-thickness) + var(--profile-ring-gap)) * 2);
   border-radius: 50%;
   overflow: hidden;
-  display: grid;
-  place-items: center;
+  display: block;
   background: transparent;          /* убираем голубой фон */
 }
 .avatar img{
@@ -244,8 +216,36 @@ body.light .iconbtn.reset{
   height: 100%;
   object-fit: cover;
   display: block;
-  border-radius: inherit;
+  border-radius: inherit;           /* на всякий случай */
 }
+
+/* кольцо */
+.ring{ position:absolute; inset:0; pointer-events:none; }
+.ring svg{ width:100%; height:100%; display:block; overflow:visible; }
+
+/* трек вообще не рисуем, чтобы не было серого */
+.ring .track{ stroke:transparent; }
+
+/* активная дуга */
+.ring .bar{
+  stroke: url(#ringGrad);
+  stroke-linecap: round;
+  stroke-width: var(--profile-ring-thickness);
+  filter: url(#ring3d);
+}
+
+/* мягкое свечение прямо под дугой (а не по всему кругу) */
+.ring .barG{
+  stroke: url(#ringGrad);
+  stroke-linecap: round;
+  stroke-width: calc(var(--profile-ring-thickness) + 4);
+  opacity: .45;
+  filter: url(#softGlow);
+}
+
+/* блик и «ореолы» отключаем, чтобы не давали серых сегментов */
+.ring .shine{ display:none; }
+.ring .halo{ display:none; }
 
     .hero-name{ font-weight:700; font-size:18px; }
     .hero-meta{ color:var(--muted); font-size:13px; }
@@ -256,6 +256,7 @@ body.light .iconbtn.reset{
     @media (max-width:720px){ .chips{ grid-template-columns:repeat(3, minmax(0,1fr)); } }
     @media (max-width:420px){ .chips{ grid-template-columns:repeat(2, minmax(0,1fr)); } }
     .chip{ display:flex; flex-direction:column; justify-content:center; align-items:flex-start; gap:2px; padding:12px; min-height:64px; border-radius:var(--radius-lg); background:linear-gradient(180deg, rgba(255,255,255,.08), rgba(255,255,255,.02)); border:1px solid var(--bd-1); }
+#drug{ white-space:nowrap; }
     .chip b{ font-size:14px; letter-spacing:.2px }
     .chip small{ color:var(--muted) }
 
@@ -580,6 +581,119 @@ body.light .diary.is-cta{
   background: radial-gradient(80% 80% at 52% 48%, rgba(210,218,255,.26), transparent 70%);
 }
 
+
+
+
+/* ===== Bottom Nav ===== */
+/* компактнее на узких телефонах */
+@media (max-width: 400px){
+  .navbar{ padding-top:8px; }
+  .navbar .dock{ gap:10px; padding:0 10px; }
+  .nav-item{
+    height:56px; border-radius:16px; font-size:12px;
+  }
+  .nav-item .ico{ width:20px; height:20px; margin-bottom:4px; }
+  .nav-item .underline{ width:40px; bottom:8px; }
+}
+@media (max-width: 340px){
+  .nav-item{ height:52px; font-size:11px; }
+  .nav-item .ico{ width:19px; height:19px; }
+}
+
+/* высота проставки равна фактической высоте навбара */
+.page-bottom-spacer{ height: var(--nav-h, 84px); }   /* заменить прежние 84px */
+.navbar{
+  position: fixed;
+  left: 0; right: 0; bottom: 0;
+  padding: max(8px, env(safe-area-inset-bottom));
+  padding-top: 10px;
+  background: linear-gradient(180deg, rgba(6,16,24,.0), rgba(6,16,24,.38) 30%, rgba(6,16,24,.72));
+  backdrop-filter: blur(10px);
+  z-index: 40;
+}
+.navbar .dock{
+  display: grid;
+  grid-template-columns: repeat(5, 1fr);
+  gap: 16px;
+  max-width: 1000px;
+  margin: 0 auto;
+  padding: 0 16px;
+}
+.nav-item{
+  --surface: rgba(18,28,38,.6);
+  --stroke: rgba(255,255,255,.1);
+  display:flex; align-items:center; justify-content:center; flex-direction:column;
+  height:64px; border-radius:18px;
+  background: radial-gradient(120% 120% at 50% -20%, rgba(255,255,255,.10), transparent 60%),
+              linear-gradient(180deg, rgba(255,255,255,.05), rgba(0,0,0,.08));
+  box-shadow:
+    inset 0 1px 0 var(--stroke),
+    0 8px 20px rgba(0,0,0,.28);
+  color:#d7e2ea; text-decoration:none; font-weight:600; font-size:14px;
+  position:relative;
+  transition: transform .06s ease, background .2s ease, box-shadow .2s ease;
+}
+.nav-item:active{ transform: translateY(1px) scale(.995); }
+.nav-item .ico{ width:22px; height:22px; opacity:.9; margin-bottom:6px; }
+.nav-item.active{
+  background: radial-gradient(120% 130% at 50% -20%, rgba(255,255,255,.16), transparent 58%),
+              linear-gradient(180deg, rgba(255,255,255,.08), rgba(0,0,0,.06));
+  box-shadow:
+    inset 0 1px 0 rgba(255,255,255,.22),
+    0 10px 26px rgba(0,0,0,.36),
+    0 0 0 1px rgba(255,255,255,.06) inset;
+}
+.nav-item .underline{
+  position:absolute; bottom:10px; left:50%; transform: translateX(-50%);
+  width:48px; height:4px; border-radius:999px;
+  background: rgba(255,255,255,.22);
+  opacity:0; transition:opacity .2s ease;
+}
+.nav-item.active .underline{ opacity:1; }
+/* page bottom spacer so content not hidden behind nav */
+.page-bottom-spacer{ height: 84px; }
+@media (min-width: 1100px){
+  .navbar .dock{ max-width: 860px; }
+}
+/* === TABBAR ACTIVE (mint-blue) === */
+.navbar .nav-item { 
+  position: relative;
+  border-radius: 16px; /* на всякий */
+  min-width: 0;
+}
+
+.navbar .nav-item.active {
+  background: linear-gradient(180deg, rgba(90, 255, 230, .22), rgba(40, 140, 170, .10));
+  box-shadow:
+    0 0 0 1px rgba(90, 255, 230, .22) inset,
+    0 10px 24px rgba(0, 0, 0, .25),
+    0 0 18px rgba(90, 255, 230, .18);
+}
+
+.navbar .nav-item.active span {
+  color: rgba(190, 255, 245, .98);
+  text-shadow: 0 0 10px rgba(90, 255, 230, .22);
+}
+
+.navbar .nav-item.active svg,
+.navbar .nav-item.active img {
+  filter: drop-shadow(0 0 10px rgba(90, 255, 230, .22));
+}
+
+/* маленькая мятная точка/подчеркивание снизу (если хочешь) */
+.navbar .nav-item.active::after {
+  content: "";
+  position: absolute;
+  left: 50%;
+  bottom: 6px;
+  transform: translateX(-50%);
+  width: 22px;
+  height: 3px;
+  border-radius: 999px;
+  background: rgba(90, 255, 230, .9);
+  box-shadow: 0 0 10px rgba(90, 255, 230, .35);
+  opacity: .9;
+}
 
 </style>
  <script src="https://telegram.org/js/telegram-web-app.js"></script>
@@ -1081,6 +1195,69 @@ html, body{ max-width:100vw; overflow-x:hidden; }
             <!-- fallback initials -->
             <span id="avatarFallback" style="font-weight:700; opacity:.9">U</span>
           </div>
+          <div class="ring" aria-hidden="true">
+  <svg viewBox="0 0 120 120">
+    <defs>
+      <!-- градиент для активной дуги -->
+      <linearGradient id="ringGrad" x1="0" x2="1" y1="0" y2="1">
+        <stop offset="0%"   stop-color="var(--accent-1)"/>
+        <stop offset="100%" stop-color="var(--accent-2)"/>
+      </linearGradient>
+
+      <filter id="softGlow" filterUnits="userSpaceOnUse" x="-60" y="-60" width="240" height="240">
+  <feGaussianBlur stdDeviation="8" result="b"/>
+</filter>
+
+<filter id="ring3d" filterUnits="userSpaceOnUse" x="-60" y="-60" width="240" height="240">
+  <feDropShadow dx="0" dy="3" stdDeviation="3" flood-color="rgba(0,0,0,.45)"/>
+  <feGaussianBlur in="SourceAlpha" stdDeviation="1.2" result="ib"/>
+  <feOffset in="ib" dx="0" dy="1" result="ib2"/>
+  <feComposite in="ib2" in2="SourceAlpha" operator="arithmetic" k2="-1" k3="1" result="inner"/>
+  <feColorMatrix in="inner" type="matrix"
+    values="0 0 0 0 0  0 0 0 0 0  0 0 0 0 0  0 0 0 .45 0" result="innerTint"/>
+  <feMerge>
+    <feMergeNode in="SourceGraphic"/>
+    <feMergeNode in="innerTint"/>
+  </feMerge>
+</filter>
+
+<mask id="donut" maskUnits="userSpaceOnUse" maskContentUnits="userSpaceOnUse"
+      x="0" y="0" width="120" height="120">
+  <rect x="0" y="0" width="120" height="120" fill="#fff"/>
+  <circle cx="60" cy="60" r="56"
+          fill="#000" stroke="#000"
+          stroke-width="var(--profile-ring-thickness)"/>
+</mask>
+    </defs>
+
+    <!-- подсветка вокруг (мягкое свечение) -->
+    <circle class="halo" cx="60" cy="60" r="56"
+            fill="none" stroke="url(#ringGrad)" filter="url(#softGlow)"/>
+
+    <!-- базовый трек -->
+    <circle class="track" cx="60" cy="60" r="56" fill="none"/>
+
+    <!-- глянцевая подложка под активной дугой (даёт ощущение глубины) -->
+    <g mask="url(#donut)" opacity=".18">
+      <radialGradient id="gloss" cx="60" cy="60" r="60" gradientUnits="userSpaceOnUse">
+        <stop offset="0%"  stop-color="#fff"/>
+        <stop offset="65%" stop-color="#fff" stop-opacity=".35"/>
+        <stop offset="100%" stop-color="#fff" stop-opacity="0"/>
+      </radialGradient>
+      <circle cx="60" cy="60" r="60" fill="url(#gloss)"/>
+    </g>
+
+  <g class="meter" transform="rotate(-90 60 60)">
+  <circle class="barG" cx="60" cy="60" r="56"
+          fill="none" stroke="url(#ringGrad)"
+          stroke-dasharray="0 351.858" stroke-dashoffset="0"/>
+  <circle class="bar"  cx="60" cy="60" r="56"
+          fill="none" stroke="url(#ringGrad)"
+          stroke-dasharray="0 351.858" stroke-dashoffset="0"/>
+</g>
+  </svg>
+</div>
+
         </div>
         <div class="hero-name" id="userName">Имя</div>
         <div class="hero-meta" id="heroMeta">Цель: — mg/kg • Прогноз окончания: —</div>
@@ -1250,33 +1427,109 @@ html, body{ max-width:100vw; overflow-x:hidden; }
   </main>
 
   <!-- Bottom tabbar -->
-  <nav class="tabbar">
-    <a class="tab" href="main.html" data-vt-link>
-      <!-- home icon (rounded) -->
-      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 11l9-7 9 7"/><path d="M5 12v7a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2v-7"/><path d="M9 21v-6h6v6"/></svg>
-      <small>Главная</small>
+  <!-- Unified Bottom Nav (match diary) -->
+<!-- Unified Bottom Nav (match diary) -->
+<!-- Unified Bottom Nav (match diary) -->
+<div class="page-bottom-spacer"></div>
+<nav class="navbar" role="navigation" aria-label="Нижняя навигация">
+  <div class="dock">
+    <a class="nav-item" href="main.html">
+      <svg class="ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+        <path d="M4 10.5l8-6 8 6"/>
+        <path d="M6 10v8a1 1 0 001 1h4v-6h2v6h4a1 1 0 001-1v-8"/>
+      </svg>
+      <span>Главная</span><i class="underline"></i>
     </a>
-    <a class="tab" href="calendar.html" data-vt-link>
-      <!-- calendar icon -->
-      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="18" rx="3"/><path d="M16 2v4"/><path d="M8 2v4"/><path d="M3 10h18"/></svg>
-      <small>Календарь</small>
+    <a class="nav-item" href="calendar.html">
+      <svg class="ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+        <rect x="3" y="5" width="18" height="16" rx="3"/>
+        <path d="M16 3v4M8 3v4M3 11h18"/>
+      </svg>
+      <span>Календарь</span><i class="underline"></i>
     </a>
-    <a class="tab active" href="myprofile.html" data-vt-link>
-      <!-- profile icon -->
-      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
-      <small>Профиль</small>
+    <a class="nav-item" href="myprofile.html">
+      <svg class="ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+        <circle cx="12" cy="8" r="4"/>
+        <path d="M4 21a8 8 0 0116 0"/>
+      </svg>
+      <span>Профиль</span><i class="underline"></i>
     </a>
-    <a class="tab" id="navDiary" href="diary.html" data-vt-link>
-      <!-- image/gallery icon -->
-      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="5" width="18" height="14" rx="2"/><circle cx="8.5" cy="12" r="2.5"/><path d="M21 13l-4-4-6 6"/></svg>
-      <small>Фотодневник</small>
+    <a class="nav-item" href="diary.html">
+      <svg class="ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+        <rect x="3" y="5" width="18" height="14" rx="3"/>
+        <path d="M8 12l3 3 4-5 4 6"/>
+        <circle cx="8" cy="9" r="1.2"/>
+      </svg>
+      <span>Фотодневник</span><i class="underline"></i>
     </a>
-    <a class="tab" href="labs.html" data-vt-link>
-      <!-- flask icon -->
-      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10 2v5l-5 9a4 4 0 0 0 3.5 6h7a4 4 0 0 0 3.5-6l-5-9V2"/><path d="M8 11h8"/></svg>
-      <small>Анализы</small>
+    <a class="nav-item" href="labs.html">
+      <svg class="ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+        <path d="M9 3v6L4 18a4 4 0 003.6 6h8.8A4 4 0 0020 18l-5-9V3"/>
+        <path d="M9 9h6"/>
+      </svg>
+      <span>Анализы</span><i class="underline"></i>
     </a>
-  </nav>
+  </div>
+</nav>
+<script>
+(function(){
+  const navEl = document.querySelector('.navbar');
+  const spacer = document.querySelector('.page-bottom-spacer');
+  if(!navEl || !spacer) return;
+
+  function fitBottomSpacer(){
+    const h = Math.ceil(navEl.getBoundingClientRect().height);
+    spacer.style.setProperty('--nav-h', h + 'px');
+  }
+
+  fitBottomSpacer();
+  window.addEventListener('resize', fitBottomSpacer);
+  window.addEventListener('orientationchange', fitBottomSpacer);
+  if ('ResizeObserver' in window){
+    new ResizeObserver(fitBottomSpacer).observe(navEl);
+  }
+})();
+</script>
+<script>
+(function(){
+  var here = (location.pathname.split('/').pop()||'').toLowerCase();
+  document.querySelectorAll('.nav-item').forEach(function(a){
+    var href = (a.getAttribute('href')||'').toLowerCase();
+    if(here && href.endsWith(here)) a.classList.add('active');
+  });
+})();
+</script>
+
+<script>
+(function(){
+  const navEl = document.querySelector('.navbar');
+  const spacer = document.querySelector('.page-bottom-spacer');
+  if(!navEl || !spacer) return;
+
+  function fitBottomSpacer(){
+    const h = Math.ceil(navEl.getBoundingClientRect().height);
+    spacer.style.setProperty('--nav-h', h + 'px');
+  }
+
+  fitBottomSpacer();
+  window.addEventListener('resize', fitBottomSpacer);
+  window.addEventListener('orientationchange', fitBottomSpacer);
+  if ('ResizeObserver' in window){
+    new ResizeObserver(fitBottomSpacer).observe(navEl);
+  }
+})();
+</script>
+<script>
+(function(){
+  var here = (location.pathname.split('/').pop()||'').toLowerCase();
+  document.querySelectorAll('.nav-item').forEach(function(a){
+    var href = (a.getAttribute('href')||'').toLowerCase();
+    if(here && href.endsWith(here)) a.classList.add('active');
+  });
+})();
+</script>
+
+
   <button class="theme-fab" id="themeBtn" type="button" title="Поменять тему">
     <svg viewBox="0 0 24 24" fill="none" stroke="#0d1220" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="5"/><path d="M12 1v2"/><path d="M12 21v2"/><path d="M4.22 4.22l1.42 1.42"/><path d="M18.36 18.36l1.42 1.42"/><path d="M1 12h2"/><path d="M21 12h2"/><path d="M4.22 19.78l1.42-1.42"/><path d="M18.36 5.64l1.42-1.42"/></svg>
     <span>Светлая тема</span>
@@ -1333,7 +1586,7 @@ window.AppState = window.AppState || (function(){
 
   function readCapsuleMg(){
     const keys = [
-      'rt_capsule_mg','rt_capsuleMg','rt_capsuleMG',
+      'rt_capsule_mg','rt.capsule_mg','rt_capsuleMg','rt_capsuleMG',
       'rt_pill_mg','rt_pillMg',
       'rt_capsule_strength','rt_capsuleStrength',
       'rt_mg_per_capsule','rt_mgPerCapsule',
@@ -1386,9 +1639,18 @@ if (af) af.textContent = ((STATE.name||'U').trim().charAt(0)||'U').toUpperCase()
     set('progressAbs', takenMg.toLocaleString('ru-RU') + ' мг');
     set('progressPct', Math.round(pct) + '%');
     set('weight', weightKg ? (weightKg + ' кг') : '—');
-    set('drug', STATE.drug || '—');
-    const capMg = Number(STATE.capsuleMg || 0) || 0;
-    set('drugDose', capMg ? ('капсулы ' + capMg + ' мг') : '—');
+    // Препарат + тип капсулы (в одну строку)
+    const capMg = Number(STATE.capsuleMg || readCapsuleMg() || 0) || 0;
+    const drugName = (STATE.drug || '—');
+    if (capMg > 0) {
+      set('drug', `${drugName} ${capMg} мг`);
+      const d = document.getElementById('drugDose');
+      if (d) { d.textContent = ''; d.style.display = 'none'; }
+    } else {
+      set('drug', drugName);
+      const d = document.getElementById('drugDose');
+      if (d) { d.style.display = ''; d.textContent = '—'; }
+    }
     set('start', fmtDate(STATE.startISO));
 
     // simple forecast: remaining / (today or avg 20mg/day)
@@ -1411,6 +1673,38 @@ set('doctorMeta', [doc.name, doc.clinic, doc.phone].filter(Boolean).join(' • '
     pill.textContent = st==='ok' ? 'OK' : (st==='warn' ? 'Внимание' : 'Не сдано');
     pill.className = 'pill ' + (st==='ok'?'ok':st==='warn'?'warn':'bad');
     $('#labDue').textContent = fmtDate((STATE.labs||{}).dueISO || '');
+
+   // === 3D-кольцо: прогресс + блик (правильная геометрия) ===
+{
+  const bar   = document.querySelector('.ring .bar');
+  const shine = document.querySelector('.ring .shine');
+  if (bar) {
+    const r = parseFloat(bar.getAttribute('r')) || 56;
+    const C = 2 * Math.PI * r;
+
+    // используем уже посчитанный выше percent (pct), а не window.profilePct
+    const prog = clamp(pct, 0, 100);
+    window.profilePct = prog; // пусть будет доступен и снаружи
+
+    // длина видимой дуги: старт в «12 часов» (за счёт rotate(-90)), дальше по часовой
+    const L = Math.max(0, Math.min(C * prog / 100, C - 0.01));
+    bar.setAttribute('stroke-dasharray', `${L.toFixed(3)} ${(C - L).toFixed(3)}`);
+    bar.setAttribute('stroke-dashoffset', '0');
+
+    // блик на кончике дуги
+    if (shine) {
+      const seg = Math.max(6, Math.min(C * 0.10, 28));
+      const off = (C - L); // позиция конца дуги
+      shine.setAttribute('stroke-dasharray', `${seg.toFixed(2)} ${(C - seg).toFixed(2)}`);
+      shine.setAttribute('stroke-dashoffset', off.toFixed(3));
+      shine.setAttribute('opacity', prog > 0 ? '.55' : '0');
+
+      const th = parseFloat(getComputedStyle(document.documentElement)
+                    .getPropertyValue('--profile-ring-thickness')) || 10;
+      shine.setAttribute('stroke-width', Math.max(2, th - 3));
+    }
+  }
+}
   }
 function todayISO(){
   const d=new Date();

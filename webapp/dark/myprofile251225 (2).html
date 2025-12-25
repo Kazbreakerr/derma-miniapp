@@ -186,8 +186,9 @@ body.light .iconbtn.reset{
     .hero-head{ display:grid; place-items:center; gap:14px; padding:8px 0 12px; }
 
 :root{
-  --profile-ava-size: 250px;        /* размер аватара */
-  --profile-ava-border: 6px;        /* толщина нейтральной окантовки */
+  --profile-ava-size: 250px;        /* ↑ размер аватара с кольцом */
+  --profile-ring-thickness: 6px;   /* ↑ толщина кольца */
+  --profile-ring-gap: 6px;          /* зазор между фото и кольцом */
 }
 
 /* контейнер */
@@ -195,48 +196,19 @@ body.light .iconbtn.reset{
   position: relative;
   width: var(--profile-ava-size);
   height: var(--profile-ava-size);
-  padding: var(--profile-ava-border);
   display: grid;
   place-items: center;
-  overflow: visible;
+  overflow:visible;
 }
 
-/* нейтральная окантовка + лёгкое свечение (без прогресс-кольца) */
-.avatar-wrap::before{
-  content:"";
-  position:absolute;
-  inset:0;
-  border-radius:50%;
-  background:
-    radial-gradient(120% 120% at 30% 18%, rgba(94,207,200,.28), rgba(94,207,200,0) 58%),
-    radial-gradient(120% 120% at 70% 82%, rgba(52,137,255,.16), rgba(52,137,255,0) 60%),
-    linear-gradient(180deg, rgba(255,255,255,.18), rgba(255,255,255,.04));
-  border: 1px solid rgba(255,255,255,.18);
-  box-shadow:
-    0 0 0 1px rgba(0,0,0,.28) inset,
-    0 14px 30px rgba(0,0,0,.22),
-    0 0 22px rgba(35,227,204,.14);
-  pointer-events:none;
-}
-.avatar-wrap::after{
-  content:"";
-  position:absolute;
-  inset: calc(var(--profile-ava-border) - 1px);
-  border-radius:50%;
-  box-shadow:
-    inset 0 1px 2px rgba(255,255,255,.20),
-    inset 0 -8px 18px rgba(0,0,0,.30);
-  pointer-events:none;
-}
 
 /* фото (круг без квадратов) */
 .avatar{
-  width: 100%;
-  height: 100%;
+  width: calc(100% - (var(--profile-ring-thickness) + var(--profile-ring-gap)) * 2);
+  height: calc(100% - (var(--profile-ring-thickness) + var(--profile-ring-gap)) * 2);
   border-radius: 50%;
   overflow: hidden;
-  display: grid;
-  place-items: center;
+  display: block;
   background: transparent;          /* убираем голубой фон */
 }
 .avatar img{
@@ -244,8 +216,36 @@ body.light .iconbtn.reset{
   height: 100%;
   object-fit: cover;
   display: block;
-  border-radius: inherit;
+  border-radius: inherit;           /* на всякий случай */
 }
+
+/* кольцо */
+.ring{ position:absolute; inset:0; pointer-events:none; }
+.ring svg{ width:100%; height:100%; display:block; overflow:visible; }
+
+/* трек вообще не рисуем, чтобы не было серого */
+.ring .track{ stroke:transparent; }
+
+/* активная дуга */
+.ring .bar{
+  stroke: url(#ringGrad);
+  stroke-linecap: round;
+  stroke-width: var(--profile-ring-thickness);
+  filter: url(#ring3d);
+}
+
+/* мягкое свечение прямо под дугой (а не по всему кругу) */
+.ring .barG{
+  stroke: url(#ringGrad);
+  stroke-linecap: round;
+  stroke-width: calc(var(--profile-ring-thickness) + 4);
+  opacity: .45;
+  filter: url(#softGlow);
+}
+
+/* блик и «ореолы» отключаем, чтобы не давали серых сегментов */
+.ring .shine{ display:none; }
+.ring .halo{ display:none; }
 
     .hero-name{ font-weight:700; font-size:18px; }
     .hero-meta{ color:var(--muted); font-size:13px; }
@@ -1081,6 +1081,69 @@ html, body{ max-width:100vw; overflow-x:hidden; }
             <!-- fallback initials -->
             <span id="avatarFallback" style="font-weight:700; opacity:.9">U</span>
           </div>
+          <div class="ring" aria-hidden="true">
+  <svg viewBox="0 0 120 120">
+    <defs>
+      <!-- градиент для активной дуги -->
+      <linearGradient id="ringGrad" x1="0" x2="1" y1="0" y2="1">
+        <stop offset="0%"   stop-color="var(--accent-1)"/>
+        <stop offset="100%" stop-color="var(--accent-2)"/>
+      </linearGradient>
+
+      <filter id="softGlow" filterUnits="userSpaceOnUse" x="-60" y="-60" width="240" height="240">
+  <feGaussianBlur stdDeviation="8" result="b"/>
+</filter>
+
+<filter id="ring3d" filterUnits="userSpaceOnUse" x="-60" y="-60" width="240" height="240">
+  <feDropShadow dx="0" dy="3" stdDeviation="3" flood-color="rgba(0,0,0,.45)"/>
+  <feGaussianBlur in="SourceAlpha" stdDeviation="1.2" result="ib"/>
+  <feOffset in="ib" dx="0" dy="1" result="ib2"/>
+  <feComposite in="ib2" in2="SourceAlpha" operator="arithmetic" k2="-1" k3="1" result="inner"/>
+  <feColorMatrix in="inner" type="matrix"
+    values="0 0 0 0 0  0 0 0 0 0  0 0 0 0 0  0 0 0 .45 0" result="innerTint"/>
+  <feMerge>
+    <feMergeNode in="SourceGraphic"/>
+    <feMergeNode in="innerTint"/>
+  </feMerge>
+</filter>
+
+<mask id="donut" maskUnits="userSpaceOnUse" maskContentUnits="userSpaceOnUse"
+      x="0" y="0" width="120" height="120">
+  <rect x="0" y="0" width="120" height="120" fill="#fff"/>
+  <circle cx="60" cy="60" r="56"
+          fill="#000" stroke="#000"
+          stroke-width="var(--profile-ring-thickness)"/>
+</mask>
+    </defs>
+
+    <!-- подсветка вокруг (мягкое свечение) -->
+    <circle class="halo" cx="60" cy="60" r="56"
+            fill="none" stroke="url(#ringGrad)" filter="url(#softGlow)"/>
+
+    <!-- базовый трек -->
+    <circle class="track" cx="60" cy="60" r="56" fill="none"/>
+
+    <!-- глянцевая подложка под активной дугой (даёт ощущение глубины) -->
+    <g mask="url(#donut)" opacity=".18">
+      <radialGradient id="gloss" cx="60" cy="60" r="60" gradientUnits="userSpaceOnUse">
+        <stop offset="0%"  stop-color="#fff"/>
+        <stop offset="65%" stop-color="#fff" stop-opacity=".35"/>
+        <stop offset="100%" stop-color="#fff" stop-opacity="0"/>
+      </radialGradient>
+      <circle cx="60" cy="60" r="60" fill="url(#gloss)"/>
+    </g>
+
+  <g class="meter" transform="rotate(-90 60 60)">
+  <circle class="barG" cx="60" cy="60" r="56"
+          fill="none" stroke="url(#ringGrad)"
+          stroke-dasharray="0 351.858" stroke-dashoffset="0"/>
+  <circle class="bar"  cx="60" cy="60" r="56"
+          fill="none" stroke="url(#ringGrad)"
+          stroke-dasharray="0 351.858" stroke-dashoffset="0"/>
+</g>
+  </svg>
+</div>
+
         </div>
         <div class="hero-name" id="userName">Имя</div>
         <div class="hero-meta" id="heroMeta">Цель: — mg/kg • Прогноз окончания: —</div>
@@ -1091,7 +1154,7 @@ html, body{ max-width:100vw; overflow-x:hidden; }
         <div class="chip"><small>Цель, mg</small><b id="goalMg">—</b></div>
         <div class="chip"><small>Текущий прогресс</small><b id="progressAbs">—</b><small id="progressPct" class="muted">—</small></div>
         <div class="chip"><small>Вес</small><b id="weight">—</b></div>
-        <div class="chip"><small>Препарат</small><b id="drug">—</b><small id="drugDose" class="muted">—</small></div>
+        <div class="chip"><small>Препарат</small><b id="drug">—</b></div>
         <div class="chip"><small>Дата начала</small><b id="start">—</b></div>
       </div>
     </section>
@@ -1331,33 +1394,6 @@ window.AppState = window.AppState || (function(){
   function fmtDate(iso){ try{ const d=new Date(iso+'T00:00:00'); return d.toLocaleDateString('ru-RU'); }catch(_){ return iso||'—'; } }
   function clamp(n,min,max){ return Math.max(min, Math.min(max,n)); }
 
-  function readCapsuleMg(){
-    const keys = [
-      'rt_capsule_mg','rt_capsuleMg','rt_capsuleMG',
-      'rt_pill_mg','rt_pillMg',
-      'rt_capsule_strength','rt_capsuleStrength',
-      'rt_mg_per_capsule','rt_mgPerCapsule',
-      'rt_capsuleDoseMg','rt_capsule_dose_mg','rt_caps_mg'
-    ];
-    for (const k of keys){
-      let v = null;
-      try{ v = localStorage.getItem(k); }catch(_){ v = null; }
-      if(!v) continue;
-      const m = String(v).match(/(\d+(?:[\.,]\d+)?)/);
-      if(!m) continue;
-      const n = Number(m[1].replace(',','.'));
-      if (isFinite(n) && n > 0) return n;
-    }
-    // иногда профиль хранится JSON-ом
-    try{
-      const p = JSON.parse(localStorage.getItem('rt_profile') || 'null');
-      const n = Number(p && (p.capsule_mg || p.capsuleMg || p.pill_mg || p.pillMg || 0));
-      if (isFinite(n) && n > 0) return n;
-    }catch(_){}
-    return 0;
-  }
-
-
   function populate(){
     const set = (id, val) => { const el = document.getElementById(id); if (el) el.textContent = val; };
 
@@ -1373,31 +1409,23 @@ if (av) {
 const af = $('#avatarFallback');
 if (af) af.textContent = ((STATE.name||'U').trim().charAt(0)||'U').toUpperCase();
 
-    const weightKg = Number(STATE.weightKg || 0) || 0;
-    const goalMgPerKg = Number(STATE.goalMgPerKg || 135) || 135;
-    const takenMg = Number(STATE.takenMg || 0) || 0;
-    const todayMg = Number(STATE.todayMg || 0) || 0;
+    const goalMg = Math.round(STATE.weightKg * STATE.goalMgPerKg);
+    const pct = clamp(goalMg? (STATE.takenMg/goalMg*100):0, 0, 100);
 
-    const goalMg = Math.round(weightKg * goalMgPerKg);
-    const pct = clamp(goalMg ? (takenMg / goalMg * 100) : 0, 0, 100);
-
-    set('goalMgKg', goalMgPerKg + ' mg/kg');
-    set('goalMg', goalMg ? (goalMg.toLocaleString('ru-RU') + ' мг') : '—');
-    set('progressAbs', takenMg.toLocaleString('ru-RU') + ' мг');
-    set('progressPct', Math.round(pct) + '%');
-    set('weight', weightKg ? (weightKg + ' кг') : '—');
-    set('drug', STATE.drug || '—');
-    const capMg = Number(STATE.capsuleMg || 0) || 0;
-    set('drugDose', capMg ? ('капсулы ' + capMg + ' мг') : '—');
-    set('start', fmtDate(STATE.startISO));
+   set('goalMgKg', STATE.goalMgPerKg + ' mg/kg');
+    $('#goalMg').textContent   = goalMg.toLocaleString('ru-RU') + ' мг';
+    $('#progressAbs').textContent = STATE.takenMg.toLocaleString('ru-RU') + ' мг';
+    $('#progressPct').textContent = Math.round(pct) + '%';
+    $('#weight').textContent = STATE.weightKg + ' кг';
+    $('#drug').textContent = STATE.drug;
+    $('#start').textContent = fmtDate(STATE.startISO);
 
     // simple forecast: remaining / (today or avg 20mg/day)
-    const daily = Math.max(todayMg || 0, 20);
-    const remain = Math.max(goalMg - takenMg, 0);
+    const daily = Math.max(STATE.todayMg || 0, 20);
+    const remain = Math.max(goalMg - STATE.takenMg, 0);
     const days = Math.ceil(remain / daily) || 0;
     const eta = new Date(); eta.setDate(eta.getDate()+days);
-    set('heroMeta', `Цель: ${goalMgPerKg} mg/kg • Прогноз окончания: ${fmtDate(eta.toISOString().slice(0,10))}`);
-
+    $('#heroMeta').textContent = `Цель: ${STATE.goalMgPerKg} mg/kg • Прогноз окончания: ${fmtDate(eta.toISOString().slice(0,10))}`;
 
     var _el; if((_el=document.getElementById('allergies'))) _el.textContent = STATE.allergies || 'Не указаны';
     if((_el=document.getElementById('today'))) _el.textContent = Math.round(STATE.todayMg || 0) + ' мг';
@@ -1411,6 +1439,38 @@ set('doctorMeta', [doc.name, doc.clinic, doc.phone].filter(Boolean).join(' • '
     pill.textContent = st==='ok' ? 'OK' : (st==='warn' ? 'Внимание' : 'Не сдано');
     pill.className = 'pill ' + (st==='ok'?'ok':st==='warn'?'warn':'bad');
     $('#labDue').textContent = fmtDate((STATE.labs||{}).dueISO || '');
+
+   // === 3D-кольцо: прогресс + блик (правильная геометрия) ===
+{
+  const bar   = document.querySelector('.ring .bar');
+  const shine = document.querySelector('.ring .shine');
+  if (bar) {
+    const r = parseFloat(bar.getAttribute('r')) || 56;
+    const C = 2 * Math.PI * r;
+
+    // используем уже посчитанный выше percent (pct), а не window.profilePct
+    const prog = clamp(pct, 0, 100);
+    window.profilePct = prog; // пусть будет доступен и снаружи
+
+    // длина видимой дуги: старт в «12 часов» (за счёт rotate(-90)), дальше по часовой
+    const L = Math.max(0, Math.min(C * prog / 100, C - 0.01));
+    bar.setAttribute('stroke-dasharray', `${L.toFixed(3)} ${(C - L).toFixed(3)}`);
+    bar.setAttribute('stroke-dashoffset', '0');
+
+    // блик на кончике дуги
+    if (shine) {
+      const seg = Math.max(6, Math.min(C * 0.10, 28));
+      const off = (C - L); // позиция конца дуги
+      shine.setAttribute('stroke-dasharray', `${seg.toFixed(2)} ${(C - seg).toFixed(2)}`);
+      shine.setAttribute('stroke-dashoffset', off.toFixed(3));
+      shine.setAttribute('opacity', prog > 0 ? '.55' : '0');
+
+      const th = parseFloat(getComputedStyle(document.documentElement)
+                    .getPropertyValue('--profile-ring-thickness')) || 10;
+      shine.setAttribute('stroke-width', Math.max(2, th - 3));
+    }
+  }
+}
   }
 function todayISO(){
   const d=new Date();
@@ -1502,7 +1562,6 @@ function getLocalTodayDose(){
     STATE.takenMg     ||= Number(localStorage.getItem('rt_takenMg') || 0);
     STATE.todayMg     ||= Number(localStorage.getItem('rt_todayMg') || 0);
     STATE.drug        ||= localStorage.getItem('rt_drug') || 'Изотретиноин';
-    STATE.capsuleMg  ||= readCapsuleMg();
     const si = localStorage.getItem('rt_startISO') || '';
     if (si && !STATE.startISO) STATE.startISO = si.slice(0,10);
   }catch(_){}
@@ -1553,12 +1612,6 @@ function getLocalTodayDose(){
 
   // Препарат/старт курса
   STATE.drug = me.drug || STATE.drug || localStorage.getItem('rt_drug') || 'Изотретиноин';
-  {
-    const capFromMe  = Number(me.capsule_mg || me.capsuleMg || me.capsule_strength || me.capsuleStrength || me.pill_mg || me.pillMg || me.pill_strength || me.pillStrength || me.mg_per_capsule || me.mgPerCapsule || 0);
-    const capFromSum = Number(sum.capsule_mg || sum.capsuleMg || 0);
-    const n = (capFromMe > 0 ? capFromMe : (capFromSum > 0 ? capFromSum : Number(STATE.capsuleMg || readCapsuleMg() || 0)));
-    STATE.capsuleMg = (isFinite(n) && n > 0) ? n : 0;
-  }
   const startISO = me.course_start || me.start_date || STATE.startISO || localStorage.getItem('rt_startISO') || '';
   if (startISO) STATE.startISO = String(startISO).slice(0,10);
 
@@ -1593,11 +1646,6 @@ function getLocalTodayDose(){
     : (STATE.allergies || 'Отсутствуют');
   STATE.labs = { status: 'ok', dueISO: String(sum.eta_opt_date||'').slice(0,10) };
 // 4) Только теперь отрисовываем UI
-  // Нормализуем числа, чтобы populate() не падал
-  STATE.weightKg = Number(STATE.weightKg || 0) || 0;
-  STATE.goalMgPerKg = Number(STATE.goalMgPerKg || 135) || 135;
-  STATE.takenMg = Number(STATE.takenMg || 0) || 0;
-  STATE.todayMg = Number(STATE.todayMg || 0) || 0;
   populate();
 })();
 
@@ -1981,6 +2029,8 @@ document.addEventListener('visibilitychange', ()=>{
       close();
     }, true);
   })();
+
+  });
 
   // ======= View Transitions helper for links =======
   document.addEventListener('DOMContentLoaded', async ()=>{
