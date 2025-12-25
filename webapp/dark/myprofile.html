@@ -218,16 +218,26 @@ body.light .iconbtn.reset{
     0 0 22px rgba(35,227,204,.14);
   pointer-events:none;
 }
-.avatar-wrap::after{
+.avatar-wrap::before{
   content:"";
   position:absolute;
-  inset: calc(var(--profile-ava-border) - 1px);
+  inset:0;
   border-radius:50%;
+  background:
+    radial-gradient(120% 120% at 30% 18%, rgba(94,207,200,.28), rgba(94,207,200,0) 58%),
+    radial-gradient(120% 120% at 70% 82%, rgba(52,137,255,.16), rgba(52,137,255,0) 60%),
+    linear-gradient(180deg, rgba(255,255,255,.18), rgba(255,255,255,.04));
+  border: 1px solid rgba(255,255,255,.18);
   box-shadow:
     inset 0 1px 2px rgba(255,255,255,.20),
-    inset 0 -8px 18px rgba(0,0,0,.30);
+    inset 0 -8px 18px rgba(0,0,0,.30),
+    inset 0 0 0 1px rgba(0,0,0,.28),
+    0 14px 30px rgba(0,0,0,.22),
+    0 0 22px rgba(35,227,204,.14);
   pointer-events:none;
+  z-index:0;
 }
+
 
 /* фото (круг без квадратов) */
 .avatar{
@@ -237,7 +247,9 @@ body.light .iconbtn.reset{
   overflow: hidden;
   display: grid;
   place-items: center;
-  background: transparent;          /* убираем голубой фон */
+  background: transparent;    
+  position: relative;
+z-index: 1;      /* убираем голубой фон */
 }
 .avatar img{
   width: 100%;
@@ -1066,7 +1078,7 @@ html, body{ max-width:100vw; overflow-x:hidden; }
   </div>
 
   <main class="container">
-      <div class="app-title rt-titleline"><span class="rt-titletext">Профиль пациента</span><span class="rt-titlebadges"><span data-pill-spot></span><span data-stock-spot></span></span></div>
+      <div class="app-title rt-titleline"><span class="rt-titletext">Профиль пациента</span><span class="rt-titlebadges"></span></span></span></div>
     <section class="card hero" id="hero">
      <div class="hero-bg-switch" id="heroBgSwitch" aria-label="Фон карточки">
   <button class="b0" data-bg="none" title="Без фона"></button>

@@ -678,7 +678,19 @@ main.wrap{ padding-top: 8px; }
 /* ===== Bottom Nav ===== */
 /* компактнее на узких телефонах */
 @media (max-width: 400px){
-  .navbar{ padding-top:8px; }
+  .navbar{
+  position: fixed;
+  left: 0; right: 0; bottom: 0;
+  padding: max(8px, env(safe-area-inset-bottom));
+  padding-top: 10px;
+
+  /* было: linear-gradient(...) -> из-за этого панель “прозрачная” */
+  background: rgba(6,16,24,.88);
+  border-top: 1px solid rgba(255,255,255,.08);
+
+  backdrop-filter: blur(10px);
+  z-index: 40;
+}
   .navbar .dock{ gap:10px; padding:0 10px; }
   .nav-item{
     height:56px; border-radius:16px; font-size:12px;
@@ -698,7 +710,11 @@ main.wrap{ padding-top: 8px; }
   left: 0; right: 0; bottom: 0;
   padding: max(8px, env(safe-area-inset-bottom));
   padding-top: 10px;
-  background: linear-gradient(180deg, rgba(6,16,24,.0), rgba(6,16,24,.38) 30%, rgba(6,16,24,.72));
+
+  /* было: linear-gradient(...) -> из-за этого панель “прозрачная” */
+  background: rgba(6,16,24,.88);
+  border-top: 1px solid rgba(255,255,255,.08);
+
   backdrop-filter: blur(10px);
   z-index: 40;
 }
@@ -918,9 +934,12 @@ header {
 #datePicker[hidden]{ display:none; }
 
 /* === TABBAR ACTIVE (mint-blue) === */
+/* было слишком прозрачно — делаем плотнее */
+
+/* === TABBAR ACTIVE (mint-blue) === */
 .navbar .nav-item { 
   position: relative;
-  border-radius: 16px; /* на всякий */
+  border-radius: 16px;
   min-width: 0;
 }
 
@@ -942,7 +961,6 @@ header {
   filter: drop-shadow(0 0 10px rgba(90, 255, 230, .22));
 }
 
-/* маленькая мятная точка/подчеркивание снизу (если хочешь) */
 .navbar .nav-item.active::after {
   content: "";
   position: absolute;
@@ -956,6 +974,22 @@ header {
   box-shadow: 0 0 10px rgba(90, 255, 230, .35);
   opacity: .9;
 }
+
+
+.navbar .nav-item.active::after {
+  content: "";
+  position: absolute;
+  left: 50%;
+  bottom: 6px;
+  transform: translateX(-50%);
+  width: 22px;
+  height: 3px;
+  border-radius: 999px;
+  background: rgba(90, 255, 230, .9);
+  box-shadow: 0 0 10px rgba(90, 255, 230, .35);
+  opacity: .9;
+}
+
 
 </style>
 
@@ -1740,11 +1774,7 @@ window.addEventListener('storage',e=>{
           <!-- День курса: сюда будем писать "День N" -->
           <span id="courseTitle" class="course-day" aria-label="День курса">День —</span>
         
-          <!-- мини-алерты -->
-          <span class="app-badges">
-            <span data-pill-spot></span>
-            <span data-stock-spot></span>
-          </span>
+          
         </div>
       </div>
     </div>
