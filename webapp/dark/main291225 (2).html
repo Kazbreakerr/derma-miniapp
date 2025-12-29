@@ -97,72 +97,6 @@ try{
     .section{margin-top:16px}
 
     /* === PROGRESS RINGS LAYOUT (3 кольца) === */
-
-    /* === RINGS: объём/глянец + типографика процентов === */
-    .ring{isolation:isolate}
-    .ring::before{
-      content:"";
-      position:absolute;
-      inset:-10px;
-      border-radius:999px;
-      pointer-events:none;
-      background:
-        radial-gradient(circle at 32% 26%, rgba(255,255,255,.22), rgba(255,255,255,0) 42%),
-        radial-gradient(circle at 70% 82%, rgba(0,0,0,.35), rgba(0,0,0,0) 52%);
-      opacity:.85;
-      mix-blend-mode:screen;
-      z-index:2;
-    }
-    .ring::after{
-      content:"";
-      position:absolute;
-      inset:18px;
-      border-radius:999px;
-      pointer-events:none;
-      box-shadow:
-        inset 0 14px 24px rgba(0,0,0,.40),
-        inset 0 -10px 18px rgba(255,255,255,.06);
-      opacity:.75;
-      z-index:1;
-    }
-    .ring svg{filter:drop-shadow(0 14px 22px rgba(0,0,0,.45));}
-    .ring .pct{
-      display:flex;
-      flex-direction:column;
-      align-items:center;
-      justify-content:center;
-      gap:6px;
-      line-height:1.05;
-      font-variant-numeric:tabular-nums;
-      letter-spacing:-0.02em;
-    }
-    .ring .pctNum{
-      font-weight:800;
-      font-size:26px;
-      color:var(--ink);
-      text-shadow:0 2px 10px rgba(0,0,0,.45);
-    }
-    .ring .pctSub{
-      font-size:11px;
-      font-weight:800;
-      letter-spacing:0.14em;
-      text-transform:uppercase;
-      color:rgba(207,224,255,.72);
-      text-shadow:0 2px 10px rgba(0,0,0,.35);
-    }
-    .ring.small .pct{gap:0}
-    .ring.small .pctNum{font-size:12px;color:var(--muted-ink);text-shadow:none}
-    .ring.small .pctSub{display:none}
-
-    /* Кумулятивно: делаем значения одинаковыми (мг и мг/кг) */
-    #cardProgress .cum-inline,
-    #cardProgress .cum-inline *{
-      color:var(--ink) !important;
-      opacity:1 !important;
-      font-size:inherit !important;
-      font-weight:inherit !important;
-    }
-
     .rings-rail{position:relative;height:220px;margin:6px 0 0}
     .ring{position:absolute;left:50%;top:50%;transform-origin:center;transition:transform 250ms ease-out, opacity 200ms ease-out}
     .ring svg{width:170px;height:170px;display:block;overflow:visible}
@@ -344,30 +278,6 @@ try{
     0 10px 24px rgba(20,184,166,.35),
     inset 0 2px 6px rgba(255,255,255,.35),
     inset 0 -8px 16px rgba(0,0,0,.28);
-}
-
-/* Sub labels under Min/Opt/Max (mg/kg) */
-.seg-stack{ display:inline-flex; flex-direction:column; align-items:stretch; gap:4px; }
-.seg-kg{
-  display:grid;
-  grid-template-columns:repeat(3,1fr);
-  gap:8px;
-  padding:0 6px 2px;
-}
-.seg-kg span{
-  text-align:center;
-  font-size:11px;
-  font-weight:800;
-  letter-spacing:.25px;
-  color:rgba(233,246,255,.55);
-  user-select:none;
-}
-.seg-kg span.active{
-  color:rgba(34,211,238,.95);
-  text-shadow:0 0 10px rgba(34,211,238,.45);
-}
-@media (max-width:380px){
-  .seg-kg span{ font-size:10px; }
 }
 
 /* Светлая тема — мягкая светлая неоморфия */
@@ -927,13 +837,6 @@ body.light .seg button{
   z-index: 0;
   pointer-events:none;
 }
-/* FIX: чтобы glow не "мыл" цифры/контент в ячейке */
-#cardCalendar .day{ position: relative; isolation: isolate; }
-#cardCalendar .day::after{ z-index: 0; }
-#cardCalendar .day > *{
-  position: relative;
-  z-index: 1;
-}
 
 /* уровни настроения 1..7 → разный оттенок свечения */
 #cardCalendar .day.mood-2{ --glowC: hsla(24,85%,47%,.58); }   /* плохо — оранжевый */
@@ -979,101 +882,59 @@ body.light .seg button{
 }
 
 
-/* === Goals pills (mg/kg + mg) === */
-.goal-pills{ display:inline-flex; gap:8px; align-items:center; vertical-align:middle; }
-.goal-pill{
-  display:inline-flex; align-items:center; justify-content:center;
-  min-width:46px; height:30px;
-  padding:0 12px;
-  border-radius:999px;
-  background:rgba(255,255,255,.06);
-  border:1px solid rgba(255,255,255,.10);
-  color:rgba(243,247,255,.92);
-  font-weight:850;
-  letter-spacing:.2px;
-  box-shadow:
-    inset 0 1px 0 rgba(255,255,255,.07),
-    0 10px 24px rgba(0,0,0,.18);
-}
-.goal-pill.active{
-  background-image:linear-gradient(135deg,#22D3EE 0%, #14B8A6 100%);
-  color:#07121F;
-  border-color:rgba(94,234,212,.35);
-  box-shadow:
-    0 0 14px rgba(34,211,238,.25),
-    0 0 24px rgba(20,184,166,.18),
-    inset 0 1px 0 rgba(255,255,255,.22);
-}
-.goals-meta{ display:flex; flex-wrap:wrap; gap:8px 10px; align-items:center; margin-top:6px; }
-/* Goals: show only mg targets in one compact line */
-#goalsLine{ display:flex; flex-wrap:wrap; align-items:center; gap:10px; }
-#goalsLine .goals-meta{ margin-top:0; }
-
-.goals-meta .goals-unit{ opacity:.75; }
-.goals-unit{ margin-left:6px; opacity:.82; font-weight:700; }
-.cum-inline{ margin-left:6px; font-weight:700; }
-
-@media (max-width:520px){
-  .goal-pill{ min-width:42px; height:28px; padding:0 10px; font-size:14px; }
-}
-
-/* === Progress bar (glow, rounded) — without animals === */
+/* === Animal Progress Bar — 3D трек + реалистичные иконки === */
+/* Прогресс-бар: скрыть любые поверхностные значения внутри трека */
 #animalProgress .animal-track .val,
 #animalProgress .animal-track .label,
 #animalProgress .animal-fill .val { display: none !important; }
-#animalProgress .animal-scale,
-#animalProgress .animal-icon,
-#animalProgress .animal-tip{ display:none !important; }
-
+/* Скрыть подписи делений шкалы */
+#animalProgress .animal-scale b { display: none !important; }
 .animal-wrap{ margin-top:10px }
 .animal-track{
   --w: 0%;
-  position:relative;
-  height:24px;
-  border-radius:999px;
-  overflow:hidden;
-  background: linear-gradient(180deg, rgba(255,255,255,.06), rgba(255,255,255,.03));
-  border:1px solid rgba(255,255,255,.08);
+  position:relative; height:22px; border-radius:999px; overflow:hidden;
+  background: linear-gradient(180deg,#0F1A2B,#0B1422);
+  border:1px solid var(--border);
   box-shadow:
-    inset 0 1px 0 rgba(255,255,255,.08),
-    inset 0 -1px 0 rgba(0,0,0,.55),
-    0 10px 26px rgba(0,0,0,.30);
-}
-.animal-track::before{
-  content:"";
-  position:absolute; inset:-18px;
-  background:
-    radial-gradient(closest-side, rgba(34,211,238,.22), rgba(20,184,166,.12), transparent 70%);
-  filter: blur(18px);
-  opacity:.55;
-  pointer-events:none;
+    inset 0 1px 0 rgba(255,255,255,.07),
+    inset 0 -1px 0 rgba(0,0,0,.45),
+    0 10px 22px rgba(0,0,0,.28);
 }
 .animal-fill{
-  position:absolute; inset:0 auto 0 0;
-  width:var(--w);
-  border-radius:inherit;
-  background: linear-gradient(90deg, rgba(96,242,205,1) 0%, rgba(34,211,238,1) 55%, rgba(129,255,247,1) 100%);
+  position:absolute; inset:0 auto 0 0; width:var(--w);
+  background: linear-gradient(90deg,#22D3EE 0%, #14B8A6 100%);
   box-shadow:
-    0 0 18px rgba(34,211,238,.35),
-    0 0 34px rgba(20,184,166,.20),
-    inset 0 2px 5px rgba(255,255,255,.25),
-    inset 0 -10px 14px rgba(0,0,0,.20);
+    0 8px 18px rgba(20,184,166,.35),
+    inset 0 2px 4px rgba(255,255,255,.35),
+    inset 0 -8px 12px rgba(0,0,0,.2);
   transition: width .6s cubic-bezier(.2,.7,.2,1);
 }
-.animal-fill::after{
-  content:"";
-  position:absolute; inset:2px 6px;
-  border-radius:999px;
-  background: linear-gradient(180deg, rgba(255,255,255,.18), rgba(255,255,255,0));
-  opacity:.75;
-  pointer-events:none;
-}
 .animal-fill .spark{
-  position:absolute; right:10px; top:50%;
-  width:64px; height:64px; transform:translateY(-50%);
-  background: radial-gradient(closest-side, rgba(255,255,255,.30), rgba(255,255,255,0) 70%);
-  filter: blur(8px); pointer-events:none; opacity:.65;
+  position:absolute; right:10px; top:50%; width:46px; height:46px; transform:translateY(-50%);
+  background: radial-gradient(closest-side, rgba(255,255,255,.28), rgba(255,255,255,0) 70%);
+  filter: blur(6px); pointer-events:none; opacity:.7;
 }
+.animal-tip{
+  position:absolute; left:var(--w); top:50%; transform:translate(-50%,-50%);
+  width:20px; height:20px; border-radius:50%;
+  background: radial-gradient(circle at 35% 35%, #fff 0%, #f1f7ff 20%, #9ff1f0 55%, #00c6c2 100%);
+  box-shadow: 0 6px 16px rgba(0,0,0,.35), 0 0 0 3px rgba(255,255,255,.12) inset;
+  z-index: 2;
+  transition:left .6s cubic-bezier(.2,.7,.2,1);
+}
+.animal-icon{
+  position:absolute; left:var(--w); top:50%;
+  transform:translate(-50%,-50%);
+  width:18px; height:18px;
+  color:#a9b6cb;
+  z-index: 3;
+  pointer-events:none;
+  filter: drop-shadow(0 4px 8px rgba(0,0,0,.35));
+  transition:left .6s cubic-bezier(.2,.7,.2,1);
+}
+
+.animal-icon use{ color:inherit; }
+
 
 /* === Page Fade&Slide transitions === */
 body.page-enter{
@@ -1814,29 +1675,6 @@ document.addEventListener('DOMContentLoaded', () => {
   <stop offset="1" stop-color="#11d1f0"/>
 </linearGradient>
 
-<!-- объёмный обод (блик/тень) -->
-<radialGradient id="ringRimGrad" cx="30%" cy="22%" r="80%">
-  <stop offset="0" stop-color="rgba(255,255,255,0.55)"/>
-  <stop offset="0.25" stop-color="rgba(255,255,255,0.18)"/>
-  <stop offset="0.45" stop-color="rgba(255,255,255,0)"/>
-  <stop offset="0.75" stop-color="rgba(0,0,0,0.35)"/>
-  <stop offset="1" stop-color="rgba(0,0,0,0.6)"/>
-</radialGradient>
-
-<!-- глянец поверх активной дуги -->
-<linearGradient id="ringArcGlossGrad" x1="0" y1="0" x2="110" y2="110" gradientUnits="userSpaceOnUse">
-  <stop offset="0" stop-color="rgba(255,255,255,0.75)"/>
-  <stop offset="0.18" stop-color="rgba(255,255,255,0.28)"/>
-  <stop offset="0.42" stop-color="rgba(255,255,255,0)"/>
-</linearGradient>
-
-<!-- мягкая тень кольца -->
-<filter id="ringDrop" x="-60%" y="-60%" width="220%" height="220%">
-  <feDropShadow dx="0" dy="10" stdDeviation="10" flood-color="#000000" flood-opacity="0.38"/>
-</filter>
-
-
-
     <!-- внешнее мягкое свечение -->
     <filter id="ringGlow" x="-40%" y="-40%" width="180%" height="180%">
       <feGaussianBlur in="SourceGraphic" stdDeviation="3" result="b"/>
@@ -1904,26 +1742,16 @@ document.addEventListener('DOMContentLoaded', () => {
       <div class="glow"></div>
       <div class="row" style="justify-content:space-between; align-items:center">
         <h2 id="progress-title" style="margin:0">Прогресс</h2>
-        <div class="seg-stack">
-  <div class="seg" id="doseSeg">
+        <div class="seg" id="doseSeg">
   <button data-mode="min" data-short="Мин." data-full="Минимальная">Мин.</button>
   <button data-mode="opt" class="active" data-short="Опт." data-full="Оптимальная">Опт.</button>
   <button data-mode="max" data-short="Макс." data-full="Максимальная">Макс.</button>
 </div>
-  <div class="seg-kg" id="doseKgRow" aria-label="Цели мг/кг">
-    <span data-mode="min">120 мг/кг</span>
-    <span data-mode="opt" class="active">135 мг/кг</span>
-    <span data-mode="max">150 мг/кг</span>
-  </div>
-</div>
       </div>
 
       <div class="row" style="justify-content:space-between;align-items:center;margin-top:4px">
-        <div>
-          <b>Кумулятивно:</b> <span id="cumMg">0</span> мг
-          <span class="muted cum-inline">· <span id="cumPerKg">0,00</span> мг/кг</span>
-          <span id="targetLabel" style="display:none">135</span>
-        </div>
+        <div><b>Кумулятивно:</b> <span id="cumMg">0</span> мг</div>
+        <div class="muted"><b>Всего:</b> <span id="cumPerKg">0,00</span> мг/кг · к <span id="targetLabel">135</span> мг/кг</div>
       </div>
 
       <!-- Кольца: слева(min) · центр(active) · справа(max) -->
@@ -1935,17 +1763,10 @@ document.addEventListener('DOMContentLoaded', () => {
   <circle class="track" cx="55" cy="55" r="46"
           stroke="url(#ringTrackGrad)" stroke-width="18" fill="none"
           filter="url(#ringInner)"/>
-    <circle class="rim" cx="55" cy="55" r="46"
-          stroke="url(#ringRimGrad)" stroke-width="18" fill="none"
-          opacity="0.85" filter="url(#ringDrop)"/>
-<circle data-arc cx="55" cy="55" r="46"
+  <circle data-arc cx="55" cy="55" r="46"
           stroke="url(#ringArcGrad)" stroke-width="18" fill="none"
           stroke-linecap="round" stroke-dasharray="289" stroke-dashoffset="289"
           filter="url(#ringGlow)"/>
-  <circle data-arc-gloss cx="55" cy="55" r="46"
-          stroke="url(#ringArcGlossGrad)" stroke-width="12" fill="none"
-          stroke-linecap="round" stroke-dasharray="289" stroke-dashoffset="289"
-          opacity="0.55" filter="url(#ringGlow)"/>
 </svg>
 
 
@@ -1960,17 +1781,10 @@ document.addEventListener('DOMContentLoaded', () => {
   <circle class="track" cx="55" cy="55" r="46"
           stroke="url(#ringTrackGrad)" stroke-width="18" fill="none"
           filter="url(#ringInner)"/>
-    <circle class="rim" cx="55" cy="55" r="46"
-          stroke="url(#ringRimGrad)" stroke-width="18" fill="none"
-          opacity="0.85" filter="url(#ringDrop)"/>
-<circle data-arc cx="55" cy="55" r="46"
+  <circle data-arc cx="55" cy="55" r="46"
           stroke="url(#ringArcGrad)" stroke-width="18" fill="none"
           stroke-linecap="round" stroke-dasharray="289" stroke-dashoffset="289"
           filter="url(#ringGlow)"/>
-  <circle data-arc-gloss cx="55" cy="55" r="46"
-          stroke="url(#ringArcGlossGrad)" stroke-width="12" fill="none"
-          stroke-linecap="round" stroke-dasharray="289" stroke-dashoffset="289"
-          opacity="0.55" filter="url(#ringGlow)"/>
 </svg>
 
 
@@ -1986,17 +1800,10 @@ document.addEventListener('DOMContentLoaded', () => {
   <circle class="track" cx="55" cy="55" r="46"
           stroke="url(#ringTrackGrad)" stroke-width="18" fill="none"
           filter="url(#ringInner)"/>
-    <circle class="rim" cx="55" cy="55" r="46"
-          stroke="url(#ringRimGrad)" stroke-width="18" fill="none"
-          opacity="0.85" filter="url(#ringDrop)"/>
-<circle data-arc cx="55" cy="55" r="46"
+  <circle data-arc cx="55" cy="55" r="46"
           stroke="url(#ringArcGrad)" stroke-width="18" fill="none"
           stroke-linecap="round" stroke-dasharray="289" stroke-dashoffset="289"
           filter="url(#ringGlow)"/>
-  <circle data-arc-gloss cx="55" cy="55" r="46"
-          stroke="url(#ringArcGlossGrad)" stroke-width="12" fill="none"
-          stroke-linecap="round" stroke-dasharray="289" stroke-dashoffset="289"
-          opacity="0.55" filter="url(#ringGlow)"/>
 </svg>
 
 
@@ -2008,18 +1815,8 @@ document.addEventListener('DOMContentLoaded', () => {
 
       <div class="section" id="infoLines" style="margin-top:0">
         <div id="weightRow"><b>Вес:</b> <span id="weightLine">—</span> кг</div>
-        <div id="goalsLine">
-          <b>Цели:</b>
-          <div id="goalsByWeight" class="muted goals-meta" hidden>
-    <span class="goal-pills goal-pills--mg" id="goalMgPills" aria-label="Цели в мг">
-                  <span class="goal-pill" data-mode="min">—</span>
-                  <span class="goal-pill" data-mode="opt">—</span>
-                  <span class="goal-pill" data-mode="max">—</span>
-                </span>
-            <span class="goals-unit">мг</span>
-          </div>
-        </div>
-<div id="animalProgress" class="animal-wrap" aria-label="Прогресс курса">
+        <div id="goalsLine"><b>Цели:</b> 120 / <b>135</b> / 150 мг/кг <span id="goalsByWeight" class="muted"></span></div>
+        <div id="animalProgress" class="animal-wrap" aria-label="Прогресс курса">
   <div class="animal-track">
     <div class="animal-fill"><span class="spark"></span></div>
     <div class="animal-scale" id="animalScale">
@@ -2670,45 +2467,29 @@ updateSegLabels();
     // RING helpers – обновляем все три кольца и подписи
     const RING_R = 46;                 // новый радиус
 const RING_C = 2*Math.PI*RING_R;   // ~289.03
-
     function setRing(el, pct){
-      const arc   = el.querySelector('circle[data-arc]');
-      const gloss = el.querySelector('circle[data-arc-gloss]');
-      const lbl   = el.querySelector('[data-pct]');
-      const p = Math.max(0, Math.min(100, Number(pct)||0));
+      const arc = el.querySelector('circle[data-arc]');
+      const lbl = el.querySelector('[data-pct]');
+     const p = Math.max(0, Math.min(100, Number(pct)||0));
+if (arc){
+  // базовая длина окружности
+  arc.style.strokeDasharray = String(RING_C);
 
-      const nodes = [arc, gloss].filter(Boolean);
+  // обычный случай
+  let off = RING_C*(1 - p/100);
 
-      if (nodes.length){
-        nodes.forEach(n=>{
-          n.style.strokeDasharray = String(RING_C);
-          n.style.strokeLinecap = 'round';
-        });
+  // когда почти полный круг — чутка перекрываем, чтобы не было видимого шва
+  if (p >= 99.8){
+    arc.style.strokeLinecap = 'butt';                // убираем «шляпки» в точке стыка
+    arc.style.strokeDasharray = String(RING_C + 0.8); // +0.8px перекрытия
+    off = 0.0001;                                     // микросмещение
+  } else {
+    arc.style.strokeLinecap = 'round';
+  }
+  arc.style.strokeDashoffset = String(off);
+}
+if (lbl){ lbl.textContent = fmt2(p) + '%'; }}
 
-        // обычный случай
-        let off = RING_C*(1 - p/100);
-
-        // когда почти полный круг — чутка перекрываем, чтобы не было видимого шва
-        if (p >= 99.8){
-          nodes.forEach(n=>{
-            n.style.strokeLinecap = 'butt';                 // убираем «шляпки» в точке стыка
-            n.style.strokeDasharray = String(RING_C + 0.8); // +0.8px перекрытия
-          });
-          off = 0.0001;                                     // микросмещение
-        }
-
-        nodes.forEach(n=> n.style.strokeDashoffset = String(off));
-      }
-
-      if (lbl){
-        const pctTxt = fmt2(p) + '%';
-        if (el.classList.contains('pos-center')){
-          lbl.innerHTML = `<span class="pctNum">${pctTxt}</span><span class="pctSub">пройдено</span>`;
-        } else {
-          lbl.innerHTML = `<span class="pctNum">${pctTxt}</span>`;
-        }
-      }
-    }
     function applyRingPositions(mode, pcts){
       const rail = document.getElementById('ringsRail');
       const rMin = rail.querySelector('.ring[data-mode="min"]');
@@ -3104,26 +2885,15 @@ try {
 } catch(_) {}
 
 applyRingPositions(DOSE_MODE, pcts);
-      // цели: подсветка плашек и пересчёт мг по весу
-      try{
-        document.querySelectorAll('#doseKgRow span')
-          .forEach(p=> p.classList.toggle('active', p.dataset.mode === DOSE_MODE));
 
-        const goalsByW = document.getElementById('goalsByWeight');
-        if (goalsByW){
-          if (w>0){
-            goalsByW.hidden = false;
-            document.querySelectorAll('#goalMgPills .goal-pill').forEach(p=>{
-              const m = p.dataset.mode;
-              const t = targets[m] || 135;
-              p.textContent = fmtInt(Math.round(t*w));
-              p.classList.toggle('active', m === DOSE_MODE);
-            });
-          } else {
-            goalsByW.hidden = true;
-          }
-        }
-      }catch(_){}
+      const goalsSpan = document.getElementById('goalsByWeight');
+      if (w>0){
+        goalsSpan.textContent = ' · по вашему весу: '
+          + fmtInt(Math.round(120*w)) + ' / '
+          + fmtInt(Math.round(135*w)) + ' / '
+          + fmtInt(Math.round(150*w)) + ' мг';
+      } else { goalsSpan.textContent = ''; }
+
       let eta = '—';
       const byDate = {}; DOSES.forEach(x=>{ const k=(normalizeDate(x.date)||'').slice(0,10); byDate[k]=(byDate[k]||0)+Number(x.mg||x.mg_taken||0); });
       const today = todayISO();
@@ -6455,13 +6225,9 @@ avoidCover: 'reveal',
   }
 
 
-  /* Hide weight line (per request) */
+  /* Hide: weight line + animal progress bar (per request) */
   #weightRow{ display:none !important; }
-
-  /* Show progress bar under rings, but WITHOUT animal icons */
-  #animalProgress{ display:block !important; }
-  #animalProgress .animal-icon,
-  #animalProgress .animal-tip{ display:none !important; }
+  #animalProgress{ display:none !important; }
 
 </style>
 

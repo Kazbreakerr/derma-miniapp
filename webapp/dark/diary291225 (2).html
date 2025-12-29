@@ -2424,8 +2424,6 @@ datePicker.addEventListener('change', e => {
   function markActive(iso, {center=true, behavior='smooth'} = {}){
     activeISO = iso;
 
-    const activeIdx = inWindow(iso);
-
     for (const el of track.children){
       const on = (el.dataset.iso === iso);
       el.classList.toggle('is-active', on);
@@ -2437,21 +2435,6 @@ datePicker.addEventListener('change', e => {
         const tg = tagFor(el.dataset.iso);
         tagEl.textContent = tg || '';
       }
-      // depth/curve based on distance from active (edges blur more + arc shape)
-      const idx = inWindow(el.dataset.iso);
-      const dist = Math.abs(idx - activeIdx);
-      const step = Math.min(4, dist);
-
-      const op    = [1, .78, .60, .42, .28][step];
-      const blur  = [0, .06, .28, .75, 1.25][step];
-      const scale = [1, .975, .95, .93, .92][step];
-      const dy    = -[0, 6, 12, 18, 22][step]; // neighbors выше (дуга)
-
-      el.style.setProperty('--dc-op', op);
-      el.style.setProperty('--dc-blur', blur + 'px');
-      el.style.setProperty('--dc-scale', scale);
-      el.style.setProperty('--dc-dy', dy + 'px');
-
     }
 
     if (center){
@@ -5675,15 +5658,10 @@ body.wheel-open{ overflow:hidden; touch-action:none; overscroll-behavior: none; 
   justify-content:center;
   gap: 2px;
   cursor:pointer;
-  /* dynamic depth/curve (set via JS) */
-  --dc-op: .55;
-  --dc-scale: .92;
-  --dc-blur: .15px;
-  --dc-dy: 0px;
 
-  opacity: var(--dc-op);
-  transform: translateY(var(--dc-dy)) translateZ(0) scale(var(--dc-scale));
-  filter: blur(var(--dc-blur));
+  opacity: .55;
+  transform: translateZ(0) scale(.92);
+  filter: blur(.15px);
   transition: transform .18s ease, opacity .18s ease, filter .18s ease;
   will-change: transform;
 }
@@ -5710,12 +5688,10 @@ body.wheel-open{ overflow:hidden; touch-action:none; overscroll-behavior: none; 
   width: clamp(64px, 18vw, 86px);
   height: 66px;
   border-radius: 22px;
-  /* active resets curve/blur */
-  --dc-op: 1;
-  --dc-scale: 1;
-  --dc-blur: 0px;
-  --dc-dy: 0px;
 
+  opacity: 1;
+  filter: none;
+  transform: translateZ(0) scale(1);
 
   background:
     radial-gradient(120% 120% at 30% 20%, rgba(255,255,255,.16), transparent 55%),

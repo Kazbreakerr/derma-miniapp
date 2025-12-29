@@ -5,133 +5,6 @@
   <meta name="viewport" content="width=device-width, initial-scale=1"/>
   <meta name="view-transition" content="same-origin">
   <title>Календарь — Retiora — Retinoid & Isotretinoin Tracker</title>
-
-  <!-- RT LOADER (buffer screen like index.html) -->
-  <style>
-    /* ===== СКОП: только экран загрузки ===== */
-    #rt-loader{
-      /* DARK по умолчанию */
-      --bg:#0B1220; --card:#101a2a; --border:#1F2A3C;
-      --text:#E8F0FF; --muted:#9fb3d6;
-      --accentA:#60A5FA; --accentB:#14B8A6;
-      --glowA: rgba(96,165,250,.18);
-      --glowB: rgba(20,184,166,.18);
-      --card-grad-from:#0e1726; --card-grad-to:#0c1422;
-      --ring: rgba(94,234,212,.35);
-      --track: rgba(255,255,255,.12);
-      --stroke: rgba(255,255,255,.65);
-
-      position:fixed; inset:0; z-index:9999;
-      display:grid; place-items:center;
-      padding: env(safe-area-inset-top) env(safe-area-inset-right)
-               env(safe-area-inset-bottom) env(safe-area-inset-left);
-      min-height:100dvh; min-height:100svh;
-      background:
-        radial-gradient(100% 60% at 20% 0%, var(--glowB), transparent 60%),
-        radial-gradient(100% 60% at 80% 10%, var(--glowA), transparent 60%),
-        var(--bg);
-      color:var(--text);
-      font-family: ui-sans-serif,system-ui,-apple-system,Segoe UI,Inter,Roboto,Manrope,Helvetica,Arial;
-    }
-    /* LIGHT — персик + лаванда */
-    #rt-loader[data-scheme="light"]{
-      --bg:#FFF9FD; --card:#FFFFFF; --border:#F0E7FF;
-      --text:#1f2937; --muted:#6b7280;
-      --accentA:#C4A1FF; --accentB:#FFB199;
-      --glowA: rgba(196,161,255,.22);
-      --glowB: rgba(255,177,153,.25);
-      --card-grad-from:#FFFFFF; --card-grad-to:#F7F3FF;
-      --ring: rgba(196,161,255,.35);
-      --track: rgba(0,0,0,.10);
-      --stroke: rgba(0,0,0,.35);
-    }
-    #rt-loader .box{ width:min(680px,92vw); background:linear-gradient(180deg,var(--card-grad-from),var(--card-grad-to));
-      border:1px solid var(--border); border-radius:20px; padding:clamp(16px,3.2vw,24px) clamp(14px,3vw,22px);
-      box-shadow:0 18px 48px rgba(0,0,0,.35); position:relative; overflow:hidden }
-    #rt-loader .glow{position:absolute; inset:0; pointer-events:none;
-      background:radial-gradient(120% 80% at 10% 0%, var(--glowB), transparent 55%),
-                 radial-gradient(120% 80% at 90% 20%, var(--glowA), transparent 65%)}
-    #rt-loader .row{display:flex; align-items:center; gap:clamp(12px,3vw,16px)}
-    #rt-loader h1{margin:0 0 6px; font-weight:800; letter-spacing:.2px; font-size:clamp(20px,6vw,28px); line-height:1.1}
-    #rt-loader p{margin:0; color:var(--muted); font-size:clamp(13px,3.6vw,16px)}
-
-    #rt-loader .stage{ width:clamp(44px,10vw,54px); height:clamp(44px,10vw,54px);
-      border-radius:14px; display:grid; place-items:center;
-      background:linear-gradient(160deg,var(--card-grad-from),var(--card-grad-to));
-      border:1px solid var(--border); position:relative }
-    #rt-loader .pill{ width:clamp(36px,8.5vw,44px); height:clamp(16px,3.6vw,20px); animation:bob 1.2s ease-in-out infinite }
-    
-    /* Новый "Сегодня": стеклянная плашка с числом */
-    .today-chip{
-      margin-left:auto;
-      display:flex;
-      flex-direction:column;
-      align-items:center;
-      justify-content:center;
-      gap:2px;
-      padding: 8px 12px;
-      min-width: 64px;
-      height: 48px;
-      border-radius: 16px;
-      color: rgba(232,240,255,.98);
-      background:
-        radial-gradient(220px 120px at 30% 0%, rgba(120, 255, 244, 0.47), transparent 60%),
-        linear-gradient(180deg, rgba(255, 255, 255, 0.393), rgba(255, 255, 255, 0.224));
-      border: 1px solid rgba(255,255,255,.14);
-      box-shadow:
-        0 14px 30px rgba(0,0,0,.28),
-        inset 0 1px 0 rgba(255,255,255,.18),
-        inset 0 -1px 0 rgba(0,0,0,.35);
-      backdrop-filter: blur(10px);
-      -webkit-backdrop-filter: blur(10px);
-      cursor:pointer;
-      user-select:none;
-      -webkit-tap-highlight-color: transparent;
-      transition: transform .12s ease, filter .2s ease, background .2s ease;
-    }
-    .today-chip:active{ transform: translateY(1px) scale(.98); }
-    .today-chip__num{
-      font-weight: 900;
-      font-size: clamp(18px, 4.8vw, 26px);
-      line-height: 1;
-      letter-spacing: .4px;
-    }
-    .today-chip__label{
-      font-weight: 800;
-      font-size: 11px;
-      line-height: 1;
-      opacity: .72;
-      letter-spacing: .3px;
-      text-transform: lowercase;
-    }
-
-    /* В план-режиме чуть более сиреневый "стеклянный" акцент */
-    body.plan-mode .today-chip{
-      background:
-        radial-gradient(320px 160px at 30% 0%, rgba(170, 160, 255, .18), transparent 62%),
-        linear-gradient(180deg, rgba(92, 102, 200, .60), rgba(52, 60, 140, .62));
-      border: 1px solid rgba(150, 165, 255, .20);
-      box-shadow:
-        0 14px 26px rgba(70, 80, 190, .18),
-        inset 0 1px 0 rgba(255,255,255,.18),
-        inset 0 -1px 0 rgba(0,0,0,.35);
-    }
-#rt-loader .pill .l{ fill:#fff } .pill .r{ fill: var(--accentB) }
-    @keyframes bob{0%,100%{transform:translateY(0)}50%{transform:translateY(-5px)}}
-
-    #rt-loader .ring{ position:absolute; width:clamp(50px,12vw,64px); height:clamp(50px,12vw,64px);
-      border-radius:999px; pointer-events:none; border:3px solid var(--ring); animation:ripple 1.6s ease-out infinite }
-    @keyframes ripple{0%{transform:scale(.8);opacity:.8}80%{transform:scale(1.12);opacity:.08}100%{opacity:0}}
-
-    #rt-loader .bar-wrap{ height:3px; background:var(--track); border-radius:999px; margin-top:12px; overflow:hidden }
-    #rt-loader .bar{ height:100%; width:30%; background:linear-gradient(90deg,var(--accentA),var(--accentB)); animation:flow 1.6s ease-in-out infinite }
-    @keyframes flow{0%{transform:translateX(-100%)}100%{transform:translateX(300%)}}
-
-    @media (max-width:360px), (max-height:540px){ #rt-loader .box{ border-radius:16px } }
-    @media (prefers-reduced-motion:reduce){ #rt-loader .pill, #rt-loader .ring, #rt-loader .bar{ animation:none } }
-  </style>
-  <!-- /RT LOADER -->
-
   <style>
     :root{
   --bg: #0b0f16;
@@ -154,8 +27,7 @@
       --shadow-soft: 10px 12px 22px rgba(0,0,0,.35), -8px -8px 18px rgba(255,255,255,0.03);
       --glow: 0 0 0 2px rgba(255,255,255,.06), inset 0 0 0 1px rgba(255,255,255,.05);
       --grid-gap: 10px;
-            --wknd-shift: 7px;
---day-h: 84px;
+      --day-h: 84px;
       --radius-xl: 22px;
       --radius-lg: 16px;
     }
@@ -257,9 +129,7 @@
     .month-nav{
       display:flex;
       align-items:center;
-      gap:10px;
-      flex:1;
-      min-width:0;
+      gap:8px;
     }
     .nav-btn{
       appearance:none;
@@ -275,28 +145,9 @@
     }
     .nav-btn:active{ transform: translateY(1px) scale(.98); }
     .month-label{
-      display:flex;
-      flex-direction:column;
-      line-height:1.05;
-      text-align:left;
-      min-width:0;
-    }
-    .month-label .month-name{
-      font-weight:900;
-      font-size: clamp(22px, 5.4vw, 34px);
-      letter-spacing:.6px;
-      text-shadow: 0 10px 24px rgba(0,0,0,.35);
-      white-space:nowrap;
-      overflow:hidden;
-      text-overflow:ellipsis;
-    }
-    .month-label .month-year{
       font-weight:800;
-      font-size: clamp(12px, 2.6vw, 14px);
-      opacity:.72;
-      letter-spacing:.8px;
-      margin-top:2px;
-      white-space:nowrap;
+      font-size: clamp(16px, 2.8vw, 22px);
+      letter-spacing:.3px;
     }
     .weekday-row, .grid{
       display:grid;
@@ -311,15 +162,6 @@
       letter-spacing:.6px;
       user-select:none;
     }
-
-/* Выходные в шапке — чуть ярче/иначе, чтобы календарь не был «плоским» */
-.weekday.weekend{
-  color: rgb(190, 194, 255);
-  text-shadow: 0 1px 0 rgba(0,0,0,.22);
-  letter-spacing: .7px;
-  transform: translateX(var(--wknd-shift));
-}
-
     /* day cell */
     .day{
       position:relative;
@@ -348,33 +190,10 @@ body:not(.plan-mode) .day{
     linear-gradient(180deg, rgba(255,255,255,.04), rgba(255,255,255,.02));
 }
 
-/* Выходные: лёгкий «праздничный» нюанс (лаванда + тёплый блик) */
-body:not(.plan-mode) .day.weekend{
-  background:
-    radial-gradient(220px 100px at 18% 12%, rgba(32, 224, 173, 0.22), transparent 62%),
-    radial-gradient(240px 140px at 85% 22%, rgba(81, 162, 254, 0.11), transparent 65%),
-    radial-gradient(120px 60px at 10% 0%, rgba(255, 255, 255, 0.087), transparent 60%),
-    linear-gradient(180deg, rgba(255,255,255,.04), rgba(255,255,255,.02));
-}
-
-
     .day:hover{ background:
       radial-gradient(120px 60px at 10% 0%, rgba(255,255,255,.06), transparent 60%),
       linear-gradient(180deg, rgba(255,255,255,.06), rgba(255,255,255,.03)); }
-
-.day.weekend:hover{  background:
-      radial-gradient(120px 60px at 10% 0%, rgba(255,255,255,.06), transparent 60%),
-      linear-gradient(180deg, rgba(255,255,255,.06), rgba(255,255,255,.03));
-}
-
-.day:active{ transform: translateY(1px); }
-
-.day.weekend{
-  transform: translateX(var(--wknd-shift));
-}
-.day.weekend:active{
-  transform: translateX(var(--wknd-shift)) translateY(1px);
-}
+    .day:active{ transform: translateY(1px); }
 
     /* текущая неделя — чуть крупнее (≈+6% по высоте) */
     .day.week-current{
@@ -1046,6 +865,18 @@ body.plan-mode .pill:active{
   box-shadow: inset 10px 10px 18px rgba(0,0,0,.40), inset -10px -10px 18px rgba(255,255,255,.04);
 }
 
+/* В план-режиме кнопка «Сегодня» должна отличаться (фиолетовая) */
+body.plan-mode #todayBtn{
+  color: rgba(255,255,255,.94);
+  background:
+  radial-gradient(320px 160px at 30% 0%, rgba(150, 160, 255, .14), transparent 62%),
+  linear-gradient(180deg, rgba(92, 102, 200, .82), rgba(52, 60, 140, .86));
+border: 1px solid rgba(150, 165, 255, .18);
+box-shadow:
+  0 14px 26px rgba(70, 80, 190, .18),
+  inset 0 1px 0 rgba(255,255,255,.18),
+  inset 0 -1px 0 rgba(0,0,0,.35);
+}
 body.plan-mode #openPlannerBottom{
   color: rgba(255,255,255,.94);
   background:
@@ -1068,6 +899,7 @@ body.plan-mode #openPlannerBottom{
   --mintGlow: rgba(46, 232, 212, .18);
 }
 
+#todayBtn,
 #openPlannerTop,
 #openPlannerBottom{
   color: var(--mintText);
@@ -1082,6 +914,7 @@ body.plan-mode #openPlannerBottom{
     inset 0 -1px 0 rgba(0,0,0,.22);
 }
 
+#todayBtn:active,
 #openPlannerTop:active,
 #openPlannerBottom:active{
   box-shadow:
@@ -1091,31 +924,12 @@ body.plan-mode #openPlannerBottom{
 
 body.plan-mode .weekday{ color: rgba(188, 216, 230, .60); }
 
-body.plan-mode .weekday.weekend{
-  color: rgb(220, 214, 255);
-  text-shadow: 0 1px 0 rgba(0,0,0,.22);
-}
-
-
 body.plan-mode .day{
   background:
     radial-gradient(150px 90px at 12% 0%, rgba(70,220,190,.18), transparent 60%),
     radial-gradient(170px 110px at 88% 100%, rgba(167, 120, 255, 0.306), transparent 64%),
     linear-gradient(180deg, rgba(14, 41, 62, .90), rgba(9, 23, 36, .92));
   box-shadow: 10px 12px 20px rgba(0,0,0,.44), -10px -10px 20px rgba(255,255,255,.03);
-}
-
-body.plan-mode .day.weekend{
-  background:
-    radial-gradient(150px 90px at 12% 0%, rgba(70,220,190,.18), transparent 60%),
-    radial-gradient(170px 110px at 88% 100%, rgba(167, 120, 255, 0.306), transparent 64%),
-    linear-gradient(180deg, rgba(14, 41, 62, .90), rgba(9, 23, 36, .92));
-  box-shadow: 10px 12px 20px rgba(0,0,0,.44), -10px -10px 20px rgba(255,255,255,.03);
-}
-body.plan-mode .day.weekend:hover{
-  background:
-      radial-gradient(120px 60px at 10% 0%, rgba(255,255,255,.06), transparent 60%),
-      linear-gradient(180deg, rgba(255,255,255,.06), rgba(255,255,255,.03));
 }
 body.plan-mode .day:active{
   box-shadow: inset 10px 10px 18px rgba(0,0,0,.44), inset -10px -10px 18px rgba(255,255,255,.04);
@@ -1341,62 +1155,6 @@ window.addEventListener('storage',e=>{
 
 </head>
 <body data-theme="dark">
-
-<!-- RT LOADER -->
-<div id="rt-loader" data-scheme="dark">
-  <div class="box" role="status" aria-live="polite">
-    <div class="glow"></div>
-    <div class="row">
-      <div class="stage" aria-hidden="true">
-        <div class="ring"></div>
-        <svg class="pill" viewBox="0 0 200 86" xmlns="http://www.w3.org/2000/svg">
-          <defs><clipPath id="c"><rect x="0" y="0" rx="43" ry="43" width="200" height="86"/></clipPath></defs>
-          <g clip-path="url(#c)">
-            <rect class="l" x="0" y="0" width="100" height="86"/>
-            <rect class="r" x="100" y="0" width="100" height="86"/>
-            <rect x="94" y="0" width="12" height="86" fill="#0E1726" opacity=".45"/>
-          </g>
-          <rect x="0" y="0" rx="43" ry="43" width="200" height="86" fill="none"
-                stroke="rgba(255,255,255,.65)" stroke-width="2"/>
-        </svg>
-      </div>
-      <div style="flex:1; min-width:220px">
-        <h1>Retiora — Retinoid & Isotretinoin Tracker</h1>
-        <p>Загружаю календарь…</p>
-        <div class="bar-wrap"><div class="bar"></div></div>
-      </div>
-    </div>
-  </div>
-</div>
-
-<script>
-(function(){
-  const el = document.getElementById('rt-loader');
-  if (!el) return;
-
-  // Подхватываем тему (если Telegram/WebApp доступен) — иначе остаёмся в dark
-  try{
-    const tgScheme = window.Telegram?.WebApp?.colorScheme;
-    const bodyTheme = document.body?.dataset?.theme;
-    const scheme = (tgScheme || bodyTheme || 'dark');
-    el.dataset.scheme = (String(scheme).toLowerCase() === 'light') ? 'light' : 'dark';
-  }catch(_){}
-
-  window.rtHideLoader = function(){
-    const l = document.getElementById('rt-loader');
-    if (!l) return;
-    l.style.transition = 'opacity .18s ease';
-    l.style.opacity = '0';
-    setTimeout(()=>{ try{ l.remove(); }catch(_){ l.style.display='none'; } }, 220);
-  };
-
-  // Safety: если где-то упадёт JS, не зависаем на лоадере навсегда
-  setTimeout(()=>{ try{ window.rtHideLoader && window.rtHideLoader(); }catch(_){ } }, 8000);
-})();
-</script>
-<!-- /RT LOADER -->
-
-
 <script>
 (function(){
   try{
@@ -1418,7 +1176,7 @@ window.addEventListener('storage',e=>{
         <div class="month-label" id="monthLabel"></div>
         <button class="nav-btn" id="next" aria-label="Следующий месяц">▶</button>
       </div>
-      <button class="today-chip" id="todayBtn" type="button" aria-label="Перейти к сегодняшнему дню"><span class="today-chip__num" id="todayNum">1</span><span class="today-chip__label">сегодня</span></button>
+      <button class="pill" id="todayBtn">Сегодня</button>
     </div>
 
     <div class="planner-slot" id="plannerSlot">
@@ -1987,7 +1745,7 @@ async function finalizeRange() {
   const MONTHS = ['Январь','Февраль','Март','Апрель','Май','Июнь','Июль','Август','Сентябрь','Октябрь','Ноябрь','Декабрь'];
 
   let current = new Date(); current.setDate(1);
-  weekdayRow.innerHTML = WEEKDAYS.map((d,i) => `<div class="weekday${i>=5?' weekend':''}">${d}</div>`).join('');
+  weekdayRow.innerHTML = WEEKDAYS.map(d => `<div class="weekday">${d}</div>`).join('');
 
   const pad = n => String(n).padStart(2,'0');
   const iso = d => `${d.getFullYear()}-${pad(d.getMonth()+1)}-${pad(d.getDate())}`;
@@ -2195,12 +1953,8 @@ function render(){
   const month  = current.getMonth();
   const daysTotal = new Date(year, month + 1, 0).getDate();
 
-  // Заголовок месяца (крупно + год вторым рядом)
-  monthLabel.innerHTML = `<span class="month-name">${MONTHS[month]}</span><span class="month-year">${year}</span>`;
-  // Число «сегодня» (всегда текущее число месяца)
-  const nowD = new Date();
-  const tNum = document.getElementById('todayNum');
-  if(tNum) tNum.textContent = String(nowD.getDate());
+  // Заголовок месяца
+  monthLabel.textContent = MONTHS[month] + ' ' + year;
 
   // Обновляем сводку
   const st = monthStats(year, month);
@@ -2275,10 +2029,6 @@ const planMg = getPlanMg(id);
 
 const cell = document.createElement('div');
 cell.className = 'day' + (isToday ? ' today' : '') + ((!isPlanMode() && missed) ? ' missed' : '');
-
-// выходные (Сб/Вс) — лёгкое отличие по фону
-const dow = date.getDay();
-if (dow === 0 || dow === 6) cell.classList.add('weekend');
 
 if (year === _now.getFullYear() && month === _now.getMonth() && date >= weekStart && date <= weekEnd){
   cell.classList.add('week-current');
@@ -2976,11 +2726,6 @@ if (IS_COARSE){
 }
 
   setViewMode(viewMode);
-
-  // Скрываем буферизацию после первой отрисовки
-  try{
-    requestAnimationFrame(()=>requestAnimationFrame(()=>{ window.rtHideLoader && window.rtHideLoader(); }));
-  }catch(_){ try{ document.getElementById('rt-loader')?.remove(); }catch(__){} }
 })();
 
 </script>

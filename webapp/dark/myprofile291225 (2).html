@@ -736,19 +736,6 @@ try { localStorage.setItem(DEV_TG_KEY, devTg); } catch(_){}
     radial-gradient(120% 140% at -10% -20%, rgba(35,227,204,.12), rgba(35,227,204,0) 55%),
     linear-gradient(180deg, rgba(255,255,255,.08), rgba(255,255,255,.02));
   box-shadow: var(--shadow), inset 0 0 0 1px rgba(255,255,255,.04);
-  transition: transform .18s ease, box-shadow .18s ease, background .18s ease, border-color .18s ease;
-  cursor: pointer;
-}
-.stats-link{ text-decoration:none; color:inherit; }
-.stats-panel:hover{
-  transform: translateY(-1px);
-  border-color: rgba(35,227,204,.38);
-  box-shadow: 0 18px 44px rgba(0,0,0,.42), inset 0 0 0 1px rgba(255,255,255,.06);
-}
-.stats-panel:active{ transform: translateY(0) scale(.995); }
-.stats-panel:focus-visible{
-  outline: none;
-  box-shadow: 0 0 0 2px rgba(35,227,204,.35), 0 18px 44px rgba(0,0,0,.42), inset 0 0 0 1px rgba(255,255,255,.06);
 }
 .stats-title{ margin:0 0 4px; font-size:16px; font-weight:800; }
 .stats-text{ min-width:0; }
@@ -1006,6 +993,68 @@ html[data-theme="light"] #hero.hero.has-bg::before{ opacity:.35; filter:saturate
 /* И глобально убираем горизонтальный скролл страницы */
 html, body{ max-width:100vw; overflow-x:hidden; }
 </style>
+<style id="stats-open-style">
+  /* Stats CTA (glassmorphism) */
+  .stats-actions{
+    margin-top: 14px;
+    display:flex;
+    justify-content:center;
+    width:100%;
+  }
+  .stats-open{
+    display:inline-flex;
+    align-items:center;
+    justify-content:center;
+    gap:10px;
+    width: min(360px, 100%);
+    min-height: 56px;
+    padding: 0 18px;
+    border-radius: 18px;
+    font-weight: 850;
+    font-size: 16px;
+    letter-spacing: .2px;
+    text-decoration: none;
+    color: var(--txt, #e9f2ff);
+    background:
+      radial-gradient(120% 160% at 10% 10%, rgba(125, 255, 236, .18) 0%, rgba(125,255,236,0) 45%),
+      radial-gradient(120% 160% at 90% 90%, rgba(198, 155, 255, .16) 0%, rgba(198,155,255,0) 50%),
+      linear-gradient(180deg, rgba(255,255,255,.14), rgba(255,255,255,.06));
+    border: 1px solid rgba(255,255,255,.22);
+    box-shadow:
+      0 14px 34px rgba(0,0,0,.32),
+      inset 0 1px 0 rgba(255,255,255,.14);
+    backdrop-filter: blur(16px) saturate(1.35);
+    -webkit-backdrop-filter: blur(16px) saturate(1.35);
+    transform: translateZ(0);
+    user-select:none;
+    -webkit-tap-highlight-color: transparent;
+    transition: transform .16s ease, box-shadow .16s ease, border-color .16s ease, filter .16s ease;
+  }
+  .stats-open:active{
+    transform: translateY(1px) scale(.99);
+    filter: brightness(1.03);
+    box-shadow:
+      0 10px 22px rgba(0,0,0,.34),
+      inset 0 1px 0 rgba(255,255,255,.10);
+  }
+  @media (hover:hover){
+    .stats-open:hover{
+      transform: translateY(-1px) scale(1.01);
+      border-color: rgba(125,255,236,.32);
+      box-shadow:
+        0 18px 44px rgba(0,0,0,.34),
+        0 0 0 1px rgba(125,255,236,.10) inset,
+        inset 0 1px 0 rgba(255,255,255,.16);
+    }
+  }
+  @media (max-width: 360px){
+    .stats-open{
+      font-size: 15px;
+      min-height: 54px;
+      border-radius: 16px;
+    }
+  }
+</style>
 </head>
 <body>
 <script>
@@ -1250,18 +1299,21 @@ html, body{ max-width:100vw; overflow-x:hidden; }
       </div>
     </section>
     <div class="cta-split">
-    <!-- ЛЕВАЯ половина: Статистика -->
-  <a class="card stats-panel stats-link" id="cardStats" href="stats.html" data-vt-link
-     aria-label="Открыть статистику">
+    <!-- ЛЕВАЯ половина: Статистика (пока без перехода) -->
+  <section class="card stats-panel" id="cardStats">
     <div class="stats-text">
       <h3 class="stats-title">Статистика</h3>
       <p class="muted">
-        Сводка курса: графики самочувствия, побочек и дозировок, кумулятивная доза,
-        пропуски и серия без пропусков.
+        Здесь будет сводка курса: сколько выпито, разновидность капсул, пропуски,
+        самочувствие и отмеченные побочки за весь курс.
       </p>
-      <div class="stats-soon">Открыть</div>
+      <div class="stats-actions">
+        <a class="stats-open" href="stats.html" data-vt-link aria-label="Открыть статистику">
+          Открыть статистику
+        </a>
+      </div>
     </div>
-  </a>
+  </section>
 
 <!-- ПРАВАЯ половина: возврат на приветствие -->
   <section class="card welcome-panel" id="cardRole">
@@ -1359,8 +1411,6 @@ window.AppState = window.AppState || (function(){
 
   function readCapsuleMg(){
     const keys = [
-      // основной ключ из main.html (выбор типа капсулы)
-      'rt.capsule_mg',
       'rt_capsule_mg','rt_capsuleMg','rt_capsuleMG',
       'rt_pill_mg','rt_pillMg',
       'rt_capsule_strength','rt_capsuleStrength',
