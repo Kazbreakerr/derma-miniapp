@@ -733,7 +733,15 @@ app.post('/api/doctor/code', tgAuth, async (req, res) => {
       'UPDATE doctor_codes SET active=false, revoked_at=now() WHERE doctor_id=$1 AND active',
       [uid]
     );
-
+// ✅ ВОТ СЮДА ВСТАВЬ:
+const takenAny = await pool.query(
+  'SELECT doctor_id FROM doctor_codes WHERE code=$1 LIMIT 1',
+  [code]
+);
+if (takenAny.rowCount && takenAny.rows[0].doctor_id !== uid) {
+  await pool.query('ROLLBACK');
+  return res.status(409).json({ ok:false, error:'code already taken' });
+}
     // 2) если этот код активен у КОГО-ТО — конфликт 409
     const clash = await pool.query('SELECT 1 FROM doctor_codes WHERE code=$1 AND active', [code]);
     if (clash.rowCount) {
@@ -743,7 +751,14 @@ app.post('/api/doctor/code', tgAuth, async (req, res) => {
 
     // 3) активируем новый
     await pool.query(
-      'INSERT INTO doctor_codes(doctor_id, code, active) VALUES ($1,$2,true)',
+      `INSERT INTO doctor_codes(doctor_id, code, active, revoked_at)
+       VALUES ($1, $2, true, NULL)
+       ON CONFLICT ON CONSTRAINT doctor_codes_pkey
+       DO UPDATE SET
+         doctor_id = EXCLUDED.doctor_id,
+         code      = EXCLUDED.code,
+         active    = true,
+         revoked_at = NULL`,
       [uid, code]
     );
 
@@ -826,6 +841,40 @@ app.get('/api/doctor/me', tgAuth, async (req, res) => {
 });
 
 
+// Обновление настроек врача (accepting/auto_accept) из кабинета
+app.post('/api/doctor/settings', tgAuth, async (req, res) => {
+  try{
+    await pool.query('SET search_path = derma, public');
+    const uid = await userIdByTg(req.tg || req.tgUser?.id);
+
+    // принимаем только явные boolean, иначе не трогаем поле
+    const body = req.body || {};
+    const accepting   = (typeof body.accepting === 'boolean') ? body.accepting : null;
+    const auto_accept = (typeof body.auto_accept === 'boolean') ? body.auto_accept : null;
+
+    // Upsert профиля, чтобы гарантировать наличие строки
+    await pool.query(
+      `INSERT INTO derma.doctor_profiles (user_id, accepting, auto_accept)
+       VALUES ($1, COALESCE($2, true), COALESCE($3, false))
+       ON CONFLICT (user_id) DO UPDATE SET
+         accepting   = COALESCE(EXCLUDED.accepting, derma.doctor_profiles.accepting),
+         auto_accept = COALESCE(EXCLUDED.auto_accept, derma.doctor_profiles.auto_accept)`,
+      [uid, accepting, auto_accept]
+    );
+
+    const dp = await pool.query(
+      `SELECT accepting, auto_accept FROM derma.doctor_profiles WHERE user_id=$1`,
+      [uid]
+    );
+
+    res.json({ ok:true, settings: dp.rows[0] || { accepting:null, auto_accept:null } });
+  }catch(e){
+    console.error('DOCTOR SETTINGS ERROR:', e);
+    res.status(500).json({ error: e.message });
+  }
+});
+
+
 app.get('/api/doctor/validate', tgAuth, async (req, res) => {
   try {
     await pool.query('SET search_path = derma, public');
@@ -835,7 +884,7 @@ app.get('/api/doctor/validate', tgAuth, async (req, res) => {
     const { rows } = await pool.query(`
       SELECT u.id AS doctor_id,
        COALESCE(u.full_name,'Врач') AS name,
-       dp.clinic, dp.city,
+       dp.clinic, dp.city, dp.accepting, dp.auto_accept,
        COALESCE(
          dp.avatar_url,
          NULLIF(u.tg_photo_url,''),
@@ -1133,7 +1182,7 @@ app.post('/api/doctor/attach', tgAuth, async (req, res) => {
     const { rows } = await pool.query(`
       SELECT u.id AS doctor_id,
        COALESCE(u.full_name,'Врач') AS name,
-       dp.clinic, dp.city,
+       dp.clinic, dp.city, dp.accepting, dp.auto_accept,
        COALESCE(
          dp.avatar_url,
          NULLIF(u.tg_photo_url,''),
@@ -1161,7 +1210,7 @@ app.get('/api/doctor/attached', tgAuth, async (req, res) => {
     const { rows } = await pool.query(`
       SELECT u.id AS doctor_id,
        COALESCE(u.full_name,'Врач') AS name,
-       dp.clinic, dp.city,
+       dp.clinic, dp.city, dp.accepting, dp.auto_accept,
        COALESCE(
          dp.avatar_url,
          NULLIF(u.tg_photo_url,''),
@@ -1197,7 +1246,7 @@ app.post('/api/doctor/request', tgAuth, async (req, res) => {
     const rCode = await pool.query(`
       SELECT u.id AS doctor_id,
        COALESCE(u.full_name,'Врач') AS name,
-       dp.clinic, dp.city,
+       dp.clinic, dp.city, dp.accepting, dp.auto_accept,
        COALESCE(
          dp.avatar_url,
          NULLIF(u.tg_photo_url,''),
@@ -1216,24 +1265,17 @@ app.post('/api/doctor/request', tgAuth, async (req, res) => {
     const doc = rCode.rows[0];
     const did = doc.doctor_id;
 
-    // Одна «pending» заявка на пациента
-    const rPending = await pool.query(
-      `SELECT id, status FROM derma.doctor_requests
-        WHERE patient_id=$1 AND status='pending'`,
+    // Одна «pending» заявка на пациента (без дублей)
+    // Сначала снимаем все предыдущие pending, затем создаём одну новую
+    await pool.query(
+      `DELETE FROM derma.doctor_requests WHERE patient_id=$1 AND status='pending'`,
       [pid]
     );
-    if (!rPending.rowCount) {
-      await pool.query(
-        `INSERT INTO derma.doctor_requests(patient_id, doctor_id, status)
-         VALUES ($1,$2,'pending')`, [pid, did]
-      );
-    } else {
-      // если уже была «pending» на другого врача — можно отменить или перекинуть, но для простоты просто сообщим
-      const old = rPending.rows[0];
-      if (old && did) {
-        await pool.query(`UPDATE derma.doctor_requests SET doctor_id=$2 WHERE id=$1`, [old.id, did]);
-      }
-    }
+    await pool.query(
+      `INSERT INTO derma.doctor_requests(patient_id, doctor_id, status)
+       VALUES ($1,$2,'pending')`,
+      [pid, did]
+    );
 
     // Автопринятие?
     // Автопринятие
@@ -1349,15 +1391,19 @@ app.get('/api/doctor/requests', tgAuth, async (req, res) => {
     const did = await userIdByTg(req.tg || req.tgUser?.id);
 
     const { rows } = await pool.query(
-      `SELECT dr.id,
-              dr.created_at,
-              p.id AS patient_id,
-              COALESCE(NULLIF(p.full_name,''), NULLIF(p.tg_username,''), 'Пациент') AS patient_name
-         FROM doctor_requests dr
-         JOIN users p ON p.id = dr.patient_id
-        WHERE dr.doctor_id = $1
-          AND dr.status = 'pending'
-        ORDER BY dr.created_at ASC`,
+      `SELECT * FROM (
+         SELECT DISTINCT ON (dr.patient_id)
+                dr.id,
+                dr.created_at,
+                p.id AS patient_id,
+                COALESCE(NULLIF(p.full_name,''), NULLIF(p.tg_username,''), 'Пациент') AS patient_name
+           FROM doctor_requests dr
+           JOIN users p ON p.id = dr.patient_id
+          WHERE dr.doctor_id = $1
+            AND dr.status = 'pending'
+          ORDER BY dr.patient_id, dr.created_at ASC
+      ) t
+      ORDER BY t.created_at ASC`,
       [did]
     );
     res.json(rows);
@@ -1379,7 +1425,7 @@ app.post('/api/doctor/requests/:id/accept', tgAuth, async (req, res) => {
 
     // помечаем заявку принятой и берём пациента
     const r = await pool.query(
-      `UPDATE doctor_requests
+      `UPDATE derma.doctor_requests
           SET status='accepted', decided_at = now()
         WHERE id=$1 AND doctor_id=$2 AND status='pending'
         RETURNING patient_id`,
@@ -1387,24 +1433,39 @@ app.post('/api/doctor/requests/:id/accept', tgAuth, async (req, res) => {
     );
     if (!r.rowCount) {
       await pool.query('ROLLBACK');
-      return res.status(404).json({ error: 'not found or already decided' });
+      return res.status(404).json({ error:'not found' });
     }
     const pid = r.rows[0].patient_id;
 
-    // закрываем предыдущую активную связь (если была)
+    // если вдруг были дубликаты pending на этого пациента — принимаем всё
     await pool.query(
-      `UPDATE patient_doctors
-          SET unbound_at = now()
-        WHERE patient_id = $1 AND unbound_at IS NULL`,
-      [pid]
+      `UPDATE derma.doctor_requests
+          SET status='accepted', decided_at=now()
+        WHERE doctor_id=$1 AND patient_id=$2 AND status='pending'`,
+      [did, pid]
     );
+    
 
-    // создаём новую активную связь (PK (patient_id,bound_at), активность = unbound_at IS NULL)
-    await pool.query(
-      `INSERT INTO patient_doctors (patient_id, doctor_id, bound_at, unbound_at)
-       VALUES ($1, $2, now(), NULL)`,
-      [pid, did]
-    );
+    // отвязываем от старых врачей
+await pool.query(
+  `UPDATE derma.patient_doctors
+      SET unbound_at = now()
+    WHERE patient_id = $1 AND unbound_at IS NULL`,
+  [pid]
+);
+
+// привязываем к этому врачу (ВАЖНО: status + upsert)
+await pool.query(
+  `INSERT INTO derma.patient_doctors (patient_id, doctor_id, status, bound_at, unbound_at)
+   VALUES ($1, $2, 'accepted', now(), NULL)
+   ON CONFLICT (patient_id, doctor_id)
+   DO UPDATE SET
+     status   = 'accepted',
+     bound_at = COALESCE(derma.patient_doctors.bound_at, EXCLUDED.bound_at),
+     unbound_at = NULL`,
+  [pid, did]
+);
+
 
     await pool.query('COMMIT');
     res.json({ ok: true });
@@ -1422,20 +1483,41 @@ app.post('/api/doctor/requests/:id/reject', tgAuth, async (req, res) => {
     const did = await userIdByTg(req.tg || req.tgUser?.id);
     const id  = Number(req.params.id);
 
+    await pool.query('BEGIN');
+
     const r = await pool.query(
       `UPDATE derma.doctor_requests
           SET status='rejected', decided_at=now()
-        WHERE id=$1 AND doctor_id=$2 AND status='pending'`,
+        WHERE id=$1 AND doctor_id=$2 AND status='pending'
+        RETURNING patient_id`,
       [id, did]
     );
-    if (!r.rowCount) return res.status(404).json({ error:'not found' });
 
+    if (!r.rowCount) {
+      await pool.query('ROLLBACK');
+      return res.status(404).json({ error:'not found' });
+    }
+
+    const pid = r.rows[0].patient_id;
+
+    // закрываем возможные дубли pending по этому же пациенту у этого же врача
+    await pool.query(
+      `UPDATE derma.doctor_requests
+          SET status='rejected', decided_at=now()
+        WHERE patient_id=$1 AND doctor_id=$2 AND status='pending'`,
+      [pid, did]
+    );
+
+    await pool.query('COMMIT');
     res.json({ ok:true });
+
   } catch (e) {
+    try { await pool.query('ROLLBACK'); } catch(_) {}
     console.error('DOCTOR REQUEST REJECT ERROR:', e);
     res.status(500).json({ error: e.message });
   }
 });
+
 
 
 app.delete('/api/doctor/attach', tgAuth, async (req, res) => {

@@ -1249,17 +1249,48 @@ const tg = new URLSearchParams(location.search).get('tg') || localStorage.getIte
 }
 
     // ===== Заявки
-    function updateRequestsTips(){
-      var settings=storage.get('doctorSettings',{autoAccept:false});
-      var hint=q('#autoAcceptHint'); if(hint) hint.style.display = settings.autoAccept ? 'block' : 'none';
-    }
-    var sw=q('#autoSwitch'); if(sw) sw.addEventListener('click', function(){
-      var st=storage.get('doctorSettings',{autoAccept:false});
-      sw.classList.toggle('on');
-      st.autoAccept=sw.classList.contains('on');
-      storage.set('doctorSettings',st);
-      updateRequestsTips();
+   // ===== Заявки
+function updateRequestsTips(){
+  var settings = storage.get('doctorSettings',{autoAccept:false});
+  var hint = q('#autoAcceptHint');
+  if (hint) hint.style.display = settings.autoAccept ? 'block' : 'none';
+
+  var sw = q('#autoSwitch');
+  if (sw) sw.classList.toggle('on', !!settings.autoAccept);
+}
+
+async function setAutoAccept(val){
+  // 1) сразу обновим UI + local
+  var st = storage.get('doctorSettings',{autoAccept:false});
+  st.autoAccept = !!val;
+  storage.set('doctorSettings', st);
+  updateRequestsTips();
+
+  // 2) отправим на сервер (в БД)
+  try{
+    var r = await api('/api/doctor/settings', {
+      method: 'POST',
+      body: { auto_accept: !!val }
     });
+    if (r.ok){
+      var j = await r.json();
+      if (j && j.settings && typeof j.settings.auto_accept === 'boolean'){
+        st.autoAccept = !!j.settings.auto_accept;
+        storage.set('doctorSettings', st);
+        updateRequestsTips();
+      }
+    }
+  }catch(e){
+    console.error('auto_accept save error', e);
+  }
+}
+
+var sw = q('#autoSwitch');
+if (sw) sw.addEventListener('click', function(){
+  var st = storage.get('doctorSettings',{autoAccept:false});
+  setAutoAccept(!st.autoAccept);
+});
+
 
     async function loadRequests(){
       try{
@@ -1384,6 +1415,20 @@ const tg = new URLSearchParams(location.search).get('tg') || localStorage.getIte
           if (av) try{ localStorage.setItem('doctorAvatarUrl', av);}catch(_){}
         }
       }catch(_){}
+      // подтягиваем auto_accept с сервера → в local settings, чтобы тумблер был “правдой”
+if (j && j.profile){
+  var aa =
+    (typeof j.profile.auto_accept === 'boolean') ? j.profile.auto_accept :
+    (typeof j.profile.autoAccept === 'boolean') ? j.profile.autoAccept :
+    null;
+
+  if (typeof aa === 'boolean'){
+    var ds = storage.get('doctorSettings',{autoAccept:false});
+    ds.autoAccept = !!aa;
+    storage.set('doctorSettings', ds);
+  }
+}
+
     }
 
     function renderAll(){ renderPatients(); renderProfile(); updateRequestsTips(); }

@@ -1788,7 +1788,54 @@ window.addEventListener('storage',e=>{
       linear-gradient(180deg, rgba(25,60,80,.55), rgba(10,20,32,.55));
     box-shadow: inset 0 0 0 2px rgba(34,211,238,.12), 0 0 22px rgba(34,211,238,.14);
     flex:0 0 auto;
+    position: relative;
+display: grid;
+place-items: center;
+overflow: hidden;
   }
+  .rt-loader-pill{
+  width: 30px;
+  height: 14px;
+  border-radius: 999px;
+  transform: rotate(-18deg);
+  position: relative;
+
+  background: linear-gradient(
+    90deg,
+    rgba(233,246,255,.95) 0 49%,
+    rgba(34,211,238,.95) 51% 100%
+  );
+
+  box-shadow:
+    0 8px 18px rgba(0,0,0,.35),
+    0 0 14px rgba(34,211,238,.22);
+}
+
+/* шов капсулы */
+.rt-loader-pill::after{
+  content:"";
+  position:absolute;
+  left:50%;
+  top:-2px;
+  bottom:-2px;
+  width:2px;
+  transform:translateX(-50%);
+  background: rgba(0,0,0,.18);
+  border-radius:2px;
+  box-shadow: inset 0 0 0 1px rgba(255,255,255,.08);
+}
+
+/* блик */
+.rt-loader-pill::before{
+  content:"";
+  position:absolute;
+  inset:2px;
+  border-radius:999px;
+  background: radial-gradient(circle at 30% 25%, rgba(255,255,255,.35), rgba(255,255,255,0) 60%);
+  opacity:.7;
+  mix-blend-mode: screen;
+}
+
   .rt-loader-title{
     font-weight:800;
     font-size:18px;
@@ -1907,7 +1954,9 @@ window.addEventListener('storage',e=>{
   <!-- Boot loader (auto-hides; prevents initial flash) -->
   <div id="rt-loader" aria-hidden="true">
     <div class="rt-loader-card">
-      <div class="rt-loader-dot"></div>
+      <div class="rt-loader-dot" aria-hidden="true">
+        <div class="rt-loader-pill" aria-hidden="true"></div>
+      </div>
       <div class="rt-loader-meta">
         <div class="rt-loader-title">Retiora — Дневник</div>
         <div class="rt-loader-sub">Загружаю день...</div>

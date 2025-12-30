@@ -32,7 +32,18 @@
         var(--bg);
       color:var(--text);
       font-family: ui-sans-serif,system-ui,-apple-system,Segoe UI,Inter,Roboto,Manrope,Helvetica,Arial;
+      opacity:0;
+visibility:hidden;
+pointer-events:none;
+transition: opacity .18s ease, visibility 0s linear .18s;
     }
+    body.rt-loading #rt-loader{
+  opacity:1;
+  visibility:visible;
+  pointer-events:auto;
+  transition: opacity .18s ease;
+}
+
     /* LIGHT — персик + лаванда */
     #rt-loader[data-scheme="light"]{
       --bg:#FFF9FD; --card:#FFFFFF; --border:#F0E7FF;
@@ -1369,31 +1380,41 @@ window.addEventListener('storage',e=>{
   </div>
 </div>
 
-<script>
-(function(){
-  const el = document.getElementById('rt-loader');
-  if (!el) return;
-
-  // Подхватываем тему (если Telegram/WebApp доступен) — иначе остаёмся в dark
-  try{
-    const tgScheme = window.Telegram?.WebApp?.colorScheme;
-    const bodyTheme = document.body?.dataset?.theme;
-    const scheme = (tgScheme || bodyTheme || 'dark');
-    el.dataset.scheme = (String(scheme).toLowerCase() === 'light') ? 'light' : 'dark';
-  }catch(_){}
-
-  window.rtHideLoader = function(){
-    const l = document.getElementById('rt-loader');
-    if (!l) return;
-    l.style.transition = 'opacity .18s ease';
-    l.style.opacity = '0';
-    setTimeout(()=>{ try{ l.remove(); }catch(_){ l.style.display='none'; } }, 220);
-  };
-
-  // Safety: если где-то упадёт JS, не зависаем на лоадере навсегда
-  setTimeout(()=>{ try{ window.rtHideLoader && window.rtHideLoader(); }catch(_){ } }, 8000);
-})();
-</script>
+<script id="rt-loader-buffering">
+  (function(){
+    const body = document.body;
+    const el = document.getElementById('rt-loader');
+    if (!body || !el) return;
+  
+    let done = false;
+    const SHOW_AFTER_MS = 380;
+    const t = setTimeout(()=>{ if(done) return; body.classList.add('rt-loading'); }, SHOW_AFTER_MS);
+  
+    try{
+      const tgScheme = window.Telegram?.WebApp?.colorScheme;
+      const bodyTheme = document.body?.dataset?.theme;
+      const scheme = (tgScheme || bodyTheme || 'dark');
+      el.dataset.scheme = (String(scheme).toLowerCase() === 'light') ? 'light' : 'dark';
+    }catch(_){}
+  
+    window.rtHideLoader = function(){
+      if (done) return;
+      done = true;
+      clearTimeout(t);
+      body.classList.remove('rt-loading');
+  
+      try{
+        el.style.transition = 'opacity .18s ease';
+        el.style.opacity = '0';
+        setTimeout(()=>{ try{ el.remove(); }catch(_){ el.style.display='none'; } }, 220);
+      }catch(_){ try{ el.remove(); }catch(__){} }
+    };
+  
+    setTimeout(()=>{ try{ window.rtHideLoader && window.rtHideLoader(); }catch(_){ } }, 8000);
+    window.addEventListener('pageshow', (e)=>{ if(e.persisted) window.rtHideLoader && window.rtHideLoader(); });
+  })();
+  </script>
+  
 <!-- /RT LOADER -->
 
 

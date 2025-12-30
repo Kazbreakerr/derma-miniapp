@@ -263,9 +263,151 @@ document.documentElement.dataset.theme = cur;
     .brand-dash{ font-size:20px; }
   }
 </style>
-
+<!-- RT: conditional buffering loader (HEAD) -->
+<script id="rt-loader-netcheck">
+  (function(){
+    try{
+      const c  = navigator.connection || navigator.mozConnection || navigator.webkitConnection;
+      const et = (c && c.effectiveType) ? String(c.effectiveType) : '';
+      const slow = !!(c && (c.saveData || et === '3g' || et === '2g' || et === 'slow-2g'));
+      if(slow) document.documentElement.classList.add('rt-net-slow','rt-show-loader');
+    }catch(_){}
+  })();
+  </script>
+  
+  <style id="rt-buffer-loader">
+    /* overlay */
+    #rt-loader{
+      position:fixed; inset:0;
+      display:flex; align-items:center; justify-content:center;
+      z-index:99999;
+      opacity:0; pointer-events:none;
+      transition:opacity .18s ease;
+      background:
+        radial-gradient(1200px 600px at 50% 28%, rgba(86,255,226,.10), rgba(0,0,0,0) 60%),
+        linear-gradient(180deg, rgba(6,10,20,.92), rgba(6,10,20,.96));
+      backdrop-filter: blur(10px);
+      -webkit-backdrop-filter: blur(10px);
+    }
+    html.rt-show-loader #rt-loader{ opacity:1; pointer-events:auto; }
+  
+    /* hide page content only when predicted slow (so no "partial render" flash) */
+    html.rt-net-slow body > :not(#rt-loader){
+      opacity:0 !important;
+      pointer-events:none !important;
+    }
+    body > :not(#rt-loader){ transition: opacity .18s ease; }
+  
+    /* card */
+    .rt-loader-card{
+      width:min(780px, calc(100vw - 32px));
+      padding:22px 22px;
+      border-radius:22px;
+      background: rgba(14, 21, 33, .72);
+      border:1px solid rgba(255,255,255,.08);
+      box-shadow: 0 22px 60px rgba(0,0,0,.55), inset 0 1px 0 rgba(255,255,255,.10);
+      display:flex; align-items:center; gap:18px;
+    }
+  
+    .rt-loader-dot{
+      width:56px; height:56px; border-radius:999px;
+      position:relative;
+      display:grid; place-items:center;
+      background:
+        radial-gradient(circle at 30% 30%, rgba(72,231,214,.35), rgba(198,176,255,.18) 55%, rgba(0,0,0,0) 72%),
+        rgba(10,16,28,.85);
+      box-shadow: 0 18px 40px rgba(0,0,0,.55),
+        inset 0 1px 0 rgba(255,255,255,.12),
+        0 0 0 1px rgba(255,255,255,.08);
+    }
+    .rt-loader-dot:before{
+      content:"";
+      position:absolute; inset:-10px;
+      border-radius:999px;
+      background: radial-gradient(circle at 50% 50%, rgba(72,231,214,.22), rgba(198,176,255,0) 60%);
+      filter: blur(8px);
+      opacity:.65;
+    }
+    .rt-loader-dot:after{
+      content:"";
+      position:absolute; inset:0;
+      border-radius:999px;
+      background: linear-gradient(135deg, rgba(72,231,214,.22), rgba(198,176,255,.18));
+      mix-blend-mode: screen;
+      opacity:.25;
+    }
+    .rt-loader-ico{
+      position:relative;
+      font-size:26px;
+      filter: drop-shadow(0 10px 18px rgba(72,231,214,.25));
+    }
+  
+    .rt-loader-meta{ flex:1; min-width:0; }
+    .rt-loader-title{
+      font-weight: 900;
+      font-size: 22px;
+      letter-spacing: .2px;
+      color: rgba(236,248,255,.96);
+      line-height:1.15;
+      margin:0 0 6px;
+    }
+    .rt-loader-sub{
+      font-weight: 650;
+      font-size: 14px;
+      color: rgba(236,248,255,.62);
+      margin:0 0 12px;
+    }
+  
+    .rt-loader-bar{
+      height:8px;
+      border-radius:999px;
+      background: rgba(255,255,255,.08);
+      overflow:hidden;
+      box-shadow: inset 0 1px 0 rgba(255,255,255,.08);
+    }
+    .rt-loader-bar span{
+      display:block; height:100%;
+      width:34%;
+      border-radius:999px;
+      background: linear-gradient(90deg,
+        rgba(72,231,214,0),
+        rgba(72,231,214,.75),
+        rgba(198,176,255,.75),
+        rgba(255,215,0,.60),
+        rgba(72,231,214,0)
+      );
+      transform: translateX(-60%);
+      animation: rtLoaderBar 1.05s ease-in-out infinite;
+    }
+    @keyframes rtLoaderBar{
+      0%{ transform: translateX(-60%); }
+      50%{ transform: translateX(220%); }
+      100%{ transform: translateX(-60%); }
+    }
+  
+    @media (max-width:420px){
+      .rt-loader-card{ padding:18px 16px; border-radius:20px; gap:14px; }
+      .rt-loader-title{ font-size:18px; }
+      .rt-loader-sub{ font-size:13px; margin-bottom:10px; }
+    }
+    @media (prefers-reduced-motion: reduce){
+      .rt-loader-bar span{ animation:none; }
+    }
+  </style>
+  
 </head>
 <body>
+  <div id="rt-loader" aria-hidden="true">
+    <div class="rt-loader-card">
+      <div class="rt-loader-dot"><span class="rt-loader-ico">💊</span></div>
+      <div class="rt-loader-meta">
+        <div class="rt-loader-title">Retiora — FAQ</div>
+        <div class="rt-loader-sub">Загружаю справку…</div>
+        <div class="rt-loader-bar" aria-hidden="true"><span></span></div>
+      </div>
+    </div>
+  </div>
+  
 <script>
 (function(){
   try{
@@ -650,6 +792,95 @@ document.addEventListener('DOMContentLoaded', function(){
   setInterval(()=>{ i = (i + 1) % variants.length; apply(i, true); }, 60000);
 })();
 </script>
-
+<!-- RT: conditional buffering loader (BODY end) -->
+<script id="rt-buffer-loader-js">
+  (function(){
+    const root = document.documentElement;
+    const loader = document.getElementById('rt-loader');
+    if(!loader) return;
+  
+    let pending = 0;
+    let showTimer = null;
+    let shownAt = 0;
+  
+    const conn = navigator.connection || navigator.mozConnection || navigator.webkitConnection;
+    const et = (conn && conn.effectiveType) ? String(conn.effectiveType) : '';
+    const netSlow = !!(conn && (conn.saveData || et === '3g' || et === '2g' || et === 'slow-2g'));
+  
+    function show(){
+      if(root.classList.contains('rt-show-loader')) return;
+      root.classList.add('rt-show-loader');
+      loader.setAttribute('aria-hidden','false');
+      shownAt = performance.now();
+    }
+  
+    function hide(){
+      const minVisible = 320; // чтобы не мигало, если показали — держим чуть-чуть
+      const wait = Math.max(0, minVisible - (performance.now() - shownAt));
+  
+      setTimeout(()=>{
+        root.classList.remove('rt-show-loader','rt-net-slow');
+        loader.setAttribute('aria-hidden','true');
+      }, wait);
+    }
+  
+    function scheduleShow(){
+      if(showTimer) return;
+      const delay = netSlow ? 120 : 650;
+  
+      showTimer = setTimeout(()=>{
+        showTimer = null;
+        if(pending > 0 && document.visibilityState !== 'hidden') show();
+      }, delay);
+    }
+  
+    function inc(){ pending++; scheduleShow(); }
+    function dec(){
+      pending = Math.max(0, pending - 1);
+      if(pending === 0) hide();
+    }
+  
+    // Patch fetch + XHR on this page
+    if(!window.__rtLoaderPatched){
+      window.__rtLoaderPatched = true;
+  
+      const _fetch = window.fetch;
+      if(typeof _fetch === 'function'){
+        window.fetch = function(...args){
+          inc();
+          return _fetch.apply(this, args).finally(dec);
+        };
+      }
+  
+      const _open = XMLHttpRequest.prototype.open;
+      const _send = XMLHttpRequest.prototype.send;
+  
+      XMLHttpRequest.prototype.open = function(...args){
+        this.__rtTrack = true;
+        return _open.apply(this, args);
+      };
+      XMLHttpRequest.prototype.send = function(...args){
+        if(this.__rtTrack){
+          inc();
+          this.addEventListener('loadend', dec, {once:true});
+        }
+        return _send.apply(this, args);
+      };
+    }
+  
+    // Если сеть "медленная" по данным браузера — покажем быстро даже без fetch (на случай тяжёлых ресурсов)
+    if(netSlow){
+      setTimeout(()=>{ if(document.readyState !== 'complete') show(); }, 260);
+    }
+  
+    // Когда страница полностью загрузилась — прячем
+    window.addEventListener('load', ()=>{ pending = 0; hide(); }, {once:true});
+  
+    // Опционально: если у тебя есть долгий init, можешь в конце явно вызвать:
+    // window.rtLoaderDone();
+    window.rtLoaderDone = ()=>{ pending = 0; hide(); };
+  })();
+  </script>
+  
 </body>
 </html>
