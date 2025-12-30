@@ -1750,8 +1750,172 @@ window.addEventListener('storage',e=>{
 }
 </style>
 
+
+<style id="rt-diary-fixes">
+  /* --- Boot loader that NEVER sticks (pure CSS auto-hide) --- */
+  #rt-loader{
+    position:fixed;
+    inset:0;
+    z-index:9999;
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    background: radial-gradient(1200px 800px at 50% 15%, rgba(34,211,238,.10), rgba(0,0,0,0) 55%),
+                linear-gradient(180deg, rgba(7,14,24,1) 0%, rgba(5,11,20,1) 100%);
+    animation: rtLoaderFade 0.9s ease 0.65s forwards;
+  }
+  @keyframes rtLoaderFade{
+    to{ opacity:0; visibility:hidden; pointer-events:none; }
+  }
+  .rt-loader-card{
+    width:min(560px, calc(100vw - 28px));
+    padding:18px 18px 16px 18px;
+    border-radius:18px;
+    background: linear-gradient(180deg, rgba(255,255,255,.08), rgba(255,255,255,.03));
+    border:1px solid rgba(255,255,255,.10);
+    box-shadow: 0 18px 60px rgba(0,0,0,.45);
+    display:flex;
+    gap:14px;
+    align-items:center;
+    backdrop-filter: blur(14px) saturate(1.05);
+    -webkit-backdrop-filter: blur(14px) saturate(1.05);
+  }
+  .rt-loader-dot{
+    width:52px; height:52px; border-radius:50%;
+    background:
+      radial-gradient(circle at 35% 30%, rgba(255,255,255,.22), rgba(255,255,255,0) 55%),
+      radial-gradient(circle at 55% 65%, rgba(34,211,238,.18), rgba(0,0,0,0) 60%),
+      linear-gradient(180deg, rgba(25,60,80,.55), rgba(10,20,32,.55));
+    box-shadow: inset 0 0 0 2px rgba(34,211,238,.12), 0 0 22px rgba(34,211,238,.14);
+    flex:0 0 auto;
+  }
+  .rt-loader-title{
+    font-weight:800;
+    font-size:18px;
+    letter-spacing:.01em;
+    color: rgba(233,246,255,.95);
+    line-height:1.15;
+  }
+  .rt-loader-sub{
+    margin-top:4px;
+    font-size:13px;
+    color: rgba(233,246,255,.68);
+  }
+  .rt-loader-bar{
+    margin-top:10px;
+    height:6px;
+    border-radius:999px;
+    background: rgba(255,255,255,.08);
+    overflow:hidden;
+    position:relative;
+  }
+  .rt-loader-bar span{
+    position:absolute; inset:0;
+    width:38%;
+    border-radius:999px;
+    background: linear-gradient(90deg, rgba(34,211,238,.0), rgba(34,211,238,.95), rgba(250,204,21,.95), rgba(34,211,238,.85), rgba(34,211,238,.0));
+    animation: rtBar 1.1s ease-in-out infinite;
+    filter: drop-shadow(0 0 10px rgba(34,211,238,.18));
+  }
+  @keyframes rtBar{
+    0%{ transform: translateX(-120%); opacity:.55; }
+    45%{ opacity:1; }
+    100%{ transform: translateX(260%); opacity:.6; }
+  }
+
+  /* --- Date wheel height slightly reduced (about 12%) --- */
+  :root{
+    --dcH: 64px;         /* base height */
+    --dcHActive: 82px;   /* active capsule height */
+  }
+  /* try to match common classes used in diary date carousel */
+  .date-carousel, #dateCarousel, .dc-wrap { height:auto; }
+  .dc-item{ height: var(--dcH) !important; }
+  .dc-item.is-active, .dc-item.active{ height: var(--dcHActive) !important; }
+
+  @media (max-width: 420px){
+    :root{ --dcH: 58px; --dcHActive: 76px; }
+  }
+</style>
+
+
+<style id="rt-diary-arc">
+  /* Soft edge fade for side dates (if carousel assigns --dist from center: 0..n) */
+  .dc-item{
+    --dist: 0;
+    opacity: calc(1 - (min(var(--dist), 4) * 0.12));
+    filter: blur(calc(min(var(--dist), 4) * 0.6px));
+    transform: translateY(calc(min(var(--dist), 4) * -2px));
+    transition: transform .18s ease, filter .18s ease, opacity .18s ease;
+  }
+  .dc-item.is-active, .dc-item.active{
+    opacity: 1;
+    filter: blur(0);
+    transform: translateY(0);
+  }
+</style>
+
+
+<style id="rt-diary-loader-a11y">
+  @media (prefers-reduced-motion: reduce){
+    #rt-loader{ animation: rtLoaderFade 0.01s linear 0.2s forwards; }
+    .rt-loader-bar span{ animation: none; }
+  }
+</style>
+
+
+<style id="rt-date-picker-compact">
+  /* ↓ Date carousel: make the whole picker ~12–15% shorter (mostly height) */
+  .day-nav .dc-wrap{ padding-top: 0 !important; padding-bottom: 0 !important; }
+
+  .date-track{
+    /* was: padding: 10px ... 6px; */
+    padding-top: 8px !important;
+    padding-bottom: 4px !important;
+  }
+
+  /* default pills */
+  .dc-item{
+    height: 46px !important;        /* was 54px */
+    border-radius: 14px !important; /* was 16px */
+    gap: 1px !important;            /* was 2px */
+  }
+  .dc-item .dc-day{ font-size: 15px !important; } /* was 16px */
+  .dc-item .dc-wd { font-size: 10px !important; } /* was 11px */
+
+  /* active capsule */
+  .dc-item.is-active{
+    height: 56px !important;        /* was 66px */
+    border-radius: 20px !important; /* was 22px */
+  }
+  .dc-item.is-active .dc-month{ font-size: 9px !important; }
+  .dc-item.is-active .dc-day  { font-size: 20px !important; } /* was 22px */
+  .dc-item.is-active .dc-tag  { font-size: 9px !important; margin-top: 1px !important; }
+
+  @media (max-width: 360px){
+    .date-track{ padding-top: 7px !important; padding-bottom: 3px !important; }
+    .dc-item{ height: 44px !important; border-radius: 13px !important; }
+    .dc-item.is-active{ height: 54px !important; border-radius: 18px !important; }
+    .dc-item .dc-day{ font-size: 14px !important; }
+    .dc-item.is-active .dc-day{ font-size: 19px !important; }
+  }
+</style>
+
 </head>
 <body>
+
+  <!-- Boot loader (auto-hides; prevents initial flash) -->
+  <div id="rt-loader" aria-hidden="true">
+    <div class="rt-loader-card">
+      <div class="rt-loader-dot"></div>
+      <div class="rt-loader-meta">
+        <div class="rt-loader-title">Retiora — Дневник</div>
+        <div class="rt-loader-sub">Загружаю день...</div>
+        <div class="rt-loader-bar"><span></span></div>
+      </div>
+    </div>
+  </div>
+
 <script>
 (function(){
   try{
@@ -2367,6 +2531,38 @@ datePicker.addEventListener('change', e => {
     return '';
   }
 
+  // Дугообразная "глубина": соседние дни выше, крайние — более размытые
+  let arcRaf = 0;
+  function applyArc(){
+    arcRaf = 0;
+    const r = scroller.getBoundingClientRect();
+    const cx = r.left + r.width/2;
+    const max = r.width * 0.46; // зона, где растёт эффект
+
+    for (const el of track.children){
+      if (!(el instanceof HTMLElement)) continue;
+      if (el.classList.contains('is-active')) continue; // активный — всегда "в центре"
+      const b = el.getBoundingClientRect();
+      const ex = b.left + b.width/2;
+      const a = Math.min(1, Math.abs(ex - cx) / max);   // 0..1
+      const t = Math.pow(a, 1.22);
+
+      const dy    = -(22 * Math.pow(t, 1.10));       // дуга: выше к краям
+      const blur  = 0.06 + 2.60 * Math.pow(t, 2.10); // рядом почти без блюра, на краях заметнее
+      const op    = Math.max(0.22, 0.96 - 0.74 * Math.pow(t, 1.20));
+      const scale = 1 - 0.09 * Math.pow(t, 1.10);
+el.style.setProperty('--dc-dy',    dy.toFixed(1) + 'px');
+      el.style.setProperty('--dc-blur',  blur.toFixed(2) + 'px');
+      el.style.setProperty('--dc-op',    op.toFixed(2));
+      el.style.setProperty('--dc-scale', scale.toFixed(3));
+    }
+  }
+  function requestApplyArc(){
+    if (arcRaf) return;
+    arcRaf = requestAnimationFrame(applyArc);
+  }
+
+
   function buildItem(iso){
     const btn = document.createElement('button');
     btn.type = 'button';
@@ -2424,8 +2620,6 @@ datePicker.addEventListener('change', e => {
   function markActive(iso, {center=true, behavior='smooth'} = {}){
     activeISO = iso;
 
-    const activeIdx = inWindow(iso);
-
     for (const el of track.children){
       const on = (el.dataset.iso === iso);
       el.classList.toggle('is-active', on);
@@ -2436,22 +2630,8 @@ datePicker.addEventListener('change', e => {
       if (tagEl){
         const tg = tagFor(el.dataset.iso);
         tagEl.textContent = tg || '';
-      }
-      // depth/curve based on distance from active (edges blur more + arc shape)
-      const idx = inWindow(el.dataset.iso);
-      const dist = Math.abs(idx - activeIdx);
-      const step = Math.min(4, dist);
-
-      const op    = [1, .78, .60, .42, .28][step];
-      const blur  = [0, .06, .28, .75, 1.25][step];
-      const scale = [1, .975, .95, .93, .92][step];
-      const dy    = -[0, 6, 12, 18, 22][step]; // neighbors выше (дуга)
-
-      el.style.setProperty('--dc-op', op);
-      el.style.setProperty('--dc-blur', blur + 'px');
-      el.style.setProperty('--dc-scale', scale);
-      el.style.setProperty('--dc-dy', dy + 'px');
-
+          requestApplyArc();
+  }
     }
 
     if (center){
@@ -2516,6 +2696,10 @@ datePicker.addEventListener('change', e => {
 
   scroller.addEventListener('scroll', onScroll, {passive:true});
 
+  // при ресайзе/повороте — пересчитать дугу
+  window.addEventListener('resize', requestApplyArc, {passive:true});
+
+
   // tap по элементу — центрируем + делаем активным
 track.addEventListener('click', (e)=>{
   const btn = e.target && e.target.closest ? e.target.closest('.dc-item') : null;
@@ -2574,6 +2758,7 @@ track.addEventListener('click', (e)=>{
     _todayISO();
 
   renderWindow(startISO);
+  requestApplyArc();
 })();
 
 
@@ -5633,11 +5818,18 @@ body.wheel-open{ overflow:hidden; touch-action:none; overscroll-behavior: none; 
 .day-nav > .nav-arrow{ display:none !important; }
 
 .day-nav .dc-wrap{
+  position:relative;
   width:100%;
   min-width:0;
-  padding: 2px 0;            /* лёгкая "воздух" */
+  padding: 0;            /* no separate panel */
+  border-radius: 0;
+  background: transparent;
+  border: 0;
+  box-shadow: none;
+  overflow: visible;
 }
 
+/* лёгкий "дугообразный" блик панели */
 /* scroll area */
 .date-carousel{
   width:100%;
@@ -5651,11 +5843,30 @@ body.wheel-open{ overflow:hidden; touch-action:none; overscroll-behavior: none; 
 }
 .date-carousel::-webkit-scrollbar{ display:none; }
 
+/* мягкое затухание по краям (усиливает эффект "размытия" крайних дат) */
+.date-carousel::before,
+.date-carousel::after{
+  content:"";
+  position:absolute;
+  top:0; bottom:0;
+  width: 52px;
+  pointer-events:none;
+  z-index: 3;
+}
+.date-carousel::before{
+  left:0;
+  background: linear-gradient(90deg, rgba(10,16,28,.92), rgba(10,16,28,0));
+}
+.date-carousel::after{
+  right:0;
+  background: linear-gradient(270deg, rgba(10,16,28,.92), rgba(10,16,28,0));
+}
+
 .date-track{
   display:flex;
-  align-items:center;
+  align-items:flex-end;
   gap: 10px;
-  padding: 8px calc(50% - clamp(64px, 18vw, 86px)/2);
+  padding: 10px calc(50% - clamp(64px, 18vw, 86px)/2) 6px;
 }
 
 /* items */
@@ -5675,17 +5886,18 @@ body.wheel-open{ overflow:hidden; touch-action:none; overscroll-behavior: none; 
   justify-content:center;
   gap: 2px;
   cursor:pointer;
+
   /* dynamic depth/curve (set via JS) */
   --dc-op: .55;
   --dc-scale: .92;
-  --dc-blur: .15px;
+  --dc-blur: .35px;
   --dc-dy: 0px;
 
   opacity: var(--dc-op);
   transform: translateY(var(--dc-dy)) translateZ(0) scale(var(--dc-scale));
   filter: blur(var(--dc-blur));
   transition: transform .18s ease, opacity .18s ease, filter .18s ease;
-  will-change: transform;
+  will-change: transform, filter, opacity;
 }
 
 .dc-item .dc-month,
@@ -5707,15 +5919,19 @@ body.wheel-open{ overflow:hidden; touch-action:none; overscroll-behavior: none; 
 
 /* active bubble */
 .dc-item.is-active{
-  width: clamp(64px, 18vw, 86px);
-  height: 66px;
-  border-radius: 22px;
   /* active resets curve/blur */
   --dc-op: 1;
   --dc-scale: 1;
   --dc-blur: 0px;
   --dc-dy: 0px;
 
+  width: clamp(64px, 18vw, 86px);
+  height: 66px;
+  border-radius: 22px;
+
+  opacity: 1;
+  filter: none;
+  transform: translateZ(0) scale(1);
 
   background:
     radial-gradient(120% 120% at 30% 20%, rgba(255,255,255,.16), transparent 55%),
