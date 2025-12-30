@@ -893,8 +893,55 @@ body.light .seg button{
   outline-offset: -2px;
   box-shadow: 0 10px 28px rgba(90,167,255,.30), inset 0 1px 0 rgba(255,255,255,.06);
 }
-#cardCalendar .marks{position:absolute; left:6px; right:6px; bottom:8px;display:flex; align-items:center; justify-content:flex-start;gap:6px; width:auto; z-index:2;}
-#cardCalendar .dose{display:flex; align-items:center; gap:4px;font-weight:800; font-size:12px; line-height:1.1; min-width:0;}
+/* FIX: дозировка всегда снизу по центру и влезает в ячейку */
+/* FIX: дозировка всегда снизу по центру и никогда не вылазит за ячейку */
+#cardCalendar .marks{
+  position:absolute;
+  left:6px;
+  right:6px;
+  bottom:7px;
+
+  display:flex;
+  align-items:center;
+  justify-content:center;     /* центрируем снизу */
+  gap:6px;
+
+  z-index:2;
+  pointer-events:none;        /* чтобы дозировка не мешала клику по дню */
+}
+
+#cardCalendar .dose{
+  display:inline-flex;
+  align-items:center;
+  justify-content:center;
+  gap:4px;
+
+  font-weight:900;
+  line-height:1;
+
+  max-width:100%;
+  min-width:0;
+}
+
+#cardCalendar .dose .val{
+  max-width:100%;
+  min-width:0;
+
+  white-space:nowrap;
+  overflow:hidden;            /* если прям совсем узко — не вылезаем */
+  text-overflow:ellipsis;
+  text-align:center;
+
+  /* авто-уменьшение шрифта под ширину ячейки */
+  font-size:clamp(8px, 2.4vw, 12px);
+  letter-spacing:-0.02em;
+}
+
+/* на очень узких экранах ещё чуть ужмём капсулу */
+@media (max-width:360px){
+  #cardCalendar .dose{ gap:3px; }
+  #cardCalendar .dose .capsule{ width:12px; height:8px; }
+}
 #cardCalendar .dose .capsule{
   position:relative; width:14px; height: 9px; border-radius:999px;
   background: linear-gradient(90deg, #ffffff 0 50%, #14b8a6 0 100%);
@@ -902,7 +949,7 @@ body.light .seg button{
   box-shadow: inset 0 1px 0 rgba(255,255,255,.90), inset 0 -1px 0 rgba(0,0,0,.25), 0 1.5px 2.5px rgba(0,0,0,.35);
 }
 
-#cardCalendar .dose .val{ white-space:nowrap; min-width:0; font-size:12px; line-height:1; }
+
 #cardCalendar .dose .capsule::after{
   content:""; position:absolute; left:50%; top:1px; bottom:1px; width:1px; transform:translateX(-.5px);
   background: linear-gradient(180deg, rgba(255,255,255,.65), rgba(0,0,0,.35));
@@ -911,6 +958,10 @@ body.light .seg button{
   content:""; position:absolute; left:10%; top:10%; width:40%; height:45%; border-radius:999px;
   background: radial-gradient(70% 70% at 30% 30%, rgba(255,255,255,.9), rgba(255,255,255,0));
   filter: blur(.3px);
+}
+@media (max-width:360px){
+  #cardCalendar .dose{ gap:3px; }
+  #cardCalendar .dose .capsule{ width:12px; height:8px; }
 }
 /* === Glow по оценкам самочувствия (диарий) для мини-календаря === */
 #cardCalendar .day{ isolation:isolate; position:relative; }
@@ -930,9 +981,15 @@ body.light .seg button{
 /* FIX: чтобы glow не "мыл" цифры/контент в ячейке */
 #cardCalendar .day{ position: relative; isolation: isolate; }
 #cardCalendar .day::after{ z-index: 0; }
-#cardCalendar .day > *{
+#cardCalendar .day > *:not(.marks){
   position: relative;
   z-index: 1;
+}
+
+/* на всякий — принудительно возвращаем абсолют для дозировки */
+#cardCalendar .marks{
+  position: absolute;
+  z-index: 2;
 }
 
 /* уровни настроения 1..7 → разный оттенок свечения */
@@ -1223,6 +1280,59 @@ body.light .tab.active{ color:#0d1220; background: linear-gradient(180deg, rgba(
   @media (prefers-reduced-motion: reduce){
     .rt-modal__btn, .rt-modal__x{ transition:none !important; }
   }
+/* === MINI-CALENDAR OVERRIDE: капсула по центру, число дозы снизу по центру (влезает на телефонах) === */
+#cardCalendar .marks{
+  position:absolute !important;
+  inset:0 !important;
+  z-index:3 !important;
+  pointer-events:none !important;
+  display:block !important;         /* перебиваем flex-верстку */
+}
+
+#cardCalendar .dose{
+  position:absolute !important;
+  inset:0 !important;
+  display:block !important;
+  max-width:100% !important;
+  min-width:0 !important;
+}
+
+/* капсула строго по центру */
+#cardCalendar .dose .capsule{
+  position:absolute !important;
+  left:50% !important;
+  top:56% !important;               /* чуть ниже середины — визуально приятнее */
+  transform:translate(-50%,-50%) !important;
+  display:none;                      /* показываем только для taken */
+}
+#cardCalendar .dose.taken .capsule{ display:block !important; }
+
+/* число дозы — снизу по центру и никогда не вылезает */
+#cardCalendar .dose .val{
+  position:absolute !important;
+  left:50% !important;
+  bottom:6px !important;
+  transform:translateX(-50%) !important;
+
+  max-width:calc(100% - 10px) !important;
+  white-space:nowrap !important;
+  overflow:hidden !important;
+  text-overflow:ellipsis !important;
+  text-align:center !important;
+
+  font-weight:900 !important;
+  line-height:1 !important;
+  font-size:clamp(8px, 2.6vw, 12px) !important;
+  letter-spacing:-0.02em !important;
+}
+
+@media (max-width:360px){
+  #cardCalendar .dose .val{
+    bottom:5px !important;
+    font-size:clamp(7px, 3.2vw, 11px) !important;
+  }
+  #cardCalendar .dose .capsule{ top:55% !important; } /* чуть выше, чтобы не конфликтовать с цифрой */
+}
 
 </style>
 <style id="neumorphic-skin">
@@ -6618,6 +6728,13 @@ avoidCover: 'reveal',
     let pending = 0;
     let showTimer = null;
     let shownAt = 0;
+    let booting = true;
+
+function finishBoot(){
+  booting = false;
+  pending = 0;
+  hide();
+}
   
     const conn = navigator.connection || navigator.mozConnection || navigator.webkitConnection;
     const et = (conn && conn.effectiveType) ? String(conn.effectiveType) : '';
@@ -6650,47 +6767,57 @@ avoidCover: 'reveal',
       }, delay);
     }
   
-    function inc(){ pending++; scheduleShow(); }
-    function dec(){
-      pending = Math.max(0, pending - 1);
-      if(pending === 0) hide();
-    }
+    function inc(){
+  if(!booting) return;
+  pending++;
+  scheduleShow();
+}
+function dec(){
+  if(!booting) return;
+  pending = Math.max(0, pending - 1);
+  if(pending === 0) hide();
+}
   
     // Patch fetch + XHR on this page
     if(!window.__rtLoaderPatched){
       window.__rtLoaderPatched = true;
   
       const _fetch = window.fetch;
-      if(typeof _fetch === 'function'){
-        window.fetch = function(...args){
-          inc();
-          return _fetch.apply(this, args).finally(dec);
-        };
-      }
+if(typeof _fetch === 'function'){
+  window.fetch = function(...args){
+    if(booting) inc();
+    return _fetch.apply(this, args).finally(()=>{
+      if(booting) dec();
+    });
+  };
+}
   
-      const _open = XMLHttpRequest.prototype.open;
-      const _send = XMLHttpRequest.prototype.send;
-  
-      XMLHttpRequest.prototype.open = function(...args){
-        this.__rtTrack = true;
-        return _open.apply(this, args);
-      };
-      XMLHttpRequest.prototype.send = function(...args){
-        if(this.__rtTrack){
-          inc();
-          this.addEventListener('loadend', dec, {once:true});
-        }
-        return _send.apply(this, args);
-      };
+const _open = XMLHttpRequest.prototype.open;
+const _send = XMLHttpRequest.prototype.send;
+
+XMLHttpRequest.prototype.open = function(...args){
+  this.__rtTrack = true;
+  return _open.apply(this, args);
+};
+XMLHttpRequest.prototype.send = function(...args){
+  if(this.__rtTrack && booting){
+    inc();
+    this.addEventListener('loadend', ()=>{ if(booting) dec(); }, {once:true});
+  }
+  return _send.apply(this, args);
+};
     }
   
     // Если сеть "медленная" по данным браузера — покажем быстро даже без fetch (на случай тяжёлых ресурсов)
     if(netSlow){
-      setTimeout(()=>{ if(document.readyState !== 'complete') show(); }, 260);
-    }
+  setTimeout(()=>{ if(booting && document.readyState !== 'complete') show(); }, 260);
+}
+
   
     // Когда страница полностью загрузилась — прячем
-    window.addEventListener('load', ()=>{ pending = 0; hide(); }, {once:true});
+    window.addEventListener('load', finishBoot, {once:true});
+window.rtLoaderDone = finishBoot; // (опционально) можно дернуть вручную после первичной загрузки данных
+
   
     // Опционально: если у тебя есть долгий init, можешь в конце явно вызвать:
     // window.rtLoaderDone();
