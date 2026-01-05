@@ -2940,6 +2940,8 @@ updateSegLabels();
     function loadDoseMode(){ try{ return localStorage.getItem('derma_dose_mode') || 'opt'; }catch(_){ return 'opt'; } }
     function saveDoseMode(m){ try{ localStorage.setItem('derma_dose_mode', m); }catch(_){} api('/api/dose-mode',{method:'POST',body:JSON.stringify({mode:m})}); }
     let DOSE_MODE = loadDoseMode();
+    window.DOSE_PER_KG = DOSE_PER_KG;
+window.DOSE_MODE   = DOSE_MODE;
 
     // RING helpers – обновляем все три кольца и подписи
     const RING_R = 46;                 // новый радиус
@@ -3013,6 +3015,7 @@ const RING_C = 2*Math.PI*RING_R;   // ~289.03
     function setDoseMode(mode){
   if (DOSE_MODE === mode) return;         // без лишних перерисовок
   DOSE_MODE = mode;
+  window.DOSE_MODE = DOSE_MODE;
   saveDoseMode(mode);
 
   // подсветка сегмента
@@ -3363,14 +3366,89 @@ try{
       const perKg = (w>0) ? (cum / w) : 0;
       document.getElementById('cumPerKg').textContent = w>0 ? fmt2(perKg) : '—';
 
-      const targets = { min:120, opt:135, max:150 };
+      // --- цели дозировки (мин/опт/макс) + ЦЕЛЕВАЯ из онбординга ---
+// каждый раз пересобираем базу, чтобы "Цель" не залипала при смене веса/локалки
+DOSE_PER_KG.min = 120;
+DOSE_PER_KG.opt = 135;
+DOSE_PER_KG.max = 150;
+
+(function applyGoalMode(){
+  // читаем цель из онбординга (localStorage)
+  const rawKg = Number(localStorage.getItem('rt_goal_mgkg') || 0);
+  const rawMg = Number(localStorage.getItem('rt_goal_mg')   || 0);
+
+  // если kg не задан — пробуем пересчитать из mg (нужен вес)
+  let goalKg = (rawKg > 0) ? rawKg : ((rawMg > 0 && w > 0) ? (rawMg / w) : 0);
+  if (!(Number.isFinite(goalKg) && goalKg > 0)) goalKg = 0;
+
+  // дефолтные подписи режимов
+  const labels = {
+    min: { short:'Мин.',  full:'Минимальная' },
+    opt: { short:'Опт.',  full:'Оптимальная' },
+    max: { short:'Макс.', full:'Максимальная' }
+  };
+
+  // если цель задана — она заменяет один из режимов по правилам:
+  // - если цель < min => заменяет min
+  // - если цель > max => заменяет max
+  // - иначе => заменяет opt
+  if (goalKg > 0){
+    goalKg = Math.round(goalKg * 10) / 10; // 1 знак после запятой
+    let slot = 'opt';
+    if (goalKg < DOSE_PER_KG.min) slot = 'min';
+    else if (goalKg > DOSE_PER_KG.max) slot = 'max';
+
+    DOSE_PER_KG[slot] = goalKg;
+    labels[slot] = { short:'Цель', full:'Целевая' };
+  }
+
+  // обновляем подписи на кнопках режимов (Мин./Опт./Макс. или Цель)
+  try{
+    const seg = document.getElementById('doseSeg');
+    if (seg){
+      seg.querySelectorAll('button[data-mode]').forEach(b=>{
+        const m = b.dataset.mode;
+        const L = labels[m];
+        if(!L) return;
+        b.dataset.short = L.short;
+        b.dataset.full  = L.full;
+        b.textContent   = L.short; // у тебя всегда short-лейблы
+      });
+    }
+  }catch(_){}
+
+  // обновляем строку мг/кг под сегментом
+  try{
+    const fmtKg = (v)=> Number(v||0).toLocaleString('ru-RU',{maximumFractionDigits:1});
+    document.querySelectorAll('#doseKgRow span[data-mode]').forEach(s=>{
+      const m = s.dataset.mode;
+      s.textContent = `${fmtKg(DOSE_PER_KG[m])} мг/кг`;
+    });
+  }catch(_){}
+
+  // синхронизируем лейблы справа (на случай, если setDoseMode успел написать дефолт)
+  try{
+    const t = document.getElementById('targetLabel');
+    if (t) t.textContent = String(DOSE_PER_KG[DOSE_MODE] || 135);
+    const etaLbl = document.getElementById('etaTargetLabel');
+    if (etaLbl) etaLbl.textContent = String(DOSE_PER_KG[DOSE_MODE] || 135);
+  }catch(_){}
+})();
+
+const targets = DOSE_PER_KG;
 const pcts = {};
-['min','opt','max'].forEach(m=>{ pcts[m] = (w>0) ? (100 * cum / (targets[m]*w)) : 0; });
+['min','opt','max'].forEach(m=>{
+  pcts[m] = (w>0) ? (100 * cum / (targets[m]*w)) : 0;
+});
+
 
 /* === ДОБАВЛЕНО: экспорт в window + localStorage для myprofile === */
 window.PROFILE_TAKEN_MG  = cum;
 window.PROFILE_WEIGHT_KG = w;
 window.PROFILE_GOAL_MGKG = targets[DOSE_MODE] || 135;
+window.PROFILE_TARGET_MGKG = targets[DOSE_MODE] || 135;
+window.DOSE_PER_KG = DOSE_PER_KG;
+window.DOSE_MODE   = DOSE_MODE;
 try {
   localStorage.setItem('rt_takenMg',  String(cum));
   localStorage.setItem('rt_weightKG', String(w));

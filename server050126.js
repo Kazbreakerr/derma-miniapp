@@ -458,6 +458,21 @@ app.get('/api/_routes', (req, res) => {
   });
   res.json(routes.sort());
 });
+function normGoalMgKg(v){
+  if (v === '' || v === undefined || v === null) return null;
+  const n = Number(v);
+  return Number.isFinite(n) && n > 0 ? n : null;
+}
+
+function computeTargets(goalMgKg){
+  const base = { min:120, opt:135, max:150 };
+  const g = normGoalMgKg(goalMgKg);
+  if (!g) return { targets: base, goal: null, slot: null };
+
+  const slot = (g < base.min) ? 'min' : (g > base.max) ? 'max' : 'opt';
+  base[slot] = g;
+  return { targets: base, goal: g, slot };
+}
 
 // ====== protected routes ======
 app.get('/api/progress', tgAuth, async (req, res) => {
@@ -475,28 +490,9 @@ app.get('/api/progress', tgAuth, async (req, res) => {
 
     if (!rows.length) return res.status(404).json({ error: 'no active plan' });
 
-    const row = rows[0];
-
-    // 1) базовые цели
-    const targets = { min: 120, opt: 135, max: 150 };
-
-    // 2) подтягиваем goal_mgkg из users
-    const u = await pool.query('select goal_mgkg from derma.users where id=$1', [uid]);
-    const gNum = Number(u.rows[0]?.goal_mgkg);
-    const goal = (Number.isFinite(gNum) && gNum > 0) ? gNum : null;
-
-    // 3) если цель задана — подменяем один слот по правилам
-    if (goal) {
-      const slot = (goal < targets.min) ? 'min' : (goal > targets.max) ? 'max' : 'opt';
-      targets[slot] = goal;
-    }
-
-    // 4) режим для расчёта (валидируем)
-    const modeRaw = String(req.query.mode || 'opt');
-    const modeQ = (modeRaw === 'min' || modeRaw === 'opt' || modeRaw === 'max') ? modeRaw : 'opt';
-
-    // 5) итоговая mg/kg для режима
-    const perKg = targets[modeQ] ?? 135;
+    const row   = rows[0];
+    const modeQ = String(req.query.mode || 'opt');
+    const perKg = ({ min: 120, opt: 135, max: 150 })[modeQ] ?? 135;
 
     const w = Number(row.weight_kg) || 0;
     const taken_mg = Number(row.cum_mg) || 0;
@@ -691,13 +687,7 @@ app.post('/api/me', tgAuth, async (req, res) => {
     if (!uid) return res.status(401).json({ error: 'unauthorized' });
 
     const { weight_kg, height_cm, sex, birth_date, full_name, tz, accepted, allergies, terms_version,
-            goal_mgkg, goal_mg } = req.body || {};
-
-    const gkgNum = (goal_mgkg === '' || goal_mgkg === undefined || goal_mgkg === null) ? NaN : Number(goal_mgkg);
-    const gkg = (Number.isFinite(gkgNum) && gkgNum > 0) ? gkgNum : null;
-
-    const gmgNum = (goal_mg === '' || goal_mg === undefined || goal_mg === null) ? NaN : Number(goal_mg);
-    const gmg = (Number.isFinite(gmgNum) && gmgNum > 0) ? Math.round(gmgNum) : null;
+      goal_mgkg, goal_mg } = req.body || {};
 
 
     await pool.query(
@@ -713,19 +703,14 @@ app.post('/api/me', tgAuth, async (req, res) => {
                                   else accepted_terms_at end,
          allergies = coalesce($8::text[], allergies),
          terms_version = greatest(coalesce($9::int, terms_version), terms_version),
-
-         goal_mgkg = coalesce($10, goal_mgkg),
-         goal_mg   = coalesce($11, goal_mg),
-
          updated_at= now()
-       where id = $12`,
-      [weight_kg, height_cm, sex, birth_date, full_name, tz, accepted, allergies, terms_version, gkg, gmg, uid]
+       where id = $10`,
+      [weight_kg, height_cm, sex, birth_date, full_name, tz, accepted, allergies, terms_version, uid]
     );
 
-const { rows } = await pool.query(
+    const { rows } = await pool.query(
       `select id, tg_id, full_name, sex, birth_date, weight_kg, height_cm, tz,
-              accepted_terms_at, allergies, terms_version,
-              goal_mgkg, goal_mg
+              accepted_terms_at, allergies, terms_version
          from derma.users
         where id = $1`,
       [uid]

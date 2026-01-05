@@ -1212,10 +1212,14 @@ try{ if (weight_kg > 0) localStorage.setItem('rt_weightKG', String(weight_kg)); 
       }
 
       // goal в локалку (если используешь это в main — можно подцепить)
-      try{
-        if (goalKg > 0) localStorage.setItem('rt_goal_mgkg', String(goalKg));
-        if (goalMg > 0) localStorage.setItem('rt_goal_mg', String(goalMg));
-      }catch(_){ }
+try{
+  if (goalKg > 0) localStorage.setItem('rt_goal_mgkg', String(goalKg));
+  else localStorage.removeItem('rt_goal_mgkg');
+
+  if (goalMg > 0) localStorage.setItem('rt_goal_mg', String(goalMg));
+  else localStorage.removeItem('rt_goal_mg');
+}catch(_){ }
+
       // быстрый снапшот для myprofile (чтобы отрисовалось мгновенно без API)
 try{
   const sel = document.getElementById('drug');
