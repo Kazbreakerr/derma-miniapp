@@ -1085,20 +1085,15 @@ body.wheel-open{overflow:hidden; touch-action:none}
         }
       }catch(_){ }
 
-      // цель: сначала из сервера (если есть), затем из локалки
-      try{
-        if (me && me.goal_mgkg != null && me.goal_mgkg !== '') elGoalKg.value = String(me.goal_mgkg);
-        if (me && me.goal_mg   != null && me.goal_mg   !== '') elGoalMg.value = String(me.goal_mg);
-      }catch(_){ }
-
-      // фоллбек: цель из локалки
+      // цель из локалки
       try{
         const gkg = localStorage.getItem('rt_goal_mgkg');
         const gmg = localStorage.getItem('rt_goal_mg');
-        if (!elGoalKg.value && gkg) elGoalKg.value = gkg;
-        if (!elGoalMg.value && gmg) elGoalMg.value = gmg;
+        if (gkg) elGoalKg.value = gkg;
+        if (gmg) elGoalMg.value = gmg;
       }catch(_){ }
-}catch(_){ }
+
+    }catch(_){ }
   })();
 
   // ==== Validation ==== 
@@ -1187,7 +1182,7 @@ body.wheel-open{overflow:hidden; touch-action:none}
 
     try{
       // 1) profile
-      const r1 = await api('/api/me', { method:'POST', body: JSON.stringify({ sex, weight_kg, height_cm, birth_date, allergies, goal_mgkg: (goalKg>0? goalKg : null), goal_mg: (goalMg>0? Math.round(goalMg) : null) }) });
+      const r1 = await api('/api/me', { method:'POST', body: JSON.stringify({ sex, weight_kg, height_cm, birth_date, allergies }) });
       if (!r1.ok) {
         msg.textContent = (r1.status===401)
           ? 'Ошибка 401 — нет авторизации. Открой страницу из Telegram или добавь ?tg=XXXX в адрес.'
