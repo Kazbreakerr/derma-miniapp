@@ -1752,7 +1752,7 @@ window.addEventListener('storage',e=>{
 
 
 <style id="rt-diary-fixes">
-  /* --- Boot loader that NEVER sticks (pure CSS auto-hide) --- */
+  /* --- Boot loader: shown ONLY when buffering is needed --- */
   #rt-loader{
     position:fixed;
     inset:0;
@@ -1762,11 +1762,21 @@ window.addEventListener('storage',e=>{
     justify-content:center;
     background: radial-gradient(1200px 800px at 50% 15%, rgba(34,211,238,.10), rgba(0,0,0,0) 55%),
                 linear-gradient(180deg, rgba(7,14,24,1) 0%, rgba(5,11,20,1) 100%);
-    animation: rtLoaderFade 0.9s ease 0.65s forwards;
+
+    /* default: hidden */
+    opacity:0;
+    visibility:hidden;
+    pointer-events:none;
+    transition: opacity .18s ease, visibility 0s linear .18s;
   }
-  @keyframes rtLoaderFade{
-    to{ opacity:0; visibility:hidden; pointer-events:none; }
+  body.rt-loading #rt-loader{
+    opacity:1;
+    visibility:visible;
+    pointer-events:auto;
+    transition: opacity .18s ease;
   }
+
+}
   .rt-loader-card{
     width:min(560px, calc(100vw - 28px));
     padding:18px 18px 16px 18px;
@@ -1948,6 +1958,13 @@ overflow: hidden;
   }
 </style>
 
+
+<!-- RT: loader only on slow boot (no constant overlay) -->
+<script>document.documentElement.classList.add('rt-boot');</script>
+<style id="rt-boot-hide">
+  html.rt-boot body > :not(#rt-loader){ visibility:hidden; }
+</style>
+
 </head>
 <body>
 
@@ -1964,6 +1981,134 @@ overflow: hidden;
       </div>
     </div>
   </div>
+
+
+<script id="rt-boot-buffering">
+(function(){
+  const root   = document.documentElement;
+  const body   = document.body;
+  const loader = document.getElementById('rt-loader');
+  if(!body || !loader) return;
+
+  // Detect slow network
+  let netSlow = false;
+  try{
+    const c  = navigator.connection || navigator.mozConnection || navigator.webkitConnection;
+    const et = (c && c.effectiveType) ? String(c.effectiveType) : '';
+    netSlow  = !!(c && (c.saveData || et === '3g' || et === '2g' || et === 'slow-2g'));
+  }catch(_){}
+
+  // Boot-only: after initial load we never show loader again
+  let booting = true;
+  let pending = 0;
+  let showTimer = null;
+  let idleTimer = null;
+  let shownAt = 0;
+
+  function now(){ return (performance && performance.now) ? performance.now() : Date.now(); }
+
+  function show(){
+    if(!booting) return;
+    if(body.classList.contains('rt-loading')) return;
+    body.classList.add('rt-loading');
+    loader.setAttribute('aria-hidden','false');
+    shownAt = now();
+  }
+
+  function hide(){
+    const minVisible = 300;
+    const wait = Math.max(0, minVisible - (now() - shownAt));
+    setTimeout(()=>{
+      body.classList.remove('rt-loading');
+      loader.setAttribute('aria-hidden','true');
+    }, wait);
+  }
+
+  function finishBoot(){
+    if(!booting) return;
+    booting = false;
+    pending = 0;
+    if(showTimer){ clearTimeout(showTimer); showTimer = null; }
+    if(idleTimer){ clearTimeout(idleTimer); idleTimer = null; }
+    hide();
+    root.classList.remove('rt-boot');
+  }
+
+  function scheduleShow(){
+    if(!booting || showTimer) return;
+    const delay = netSlow ? 160 : 900; // show only if реально долго
+    showTimer = setTimeout(()=>{
+      showTimer = null;
+      if(booting && pending > 0 && document.visibilityState !== 'hidden') show();
+    }, delay);
+  }
+
+  function inc(){
+    if(!booting) return;
+    if(idleTimer){ clearTimeout(idleTimer); idleTimer = null; }
+    pending++;
+    scheduleShow();
+  }
+
+  function dec(){
+    if(!booting) return;
+    pending = Math.max(0, pending - 1);
+    if(pending === 0){
+      hide();
+      // маленькая пауза, чтобы "пакет" запросов отрисовался вместе
+      if(!idleTimer){
+        idleTimer = setTimeout(()=>{
+          idleTimer = null;
+          if(pending === 0) finishBoot();
+        }, 240);
+      }
+    }
+  }
+
+  // Patch fetch/XHR but count ONLY during booting
+  if(!window.__rtDiaryBootLoaderPatched){
+    window.__rtDiaryBootLoaderPatched = true;
+
+    const _fetch = window.fetch;
+    if(typeof _fetch === 'function'){
+      window.fetch = function(...args){
+        inc();
+        return _fetch.apply(this, args).finally(dec);
+      };
+    }
+
+    const _open = XMLHttpRequest.prototype.open;
+    const _send = XMLHttpRequest.prototype.send;
+
+    XMLHttpRequest.prototype.open = function(...args){
+      this.__rtTrack = true;
+      return _open.apply(this, args);
+    };
+
+    XMLHttpRequest.prototype.send = function(...args){
+      if(this.__rtTrack){
+        inc();
+        this.addEventListener('loadend', dec, { once:true });
+      }
+      return _send.apply(this, args);
+    };
+  }
+
+  // Fast path: если ничего не грузим — не держим скрытие
+  requestAnimationFrame(()=>requestAnimationFrame(()=>{
+    if(!netSlow && pending === 0 && !body.classList.contains('rt-loading')){
+      root.classList.remove('rt-boot');
+    }
+  }));
+
+  // Hard safety: never hang
+  window.addEventListener('load', finishBoot, { once:true });
+  setTimeout(finishBoot, netSlow ? 8000 : 5000);
+
+  // Optional manual call
+  window.rtDiaryBootDone = finishBoot;
+})();
+</script>
 
 <script>
 (function(){

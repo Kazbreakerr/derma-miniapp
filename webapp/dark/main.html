@@ -59,6 +59,8 @@ try{
 <link rel="stylesheet" href="/css/skeleton.css">
 
   <style>
+@import url('https://fonts.googleapis.com/css2?family=Sora:wght@600;700;800;900&display=swap');
+
     
     :root{
       --bg:#0B1220; --surface:#0E1726; --card:#121C2E; --border:#1F2A3C;
@@ -70,7 +72,7 @@ try{
     *{box-sizing:border-box}
     html,body{height:100%}
     body{margin:0;background:var(--bg);color:var(--text-high);
-         font-family:ui-sans-serif,system-ui,-apple-system,Segoe UI,Roboto,Inter,Manrope,Helvetica,Arial;
+         font-family:ui-sans-serif,system-ui,-apple-system,Segoe UI,Roboto,Inter,Sora,Helvetica,Arial;
          font-size:16px;line-height:1.5}
     .wrap{max-width:980px;margin:0 auto;padding:24px 24px 112px} /* запас под нижнюю навигацию */
     h1{font-size:clamp(20px,5.2vw,28px);line-height:1.12;margin:0 0 12px;font-weight:800;text-align:center;letter-spacing:.2px;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
@@ -1106,7 +1108,7 @@ body.light .seg button{
   position:absolute; inset:-18px;
   background:
     radial-gradient(closest-side, rgba(34,211,238,.22), rgba(20,184,166,.12), transparent 70%);
-  filter: blur(18px);
+  filter: blur(28px);
   opacity:.55;
   pointer-events:none;
 }
@@ -1991,6 +1993,529 @@ input[type="time"]::-webkit-calendar-picker-indicator{
     }
   </style>
   
+
+<style id="rt-gauge-style">
+/* ===========================
+   RT segmented Arc-Gauge (NEW)
+   =========================== */
+.rt-gauge{
+  --rtGaugeStroke: 6px;
+  position:relative;
+  width:min(380px, 100%);
+  aspect-ratio: 1 / 1;
+  margin: 14px auto 4px;
+  display:grid;
+  place-items:center;
+  filter: drop-shadow(0 14px 28px rgba(0,0,0,.45));
+}
+.rt-gauge__svg{
+  position:absolute;
+  inset:0;
+  width:100%;
+  height:100%;
+  overflow:visible;
+  shape-rendering: geometricPrecision;
+  text-rendering: geometricPrecision;
+}
+.rt-gauge__seg{
+  fill:none;
+  stroke-linecap:round;
+  stroke-linejoin:round;
+  stroke-width: var(--rtGaugeStroke);
+}
+.rt-gauge__seg--bg{
+  stroke: rgba(255,255,255,.12);
+  opacity: .78;
+}
+.rt-gauge__seg--fg{
+  stroke: url(#rtGaugeGrad);
+  opacity: 0;
+  transition: opacity 240ms ease;
+}
+
+
+.rt-gauge__seg--fg.rt-tip{
+  /* Последний «заполненный» сегмент — без отдельного круглого маркера.
+     Делаем яркий разноцветный edge + мягкое свечение. Белую «сердцевину»
+     даёт отдельный overlay-сегмент .rt-gauge__seg--tipcore */
+  stroke: url(#rtGaugeGrad) !important;
+  opacity: 1 !important;
+  filter:
+    drop-shadow(0 0 6px rgba(233,255,255,.42))
+    drop-shadow(0 0 10px rgba(84,194,255,.55))
+    drop-shadow(0 0 14px rgba(25,243,180,.36))
+    drop-shadow(0 0 18px rgba(167,139,250,.22));
+}
+
+/* Белая «сердцевина» на последнем сегменте (включаем вместе с rt-tip из JS) */
+.rt-gauge__seg--tipcore{
+  fill:none;
+  stroke-linecap:round;
+  stroke-linejoin:round;
+  stroke: rgba(255,255,255,.92);
+  stroke-width: calc(var(--rtGaugeStroke) - 2px);
+  opacity: 0;
+  transition: opacity 240ms ease;
+  filter:
+    drop-shadow(0 0 6px rgba(233,255,255,.55))
+    drop-shadow(0 0 10px rgba(84,194,255,.32));
+}
+.rt-gauge__seg--tipcore.rt-tip{
+  opacity: 1 !important;
+}
+
+/* Глоу на группе (а не на каждом сегменте), чтобы не было пиксельной “каши” */
+.rt-gauge__segs{ isolation:isolate; }
+.rt-gauge__segs--bg{ opacity:.92; }
+.rt-gauge__segs--fg{
+  filter:
+    drop-shadow(0 0 8px rgba(20,184,166,.16))
+    drop-shadow(0 0 12px rgba(84,194,255,.18))
+    drop-shadow(0 0 16px rgba(167,139,250,.12));
+}
+.rt-gauge__marker{ display:none; }
+
+.rt-gauge__ball{
+  width: 64%;
+  aspect-ratio: 1 / 1;
+  border-radius: 999px;
+  display:grid;
+  place-items:center;
+  position:relative;
+  isolation:isolate;
+
+  
+  overflow:hidden; /* clip inner glow/rays inside the ball */
+/* Outer disc: стекло + градиентный обод (mint/blue/lilac) */
+  border: 2px solid transparent;
+  background:
+    radial-gradient(circle at 28% 24%,
+      rgba(255,255,255,.62) 0%,
+      rgba(255,255,255,.26) 42%,
+      rgba(255,255,255,.10) 70%,
+      rgba(255,255,255,.06) 100%) padding-box,
+    conic-gradient(from 220deg,
+      rgba(168,255,246,.92),
+      rgba(150,220,255,.88),
+      rgba(214,186,255,.88),
+      rgba(255,255,255,.78),
+      rgba(168,255,246,.92)) border-box;
+
+      box-shadow:
+    0 0 0 1px rgba(34,211,238,.36),
+    0 0 22px rgba(20,184,166,.14),
+
+    0 28px 70px rgba(0,0,0,.38),
+    inset 0 1px 0 rgba(255,255,255,.42),
+    inset 0 -22px 46px rgba(0,0,0,.18);
+
+  backdrop-filter: blur(10px) saturate(1.25);
+  -webkit-backdrop-filter: blur(10px) saturate(1.25);
+
+  /* внешний bloom отключён — иначе свечение выходит за рамки шара */
+  /* лёгкий bloom по краям + бирюзовое свечение как у "Опт." */
+  filter:
+    drop-shadow(0 0 10px rgba(34,211,238,.22))
+    drop-shadow(0 0 16px rgba(20,184,166,.18))
+    drop-shadow(0 0 18px rgba(173,255,246,.16))
+    drop-shadow(0 0 26px rgba(152,205,255,.14))
+    drop-shadow(0 0 32px rgba(208,175,255,.12));
+}
+
+
+/* Rays ring between outer disc and inner orb (SVG rays; NO circular outline) */
+.rt-gauge__ball::before{
+  /* Старые CSS-палочки выключены, чтобы не появлялась окружность-обводка */
+  content:"";
+  display:none;
+}
+
+/* SVG rays (как на рефе: длинные, разной длины, без кольца-контурa) */
+.rt-gauge__rays{
+  position:absolute;
+  inset: 0%;
+  border-radius:999px;
+  pointer-events:none;
+  z-index:1;
+  opacity:.96;
+  mix-blend-mode: screen;
+  /* делаем свечение “точечным”: меньше блюра, чтобы не появлялось кольцо-обводка */
+    filter:none; /* no group glow => no circular outline */
+}
+.rt-gauge__rays line{
+  stroke: rgba(255,255,255,.92);
+  stroke-linecap: round;
+}
+
+/* Soft aura outside */
+.rt-gauge__ball::after{
+  content:"";
+  position:absolute;
+  inset:-4%;
+  border-radius:999px;
+  background: radial-gradient(circle at 50% 50%,
+    rgba(200,210,255,.38) 0%,
+    rgba(190,170,255,.26) 28%,
+    rgba(180,255,240,.18) 52%,
+    rgba(255,255,255,0)   72%);
+  filter: blur(14px);
+  opacity:.80;
+  pointer-events:none;
+  z-index:-1;
+  display:none; /* держим свечение внутри шара */
+}
+
+/* Inner orb (the “button” from ref; text sits on top) */
+.rt-gauge__orb{
+  position:absolute;
+  left:50%; top:50%;
+  transform: translate(-50%,-50%);
+  width: 60%;
+  aspect-ratio: 1 / 1;
+  border-radius: 999px;
+
+  /* Inner disc: плоский “кнопочный” градиент + обод (ring-gradient) */
+  border: 2.5px solid transparent;
+  background:
+    radial-gradient(circle at 34% 28%, rgba(255,255,255,.78), rgba(255,255,255,0) 62%) padding-box,
+    linear-gradient(145deg,
+      rgba(200,255,248,.98) 0%,
+      rgba(196,232,255,.98) 45%,
+      rgba(232,210,255,.98) 100%) padding-box,
+    conic-gradient(from 200deg,
+      rgba(255,255,255,.96),
+      rgba(189,255,248,.96),
+      rgba(172,214,255,.96),
+      rgba(226,200,255,.96),
+      rgba(255,255,255,.96)) border-box;
+
+  box-shadow:
+    
+    0 18px 36px rgba(0,0,0,.18),
+    0 0 0 1px rgba(255,255,255,.30) inset,
+    0 0 0 2px rgba(255,255,255,.12) inset,
+    0 0 26px rgba(255,255,255,.92),
+    0 0 68px rgba(225,240,255,.44),
+    0 0 128px rgba(190,255,245,.34),
+    0 0 170px rgba(210,190,255,.30);
+  filter:none; /* no group glow => no circular outline */
+}
+
+.rt-gauge__orb::after{
+  content:"";
+  position:absolute;
+  inset:-26%;
+  border-radius:999px;
+
+  background: radial-gradient(circle at 50% 50%,
+    rgba(255,255,255,.92) 0%,
+    rgba(225,235,255,.62) 26%,
+    rgba(190,255,245,.44) 44%,
+    rgba(220,195,255,.40) 58%,
+    rgba(255,255,255,0)   74%);
+
+  filter: blur(34px);
+  opacity:1;
+  pointer-events:none;
+}
+
+
+
+.rt-gauge__text{
+  position:absolute;
+
+  /* держим текст строго внутри внутреннего круга */
+  inset: 20%;
+  border-radius: 999px;
+  overflow: hidden;
+
+  /* легкий “внутренний” виньет, чтобы текст казался частью материала */
+  background: radial-gradient(circle at 50% 45%,
+    rgba(255,255,255,.22) 0%,
+    rgba(255,255,255,.10) 38%,
+    rgba(255,255,255,0)   62%);
+
+  /* микро-клип по кругу (чтобы ничего не “вылезало”) */
+  -webkit-mask-image: radial-gradient(circle at 50% 50%, #000 0 66%, rgba(0,0,0,0) 78%);
+          mask-image: radial-gradient(circle at 50% 50%, #000 0 66%, rgba(0,0,0,0) 78%);
+
+  transition: opacity 300ms ease, transform 300ms ease;
+}
+
+.rt-gauge__text-inner{
+  isolation: isolate; /* предотвратить артефакты blend */
+  position:relative;
+  z-index:3;
+  --rtFit: 1;
+  width: 100%;
+  height: 100%;
+  padding: 4% 6%;
+  display:flex;
+  flex-direction:column;
+  justify-content:center;
+  align-items:center;
+  text-align:center;
+  gap: 6px;
+
+  --rtShiftX: 0px;
+transform: translateX(var(--rtShiftX)) scale(var(--rtFit));
+
+  transform-origin: 50% 50%;
+  will-change: transform;
+  transition: transform 260ms cubic-bezier(.2,.8,.2,1);
+}
+/* чтобы центрирование было стабильным */
+.rt-gauge__value,
+.rt-gauge__sub{
+  width: 100%;
+  text-align: center;
+}
+
+/* оптическая центровка процентов (знак % часто “тянет” вправо) */
+#rtGaugeTextPct .rt-gauge__text-inner{ --rtShiftX: -2.5px; }
+
+.rt-gauge__value{
+  font-family: "Sora", ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Inter, Arial, sans-serif;
+  font-weight: 900;
+  font-variant-numeric: tabular-nums;
+  letter-spacing: -0.035em;
+  line-height: .98;
+  font-size: clamp(22px, 8.4vw, 52px);
+
+  /* “высечено” без прямоугольных артефактов: делаем рельеф через тени */
+  color: rgba(6,10,18,.86);
+  text-shadow:
+    -1px  -1.4px 0 rgba(255,255,255,.68),
+     1px   1.2px 0 rgba(0,0,0,.14),
+     0    14px  24px rgba(0,0,0,.10);
+  -webkit-font-smoothing: antialiased;
+  text-rendering: geometricPrecision;
+
+  white-space: nowrap;
+  max-width: 100%;
+}
+
+.rt-gauge__sub{
+  font-family: "Sora", ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Inter, Arial, sans-serif;
+  margin-top: 0;
+  font-weight: 800;
+  font-size: 13px;
+  letter-spacing: .02em;
+  line-height: 1.1;
+
+  color: rgba(6,10,18,.62);
+  text-shadow:
+    -0.8px -1.0px 0 rgba(255,255,255,.55),
+     0.8px  0.9px 0 rgba(0,0,0,.10);
+  -webkit-font-smoothing: antialiased;
+  text-rendering: geometricPrecision;
+
+  white-space: nowrap;
+  max-width: 100%;
+}
+/* ====== FONT TUNING (manual) ====== */
+/* КРУПНЫЙ (цифры) — MG */
+#rtGaugeTextMg .rt-gauge__value{
+  font-size: clamp(19px, 8.3vw, 44px); /* меньше ~15% */
+}
+
+/* МЕЛКИЙ — MG ("/ 8 165 мг") */
+#rtGaugeTextMg .rt-gauge__sub{
+  font-size: 13px;
+}
+
+/* КРУПНЫЙ (цифры) — % */
+#rtGaugeTextPct .rt-gauge__value{
+  font-size: clamp(20px, 9.3vw, 45px);
+}
+
+/* МЕЛКИЙ — % ("пройдено") */
+#rtGaugeTextPct .rt-gauge__sub{
+  font-size: 18px;
+}
+
+.rt-gauge__text--pct{
+  opacity:0;
+  transform: translateY(4px) scale(.99);
+}
+.rt-gauge.show-pct .rt-gauge__text--pct{
+  opacity:1;
+  transform: translateY(0) scale(1);
+}
+.rt-gauge.show-pct .rt-gauge__text--mg{
+  opacity:0;
+  transform: translateY(-4px) scale(.99);
+}
+
+/* === Wheel-swipe transition when switching modes === */
+.rt-gauge{ overflow:hidden; }
+
+.rt-gauge__ghost{
+  position:absolute;
+  inset:0;
+  display:grid;
+  place-items:center;
+  pointer-events:none;
+  opacity:0;
+  will-change: transform, opacity;
+}
+
+.rt-gauge.rt-swipe-next #rtGaugeSvg,
+.rt-gauge.rt-swipe-next > .rt-gauge__ball{
+  animation: rtGaugeInFromRight 460ms cubic-bezier(.2,.8,.2,1) both;
+}
+.rt-gauge.rt-swipe-prev #rtGaugeSvg,
+.rt-gauge.rt-swipe-prev > .rt-gauge__ball{
+  animation: rtGaugeInFromLeft 460ms cubic-bezier(.2,.8,.2,1) both;
+}
+
+.rt-gauge.rt-swipe-next .rt-gauge__ghost{
+  opacity:1;
+  animation: rtGaugeOutToLeft 460ms cubic-bezier(.2,.8,.2,1) both;
+}
+.rt-gauge.rt-swipe-prev .rt-gauge__ghost{
+  opacity:1;
+  animation: rtGaugeOutToRight 460ms cubic-bezier(.2,.8,.2,1) both;
+}
+
+@keyframes rtGaugeInFromRight{
+  from{ transform: translateX(26px) scale(.996); opacity:0; }
+  60%{ opacity:1; }
+  to  { transform: translateX(0)    scale(1);     opacity:1; }
+}
+@keyframes rtGaugeInFromLeft{
+  from{ transform: translateX(-26px) scale(.996); opacity:0; }
+  60%{ opacity:1; }
+  to  { transform: translateX(0)     scale(1);     opacity:1; }
+}
+@keyframes rtGaugeOutToLeft{
+  from{ transform: translateX(0) scale(1); opacity:1; }
+  to  { transform: translateX(-26px) scale(.996); opacity:0; }
+}
+@keyframes rtGaugeOutToRight{
+  from{ transform: translateX(0) scale(1); opacity:1; }
+  to  { transform: translateX(26px) scale(.996); opacity:0; }
+}
+
+/* немного компактнее на маленьких экранах */
+@media (max-width: 390px){
+  .rt-gauge{ width:min(340px, 100%); }
+  .rt-gauge__sub{ font-size: 13px; }
+}
+
+
+/* микро-тюнинг: если визуально всё ещё “тянет” вправо — подвигай -0.5px … -2px */
+#rtGaugeValPct{
+  transform: translateX(-1px);
+}
+/* % над мг (светящийся, “дорогой”) */
+#rtGaugeTextMg .rt-gauge__text-inner{ gap: 5px; } /* чуть плотнее, чтобы влезало */
+
+/* % над мг — ЧЁТКИЙ и “дорогой” лейбл */
+.rt-gauge__pctTop{
+  align-self: center;
+  display: inline-flex;
+  justify-content: center;
+  align-items: center;
+
+  /* размер заметнее */
+  font-size: clamp(14px, 4.1vw, 21px);
+  font-weight: 950;
+  font-variant-numeric: tabular-nums;
+  letter-spacing: -0.02em;
+  line-height: 1;
+
+  /* главное: контрастный текст (не белый!) */
+  color: rgba(20, 24, 33, 0.86);
+
+  /* “glass label” под текстом — чтобы он не растворялся */
+  padding: 6px 12px;
+  border-radius: 999px;
+  background:
+    radial-gradient(120% 140% at 50% 0%,
+      rgba(255,255,255,.55) 0%,
+      rgba(255,255,255,.18) 55%,
+      rgba(255,255,255,.08) 100%);
+  border: 1px solid rgba(255,255,255,.38);
+
+  /* премиум-свечение */
+  box-shadow:
+    0 8px 22px rgba(0,0,0,.12),
+    0 0 18px rgba(26, 205, 196, .20),
+    0 0 22px rgba(98, 197, 255, .18),
+    0 0 26px rgba(167, 139, 250, .16);
+
+  /* “высеченность” без артефактов */
+  text-shadow:
+    -1px -1px 0 rgba(255,255,255,.35),
+     1px  1px 0 rgba(0,0,0,.10);
+
+  opacity: 1 !important;
+  filter: none !important; /* убираем возможные прошлые фильтры */
+}
+/* === Percent pill pinned ABOVE the main number === */
+.rt-gauge__text--mg{
+  /* чуть опускаем основное число, чтобы сверху влезла капсула процентов */
+  transform: translateY(10px);
+}
+
+.rt-gauge__text--pct{
+  inset: auto;
+  top: 30%;
+  left: 50%;
+  transform: translate(-50%, -50%) !important;
+
+  width: auto;
+  height: auto;
+  padding: 8px 14px 9px;
+  border-radius: 999px;
+
+  background: rgba(255,255,255,.62);
+  border: 1px solid rgba(255,255,255,.55);
+
+  box-shadow:
+    0 10px 24px rgba(0,0,0,.18),
+    0 0 0 1px rgba(190,255,245,.25),
+    0 0 18px rgba(84,194,255,.20),
+    0 0 22px rgba(167,139,250,.16);
+
+  backdrop-filter: blur(10px) saturate(1.25);
+  -webkit-backdrop-filter: blur(10px) saturate(1.25);
+
+  opacity: 1 !important;
+  pointer-events: none;
+  gap: 4px;
+}
+
+.rt-gauge__text--pct .rt-gauge__value{
+  font-size: clamp(18px, 5.2vw, 24px);
+  font-weight: 950;
+  letter-spacing: .1px;
+  line-height: 1;
+
+  /* ВАЖНО: НЕ белый — чтобы читалось на светлом шаре */
+  color: rgba(4,10,18,.92);
+
+  text-shadow:
+    0 1px 0 rgba(255,255,255,.55),
+    0 10px 18px rgba(0,0,0,.12);
+}
+
+/* "пройдено" можно скрыть, чтобы не шумело */
+.rt-gauge__text--pct .rt-gauge__sub{ display:none; }
+
+/* если где-то ещё остался show-pct — не даём ему гасить текст */
+.rt-gauge.show-pct .rt-gauge__text--mg{
+  opacity: 1 !important;
+  transform: translateY(10px) !important;
+}
+.rt-gauge.show-pct .rt-gauge__text--pct{
+  opacity: 1 !important;
+}
+
+
+</style>
+
 </head>
 <body>
   <!-- RT SNOW (New Year) -->
@@ -2206,93 +2731,90 @@ document.addEventListener('DOMContentLoaded', () => {
         </div>
       </div>
 
-      <!-- Кольца: слева(min) · центр(active) · справа(max) -->
-      <div class="rings-rail" id="ringsRail" aria-label="Переключатель цели дозы">
-        <div class="ring pos-left small" data-mode="min">
-          <button type="button" aria-label="Минимальная доза">
-            
-             <svg viewBox="0 0 110 110">
-  <circle class="track" cx="55" cy="55" r="46"
-          stroke="url(#ringTrackGrad)" stroke-width="18" fill="none"
-          filter="url(#ringInner)"/>
-    <circle class="rim" cx="55" cy="55" r="46"
-          stroke="url(#ringRimGrad)" stroke-width="18" fill="none"
-          opacity="0.65" filter="url(#ringDrop)"/>
-<circle data-arc cx="55" cy="55" r="46"
-          stroke="url(#ringArcGrad)" stroke-width="18" fill="none"
-          stroke-linecap="round" stroke-dasharray="289" stroke-dashoffset="289"
-          filter="url(#ringGlow)"/>
-  <circle data-arc-gloss cx="55" cy="55" r="46"
-          stroke="url(#ringArcGlossGrad)" stroke-width="12" fill="none"
-          stroke-linecap="round" stroke-dasharray="289" stroke-dashoffset="289"
-          opacity="0.15" filter="url(#ringGlow)"/>
-</svg>
+      <!-- Arc-gauge (segmented) вместо колец -->
+      <div class="rt-gauge" id="rtGauge" aria-label="Индикатор прогресса курса">
+        <svg class="rt-gauge__svg" id="rtGaugeSvg" viewBox="0 0 200 200" aria-hidden="true">
+          <defs>
+            <linearGradient id="rtGaugeGrad" x1="30" y1="30" x2="170" y2="170" gradientUnits="userSpaceOnUse">
+              <stop offset="0%"   stop-color="#BEFFF5" stop-opacity="1"/>
+              <stop offset="45%"  stop-color="#BCE2FF" stop-opacity="1"/>
+              <stop offset="75%"  stop-color="#DCC6FF" stop-opacity="1"/>
+              <stop offset="100%" stop-color="#BEFFF5" stop-opacity="1"/>
+            </linearGradient>
+            <radialGradient id="rtGaugeMarkerGrad" cx="30%" cy="30%" r="70%">
+              <stop offset="0%"   stop-color="#F7FFFF" stop-opacity="1"/>
+              <stop offset="52%"  stop-color="#CDEEFF" stop-opacity="1"/>
+              <stop offset="82%"  stop-color="#E5DAFF" stop-opacity="1"/>
+              <stop offset="100%" stop-color="#BEFFF5" stop-opacity="1"/>
+            </radialGradient>
+            <filter id="rtGaugeGlow" x="-55%" y="-55%" width="210%" height="210%">
+              <feGaussianBlur in="SourceGraphic" stdDeviation="1.9" result="b"/>
+              <feMerge>
+                <feMergeNode in="b"/>
+                <feMergeNode in="SourceGraphic"/>
+              </feMerge>
+            </filter>
 
+            <filter id="rtGaugeGlowTip" x="-85%" y="-85%" width="270%" height="270%">
+              <feGaussianBlur in="SourceGraphic" stdDeviation="2.4" result="b1"/>
+              <feColorMatrix in="b1" type="matrix"
+                values="1 0 0 0 0
+                        0 1 0 0 0
+                        0 0 1 0 0
+                        0 0 0 0.90 0" result="c1"/>
+              <feGaussianBlur in="c1" stdDeviation="4.8" result="b2"/>
+              <feMerge>
+                <feMergeNode in="b2"/>
+                <feMergeNode in="SourceGraphic"/>
+              </feMerge>
+            </filter>
+          </defs>
 
-            </svg>
-            <div class="pct" data-pct></div>
-          </button>
-        </div>
+          <!-- сегменты трека -->
+          <g id="rtGaugeSegsBg" class="rt-gauge__segs rt-gauge__segs--bg"></g>
+          <!-- сегменты заполнения -->
+          <g id="rtGaugeSegsFg" class="rt-gauge__segs rt-gauge__segs--fg"></g>
 
-        <div class="ring pos-center" data-mode="opt">
+          <!-- маркер на конце прогресса -->
+          <g id="rtGaugeMarker" class="rt-gauge__marker" opacity="0">
+            <circle r="12" fill="url(#rtGaugeMarkerGrad)" opacity="0.22" filter="url(#rtGaugeGlow)"></circle>
+            <circle r="6.2" fill="url(#rtGaugeMarkerGrad)" filter="url(#rtGaugeGlow)"></circle>
+            <circle r="2.2" fill="#ffffff" opacity="0.9"></circle>
+          </g>
+        </svg>
+
+        <!-- центральный “шар” -->
+        <div class="rt-gauge__ball" role="group" aria-label="Значение прогресса">
           
-           <svg viewBox="0 0 110 110">
-  <circle class="track" cx="55" cy="55" r="46"
-          stroke="url(#ringTrackGrad)" stroke-width="18" fill="none"
-          filter="url(#ringInner)"/>
-    <circle class="rim" cx="55" cy="55" r="46"
-          stroke="url(#ringRimGrad)" stroke-width="18" fill="none"
-          opacity="0.65" filter="url(#ringDrop)"/>
-<circle data-arc cx="55" cy="55" r="46"
-          stroke="url(#ringArcGrad)" stroke-width="18" fill="none"
-          stroke-linecap="round" stroke-dasharray="289" stroke-dashoffset="289"
-          filter="url(#ringGlow)"/>
-  <circle data-arc-gloss cx="55" cy="55" r="46"
-          stroke="url(#ringArcGlossGrad)" stroke-width="12" fill="none"
-          stroke-linecap="round" stroke-dasharray="289" stroke-dashoffset="289"
-          opacity="0.15" filter="url(#ringGlow)"/>
-</svg>
-
-
-
+          <svg class="rt-gauge__rays" viewBox="0 0 200 200" aria-hidden="true">
+            <g id="rtGaugeRays"></g>
           </svg>
-          <div class="pct" data-pct></div>
-        </div>
+          <div class="rt-gauge__orb" aria-hidden="true"></div>
+          <div class="rt-gauge__text-inner">
+            <!-- % прогресса (свечением) -->
+            <div class="rt-gauge__pctTop" id="rtGaugePctTop" data-txt="0,00%">0,00%</div>
+          
+            <div class="rt-gauge__value" id="rtGaugeValMg" data-txt="0">0</div>
+          
+            <div class="rt-gauge__sub" id="rtGaugeSubMg" data-txt="/ 0 мг">/ 0&nbsp;мг</div>
+          </div>
 
-        <div class="ring pos-right small" data-mode="max">
-          <button type="button" aria-label="Максимальная доза">
-           
-              <svg viewBox="0 0 110 110">
-  <circle class="track" cx="55" cy="55" r="46"
-          stroke="url(#ringTrackGrad)" stroke-width="18" fill="none"
-          filter="url(#ringInner)"/>
-    <circle class="rim" cx="55" cy="55" r="46"
-          stroke="url(#ringRimGrad)" stroke-width="18" fill="none"
-          opacity="0.65" filter="url(#ringDrop)"/>
-<circle data-arc cx="55" cy="55" r="46"
-          stroke="url(#ringArcGrad)" stroke-width="18" fill="none"
-          stroke-linecap="round" stroke-dasharray="289" stroke-dashoffset="289"
-          filter="url(#ringGlow)"/>
-  <circle data-arc-gloss cx="55" cy="55" r="46"
-          stroke="url(#ringArcGlossGrad)" stroke-width="12" fill="none"
-          stroke-linecap="round" stroke-dasharray="289" stroke-dashoffset="289"
-          opacity="0.15" filter="url(#ringGlow)"/>
-</svg>
-
-
-            </svg>
-            <div class="pct" data-pct></div>
-          </button>
+          <div class="rt-gauge__text rt-gauge__text--pct" id="rtGaugeTextPct" aria-hidden="true">
+            <div class="rt-gauge__text-inner">
+              <div class="rt-gauge__value" id="rtGaugeValPct" data-txt="0,00%">0,00%</div>
+              <div class="rt-gauge__sub" data-txt="пройдено">пройдено</div>
+            </div>
+          </div>
         </div>
       </div>
+
 
       <div class="section" id="infoLines" style="margin-top:0">
         <div id="weightRow"><b>Вес:</b> <span id="weightLine">—</span> кг</div>
         <div id="goalsLine">
           <b>Цели:</b>
           <div id="goalsByWeight" class="muted goals-meta" hidden>
-    <span class="goal-pills goal-pills--mg" id="goalMgPills" aria-label="Цели в мг">
-                  <span class="goal-pill" data-mode="min">—</span>
+    <span class="goal-pills goal-pills--mg" id="goalMgPills" aria-label="Цели в мг">                  <span class="goal-pill" data-mode="min">—</span>
                   <span class="goal-pill" data-mode="opt">—</span>
                   <span class="goal-pill" data-mode="max">—</span>
                 </span>
@@ -2943,7 +3465,12 @@ updateSegLabels();
     // State
     let ME=null, PLAN=null, DOSES=[], PROGRESS=null;
     const DOSE_PER_KG = { min:120, opt:135, max:150 };
-    function loadDoseMode(){ try{ return localStorage.getItem('derma_dose_mode') || 'opt'; }catch(_){ return 'opt'; } }
+    function loadDoseMode(){
+  try{
+    const m = localStorage.getItem('derma_dose_mode') || 'opt';
+    return (m === 'min' || m === 'opt' || m === 'max') ? m : 'opt';
+  }catch(_){ return 'opt'; }
+}
     function saveDoseMode(m){ try{ localStorage.setItem('derma_dose_mode', m); }catch(_){} api('/api/dose-mode',{method:'POST',body:JSON.stringify({mode:m})}); }
     let DOSE_MODE = loadDoseMode();
     window.DOSE_PER_KG = DOSE_PER_KG;
@@ -2992,7 +3519,7 @@ const RING_C = 2*Math.PI*RING_R;   // ~289.03
       }
     }
     function applyRingPositions(mode, pcts){
-      const rail = document.getElementById('ringsRail');
+      const rail = document.getElementById('rtGauge');
       const rMin = rail.querySelector('.ring[data-mode="min"]');
       const rOpt = rail.querySelector('.ring[data-mode="opt"]');
       const rMax = rail.querySelector('.ring[data-mode="max"]');
@@ -3037,20 +3564,427 @@ const RING_C = 2*Math.PI*RING_R;   // ~289.03
   const etaLbl = document.getElementById('etaTargetLabel');
   if (etaLbl) etaLbl.textContent = DOSE_PER_KG[mode];
 
+  // плавный "свайп" шара при смене режима дозировки
+  try{
+    const g = document.getElementById('rtGauge');
+    if (g && prev && prev !== mode){
+      const btns = Array.from(document.querySelectorAll('#doseSeg button[data-mode]'));
+      const order = btns.map(b=> String(b.dataset.mode||''));
+      const iPrev = order.indexOf(prev);
+      const iNext = order.indexOf(mode);
+
+      if (iPrev !== -1 && iNext !== -1 && iPrev !== iNext){
+        // ghost-layer для “wheel-swipe” анимации
+        let ghost = g.querySelector('.rt-gauge__ghost');
+        if (!ghost){
+          ghost = document.createElement('div');
+          ghost.className = 'rt-gauge__ghost';
+          ghost.setAttribute('aria-hidden','true');
+          g.appendChild(ghost);
+        }
+
+        // собираем слепок старого состояния (до updateSummary)
+        ghost.innerHTML = '';
+        const svg = document.getElementById('rtGaugeSvg');
+        const ball = g.querySelector(':scope > .rt-gauge__ball');
+        if (svg){
+          const svgClone = svg.cloneNode(true);
+          // убираем defs, чтобы не плодить дублирующиеся SVG-id
+          try{ const defs = svgClone.querySelector('defs'); if (defs) defs.remove(); }catch(_){}
+          // чистим id в клоне (чтобы getElementById работал по “главным” элементам)
+          try{
+            svgClone.removeAttribute('id');
+            svgClone.querySelectorAll('[id]').forEach(n=> n.removeAttribute('id'));
+          }catch(_){}
+          ghost.appendChild(svgClone);
+        }
+        if (ball){
+          const ballClone = ball.cloneNode(true);
+          try{
+            ballClone.removeAttribute('id');
+            ballClone.querySelectorAll('[id]').forEach(n=> n.removeAttribute('id'));
+          }catch(_){}
+          ghost.appendChild(ballClone);
+        }
+
+        const dir = iNext - iPrev;
+        const cls = (dir >= 0) ? 'rt-swipe-next' : 'rt-swipe-prev';
+
+        // restart
+        g.classList.remove('rt-swipe-next','rt-swipe-prev');
+        void g.offsetWidth;
+        g.classList.add(cls);
+
+        clearTimeout(window.__rtGaugeSwipeT);
+        window.__rtGaugeSwipeT = setTimeout(()=>{
+          g.classList.remove('rt-swipe-next','rt-swipe-prev');
+          if (ghost){ ghost.style.opacity = ''; ghost.innerHTML = ''; }
+        }, 520);
+      }
+    }
+  }catch(_){}
+
   updateSummary();
 }
 
+
+/* ===========================
+   RT segmented Arc-Gauge (NEW)
+   =========================== */
+(function(){
+  const cfg = {
+    // дуга 300° с разрывом снизу (60°), как спидометр
+    startDeg: 300,
+    endDeg:   240,
+    segments: 60,      // количество сегментов (как в variant_segmented)      // количество сегментов (рисок)
+    fillPart: 0.78,    // доля сегмента (остальное — зазор)
+    cx: 100, cy: 100,
+    r: 86,
+    stroke: 6,
+    bgOpacity: 0.14
+  };
+
+  let segBg = [];
+  let segFg = [];
+  let segCore = [];
+  let marker = null;
+  let toggleTimer = null;
+  let showPct = false;
+
+  function sweepDeg(){
+    const {startDeg, endDeg} = cfg;
+    return (endDeg >= startDeg) ? (endDeg - startDeg) : (360 - (startDeg - endDeg));
+  }
+  function clamp(v,a,b){ return Math.max(a, Math.min(b, v)); }
+
+  function ptAt(deg, r){
+    const ang = (deg % 360) * Math.PI / 180;
+    return { x: cfg.cx + r*Math.cos(ang), y: cfg.cy + r*Math.sin(ang) };
+  }
+  function arcPath(a0, a1){
+    const p0 = ptAt(a0, cfg.r);
+    const p1 = ptAt(a1, cfg.r);
+    const d  = a1 - a0;
+    const large = (Math.abs(d) % 360) > 180 ? 1 : 0;
+    const sweep = 1; // clockwise
+    return `M ${p0.x.toFixed(3)} ${p0.y.toFixed(3)} A ${cfg.r} ${cfg.r} 0 ${large} ${sweep} ${p1.x.toFixed(3)} ${p1.y.toFixed(3)}`;
+  }
+
+  function ensureGauge(){
+  const svg = document.getElementById('rtGaugeSvg');
+  const bgG = document.getElementById('rtGaugeSegsBg');
+  const fgG = document.getElementById('rtGaugeSegsFg');
+  marker = document.getElementById('rtGaugeMarker');
+
+  if (!svg || !bgG || !fgG) return false;
+  if (bgG.dataset.built === '1') return true;
+
+  // stroke width via CSS variable (и для линий)
+  svg.style.setProperty('--rtGaugeStroke', cfg.stroke + 'px');
+
+  // чистим на всякий
+  bgG.innerHTML = '';
+  fgG.innerHTML = '';
+  segBg = [];
+  segFg = [];
+  segCore = [];
+
+  const sweep = sweepDeg();
+  const step  = sweep / cfg.segments;
+
+  // делаем сегменты как в variant_segmented: короткие “капсулы” (линии с round-cap)
+  const inner = cfg.r - cfg.stroke * 0.95;
+  const outer = cfg.r + cfg.stroke * 0.95;
+
+  for (let i=0; i<cfg.segments; i++){
+    const a = cfg.startDeg + i*step;
+
+    const p0 = ptAt(a, inner);
+    const p1 = ptAt(a, outer);
+
+    const lBg = document.createElementNS('http://www.w3.org/2000/svg','line');
+    lBg.setAttribute('x1', p0.x); lBg.setAttribute('y1', p0.y);
+    lBg.setAttribute('x2', p1.x); lBg.setAttribute('y2', p1.y);
+    lBg.setAttribute('class','rt-gauge__seg rt-gauge__seg--bg');
+    bgG.appendChild(lBg);
+
+    const lFg = document.createElementNS('http://www.w3.org/2000/svg','line');
+    lFg.setAttribute('x1', p0.x); lFg.setAttribute('y1', p0.y);
+    lFg.setAttribute('x2', p1.x); lFg.setAttribute('y2', p1.y);
+    lFg.setAttribute('class','rt-gauge__seg rt-gauge__seg--fg');
+    fgG.appendChild(lFg);
+
+    // белая «сердцевина» для подсветки последнего сегмента (по умолчанию выключена)
+    const lCore = document.createElementNS('http://www.w3.org/2000/svg','line');
+    lCore.setAttribute('x1', p0.x); lCore.setAttribute('y1', p0.y);
+    lCore.setAttribute('x2', p1.x); lCore.setAttribute('y2', p1.y);
+    lCore.setAttribute('class','rt-gauge__seg rt-gauge__seg--tipcore');
+    fgG.appendChild(lCore);
+
+    segBg.push(lBg);
+    segFg.push(lFg);
+    segCore.push(lCore);
+  }
+
+  bgG.dataset.built = '1';
+  return true;
+}
+
+  // === Inner rays inside the ball (как на рефе) ===
+  function __rtRand01(i){
+    // детерминированный псевдо-рандом (не зависит от Math.random)
+    let x = (i + 1) * 2654435761;
+    x ^= (x << 13); x >>>= 0;
+    x ^= (x >>> 17); x >>>= 0;
+    x ^= (x << 5);  x >>>= 0;
+    return (x % 1000) / 1000;
+  }
+
+  function ensureRays(){
+    const g = document.getElementById('rtGaugeRays');
+    if (!g || g.dataset.built === '1') return;
+
+    g.innerHTML = '';
+    const N = 88;                // сколько “палочек”
+    const baseInner = 64;        // старт сразу за внутренним кольцом
+
+    // Концы палочек: РЕАЛЬНО разная длина (примерно 2–4× разброс),
+    // при этом длинные почти доходят до внешней окружности.
+    const minEnd = 70;           // очень короткие (baseInner + ~8)
+    const maxEnd = 92;          // очень длинные (до границы внешнего диска)
+
+    for (let i=0; i<N; i++){
+      const t = __rtRand01(i);
+
+      // bias к длинным (как на рефе), но с редкими “очень короткими”
+      const k = Math.pow(t, 0.34); // 0..1 (больше значений ближе к 1)
+      let outer = minEnd + (maxEnd - minEnd) * k;
+
+      // доп. джиттер по длине и по углу, чтобы не возникал “контур-кольцо”
+      outer += (__rtRand01(i + 321) - 0.5) * 3.6;
+      // clamp: не выходим за край внешнего диска
+      outer = Math.max(minEnd, Math.min(maxEnd, outer));
+      let inner = baseInner + (__rtRand01(i + 991) - 0.5) * 2.4;
+      inner = Math.max(baseInner - 2.2, Math.min(baseInner + 3.6, inner));
+
+      const deg = -90 + (i * 360 / N) + (__rtRand01(i + 1234) - 0.5) * 0.9;
+
+      const p0 = ptAt(deg, inner);
+      const p1 = ptAt(deg, outer);
+
+      // мягкий локальный glow (вдоль линии), чтобы не образовывалось кольцо-контур
+      const lnGlow = document.createElementNS('http://www.w3.org/2000/svg', 'line');
+      lnGlow.setAttribute('x1', p0.x); lnGlow.setAttribute('y1', p0.y);
+      lnGlow.setAttribute('x2', p1.x); lnGlow.setAttribute('y2', p1.y);
+      lnGlow.setAttribute('vector-effect','non-scaling-stroke');
+
+      const ln = document.createElementNS('http://www.w3.org/2000/svg', 'line');
+      ln.setAttribute('x1', p0.x); ln.setAttribute('y1', p0.y);
+      ln.setAttribute('x2', p1.x); ln.setAttribute('y2', p1.y);
+// Яркость/толщина зависят от длины (длинные светлее/толще)
+      const lenK = Math.max(0, Math.min(1, (outer - inner) / (maxEnd - baseInner)));
+      const w  = 0.78 + lenK * 0.92 + (t * 0.10);
+      const op = 0.42 + lenK * 0.56;
+      // глобально сделать тоньше/тусклее
+const thinK = 0.42;   // 0.85 = -15%, 0.80 = -20%
+const dimK  = 0.50;   // 0.85 = -15%, 0.80 = -20%
+
+const w2  = w * thinK;
+const op2 = Math.max(0.18, op * dimK); // чтобы совсем не пропало
+
+      // glow чуть толще и заметно слабее основного
+      lnGlow.setAttribute('stroke-width', (w + 1.0).toFixed(1.6));
+      lnGlow.setAttribute('stroke-opacity', Math.max(0.10, op * 0.28).toFixed(2));
+      lnGlow.setAttribute('stroke-linecap','round');
+
+      ln.setAttribute('stroke-width', w.toFixed(2));
+      ln.setAttribute('stroke-opacity', op.toFixed(2));
+      ln.setAttribute('stroke-linecap','round');
+
+      g.appendChild(lnGlow);
+      g.appendChild(ln);
+    }
+
+    g.dataset.built = '1';
+  }
+
+  function setText(mgTaken, mgTarget, pct){
+  const vMg    = document.getElementById('rtGaugeValMg');
+  const sMg    = document.getElementById('rtGaugeSubMg');
+  const vPct   = document.getElementById('rtGaugeValPct');    // старый (скрытый) блок
+  const pctTop = document.getElementById('rtGaugePctTop');    // ВОТ ЭТО ты видишь на экране
+
+  if (vMg){
+    vMg.textContent = (mgTaken>0 || mgTarget>0) ? fmtInt(mgTaken) : '—';
+    vMg.dataset.txt = vMg.textContent;
+  }
+
+  if (sMg){
+    sMg.innerHTML = mgTarget>0 ? `/ ${fmtInt(mgTarget)}&nbsp;мг` : '/ —&nbsp;мг';
+    sMg.dataset.txt = sMg.textContent;
+  }
+
+  // pct может быть >100, но для UI лучше ограничить
+  const shown = clamp(pct, 0, 999.99);
+  const pctText = fmt2(shown) + '%';
+
+  // новый видимый процент (над большой дозой)
+  if (pctTop){
+    pctTop.textContent = pctText;
+    pctTop.dataset.txt = pctTop.textContent; // важно для твоих “гравировочных” слоёв
+  }
+
+  // старый процент (если где-то ещё нужен)
+  if (vPct){
+    vPct.textContent = pctText;
+    vPct.dataset.txt = vPct.textContent;
+  }
+
+  try{ rtFitGaugeText(); }catch(_){}
+}
+
+
+  function rtFitGaugeText(){
+  // меряем реальный контейнер текста (.rt-gauge__text),
+  // а не orb — потому что inset/mask/padding реально “съедают” место.
+  const blocks = [
+    {
+      box:  document.getElementById('rtGaugeTextMg'),
+      inner: document.querySelector('#rtGaugeTextMg .rt-gauge__text-inner'),
+      lines: [document.getElementById('rtGaugePctTop'), document.getElementById('rtGaugeValMg'), document.getElementById('rtGaugeSubMg')]
+    },
+    {
+      box:  document.getElementById('rtGaugeTextPct'),
+      inner: document.querySelector('#rtGaugeTextPct .rt-gauge__text-inner'),
+      lines: [document.getElementById('rtGaugeValPct'), document.querySelector('#rtGaugeTextPct .rt-gauge__sub')]
+    },
+  ];
+
+  for (const b of blocks){
+    if (!b.box || !b.inner) continue;
+
+    // учёт реальных паддингов внутреннего контейнера
+    const cs = getComputedStyle(b.inner);
+    const padX = (parseFloat(cs.paddingLeft)||0) + (parseFloat(cs.paddingRight)||0);
+    const padY = (parseFloat(cs.paddingTop)||0)  + (parseFloat(cs.paddingBottom)||0);
+
+    // “безопасная зона” внутри круга (учёт маски/свечения/теней)
+    const maxW = Math.max(0, (b.box.clientWidth  - padX) * 0.90);
+    const maxH = Math.max(0, (b.box.clientHeight - padY) * 0.78);
+
+    // reset to measure real size
+    b.inner.style.setProperty('--rtFit','1');
+    b.inner.getBoundingClientRect();
+
+    let widest = 0;
+    for (const el of (b.lines||[])){
+      if (!el) continue;
+      widest = Math.max(widest, el.scrollWidth || 0);
+    }
+
+    let s = 1;
+    if (widest > 0) s = Math.min(s, maxW / widest);
+
+    const h = b.inner.scrollHeight || 0;
+    if (h > 0) s = Math.min(s, maxH / h);
+
+    // границы, чтобы не “схлопывалось” слишком сильно
+    s = Math.max(0.54, Math.min(1, s));
+
+    b.inner.style.setProperty('--rtFit', s.toFixed(3));
+  }
+}
+
+
+  // подпишемся на ресайз (ориентация/вьюпорт)
+  window.addEventListener('resize', ()=>{ try{ rtFitGaugeText(); }catch(_){} }, {passive:true});
+
+  // публичная функция (её вызывает updateSummary)
+  window.updateRtGauge = function(mode, pcts, cum, w, targets){
+    if (!ensureGauge()) return;
+    try{ ensureRays(); }catch(_){ }
+
+    const rawPct = Number((pcts && pcts[mode]) || 0) || 0;
+    const pct = rawPct;                         // для текста
+    const frac = clamp(rawPct/100, 0, 1);       // для заполнения дуги (0..1)
+
+    // считаем цель в мг
+    const tKg = Number((targets && targets[mode]) || 0) || 0;
+    const targetMg = (w>0 && tKg>0) ? Math.round(tKg * w) : 0;
+
+    // текст в шаре
+    setText(Math.max(0, Math.round(cum||0)), targetMg, pct);
+
+    // сегменты заполнения
+    // Важно: если прогресс > 0, всегда включаем хотя бы 1 сегмент (иначе «кончик» не загорается при малых процентах)
+    const on = (frac <= 0)
+      ? 0
+      : Math.max(1, Math.min(cfg.segments, Math.ceil(cfg.segments * frac - 1e-9)));
+    const tip = (on > 0) ? (on - 1) : -1;
+
+    for (let i=0; i<cfg.segments; i++){
+      const isOn = i < on;
+      segFg[i].style.opacity = isOn ? '1' : '0';
+
+      // сбрасываем подсветку
+      segFg[i].classList.remove('rt-tip');
+      if (segCore[i]){
+        segCore[i].classList.remove('rt-tip');
+        segCore[i].style.opacity = '0';
+      }
+    }
+
+    // подсветка “последнего” сегмента вместо круглого маркера
+    if (tip >= 0 && segFg[tip]){
+      segFg[tip].classList.add('rt-tip');
+      if (segCore[tip]){
+        segCore[tip].classList.add('rt-tip');
+        segCore[tip].style.opacity = '1';
+      }
+    }
+  };
+
+  function applyToggle(){
+  const g  = document.getElementById('rtGauge');
+  const mg = document.getElementById('rtGaugeTextMg');
+  const pc = document.getElementById('rtGaugeTextPct');
+  if (!g || !mg || !pc) return;
+
+  // Проценты закреплены сверху — показываем оба блока всегда
+  g.classList.remove('show-pct');
+  pc.setAttribute('aria-hidden', 'false');
+  mg.setAttribute('aria-hidden', 'false');
+}
+
+function startTicker(){
+  // тикер выключен: интерфейс больше не “перелистывается”
+  if (toggleTimer) { clearInterval(toggleTimer); toggleTimer = null; }
+  showPct = false;
+  applyToggle();
+}
+
+
+  // инициализация после DOM
+  if (document.readyState === 'loading'){
+    document.addEventListener('DOMContentLoaded', ()=>{ ensureGauge(); try{ ensureRays(); }catch(_){} startTicker(); });
+  } else {
+    ensureGauge();
+    try{ ensureRays(); }catch(_){}
+    startTicker();
+  }
+})();
+
     // ——— Свайпы/клики по кольцам (левое/центр/правое) ———
 (function wireProgressGestures(){
-  const rail = document.getElementById('ringsRail');
+  const rail = document.getElementById('rtGauge');
   if (!rail) return;
 
   // последовательность режимов
-  const order = ['min','opt','max'];
+  const order = ['goal','min','opt','max'];
   const step = (dir)=>{                   // dir: +1 вправо, -1 влево
     let i = order.indexOf(DOSE_MODE);
-    if (i < 0) i = 1;                     // дефолт 'opt'
-    i = (i + dir + 3) % 3;
+    if (i < 0) i = order.indexOf('opt');   // дефолт 'opt'
+    i = (i + dir + order.length) % order.length;
     setDoseMode(order[i]);                // МГНОВЕННОЕ обновление
   };
 
@@ -3380,9 +4314,7 @@ try{
 // каждый раз пересобираем базу, чтобы "Цель" не залипала при смене веса/локалки
 DOSE_PER_KG.min = 120;
 DOSE_PER_KG.opt = 135;
-DOSE_PER_KG.max = 150;
-
-(function applyGoalMode(){
+DOSE_PER_KG.max = 150;(function applyGoalMode(){
   // читаем цель из онбординга (localStorage)
   const rawKg = Number(localStorage.getItem('rt_goal_mgkg') || 0);
   const rawMg = Number(localStorage.getItem('rt_goal_mg')   || 0);
@@ -3447,7 +4379,7 @@ DOSE_PER_KG.max = 150;
 
 const targets = DOSE_PER_KG;
 const pcts = {};
-['min','opt','max'].forEach(m=>{
+['goal','min','opt','max'].forEach(m=>{
   pcts[m] = (w>0) ? (100 * cum / (targets[m]*w)) : 0;
 });
 
@@ -3465,7 +4397,7 @@ try {
   localStorage.setItem('rt_goalMgKg', String(targets[DOSE_MODE] || 135));
 } catch(_) {}
 
-applyRingPositions(DOSE_MODE, pcts);
+updateRtGauge(DOSE_MODE, pcts, cum, w, targets);
       // цели: подсветка плашек и пересчёт мг по весу
       try{
         document.querySelectorAll('#doseKgRow span')
@@ -6361,7 +7293,7 @@ main: [
     const seg = document.getElementById('doseSeg');
     if (!seg) { setSatisfied(true); return; }
 
-    const need = new Set(['min','opt','max']);
+    const need = new Set(['goal','min','opt','max']);
     const seen = new Set();
     const btns = Array.from(seg.querySelectorAll('button[data-mode]'));
 
@@ -7060,6 +7992,159 @@ vx: rand(-0.10, 0.10),
       });
     })();
     </script>
+    <style>
+      /* Убираем отдельный экран процентов — он и даёт огромную плашку */
+      #rtGaugeTextPct{ display:none !important; }
+      .rt-gauge__text--pct{ display:none !important; }
+      </style>
+      <style>
+        /* % — маленькая стеклянная капсула с аурой, “пинтерест-вайб” */
+        #rtGaugePctTop{
+          position: relative;
+          display: inline-flex;
+          align-items: center;
+          justify-content: center;
+          max-width: 92%;
+          padding: 6px 12px;
+          border-radius: 999px;
+        
+          /* читаемо на светлом шаре */
+          color: rgba(11, 18, 30, .86);
+          font-family: "Sora", ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Inter, Arial, sans-serif;
+          font-weight: 850;
+          font-variant-numeric: tabular-nums;
+          letter-spacing: -0.012em;
+          line-height: 1;
+          font-size: clamp(13px, 3.7vw, 18px);
+        
+          background: linear-gradient(180deg, rgba(255,255,255,.44), rgba(255,255,255,.22));
+          box-shadow:
+            inset 0 1px 0 rgba(255,255,255,.70),
+            inset 0 -1px 0 rgba(0,0,0,.08),
+            0 10px 22px rgba(0,0,0,.16);
+          backdrop-filter: blur(10px) saturate(175%);
+          -webkit-backdrop-filter: blur(10px) saturate(175%);
+          isolation: isolate;
+        }
+        
+        /* аура (но не прямоугольник!) */
+        #rtGaugePctTop::before{
+          content:"";
+          position:absolute;
+          inset:-10px;
+          border-radius: inherit;
+          background: radial-gradient(circle at 45% 10%,
+            rgba(170,255,246,.75) 0%,
+            rgba(195,175,255,.55) 38%,
+            rgba(255,255,255,0) 70%);
+          filter: blur(10px);
+          opacity: .85;
+          z-index:-1;
+          pointer-events:none;
+        }
+        
+        /* мини-блик, чтобы выглядело “в материале” */
+        #rtGaugePctTop::after{
+          content:"";
+          position:absolute;
+          inset:0;
+          border-radius: inherit;
+          background: radial-gradient(circle at 50% 0%,
+            rgba(255,255,255,.65) 0%,
+            rgba(255,255,255,0) 55%);
+          opacity:.55;
+          pointer-events:none;
+        }
+        
+        @media (max-width: 360px){
+          #rtGaugePctTop{ font-size: 13px; padding: 6px 10px; }
+        }
+        /* ====== MANUAL FONT SCALES (final override) ======
+   Меняешь только коэффициенты ниже — и всё реально уменьшается,
+   потому что умножаются и px и vw внутри clamp().
+*/
+:root{
+  --rtScaleMg: 0.8;   /* большое число (кумулятивная) -18%  (0.85 = -15%, 0.80 = -20%) */
+  --rtScaleSub: 0.90;  /* строка "/ 9 585 мг" -10% */
+  --rtScalePct: 0.82;  /* проценты -18% (0.85/-15%, 0.80/-20%) */
+}
+
+/* 1) Большое число кумулятивной дозы */
+#rtGaugeTextMg .rt-gauge__value{
+  font-size: clamp(
+    calc(22px * var(--rtScaleMg)),
+    calc(8.4vw * var(--rtScaleMg)),
+    calc(52px * var(--rtScaleMg))
+  );
+}
+
+/* 2) Мелкая строка "/ 9 585 мг" */
+#rtGaugeTextMg .rt-gauge__sub{
+  font-size: calc(13px * var(--rtScaleSub));
+}
+
+/* 3) Проценты (плашка сверху) */
+.rt-gauge__pctTop{
+  font-size: clamp(
+    calc(14px * var(--rtScalePct)),
+    calc(4.1vw * var(--rtScalePct)),
+    calc(21px * var(--rtScalePct))
+  );
+
+  /* чтобы пропорции плашки остались “дорогими” вместе со шрифтом */
+  padding: calc(6px * var(--rtScalePct)) calc(12px * var(--rtScalePct));
+}
+:root{
+  --rtScaleMg: 0.82;   /* -18% */
+  --rtScaleSub: 0.90;  /* -10% */
+  --rtScalePct: 0.82;  /* -18% */
+}
+
+#rtGaugeTextMg .rt-gauge__value{
+  font-size: clamp(
+    calc(22px * var(--rtScaleMg)),
+    calc(8.4vw * var(--rtScaleMg)),
+    calc(52px * var(--rtScaleMg))
+  ) !important;
+}
+
+#rtGaugeTextMg .rt-gauge__sub{
+  font-size: calc(13px * var(--rtScaleSub)) !important;
+}
+
+#rtGaugePctTop{
+  font-size: clamp(
+    calc(13px * var(--rtScalePct)),
+    calc(3.7vw * var(--rtScalePct)),
+    calc(18px * var(--rtScalePct))
+  ) !important;
+
+  padding: calc(6px * var(--rtScalePct)) calc(12px * var(--rtScalePct)) !important;
+}
+        </style>
+    <!-- RT_FONT_SCALE_FIX: visually scale ONLY mg numbers (auto-fit won't cancel transforms) -->
+<style id="rt-font-scale-fix">
+  :root{
+    /* 0.85 = -15%, 0.80 = -20%, 0.90 = -10% */
+    --rtMgBigScale: 0.85;  /* big cumulative dose number (e.g., 1 900) */
+    --rtMgSubScale: 0.85;  /* target line (e.g., / 10 650 мг) */
+  }
+
+  /* Make transforms apply cleanly inside flex column */
+  #rtGaugeValMg,
+  #rtGaugeSubMg{
+    display: inline-block;
+    transform-origin: 50% 50%;
+  }
+
+  /* Scale ONLY these lines; percent pill stays as-is */
+  #rtGaugeValMg{
+    transform: translateZ(0) scale(var(--rtMgBigScale));
+  }
+  #rtGaugeSubMg{
+    transform: translateZ(0) scale(var(--rtMgSubScale));
+  }
+</style>
     
 </body>
 </html>
