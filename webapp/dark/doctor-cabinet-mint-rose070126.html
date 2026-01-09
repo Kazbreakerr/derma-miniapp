@@ -54,7 +54,7 @@
     .input:focus{border-color:#D0D7E2;box-shadow:0 0 0 4px rgba(100,116,139,.10)}
     .chip{border:1px solid var(--stroke);border-radius:999px;padding:8px 12px;color:var(--text);background:transparent}
     .select{padding:8px 10px;border-radius:999px;border:1px solid var(--stroke);background:#F2F4F7;color:var(--text)}
-    .card{background:var(--card);border:1px solid var(--stroke);border-radius:var(--r);padding:14px;box-shadow:0 12px 28px rgba(15,23,42,.10)}
+    .card{background:var(--card);border:1px solid var(--stroke);border-radius:var(--r);padding:14px;box-shadow: 8px 8px 24px rgba(15,23,42,.08), -8px -8px 24px rgba(255,255,255,.70)}
     .list{display:grid;gap:10px}
     /* Статистика в профиле — адаптивные колонки */
 #sec-profile .list{
@@ -727,223 +727,62 @@
 <style id="patient-drawer-css">
   :root{
     --pd-r:18px;
-    --pd-shadow: 0 12px 28px rgba(15,23,42,.10);
+    --pd-shadow: 8px 12px 26px rgba(24,39,75,.10);
+    --pd-bevel: inset 6px 6px 12px rgba(24,39,75,.06), inset -6px -6px 12px rgba(255,255,255,.6);
   }
-
-  /* Overlay */
-  #patientDrawer{
-    position:fixed; inset:0;
-    background:rgba(2,6,23,.45);
-    backdrop-filter: blur(2px);
-    -webkit-backdrop-filter: blur(2px);
-    z-index:1000;
-    display:none;
-  }
-
-  /* Panel */
-  .pd-panel{
-    position:absolute; right:0; top:0; bottom:0;
-    width:min(860px, 100%);
-    background:var(--bg);
-    border-left:1px solid var(--stroke);
-    overflow:auto;
-  }
-
-  /* Header */
-  .pd-hdr{
-    position:sticky; top:0; z-index:2;
-    background:var(--bg);
-    border-bottom:1px solid var(--stroke);
-  }
-
-  .pd-top-actions{
-    display:flex; gap:10px; align-items:center;
-    padding:12px;
-  }
-  .pd-navbtn{
-    border:1px solid var(--stroke);
-    background:#F2F4F7;
-    color:var(--text);
-    border-radius:999px;
-    padding:10px 14px;
-    font-weight:800;
-    cursor:pointer;
-  }
-  .pd-navbtn:active{ transform:translateY(1px); }
-
-  .pd-navbtn.primary{
-    border-color:transparent;
-    background:var(--grad1);
-    color:#0b1511;
-  }
-
-  .pd-close{
-    margin-left:auto;
-    width:40px; height:40px;
-    border-radius:12px;
-    border:1px solid var(--stroke);
-    background:transparent;
-    color:var(--text);
-    cursor:pointer;
-    font-weight:900;
-    line-height:38px;
-  }
-
-  .pd-hero{
-    display:grid;
-    justify-items:center;
-    padding:4px 12px 10px;
-    gap:6px;
-  }
-  .pd-ava{
-    width:92px;height:92px;
-    border-radius:50%;
-    border:1px solid var(--stroke);
-    object-fit:cover;
-    background:#EEF2F6;
-  }
-  .pd-name{font-weight:900;font-size:18px;color:var(--text);text-align:center}
-  .pd-sub{
-    font-size:12px;color:var(--muted);
-    background:#F2F4F7;border:1px solid var(--stroke);
-    border-radius:999px;padding:6px 10px;
-  }
-
-  /* Day nav under avatar */
-  .pd-daynav{
-    display:grid;
-    grid-template-columns:120px 1fr 120px;
-    align-items:center;
-    gap:8px;
-    padding:0 12px 12px;
-  }
-  .pd-daybtn{
-    border:1px solid var(--stroke);
-    background:#F2F4F7;
-    color:var(--muted);
-    border-radius:999px;
-    padding:10px 14px;
-    font-weight:800;
-    cursor:pointer;
-  }
-  .pd-daybtn:active{ transform:translateY(1px); }
-
+  /* оверлей */
+  #patientDrawer{position:fixed;inset:0;backdrop-filter:blur(2px);background:rgba(0,0,0,.35);z-index:1000;display:none}
+  /* панель */
+  .pd-panel{position:absolute;right:0;top:0;bottom:0;width:min(820px,100%);background:#fff;border-left:1px solid var(--stroke,#e7eaf0);overflow:auto}
+  .pd-hdr{position:sticky;top:0;background:linear-gradient(180deg,#FAFDFF,#F6F8FB 50%,#F3F5F9);z-index:2;border-bottom:1px solid var(--stroke,#e7eaf0)}
+  .pd-hdr-top{display:grid;grid-template-columns:120px 1fr 120px;align-items:center;gap:8px;padding:12px}
+  .pd-daybtn{border:0;border-radius:999px;padding:8px 14px;background:linear-gradient(135deg,#fff,#F6F8FB);box-shadow:var(--pd-bevel);color:#667085;font-weight:600}
   .pd-date{text-align:center}
-  .pd-course{font-weight:900;font-size:18px;color:var(--text)}
-  .pd-date-txt{font-size:13px;color:var(--muted)}
+  .pd-course{font-weight:800;font-size:18px;color:#0F172A}
+  .pd-date-txt{font-size:13px;color:#667085}
 
-  /* Body */
+  .pd-idrow{display:grid;justify-items:center;padding:6px 12px 12px}
+  .pd-ava{width:64px;height:64px;border-radius:50%;object-fit:cover;box-shadow:0 4px 14px rgba(24,39,75,.15)}
+  .pd-name{margin-top:8px;font-weight:800}
+  .pd-chip{margin-top:6px;font-size:12px;color:#3b3f46;background:#fff;border-radius:999px;padding:6px 10px;box-shadow:var(--pd-bevel)}
+
   .pd-body{padding:16px;display:grid;gap:14px}
-
-  .pd-card{
-    background:var(--card);
-    border:1px solid var(--stroke);
-    border-radius:var(--pd-r);
-    padding:14px;
-    box-shadow: var(--pd-shadow);
-  }
-  .pd-ttl{font-weight:900;margin:0 0 10px;color:var(--text)}
-
-  .pd-pill{
-    display:inline-flex;align-items:center;gap:8px;
-    padding:8px 10px;border-radius:999px;
-    background:var(--grad2);
-    border:1px solid rgba(15,23,42,.08);
-    font-weight:800;
-  }
-  .pd-pill small{font-weight:700;color:var(--muted)}
+  .pd-card{background:#fff;border:1px solid var(--stroke,#e7eaf0);border-radius:var(--pd-r);padding:14px;box-shadow:var(--pd-shadow)}
+  .pd-ttl{font-weight:800;margin:0 0 10px;color:#182034}
 
   .pd-chips{display:flex;flex-wrap:wrap;gap:8px}
-  .pd-chip-s{
-    padding:8px 10px;
-    border-radius:999px;
-    background:#F2F4F7;
-    border:1px solid var(--stroke);
-    font-size:13px;
-    color:var(--text);
-  }
-  .pd-chip-muted{color:var(--muted)}
+  .pd-chip-s{padding:8px 10px;border-radius:12px;background:linear-gradient(135deg,#fff,#F6F8FB);box-shadow:var(--pd-bevel);font-size:13px}
+  .pd-chip-muted{color:#667085}
+  .pd-chip-g{background:linear-gradient(135deg,#E9FFF8,#F6FFFD)}
+  .pd-chip-y{background:linear-gradient(135deg,#FFF6DA,#FFF9E8)}
+  .pd-chip-o{background:linear-gradient(135deg,#FFE6D6,#FFF0E9)}
+  .pd-chip-r{background:linear-gradient(135deg,#FFE3EC,#FFF0F5)}
+  .pd-meta{margin-top:6px;font-size:12px;color:#667085}
 
-  .pd-chip-g{background:rgba(34,197,94,.10); border-color:rgba(34,197,94,.25)}
-  .pd-chip-y{background:rgba(245,158,11,.10); border-color:rgba(245,158,11,.25)}
-  .pd-chip-o{background:rgba(249,115,22,.10); border-color:rgba(249,115,22,.25)}
-  .pd-chip-r{background:rgba(239,68,68,.10); border-color:rgba(239,68,68,.25)}
+  .pd-dose-num{font-weight:900;color:#1c2440;margin-bottom:8px}
+  .pd-bar{height:10px;border-radius:999px;background:#EEF2F6;box-shadow:var(--pd-bevel);overflow:hidden}
+  .pd-bar > i{display:block;height:100%;width:0;background:linear-gradient(90deg,#90F0D0,#5BD8C0)}
 
-  .pd-dose-num{font-weight:950;color:var(--text);margin-bottom:8px;font-size:18px}
-  .pd-bar{
-    height:10px;border-radius:999px;
-    background:#EEF2F6;
-    border:1px solid var(--stroke);
-    overflow:hidden;
-  }
-  .pd-bar > i{display:block;height:100%;width:0;background:var(--grad1)}
-
-  .pd-meta{margin-top:8px;font-size:12px;color:var(--muted)}
-
-  .pd-note{
-    min-height:40px;
-    border-radius:14px;
-    background:#F2F4F7;
-    border:1px solid var(--stroke);
-    padding:10px 12px;
-    color:var(--text);
-    white-space:pre-wrap
-  }
+  .pd-note{min-height:40px;border-radius:14px;background:linear-gradient(135deg,#fff,#F6F8FB);box-shadow:var(--pd-bevel);padding:10px 12px;color:#2d3648;white-space:pre-wrap}
 
   .pd-photos{display:grid;grid-template-columns:1fr 1fr;gap:12px}
   .pd-photo{display:grid;justify-items:center;gap:6px}
-  .pd-photo img{
-    width:100%;
-    aspect-ratio:1/1;
-    border-radius:16px;
-    object-fit:cover;
-    background:#EEF2F6;
-    border:1px solid var(--stroke);
-    cursor:pointer
-  }
-  .pd-photo figcaption{font-size:12px;color:var(--muted)}
+  .pd-photo img{width:100%;aspect-ratio:1/1;border-radius:16px;object-fit:cover;background:#EEF2F6;box-shadow:var(--pd-shadow);cursor:pointer}
+  .pd-photo figcaption{font-size:12px;color:#667085}
 
   .pd-actions{display:grid;gap:10px}
-  .pd-btn{
-    border:0;
-    border-radius:12px;
-    padding:12px 12px;
-    font-weight:900;
-    color:#0b1511;
-    background:var(--grad1);
-    box-shadow: var(--pd-shadow);
-    cursor:pointer;
-  }
-  .pd-btn:active{ transform:translateY(1px); }
-
+  .pd-btn{border:0;border-radius:12px;padding:10px 12px;font-weight:700;color:#0b2a23;background:linear-gradient(90deg,#90F0D0,#5BD8C0);box-shadow:var(--pd-shadow);cursor:pointer}
   .pd-btn.peach{color:#3d2417;background:linear-gradient(90deg,#FFD1B5,#FFB894)}
   .pd-btn.lav{color:#291d3a;background:linear-gradient(90deg,#D9C7FF,#B7A2FF)}
-  .pd-btn.ghost{
-    background:#F2F4F7;
-    color:var(--text);
-    border:1px solid var(--stroke);
-    box-shadow:none;
-  }
+  .pd-btn.ghost{background:linear-gradient(135deg,#fff,#F6F8FB);color:#223043}
 
   .pd-comment{display:grid;grid-template-columns:1fr auto;gap:10px}
-  .pd-input{
-    border:1px solid var(--stroke);
-    border-radius:12px;
-    padding:12px 12px;
-    background:#F2F4F7;
-    outline:none;
-    color:var(--text);
-  }
-  .pd-input:focus{border-color:#D0D7E2;box-shadow:0 0 0 4px rgba(100,116,139,.10)}
+  .pd-input{border:0;border-radius:12px;padding:10px 12px;background:linear-gradient(135deg,#fff,#F6F8FB);box-shadow:var(--pd-bevel);outline:none}
 
-  /* Lightbox */
-  .pd-light{position:fixed;inset:0;z-index:10000;display:none;place-items:center;background:rgba(0,0,0,.55)}
+  /* лайтбокс */
+  .pd-light{position:fixed;inset:0;z-index:10000;display:none;place-items:center;background:rgba(0,0,0,.5)}
   .pd-light img{max-width:92vw;max-height:92vh;border-radius:16px;box-shadow:0 12px 32px rgba(0,0,0,.35)}
-
-  @media (max-width:560px){
-    .pd-daynav{grid-template-columns:110px 1fr 110px}
-    .pd-ava{width:84px;height:84px}
-  }
+  @media (max-width:560px){ .pd-photos{grid-template-columns:1fr 1fr} }
 </style>
 
 </head>
@@ -951,8 +790,8 @@
  <script>
 (function(){
   try{
-    sessionStorage.setItem('rt_role','doctor');
-    sessionStorage.setItem('rt_last','doctor:cabinet');
+    localStorage.setItem('rt_role','doctor');
+    localStorage.setItem('rt_last','doctor:cabinet');
   }catch(_){}
 })();
 </script>
@@ -978,15 +817,12 @@
       <section class="sec active" id="sec-patients">
         <div class="row">
           <div class="search"><input id="search" class="input" placeholder="Поиск: ФИО, @ник или код"></div>
-
-          <select id="sortBy" class="select" aria-label="Сортировка">
-            <option value="progress">Сортировка: по прогрессу</option>
-            <option value="name">Сортировка: по имени</option>
-            <option value="added">Сортировка: по дате добавления</option>
-            <option value="mood">Сортировка: по самочувствию сегодня</option>
-            <option value="target">Сортировка: по цели кумулятивной дозы</option>
-          </select>
-          <button id="sortDir" class="chip" type="button" title="Сменить порядок">↓</button>
+          <button class="chip" data-filter="status" data-value="all">Все статусы</button>
+          <button class="chip" data-filter="status" data-value="on">На курсе</button>
+          <button class="chip" data-filter="status" data-value="off">Не на курсе</button>
+          <button class="chip" data-filter="red" data-value="true">Есть красные анализы</button>
+          <select id="daysNoReport" class="select"><option value="0">Без отчёта: —</option><option value="7">&gt; 7 дн</option><option value="14">&gt; 14 дн</option><option value="30">&gt; 30 дн</option></select>
+          <button id="resetFilters" class="chip">Сброс</button>
         </div>
 
         <div id="patientsList" class="list"></div>
@@ -1150,8 +986,8 @@
     // ===== helpers (ES5)
     function q(s){return document.querySelector(s);}
     function qa(s){return Array.prototype.slice.call(document.querySelectorAll(s));}
-    var storage={ set:function(k,v){try{sessionStorage.setItem(k,JSON.stringify(v))}catch(e){}},
-                  get:function(k,d){var x=null;try{x=JSON.parse(sessionStorage.getItem(k)||'null')}catch(e){}; return (x===null||x===undefined)?d:x;} };
+    var storage={ set:function(k,v){try{localStorage.setItem(k,JSON.stringify(v))}catch(e){}},
+                  get:function(k,d){var x=null;try{x=JSON.parse(localStorage.getItem(k)||'null')}catch(e){}; return (x===null||x===undefined)?d:x;} };
     function fmtDate(iso){ if(!iso) return '—'; var d=new Date(iso); function z(n){return (n<10?'0':'')+n} return z(d.getDate())+'.'+z(d.getMonth()+1)+'.'+d.getFullYear(); }
 function shareURL(code){
   return location.origin + '/dark/myprofile.html?attach=doctor&code=' + encodeURIComponent(code);
@@ -1175,8 +1011,8 @@ function api(path, opts = {}) {
   let url = base + path;
 
   if (!initData) {
-    const devTg = new URLSearchParams(location.search).get('tg') || (sessionStorage.getItem('rt_dev_tg') || localStorage.getItem('rt_dev_tg')) || '9001';
-    try { sessionStorage.setItem('rt_dev_tg', devTg); } catch (_){}
+    const devTg = new URLSearchParams(location.search).get('tg') || localStorage.getItem('rt_dev_tg') || '9001';
+    try { localStorage.setItem('rt_dev_tg', devTg); } catch (_){}
     if (devTg) url += (url.includes('?') ? '&' : '?') + 'tg=' + encodeURIComponent(devTg);
   }
 
@@ -1215,7 +1051,7 @@ function setSmallAvatar(url, init){
     box.innerHTML = (init || 'JD');
   }
 }    function setBigAvatar(url, init){ var img=q('#bigAvaImg'), txt=q('#bigAvaTxt'); if(!img||!txt) return; if(url){ img.referrerPolicy="no-referrer"; img.src=url; img.style.display='block'; txt.style.display='none'; } else { img.style.display='none'; txt.textContent=init||'JD'; txt.style.display='block'; } }
-    function setAvatarUrl(url){ if(!url) return; try{ sessionStorage.setItem('doctorAvatarUrl', url);}catch(e){} applyAvatar(); }
+    function setAvatarUrl(url){ if(!url) return; try{ localStorage.setItem('doctorAvatarUrl', url);}catch(e){} applyAvatar(); }
     function tryTGAvatar(){
       try{
         if(!window.Telegram || !window.Telegram.WebApp) return false;
@@ -1238,15 +1074,14 @@ function setSmallAvatar(url, init){
     function applyAvatar(){
       var prof=storage.get('doctorProfile',{name:'Врач'});
       var init=initialsFrom((prof&&prof.name)||'');
-      var url=(sessionStorage.getItem('doctorAvatarUrl') || localStorage.getItem('doctorAvatarUrl'));
+      var url=localStorage.getItem('doctorAvatarUrl');
       setSmallAvatar(url,init); setBigAvatar(url,init);
     }
 
     // ===== Состояние
     var state={patients:storage.get('patientsList', []),
                requests:storage.get('patientsRequests', []),
-               filters:{q:''},
-               sort:storage.get('doctorPatientsSort', {by:'progress',dir:'desc'})};
+               filters:{q:'',status:'all',red:false,days:0}};
 
     // ===== Табы
     function setTab(tab){
@@ -1267,7 +1102,7 @@ function setSmallAvatar(url, init){
 
     // ===== Хедер/профиль
     function initHeader(){
-      var qCode=getQuery('code'); if(qCode && /^[A-Z0-9]{5}$/.test(qCode)) try{ sessionStorage.setItem('doctorCode', JSON.stringify(qCode)); }catch(_){}
+      var qCode=getQuery('code'); if(qCode && /^[A-Z0-9]{5}$/.test(qCode)) try{ localStorage.setItem('doctorCode', JSON.stringify(qCode)); }catch(_){}
       var code=storage.get('doctorCode')||'AB12C';
       var elTop=q('#topCode'); if(elTop) elTop.textContent=code;
       var elProf=q('#profCode'); if(elProf) elProf.textContent=code;
@@ -1280,11 +1115,14 @@ function setSmallAvatar(url, init){
 
     // ===== Пациенты
     function matchesFilters(p){
-      var qv=(state.filters.q||'').toLowerCase().trim();
-      if(!qv) return true;
-      return [p.name,p.handle,p.id].some(function(x){
-        return String(x||'').toLowerCase().indexOf(qv)>-1;
-      });
+      var qv=state.filters.q.toLowerCase().trim();
+      var inSearch=!qv || [p.name,p.handle,p.id].some(function(x){return String(x||'').toLowerCase().indexOf(qv)>-1;});
+      var stOk= state.filters.status==='all' ? true : (state.filters.status==='on' ? (p.course&&p.course.onCourse) : !(p.course&&p.course.onCourse));
+      var anyRed=['ALT','AST','TG','CHOL'].some(function(k){ return ((p.labs||{})[k]||{}).status==='r'; });
+      var redOk= state.filters.red ? (p.red||anyRed) : true;
+      function daysBetween(iso){ if(!iso) return Infinity; return Math.floor((new Date()-new Date(iso))/86400000); }
+      var daysOk= state.filters.days>0 ? (daysBetween(p.lastReport)>state.filters.days) : true;
+      return inSearch && stOk && redOk && daysOk;
     }
 
     function patientCard(p){
@@ -1323,11 +1161,26 @@ try{
     '</div>';
 
   // ← открываем drawer по клику на карточку
- // Открываем drawer пациента внутри этой же страницы
+ // СТАЛО: открываем отдельную страницу пациента
 el.addEventListener('click', () => {
-  if (typeof window.openPatientDrawer === 'function') {
-    window.openPatientDrawer(p);
-  }
+  const base = window.PATIENT_PAGE_BASE || 'patient-neumorph-v2.html';
+
+  // локальная «сегодняшняя» дата в ISO без сдвига таймзоны
+  const d = new Date(); 
+  d.setMinutes(d.getMinutes() - d.getTimezoneOffset());
+  const today = d.toISOString().slice(0,10);
+
+  const params = new URLSearchParams({
+    id:      String(p.id || p.patient_id || ''),
+    name:    p.name || p.patient_name || 'Пациент',
+    date:    today,
+    start:   (p.course && p.course.start) || p.start_date || '',
+    avatar:  p.avatar_url || p.avatarUrl || ''
+  });
+// прокидываем tg врача дальше на страницу пациента
+const tg = new URLSearchParams(location.search).get('tg') || localStorage.getItem('tgDev') || '';
+  if (tg) params.set('tg', tg);
+  location.href = `${base}?${params.toString()}`;
 });
 
   return el;
@@ -1344,83 +1197,9 @@ el.addEventListener('click', () => {
       };
     }
 
-    
-
-    function _num(v, d){
-      v = Number(v);
-      return Number.isFinite(v) ? v : (d||0);
-    }
-    function _time(v){
-      if(!v) return null;
-      var t = (v instanceof Date) ? v.getTime() : Date.parse(v);
-      return Number.isFinite(t) ? t : null;
-    }
-    function defaultDirFor(by){
-      if(by==='name') return 'asc';
-      if(by==='added') return 'desc';
-      if(by==='progress') return 'desc';
-      if(by==='mood') return 'desc';
-      if(by==='target') return 'desc';
-      return 'desc';
-    }
-    function sortPatients(arr){
-      var by = (state.sort && state.sort.by) ? state.sort.by : 'progress';
-      var dir = (state.sort && state.sort.dir) ? state.sort.dir : defaultDirFor(by);
-      var mul = (dir==='asc') ? 1 : -1;
-
-      var a = arr.slice();
-      a.sort(function(p1,p2){
-        if(by==='name'){
-          var s1 = (p1.name||'').toLowerCase();
-          var s2 = (p2.name||'').toLowerCase();
-          if(s1<s2) return -1*mul;
-          if(s1>s2) return 1*mul;
-          return 0;
-        }
-        if(by==='added'){
-          var t1 = _time(p1.addedAt);
-          var t2 = _time(p2.addedAt);
-          // nulls go to end
-          if(t1==null && t2==null) return 0;
-          if(t1==null) return 1;
-          if(t2==null) return -1;
-          return (t1-t2)*mul;
-        }
-        if(by==='mood'){
-          var m1 = _num(p1.todayMood, -1);
-          var m2 = _num(p2.todayMood, -1);
-          if(m1==-1 && m2==-1) return 0;
-          if(m1==-1) return 1;
-          if(m2==-1) return -1;
-          return (m1-m2)*mul;
-        }
-        if(by==='target'){
-          var c1 = _num(p1.targetCumulativeMg, -1);
-          var c2 = _num(p2.targetCumulativeMg, -1);
-          if(c1==-1 && c2==-1) return 0;
-          if(c1==-1) return 1;
-          if(c2==-1) return -1;
-          return (c1-c2)*mul;
-        }
-        // progress default
-        var pr1 = _num((p1.course&&p1.course.progress), 0);
-        var pr2 = _num((p2.course&&p2.course.progress), 0);
-        return (pr1-pr2)*mul;
-      });
-      return a;
-    }
-    function syncSortUI(){
-      var by = (state.sort && state.sort.by) ? state.sort.by : 'progress';
-      var dir = (state.sort && state.sort.dir) ? state.sort.dir : defaultDirFor(by);
-      var sel = q('#sortBy');
-      if(sel) sel.value = by;
-      var btn = q('#sortDir');
-      if(btn) btn.textContent = (dir==='asc') ? '↑' : '↓';
-    }
-function renderPatients(){
+    function renderPatients(){
       var list=q('#patientsList'); list.innerHTML='';
       var arr=(state.patients||[]).filter(matchesFilters);
-      arr = sortPatients(arr);
       var showEmpty = arr.length===0;
       q('#patientsTips').style.display = showEmpty ? 'block' : 'none';
       q('#patientsEmpty').style.display = showEmpty ? 'block' : 'none';
@@ -1456,29 +1235,11 @@ function renderPatients(){
       progress: Number(x.progress_pct ?? 0)
     },
     labs,
-    hasRed: anyRed,
-    addedAt: x.attached_at || x.added_at || x.created_at || x.createdAt || null,
-    todayMood: (x.today_mood ?? x.mood_today ?? x.today_wellbeing ?? x.today_feeling ?? x.feeling_today ?? null),
-    weightKg: (x.weight_kg ?? x.weightKg ?? null),
-    targetCumulativeMg: (x.target_cumulative_mg ?? x.target_cum_mg ?? x.targetCumulativeMg ?? null)
+    hasRed: anyRed
   };
 });
 
-    
-
-    // производные поля для сортировки (если сервер не отдаёт)
-    mapped.forEach(function(p,i){
-      // дата добавления: если пусто, фиксируем текущий порядок как "раньше добавлен"
-      if(!p.addedAt){
-        // сохраняем стабильный fallback (чтобы не прыгало при перезагрузке)
-        p.addedAt = Date.now() - (mapped.length - i)*1000;
-      }
-      // цель кумулятивной дозы (мг): target_mgkg * weight_kg
-      if((p.targetCumulativeMg==null || p.targetCumulativeMg==='' ) && p.course && p.course.target_mgkg && p.weightKg){
-        p.targetCumulativeMg = Number(p.course.target_mgkg) * Number(p.weightKg);
-      }
-    });
-sessionStorage.setItem('patientsList', JSON.stringify(mapped));
+    localStorage.setItem('patientsList', JSON.stringify(mapped));
     state.patients = mapped;
     renderPatients();
     renderProfile();
@@ -1610,37 +1371,22 @@ if (sw) sw.addEventListener('click', function(){
       if(t) t.textContent=totals.total; if(o) o.textContent=totals.on; if(r) r.textContent=totals.red; if(n) n.textContent=totals.needs;
     }
 
-    // Поиск / сортировка
-    var sInp=q('#search');
-    if(sInp) sInp.addEventListener('input', function(e){
-      state.filters.q = e.target.value;
-      renderPatients();
+    // Поиск/фильтры
+    var sInp=q('#search'); if(sInp) sInp.addEventListener('input', function(e){ state.filters.q=e.target.value; renderPatients(); });
+    qa('#sec-patients .chip').forEach(function(chip){
+      chip.addEventListener('click', function(){
+        var f=chip.getAttribute('data-filter'), val=chip.getAttribute('data-value');
+        if(f==='status'){ state.filters.status=val; qa('#sec-patients .chip[data-filter="status"]').forEach(function(c){ c.classList.toggle('active', c===chip); }); }
+        if(f==='red'){ state.filters.red=!state.filters.red; chip.classList.toggle('active',state.filters.red); }
+        renderPatients();
+      });
     });
-
-    function saveSort(){
-      try{ storage.set('doctorPatientsSort', state.sort); }catch(_){ }
-    }
-
-    // init sort UI
-    syncSortUI();
-
-    var sortSel = q('#sortBy');
-    if(sortSel) sortSel.addEventListener('change', function(e){
-      var by = e.target.value;
-      state.sort = state.sort || {by:'progress',dir:'desc'};
-      state.sort.by = by;
-      state.sort.dir = defaultDirFor(by);
-      syncSortUI();
-      saveSort();
-      renderPatients();
-    });
-
-    var sortBtn = q('#sortDir');
-    if(sortBtn) sortBtn.addEventListener('click', function(){
-      state.sort = state.sort || {by:'progress',dir:'desc'};
-      state.sort.dir = (state.sort.dir === 'asc') ? 'desc' : 'asc';
-      syncSortUI();
-      saveSort();
+    var daysSel=q('#daysNoReport'); if(daysSel) daysSel.addEventListener('change', function(e){ state.filters.days=parseInt(e.target.value,10)||0; renderPatients(); });
+    var resetBtn=q('#resetFilters'); if(resetBtn) resetBtn.addEventListener('click', function(){
+      state.filters={q:'',status:'all',red:false,days:0};
+      var s=q('#search'); if(s) s.value='';
+      var d=q('#daysNoReport'); if(d) d.value='0';
+      qa('#sec-patients .chip').forEach(function(c){ c.classList.remove('active'); });
       renderPatients();
     });
 
@@ -1651,7 +1397,7 @@ if (sw) sw.addEventListener('click', function(){
       input.addEventListener('change', function(e){
         var f = e.target.files && e.target.files[0]; if (!f) return;
         var r = new FileReader();
-        r.onload = function(){ try{ sessionStorage.setItem('doctorAvatarUrl', r.result);}catch(_){}
+        r.onload = function(){ try{ localStorage.setItem('doctorAvatarUrl', r.result);}catch(_){}
           applyAvatar(); };
         r.readAsDataURL(f);
       });
@@ -1663,10 +1409,10 @@ if (sw) sw.addEventListener('click', function(){
         var r = await api('/api/doctor/me');
         if(r.ok){
           var j = await r.json();
-          if (j && j.code!=null) try{ sessionStorage.setItem('doctorCode', JSON.stringify(j.code)); }catch(_){}
-          if (j && j.profile) try{ sessionStorage.setItem('doctorProfile', JSON.stringify(j.profile)); }catch(_){}
+          if (j && j.code!=null) try{ localStorage.setItem('doctorCode', JSON.stringify(j.code)); }catch(_){}
+          if (j && j.profile) try{ localStorage.setItem('doctorProfile', JSON.stringify(j.profile)); }catch(_){}
           var av = j && j.profile && (j.profile.avatar_url || j.profile.avatarUrl);
-          if (av) try{ sessionStorage.setItem('doctorAvatarUrl', av);}catch(_){}
+          if (av) try{ localStorage.setItem('doctorAvatarUrl', av);}catch(_){}
         }
       }catch(_){}
       // подтягиваем auto_accept с сервера → в local settings, чтобы тумблер был “правдой”
@@ -1690,23 +1436,23 @@ if (j && j.profile){
 (function purgeDemoOnce(){
   try{
     // пациенты «Иван Петров» / «Ольга Соколова»
-    var list = JSON.parse((sessionStorage.getItem('patientsList') || localStorage.getItem('patientsList')) || '[]');
+    var list = JSON.parse(localStorage.getItem('patientsList') || '[]');
     if (Array.isArray(list) && list.length &&
         list.every(function(p){ return ['Иван Петров','Ольга Соколова'].indexOf(p && p.name) > -1; })) {
-      (sessionStorage.removeItem('patientsList'), localStorage.removeItem('patientsList'));
+      localStorage.removeItem('patientsList');
     }
     // демонстрационный профиль/код
-    var prof = JSON.parse((sessionStorage.getItem('doctorProfile') || localStorage.getItem('doctorProfile')) || 'null');
-    if (prof && /Демонстрацион/i.test(prof.name||'')) (sessionStorage.removeItem('doctorProfile'), localStorage.removeItem('doctorProfile'));
-    var code = JSON.parse((sessionStorage.getItem('doctorCode') || localStorage.getItem('doctorCode')) || 'null');
-    if (code === 'AB12C') (sessionStorage.removeItem('doctorCode'), localStorage.removeItem('doctorCode'));
+    var prof = JSON.parse(localStorage.getItem('doctorProfile') || 'null');
+    if (prof && /Демонстрацион/i.test(prof.name||'')) localStorage.removeItem('doctorProfile');
+    var code = JSON.parse(localStorage.getItem('doctorCode') || 'null');
+    if (code === 'AB12C') localStorage.removeItem('doctorCode');
   }catch(_){}
 })();
     async function init(){
       await hydrateCodeFromServer();
       initHeader();
 
-      var saved = (sessionStorage.getItem('doctorAvatarUrl') || localStorage.getItem('doctorAvatarUrl'));
+      var saved = localStorage.getItem('doctorAvatarUrl');
       if(!saved){
         var got = tryTGAvatar();
         if(!got){
@@ -1792,7 +1538,7 @@ function doDoctorReset(){
     }catch(_){}
 
     // 3) роль → patient, чтобы не залипать на кабинете
-    try{ sessionStorage.setItem('rt_role','patient'); }catch(_){}
+    try{ localStorage.setItem('rt_role','patient'); }catch(_){}
 
     // 4) разрешим снова показать сплэш
     try{
@@ -1853,507 +1599,215 @@ function doDoctorReset(){
 })();
 </script>
 <script>
-// ===== Развёрнутая карточка пациента (внутри doctor-cabinet) =====
+// ===== Развёрнутая карточка пациента (обновлено) =====
 document.addEventListener('DOMContentLoaded', function(){
-  var drawer = document.getElementById('patientDrawer');
-  if (!drawer) return;
+  const drawer = document.getElementById('patientDrawer');
+  const body   = document.getElementById('pdBody');
+  const title  = document.getElementById('pdTitle');
+  const lblDate= document.getElementById('pdDate');
+  const lblCourse = document.getElementById('pdCourse');
+  const lblId  = document.getElementById('pdId');
+  const imgAva = document.getElementById('pdAva');
+  const btnPrev= document.getElementById('pdPrev');
+  const btnNext= document.getElementById('pdNext');
+  const btnClose=document.getElementById('pdClose');
+  const light  = document.getElementById('pdLight');
 
-  var panel  = drawer.querySelector('.pd-panel');
-  var body   = document.getElementById('pdBody');
-  var title  = document.getElementById('pdTitle');
-  var lblDate= document.getElementById('pdDate');
-  var lblCourse = document.getElementById('pdCourse');
-  var lblId  = document.getElementById('pdId');
-  var imgAva = document.getElementById('pdAva');
-  var btnPrev= document.getElementById('pdPrev');
-  var btnNext= document.getElementById('pdNext');
-  var btnClose=document.getElementById('pdClose');
-  var btnBackPatients=document.getElementById('pdBackPatients');
-  var btnBackProfile=document.getElementById('pdBackProfile');
-  var light  = document.getElementById('pdLight');
+  let current = { id:null, start:null, date:new Date() };
 
-  var current = { id:null, start:null, date:new Date(), patient:null };
+  const z = n => (n<10?'0':'')+n;
+  const fmtDate = d => `${z(d.getDate())}.${z(d.getMonth()+1)}.${d.getFullYear()}`;
+  const isoDate = d => d.toISOString().slice(0,10);
+  const dayDiff = (a,b) => Math.floor((Date.UTC(a.getFullYear(),a.getMonth(),a.getDate()) - Date.UTC(b.getFullYear(),b.getMonth(),b.getDate()))/86400000);
 
-  function z(n){ return (n<10?'0':'')+n; }
-  function fmtDate(d){ return z(d.getDate())+'.'+z(d.getMonth()+1)+'.'+d.getFullYear(); }
-  function isoDate(d){
-    // локальная дата в ISO без сдвигов таймзоны
-    var x = new Date(d.getTime());
-    x.setMinutes(x.getMinutes() - x.getTimezoneOffset());
-    return x.toISOString().slice(0,10);
-  }
-  function dayDiff(a,b){
-    return Math.floor((Date.UTC(a.getFullYear(),a.getMonth(),a.getDate()) - Date.UTC(b.getFullYear(),b.getMonth(),b.getDate()))/86400000);
-  }
   function courseDay(d, startISO){
     if (!startISO) return null;
-    var start = new Date(startISO);
-    if (!isFinite(start.getTime())) return null;
-    return dayDiff(d, start) + 1;
+    const start = new Date(startISO);
+    return dayDiff(d, start) + 1; // день начала = 1
   }
 
-  function ph(){ // placeholder 1:1
-    return 'data:image/svg+xml;utf8,'+encodeURIComponent(
-      '<svg xmlns="http://www.w3.org/2000/svg" width="600" height="600">'+
-      '<defs><linearGradient id="g" x1="0" x2="1">'+
-      '<stop stop-color="#EAF3FF"/><stop offset="1" stop-color="#F7F2FF"/></linearGradient></defs>'+
-      '<rect width="100%" height="100%" rx="22" fill="url(#g)"/>'+
-      '<circle cx="300" cy="250" r="92" fill="#D9E2F2"/>'+
-      '<rect x="175" y="380" width="250" height="22" rx="11" fill="#D9E2F2"/>'+
-      '</svg>'
-    );
-  }
-
-  function showDrawer(){
-    drawer.style.display = 'block';
-    drawer.setAttribute('aria-hidden','false');
-    try{ document.body.style.overflow = 'hidden'; }catch(_){}
-  }
-  function hideDrawer(){
-    drawer.style.display = 'none';
-    drawer.setAttribute('aria-hidden','true');
-    try{ document.body.style.overflow = ''; }catch(_){}
-  }
-
-  // закрытие по клику на затемнение
-  drawer.addEventListener('click', function(e){
-    if (e.target === drawer) hideDrawer();
-  });
-
-  // лайтбокс
-  function showLightbox(url){
-    if (!url || !light) return;
-    var img = light.querySelector('img');
-    if (img) img.src = url;
-    light.style.display = 'grid';
-    var bg = light.querySelector('.bg');
-    if (bg) bg.onclick = function(){ light.style.display = 'none'; };
-  }
-
-  // --- маппинг самочувствия (7 градаций)
-  var MOOD7 = ['очень плохо','плохо','ниже нормы','нейтрально','неплохо','хорошо','отлично'];
-  function moodFromNumber(n){
-    n = Number(n);
-    if (!isFinite(n)) return null;
-
-    // если пришло 1..7
-    if (n >= 1 && n <= 7 && Math.floor(n) === n){
-      return MOOD7[n-1];
-    }
-
-    // ожидаем 0..100
-    if (n < 0) n = 0;
-    if (n > 100) n = 100;
-
-    if (n <= 14) return 'очень плохо';
-    if (n <= 29) return 'плохо';
-    if (n <= 44) return 'ниже нормы';
-    if (n <= 55) return 'нейтрально';
-    if (n <= 69) return 'неплохо';
-    if (n <= 84) return 'хорошо';
-    return 'отлично';
-  }
-
-  function moodLabelFrom(data){
-    var d = data || {};
-    var diary = d.diary || d.vitals || {};
-    var t =
-      d.mood_label || d.mood_text ||
-      diary.mood_label || diary.mood_text ||
-      diary.feeling_label || diary.feeling_text ||
-      diary.mood_name || diary.feeling_name ||
-      null;
-
-    if (typeof t === 'string' && t.trim()){
-      return t.trim().toLowerCase();
-    }
-
-    var n =
-      d.mood_value || d.mood_score || d.mood ||
-      diary.mood_value || diary.mood_score || diary.mood ||
-      diary.feeling_value || diary.feeling_score || diary.feeling ||
-      null;
-
-    return moodFromNumber(n);
-  }
-
-  // --- перевод побочек
-  var SYM = {
-    lips_dry: 'Сухость губ',
-    lips: 'Губы',
-    skin_dry: 'Сухость кожи',
-    dry_skin: 'Сухость кожи',
-    muscles_joints: 'Мышцы/суставы',
-    muscle_pain: 'Мышцы/суставы',
-    joint_pain: 'Мышцы/суставы',
-    headache: 'Головные боли',
-    nose_bleed: 'Носовые кровотечения',
-    dry_eyes: 'Сухость глаз',
-    eyes_dry: 'Сухость глаз',
-    back_pain: 'Боль в спине',
-    rash: 'Сыпь',
-    mood: 'Самочувствие'
-  };
-  function normKey(k){
-    k = String(k||'').trim();
-    if (!k) return '';
-    // camelCase -> snake_case
-    k = k.replace(/([a-z0-9])([A-Z])/g, '$1_$2').toLowerCase();
-    return k;
-  }
-  function labelSymptom(key){
-    var k = normKey(key);
-    return SYM[k] || key;
-  }
-
-  // --- локальный план дозы (если сервер не отдаёт)
-  function getPlanMap(){
-    try{
-      var x = JSON.parse((sessionStorage.getItem('rt_doc_planDose') || localStorage.getItem('rt_doc_planDose')) || '{}');
-      return (x && typeof x === 'object') ? x : {};
-    }catch(_){ return {}; }
-  }
-  function setPlanFor(pid, mg){
-    var m = getPlanMap();
-    m[String(pid)] = mg;
-    try{ sessionStorage.setItem('rt_doc_planDose', JSON.stringify(m)); }catch(_){}
-  }
-  function getPlanFor(pid){
-    var m = getPlanMap();
-    var v = m[String(pid)];
-    v = Number(v);
-    return isFinite(v) ? v : 0;
-  }
-
-  function readDose(data){
-    var d = data || {};
-    var dose = d.dose || {};
-
-    function pick(){
-      for (var i=0;i<arguments.length;i++){
-        var v = arguments[i];
-        if (v !== undefined && v !== null && v !== '') return v;
-      }
-      return null;
-    }
-
-    var taken = pick(dose.taken_mg, dose.current_mg, dose.drunk_mg, dose.actual_mg, d.taken_mg, d.dose_mg, d.dose_taken_mg);
-    var plan  = pick(dose.plan_mg, dose.planned_mg, dose.target_mg, d.plan_mg, d.planned_mg, d.dose_plan_mg);
-
-    taken = Math.round(Number(taken) || 0);
-    plan  = Math.round(Number(plan)  || 0);
-
-    if (!(plan > 0)) {
-      var localPlan = getPlanFor(current.id);
-      if (localPlan > 0) plan = localPlan;
-    }
-
-    return { taken: taken, plan: plan };
-  }
-
-  function pct(cur, plan){
-    var c = Number(cur||0), p = Number(plan||0);
-    if (!(p>0)) return 0;
-    var v = Math.round(100*c/p);
-    if (v<0) v=0; if (v>100) v=100;
-    return v;
-  }
-
-  async function fetchDay(pid, d){
-    var ds = (d instanceof Date) ? isoDate(d) : String(d).slice(0,10);
-    var resp = await api('/api/doctor/patient/' + encodeURIComponent(pid) + '/day?date=' + encodeURIComponent(ds));
+  async function fetchDay(pid, d) {
+    const ds = (d instanceof Date) ? isoDate(d) : String(d).slice(0,10);
+    const resp = await api(`/api/doctor/patient/${pid}/day?date=${encodeURIComponent(ds)}`);
     if (!resp.ok) throw new Error('Не удалось загрузить день');
     return resp.json();
   }
 
+  function chipTone(v){
+    const n = Number(v||0);
+    return n<=0 ? 'pd-chip-g' : n==1 ? 'pd-chip-y' : n==2 ? 'pd-chip-o' : 'pd-chip-r';
+  }
+  function labelSymptom(key){
+    const dict = {dry_skin:'Сухость кожи', lips:'Губы', mood:'Настроение', headache:'Головные боли', muscle_pain:'Мышцы/суставы', nose:'Нос', eyes:'Глаза'};
+    return dict[key] || key;
+  }
+  function pct(cur, plan){ const c=+cur||0, p=+plan||0; return p>0 ? Math.max(0,Math.min(100,Math.round(100*c/p))) : 0; }
+
+  function showLightbox(url){
+    if (!url) return;
+    light.querySelector('img').src = url;
+    light.style.display = 'grid';
+    light.querySelector('.bg').onclick = () => { light.style.display='none'; };
+  }
+
   function renderDay(data){
     body.innerHTML = '';
-
-    var d = new Date(data.date || isoDate(current.date));
-    if (!isFinite(d.getTime())) d = new Date(current.date.getTime());
-
+    const d = new Date(data.date);
     lblDate.textContent = fmtDate(d);
-    var day = courseDay(d, current.start || data.course_start || (data.course && data.course.start_date) || data.start_date);
-    lblCourse.textContent = day ? ('День ' + day) : 'День —';
+    const day = courseDay(d, current.start || data.course_start);
+    lblCourse.textContent = day ? `День ${day}` : 'День —';
 
-    // === 1) Самочувствие + побочки
-    var moodLabel = moodLabelFrom(data);
-    if (!moodLabel) moodLabel = '—';
-
-    var sec1 = document.createElement('div');
+    // --- Самочувствие / побочки
+    const sec1 = document.createElement('div');
     sec1.className = 'pd-card';
-
-    var moodHTML = '<div class="pd-pill">Настроение: <span style="text-transform:lowercase">' + moodLabel + '</span></div>';
-
-    // побочки
-    var sx =
-      (data.diary && (data.diary.side_effects || data.diary.symptoms)) ||
-      data.side_effects ||
-      data.symptoms ||
-      data.vitals ||
-      {};
-
-    var chips = [];
-
+    const sx = data.vitals || data.diary?.symptoms || data.diary?.side_effects || {};
+    // поддержим 2 формата: {dry_skin:1,...} и [{name, severity}, ...]
+    let chipsHTML = '';
     if (Array.isArray(sx)) {
-      sx.forEach(function(x){
-        if (!x) return;
-        var key = x.key || x.code || x.name || '';
-        var sev = Number(x.severity != null ? x.severity : (x.sev != null ? x.sev : x.value));
-        if (!isFinite(sev)) sev = 0;
-        // настроение не дублируем в побочках
-        if (normKey(key) === 'mood') return;
-        if (sev <= 0) return;
-        chips.push({ label: labelSymptom(key), sev: sev });
-      });
-    } else {
-      Object.keys(sx||{}).forEach(function(k){
-        var sev = Number(sx[k]);
-        if (!isFinite(sev)) sev = 0;
-        if (normKey(k) === 'mood') return;
-        if (sev <= 0) return;
-        chips.push({ label: labelSymptom(k), sev: sev });
-      });
-    }
-
-    function chipTone(sev){
-      sev = Number(sev||0);
-      return sev <= 1 ? 'pd-chip-g' : sev === 2 ? 'pd-chip-y' : sev === 3 ? 'pd-chip-o' : 'pd-chip-r';
-    }
-
-    var chipsHTML = '';
-    if (chips.length){
-      chipsHTML = chips.map(function(x){
-        return '<span class="pd-chip-s ' + chipTone(x.sev) + '">' + x.label + ': ' + x.sev + '</span>';
+      chipsHTML = sx.map(x=>{
+        const t = x.severity || x.sev || 0;
+        return `<span class="pd-chip-s ${chipTone(t)}">${x.name||'Побочка'}: ${t}</span>`;
       }).join('');
     } else {
-      chipsHTML = '<span class="pd-chip-s pd-chip-muted">Нет отмеченных побочек</span>';
+      const keys = Object.keys(sx||{});
+      chipsHTML = keys.map(k=>{
+        const t = sx[k];
+        return `<span class="pd-chip-s ${chipTone(t)}">${labelSymptom(k)}: ${t}</span>`;
+      }).join('');
     }
-
-    sec1.innerHTML =
-      '<h4 class="pd-ttl">Самочувствие и побочки</h4>' +
-      moodHTML +
-      '<div style="height:10px"></div>' +
-      '<div class="pd-chips">' + chipsHTML + '</div>';
-
+    if (!chipsHTML) chipsHTML = '<span class="pd-chip-s pd-chip-muted">Нет отмеченных побочек</span>';
+    sec1.innerHTML = `<h4 class="pd-ttl">Самочувствие и побочки</h4><div class="pd-chips">${chipsHTML}</div>
+      ${data.updated_at?`<div class="pd-meta">обновлено ${data.updated_at}</div>`:''}`;
     body.appendChild(sec1);
 
-    // --- Доза за день (N / M где M только если реально задан план)
-const dose = data.dose || {};
-const taken = Math.round(Number(dose.current_mg ?? dose.taken_mg ?? data.dose_mg ?? 0) || 0);
+    // --- Доза/прогресс
+    const dose = data.dose || {};
+    const cur = Math.round(dose.current_mg ?? data.dose_mg ?? 0);
+    const plan= Math.round(dose.plan_mg ?? data.plan_mg ?? 0);
+    const pbar= pct(cur, plan);
+    const meta = (()=> {
+      const c = dose.cumulative_mg ?? data.cumulative_mg;
+      const perkg = dose.target_mg_per_kg ?? data.target_mg_per_kg;
+      const w = dose.weight_kg ?? data.weight_kg;
+      if (c && perkg && w) return `Кумулятивно: ${Number(c).toLocaleString('ru-RU')} мг • Цель: ${perkg} мг/кг • Вес: ${w} кг`;
+      if (c) return `Кумулятивно: ${Number(c).toLocaleString('ru-RU')} мг`;
+      return '—';
+    })();
+    const secDose = document.createElement('div');
+    secDose.className = 'pd-card';
+    secDose.innerHTML = `
+      <h4 class="pd-ttl">Доза за день</h4>
+      <div class="pd-dose-num"><b id="pdDoseCur">${cur}</b> / <b id="pdDosePlan">${plan}</b> мг</div>
+      <div class="pd-bar"><i style="width:${pbar}%"></i></div>
+      <div class="pd-meta">${meta}</div>`;
+    body.appendChild(secDose);
 
-// план: показываем только если он задан (не дефолтный 50 и не 0)
-let planRaw = (dose.plan_mg ?? dose.planned_mg ?? data.plan_mg ?? data.planned_mg);
-let plan = null;
-if (planRaw !== null && planRaw !== undefined && planRaw !== '') {
-  const p = Math.round(Number(planRaw) || 0);
-  if (p > 0) plan = p;
-}
-
-const pbar = (plan && plan > 0) ? pct(taken, plan) : 0;
-
-// мета: аккуратно собираем, что реально пришло
-const c = (dose.cumulative_mg ?? data.cumulative_mg ?? data.cum_mg);
-const perkg = (dose.target_mg_per_kg ?? data.target_mg_per_kg ?? data.target_mgkg);
-const w = (dose.weight_kg ?? data.weight_kg ?? data?.patient?.weight_kg ?? data.weight);
-
-let metaParts = [];
-if (c !== null && c !== undefined && c !== '') metaParts.push(`Кумулятивно: ${Number(c||0).toLocaleString('ru-RU')} мг`);
-if (perkg !== null && perkg !== undefined && perkg !== '') metaParts.push(`Цель: ${perkg} мг/кг`);
-if (w !== null && w !== undefined && w !== '') metaParts.push(`Вес: ${w} кг`);
-const meta = metaParts.length ? metaParts.join(' • ') : '—';
-
-const secDose = document.createElement('div');
-secDose.className = 'pd-card';
-
-const doseLine = (plan && plan > 0)
-  ? `<b id="pdDoseCur">${taken}</b> / <b id="pdDosePlan">${plan}</b> мг`
-  : `<b id="pdDoseCur">${taken}</b> / <b id="pdDosePlan">—</b> мг`;
-
-secDose.innerHTML = `
-  <h4 class="pd-ttl">Доза за день</h4>
-  <div class="pd-dose-num">${doseLine}</div>
-  <div class="pd-bar"><i style="width:${pbar}%"></i></div>
-  <div class="pd-meta">${meta}</div>
-  <div style="height:10px"></div>
-  <button class="pd-btn ghost" id="pdSetPlan" type="button">${(plan && plan>0) ? 'Изменить план дозы' : 'Задать план дозы'}</button>
-`;
-body.appendChild(secDose);
-
-// кнопка: установить/изменить план на эту дату
-const setPlanBtn = document.getElementById('pdSetPlan');
-if (setPlanBtn) {
-  setPlanBtn.onclick = async () => {
-    const curPlan = (plan && plan > 0) ? String(plan) : '';
-    const v = prompt('План дозы (мг) на эту дату. Пусто/0 — убрать план:', curPlan);
-    if (v === null) return;
-
-    const s = String(v).trim();
-    let mg = null;
-    if (s !== '') {
-      const n = Math.round(Number(s));
-      if (!Number.isFinite(n)) return;
-      mg = (n > 0) ? n : null;
-    }
-
-    // ВАЖНО: чтобы это реально влияло на пациента и врача, должен быть рабочий бэк-эндпоинт.
-    // Если эндпоинта нет/ошибка — ты увидишь это в Network.
-    try {
-      const resp = await api(`/api/doctor/patient/${encodeURIComponent(current.id)}/plan-dose`, {
-        method: 'POST',
-        body: JSON.stringify({ date: isoDate(current.date), planned_mg: mg })
-      });
-      if (!resp.ok) throw new Error('plan-dose failed');
-    } catch (e) {
-      console.warn('Не удалось сохранить план дозы на сервер:', e);
-    }
-
-    // перезагрузим день
-    try {
-      const fresh = await fetchDay(current.id, current.date);
-      renderDay(fresh);
-    } catch (_) {}
-  };
-}
-
-    // === 3) Заметка пациента
-    var note = (data.note != null ? data.note : (data.diary && data.diary.note)) || '';
-    note = String(note||'').trim();
-
-    var secNote = document.createElement('div');
+    // --- Заметка
+    const note = (data.note ?? data.diary?.note ?? '').toString().trim();
+    const secNote = document.createElement('div');
     secNote.className = 'pd-card';
-    secNote.innerHTML = '<h4 class="pd-ttl">Заметка пациента</h4><div class="pd-note">' + (note || 'Нет заметки') + '</div>';
+    secNote.innerHTML = `<h4 class="pd-ttl">Заметка пациента</h4><div class="pd-note">${note || 'Нет заметки'}</div>`;
     body.appendChild(secNote);
 
-    // === 4) Фото
-    var photos = data.photos || (data.diary && data.diary.photos) || [];
-    var face = null, bodyP = null;
-
-    if (Array.isArray(photos)){
-      for (var i=0;i<photos.length;i++){
-        var p = photos[i] || {};
-        if (!face && (p.kind === 'face' || p.type === 'face' || p.slot === 'face')) face = p;
-        if (!bodyP && (p.kind === 'body' || p.type === 'body' || p.slot === 'body')) bodyP = p;
-      }
-    }
-
-    var secPhotos = document.createElement('div');
+    // --- Фото
+    const photos = data.photos || [];
+    const face = photos.find(p=>p.kind==='face');
+    const bodyP = photos.find(p=>p.kind==='body');
+    const secPhotos = document.createElement('div');
     secPhotos.className = 'pd-card';
-    secPhotos.innerHTML =
-      '<h4 class="pd-ttl">Фото</h4>' +
-      '<div class="pd-photos">' +
-      '  <figure class="pd-photo">' +
-      '    <img id="pdFace" alt="Лицо" src="' + (face && face.url ? face.url : ph()) + '">' +
-      '    <figcaption>Лицо (сегодня)</figcaption>' +
-      '  </figure>' +
-      '  <figure class="pd-photo">' +
-      '    <img id="pdBodyPhoto" alt="Общий вид" src="' + (bodyP && bodyP.url ? bodyP.url : ph()) + '">' +
-      '    <figcaption>Общий вид</figcaption>' +
-      '  </figure>' +
-      '</div>';
+    secPhotos.innerHTML = `
+      <h4 class="pd-ttl">Фото</h4>
+      <div class="pd-photos">
+        <figure class="pd-photo">
+          <img id="pdFace" alt="Лицо" src="${face?face.url:ph()}"><figcaption>Лицо (сегодня)</figcaption>
+        </figure>
+        <figure class="pd-photo">
+          <img id="pdBodyPhoto" alt="Общий вид" src="${bodyP?bodyP.url:ph()}"><figcaption>Общий вид</figcaption>
+        </figure>
+      </div>`;
     body.appendChild(secPhotos);
+    // клики
+    const f = document.getElementById('pdFace');
+    const b = document.getElementById('pdBodyPhoto');
+    if (face?.url) f.onclick = ()=> showLightbox(face.url);
+    if (bodyP?.url) b.onclick = ()=> showLightbox(bodyP.url);
 
-    var imgF = document.getElementById('pdFace');
-    var imgB = document.getElementById('pdBodyPhoto');
-    if (imgF && face && face.url) imgF.onclick = function(){ showLightbox(face.url); };
-    if (imgB && bodyP && bodyP.url) imgB.onclick = function(){ showLightbox(bodyP.url); };
-
-    // === 5) Действия врача (оставил как было)
-    var secAct = document.createElement('div');
+    // --- Действия врача
+    const secAct = document.createElement('div');
     secAct.className = 'pd-card pd-actions';
-    secAct.innerHTML =
-      '<button class="pd-btn" data-act="ok" type="button">Ок, продолжаем</button>' +
-      '<button class="pd-btn peach" data-act="lower" type="button">Снизить дозу</button>' +
-      '<button class="pd-btn lav" data-act="labs" type="button">Сдать анализы</button>' +
-      '<button class="pd-btn ghost" data-act="ask-photo" type="button">Запросить фото</button>' +
-      '<div class="pd-comment">' +
-      '  <input id="pdReply" class="pd-input" placeholder="Комментарий пациенту">' +
-      '  <button class="pd-btn" data-act="send" type="button">Отправить</button>' +
-      '</div>';
+    secAct.innerHTML = `
+      <button class="pd-btn" data-act="ok">Ок, продолжаем</button>
+      <button class="pd-btn peach" data-act="lower">Снизить дозу</button>
+      <button class="pd-btn lav" data-act="labs">Сдать анализы</button>
+      <button class="pd-btn ghost" data-act="ask-photo">Запросить фото</button>
+      <div class="pd-comment">
+        <input id="pdReply" class="pd-input" placeholder="Комментарий врачу → пациенту">
+        <button class="pd-btn" data-act="send">Отправить</button>
+      </div>`;
     body.appendChild(secAct);
-
-    var acts = secAct.querySelectorAll('[data-act]');
-    for (var j=0;j<acts.length;j++){
-      acts[j].onclick = function(){
-        var action = this.getAttribute('data-act');
-        var msg = (action === 'send') ? (document.getElementById('pdReply').value || '').trim() : '';
-        document.dispatchEvent(new CustomEvent('patient:action', { detail:{ action:action, id:current.id, date: isoDate(current.date), message: msg } }));
-        if (action === 'send') document.getElementById('pdReply').value = '';
+    body.querySelectorAll('[data-act]').forEach(b=>{
+      b.onclick = ()=>{
+        const action = b.getAttribute('data-act');
+        const msg = (action==='send') ? (document.getElementById('pdReply').value||'').trim() : '';
+        document.dispatchEvent(new CustomEvent('patient:action',{ detail:{ action, id:current.id, date: isoDate(current.date), message: msg } }));
+        if (action==='send') document.getElementById('pdReply').value='';
       };
-    }
+    });
+  }
+
+  function ph(){ // простой placeholder 1:1
+    return 'data:image/svg+xml;utf8,'+encodeURIComponent(`<svg xmlns="http://www.w3.org/2000/svg" width="600" height="600"><defs><linearGradient id="g" x1="0" x2="1"><stop stop-color="#EAF3FF"/><stop offset="1" stop-color="#F7F2FF"/></linearGradient></defs><rect width="100%" height="100%" rx="20" fill="url(#g)"/><circle cx="300" cy="260" r="88" fill="#D9E2F2"/><rect x="180" y="380" width="240" height="20" rx="10" fill="#D9E2F2"/></svg>`);
   }
 
   async function loadAndRender(){
-    var data = await fetchDay(current.id, current.date);
+    const data = await fetchDay(current.id, current.date);
     renderDay(data);
   }
 
-  // day nav
-  if (btnPrev) btnPrev.addEventListener('click', function(){ current.date.setDate(current.date.getDate()-1); loadAndRender(); });
-  if (btnNext) btnNext.addEventListener('click', function(){ current.date.setDate(current.date.getDate()+1); loadAndRender(); });
-  if (btnClose) btnClose.addEventListener('click', function(){ hideDrawer(); });
+  // Навигация по дням
+  btnPrev?.addEventListener('click', ()=>{ current.date.setDate(current.date.getDate()-1); loadAndRender(); });
+  btnNext?.addEventListener('click', ()=>{ current.date.setDate(current.date.getDate()+1); loadAndRender(); });
+  btnClose?.addEventListener('click', ()=>{ drawer.style.display='none'; drawer.setAttribute('aria-hidden','true'); });
 
-  if (btnBackPatients) btnBackPatients.addEventListener('click', function(){
-    hideDrawer();
-    if (typeof window.setTab === 'function') window.setTab('patients');
-  });
-  if (btnBackProfile) btnBackProfile.addEventListener('click', function(){
-    hideDrawer();
-    if (typeof window.setTab === 'function') window.setTab('profile');
-  });
-
-  // Public API: open drawer
+  // Публичный метод, вызывается из patientCard(...)
   window.openPatientDrawer = async function(patient){
-    current.patient = patient || {};
-    current.id   = current.patient.id || current.patient.patient_id || current.patient.user_id;
-    current.start= (current.patient.course && current.patient.course.start) || current.patient.start_date || null;
+    current.id   = patient.id || patient.patient_id || patient.user_id;
+    current.start= patient.course?.start || patient.start_date || null;
     current.date = new Date(); // сегодня
+    title.textContent = patient.name || patient.patient_name || 'Пациент';
+    lblId.textContent = 'ID: ' + (current.id ?? '—');
 
-    title.textContent = current.patient.name || current.patient.patient_name || 'Пациент';
-    lblId.textContent = 'ID: ' + (current.id != null ? current.id : '—');
-
-    // аватар: если нет — placeholder
-    var url = current.patient.avatar_url || current.patient.avatarUrl || '';
-    if (imgAva){
-      imgAva.src = url ? url : ph();
-      imgAva.style.display = 'block';
-    }
-
-    showDrawer();
-
+    // аватар (есть ли в списке пациентов? если нет — пусть пустышка)
     try{
-      await loadAndRender();
-    }catch(e){
-      console.error(e);
-      body.innerHTML = '<div class="pd-card"><b>Не удалось загрузить данные.</b><div class="pd-meta">Проверь соединение или эндпоинт /api/doctor/patient/{id}/day</div></div>';
-    }
+      const url = patient.avatar_url || patient.avatarUrl || '';
+      if (url){ imgAva.src = url; imgAva.style.display='block'; }
+      else { imgAva.src = ph(); imgAva.style.display='block'; }
+    }catch(_){}
+
+    drawer.style.display = 'block';
+    drawer.setAttribute('aria-hidden','false');
+    await loadAndRender();
   };
 });
 </script>
 
 
 <div id="patientDrawer" aria-hidden="true" style="display:none">
-  <div class="pd-panel" role="dialog" aria-modal="true" aria-label="Карточка пациента">
+  <div class="pd-panel">
     <header class="pd-hdr">
-      <div class="pd-top-actions">
-        <button class="pd-navbtn" id="pdBackPatients" type="button">Пациенты</button>
-        <button class="pd-navbtn primary" id="pdBackProfile" type="button">Вернуться в профиль</button>
-        <button class="pd-close" id="pdClose" type="button" aria-label="Закрыть">✕</button>
-      </div>
-
-      <div class="pd-hero">
-        <img id="pdAva" class="pd-ava" alt="">
-        <div class="pd-name" id="pdTitle">Пациент</div>
-        <div class="pd-sub" id="pdId">ID: —</div>
-      </div>
-
-      <div class="pd-daynav">
-        <button class="pd-daybtn" id="pdPrev" type="button">← день</button>
+      <div class="pd-hdr-top">
+        <button class="pd-daybtn" id="pdPrev">← день</button>
         <div class="pd-date">
           <div class="pd-course" id="pdCourse">День —</div>
           <div class="pd-date-txt" id="pdDate">—</div>
         </div>
-        <button class="pd-daybtn" id="pdNext" type="button">день →</button>
+        <button class="pd-daybtn" id="pdNext">день →</button>
+      </div>
+      <div class="pd-idrow">
+        <img id="pdAva" class="pd-ava" alt="">
+        <div class="pd-name" id="pdTitle">Пациент</div>
+        <div class="pd-chip" id="pdId">ID: —</div>
+        <button class="pd-daybtn" id="pdClose" style="position:absolute;right:12px;top:12px">Закрыть</button>
       </div>
     </header>
 
@@ -2363,10 +1817,7 @@ if (setPlanBtn) {
   </div>
 
   <!-- лайтбокс -->
-  <div class="pd-light" id="pdLight">
-    <img alt="">
-    <div class="bg" style="position:absolute;inset:0"></div>
-  </div>
+  <div class="pd-light" id="pdLight"><img alt=""><div class="bg" style="position:absolute;inset:0"></div></div>
 </div>
 
 </body>

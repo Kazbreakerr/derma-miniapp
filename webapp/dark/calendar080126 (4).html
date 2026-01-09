@@ -1344,8 +1344,8 @@ window.addEventListener('storage',e=>{
   if(['rt.diary.v1','derma_today_iso','derma_today_mg','derma_remind_optin','rem_enabled'].includes(e.key)) render();
 });
 
-  document.addEventListener('visibilitychange',()=>{ if(!document.hidden) render(); });
-  document.addEventListener('DOMContentLoaded',render);
+  document.addEventListener('visibilitychange',()=>{ if(!document.hidden) renderWithPlanPull(); });
+  document.addEventListener('DOMContentLoaded',renderWithPlanPull);
   window.renderPillAlert = render; // ручной перерендер на всякий
 })();
 </script>
@@ -2924,8 +2924,8 @@ window.addEventListener('keydown', (e)=>{ if(e.key === 'Escape') closeSheet(); }
 
 });
 // на всякий — обновляемся, когда пользователь вернулся на страницу
-window.addEventListener('focus', ()=>{ try{ renderWithPlanPull(); }catch(_){ render(); } });
-document.addEventListener('visibilitychange', ()=>{ if (!document.hidden) { try{ renderWithPlanPull(); }catch(_){ render(); } } });
+window.addEventListener('focus', render);
+document.addEventListener('visibilitychange', ()=>{ if (!document.hidden) render(); });
 
 /* Надёжный короткий тап на мобильных — с порогом движения и без открытия во время drag-range */
 (function(){

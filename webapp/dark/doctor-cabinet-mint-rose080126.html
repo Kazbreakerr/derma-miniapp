@@ -951,8 +951,8 @@
  <script>
 (function(){
   try{
-    sessionStorage.setItem('rt_role','doctor');
-    sessionStorage.setItem('rt_last','doctor:cabinet');
+    localStorage.setItem('rt_role','doctor');
+    localStorage.setItem('rt_last','doctor:cabinet');
   }catch(_){}
 })();
 </script>
@@ -1150,8 +1150,8 @@
     // ===== helpers (ES5)
     function q(s){return document.querySelector(s);}
     function qa(s){return Array.prototype.slice.call(document.querySelectorAll(s));}
-    var storage={ set:function(k,v){try{sessionStorage.setItem(k,JSON.stringify(v))}catch(e){}},
-                  get:function(k,d){var x=null;try{x=JSON.parse(sessionStorage.getItem(k)||'null')}catch(e){}; return (x===null||x===undefined)?d:x;} };
+    var storage={ set:function(k,v){try{localStorage.setItem(k,JSON.stringify(v))}catch(e){}},
+                  get:function(k,d){var x=null;try{x=JSON.parse(localStorage.getItem(k)||'null')}catch(e){}; return (x===null||x===undefined)?d:x;} };
     function fmtDate(iso){ if(!iso) return '—'; var d=new Date(iso); function z(n){return (n<10?'0':'')+n} return z(d.getDate())+'.'+z(d.getMonth()+1)+'.'+d.getFullYear(); }
 function shareURL(code){
   return location.origin + '/dark/myprofile.html?attach=doctor&code=' + encodeURIComponent(code);
@@ -1175,8 +1175,8 @@ function api(path, opts = {}) {
   let url = base + path;
 
   if (!initData) {
-    const devTg = new URLSearchParams(location.search).get('tg') || (sessionStorage.getItem('rt_dev_tg') || localStorage.getItem('rt_dev_tg')) || '9001';
-    try { sessionStorage.setItem('rt_dev_tg', devTg); } catch (_){}
+    const devTg = new URLSearchParams(location.search).get('tg') || localStorage.getItem('rt_dev_tg') || '9001';
+    try { localStorage.setItem('rt_dev_tg', devTg); } catch (_){}
     if (devTg) url += (url.includes('?') ? '&' : '?') + 'tg=' + encodeURIComponent(devTg);
   }
 
@@ -1215,7 +1215,7 @@ function setSmallAvatar(url, init){
     box.innerHTML = (init || 'JD');
   }
 }    function setBigAvatar(url, init){ var img=q('#bigAvaImg'), txt=q('#bigAvaTxt'); if(!img||!txt) return; if(url){ img.referrerPolicy="no-referrer"; img.src=url; img.style.display='block'; txt.style.display='none'; } else { img.style.display='none'; txt.textContent=init||'JD'; txt.style.display='block'; } }
-    function setAvatarUrl(url){ if(!url) return; try{ sessionStorage.setItem('doctorAvatarUrl', url);}catch(e){} applyAvatar(); }
+    function setAvatarUrl(url){ if(!url) return; try{ localStorage.setItem('doctorAvatarUrl', url);}catch(e){} applyAvatar(); }
     function tryTGAvatar(){
       try{
         if(!window.Telegram || !window.Telegram.WebApp) return false;
@@ -1238,7 +1238,7 @@ function setSmallAvatar(url, init){
     function applyAvatar(){
       var prof=storage.get('doctorProfile',{name:'Врач'});
       var init=initialsFrom((prof&&prof.name)||'');
-      var url=(sessionStorage.getItem('doctorAvatarUrl') || localStorage.getItem('doctorAvatarUrl'));
+      var url=localStorage.getItem('doctorAvatarUrl');
       setSmallAvatar(url,init); setBigAvatar(url,init);
     }
 
@@ -1267,7 +1267,7 @@ function setSmallAvatar(url, init){
 
     // ===== Хедер/профиль
     function initHeader(){
-      var qCode=getQuery('code'); if(qCode && /^[A-Z0-9]{5}$/.test(qCode)) try{ sessionStorage.setItem('doctorCode', JSON.stringify(qCode)); }catch(_){}
+      var qCode=getQuery('code'); if(qCode && /^[A-Z0-9]{5}$/.test(qCode)) try{ localStorage.setItem('doctorCode', JSON.stringify(qCode)); }catch(_){}
       var code=storage.get('doctorCode')||'AB12C';
       var elTop=q('#topCode'); if(elTop) elTop.textContent=code;
       var elProf=q('#profCode'); if(elProf) elProf.textContent=code;
@@ -1478,7 +1478,7 @@ function renderPatients(){
         p.targetCumulativeMg = Number(p.course.target_mgkg) * Number(p.weightKg);
       }
     });
-sessionStorage.setItem('patientsList', JSON.stringify(mapped));
+localStorage.setItem('patientsList', JSON.stringify(mapped));
     state.patients = mapped;
     renderPatients();
     renderProfile();
@@ -1651,7 +1651,7 @@ if (sw) sw.addEventListener('click', function(){
       input.addEventListener('change', function(e){
         var f = e.target.files && e.target.files[0]; if (!f) return;
         var r = new FileReader();
-        r.onload = function(){ try{ sessionStorage.setItem('doctorAvatarUrl', r.result);}catch(_){}
+        r.onload = function(){ try{ localStorage.setItem('doctorAvatarUrl', r.result);}catch(_){}
           applyAvatar(); };
         r.readAsDataURL(f);
       });
@@ -1663,10 +1663,10 @@ if (sw) sw.addEventListener('click', function(){
         var r = await api('/api/doctor/me');
         if(r.ok){
           var j = await r.json();
-          if (j && j.code!=null) try{ sessionStorage.setItem('doctorCode', JSON.stringify(j.code)); }catch(_){}
-          if (j && j.profile) try{ sessionStorage.setItem('doctorProfile', JSON.stringify(j.profile)); }catch(_){}
+          if (j && j.code!=null) try{ localStorage.setItem('doctorCode', JSON.stringify(j.code)); }catch(_){}
+          if (j && j.profile) try{ localStorage.setItem('doctorProfile', JSON.stringify(j.profile)); }catch(_){}
           var av = j && j.profile && (j.profile.avatar_url || j.profile.avatarUrl);
-          if (av) try{ sessionStorage.setItem('doctorAvatarUrl', av);}catch(_){}
+          if (av) try{ localStorage.setItem('doctorAvatarUrl', av);}catch(_){}
         }
       }catch(_){}
       // подтягиваем auto_accept с сервера → в local settings, чтобы тумблер был “правдой”
@@ -1690,23 +1690,23 @@ if (j && j.profile){
 (function purgeDemoOnce(){
   try{
     // пациенты «Иван Петров» / «Ольга Соколова»
-    var list = JSON.parse((sessionStorage.getItem('patientsList') || localStorage.getItem('patientsList')) || '[]');
+    var list = JSON.parse(localStorage.getItem('patientsList') || '[]');
     if (Array.isArray(list) && list.length &&
         list.every(function(p){ return ['Иван Петров','Ольга Соколова'].indexOf(p && p.name) > -1; })) {
-      (sessionStorage.removeItem('patientsList'), localStorage.removeItem('patientsList'));
+      localStorage.removeItem('patientsList');
     }
     // демонстрационный профиль/код
-    var prof = JSON.parse((sessionStorage.getItem('doctorProfile') || localStorage.getItem('doctorProfile')) || 'null');
-    if (prof && /Демонстрацион/i.test(prof.name||'')) (sessionStorage.removeItem('doctorProfile'), localStorage.removeItem('doctorProfile'));
-    var code = JSON.parse((sessionStorage.getItem('doctorCode') || localStorage.getItem('doctorCode')) || 'null');
-    if (code === 'AB12C') (sessionStorage.removeItem('doctorCode'), localStorage.removeItem('doctorCode'));
+    var prof = JSON.parse(localStorage.getItem('doctorProfile') || 'null');
+    if (prof && /Демонстрацион/i.test(prof.name||'')) localStorage.removeItem('doctorProfile');
+    var code = JSON.parse(localStorage.getItem('doctorCode') || 'null');
+    if (code === 'AB12C') localStorage.removeItem('doctorCode');
   }catch(_){}
 })();
     async function init(){
       await hydrateCodeFromServer();
       initHeader();
 
-      var saved = (sessionStorage.getItem('doctorAvatarUrl') || localStorage.getItem('doctorAvatarUrl'));
+      var saved = localStorage.getItem('doctorAvatarUrl');
       if(!saved){
         var got = tryTGAvatar();
         if(!got){
@@ -1792,7 +1792,7 @@ function doDoctorReset(){
     }catch(_){}
 
     // 3) роль → patient, чтобы не залипать на кабинете
-    try{ sessionStorage.setItem('rt_role','patient'); }catch(_){}
+    try{ localStorage.setItem('rt_role','patient'); }catch(_){}
 
     // 4) разрешим снова показать сплэш
     try{
@@ -2009,14 +2009,14 @@ document.addEventListener('DOMContentLoaded', function(){
   // --- локальный план дозы (если сервер не отдаёт)
   function getPlanMap(){
     try{
-      var x = JSON.parse((sessionStorage.getItem('rt_doc_planDose') || localStorage.getItem('rt_doc_planDose')) || '{}');
+      var x = JSON.parse(localStorage.getItem('rt_doc_planDose') || '{}');
       return (x && typeof x === 'object') ? x : {};
     }catch(_){ return {}; }
   }
   function setPlanFor(pid, mg){
     var m = getPlanMap();
     m[String(pid)] = mg;
-    try{ sessionStorage.setItem('rt_doc_planDose', JSON.stringify(m)); }catch(_){}
+    try{ localStorage.setItem('rt_doc_planDose', JSON.stringify(m)); }catch(_){}
   }
   function getPlanFor(pid){
     var m = getPlanMap();
@@ -2168,7 +2168,7 @@ secDose.className = 'pd-card';
 
 const doseLine = (plan && plan > 0)
   ? `<b id="pdDoseCur">${taken}</b> / <b id="pdDosePlan">${plan}</b> мг`
-  : `<b id="pdDoseCur">${taken}</b> / <b id="pdDosePlan">—</b> мг`;
+  : `<b id="pdDoseCur">${taken}</b> мг`;
 
 secDose.innerHTML = `
   <h4 class="pd-ttl">Доза за день</h4>

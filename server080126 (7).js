@@ -1110,6 +1110,8 @@ app.get('/api/doctor/patient/:pid/day', tgAuth, async (req, res) => {
     await ensurePhotosTable();
 
     // параллельные запросы под твою схему
+    // ВАЖНО: порядок переменных должен совпадать с количеством запросов,
+    // иначе сдвигаются данные (доза/фото/прогресс) и врач видит 0 мг и пустые фото.
     const [pat, diary, dayPlan, taken, photos, prog] = await Promise.all([
       pool.query(`
         select u.id,
@@ -1157,14 +1159,16 @@ app.get('/api/doctor/patient/:pid/day', tgAuth, async (req, res) => {
          limit 1`, [pid]).catch(()=>({rows:[]}))
     ]);
 
-    const p = pat.rows?.[0] || {};
+    const p  = pat.rows?.[0]  || {};
     const pr = prog.rows?.[0] || {};
+
+    // план дозы на день (для отображения в карточке)
     await ensureDayPlansTable();
     const planDay = await pool.query(
       `SELECT planned_mg FROM derma.day_plans WHERE patient_id=$1 AND at_date=$2::date`,
       [pid, ds]
     );
-    const planned = planDay.rows[0]?.planned_mg ?? null;
+    const plan_mg = (planDay.rows?.[0]?.planned_mg ?? dayPlan.rows?.[0]?.planned_mg ?? null);
     
     res.json({
       date: ds,
@@ -1174,9 +1178,10 @@ app.get('/api/doctor/patient/:pid/day', tgAuth, async (req, res) => {
       },
       course: { start_date: p.start_date || null },
       dose: {
+        // выпитая доза за день (из dose_logs)
         current_mg: Number(taken.rows?.[0]?.mg || 0),
-        plan_mg: (planDay.rows?.[0]?.planned_mg ?? null),
-recommended_mg: Number(pr.daily_dose_mg || 0),
+        plan_mg,
+        recommended_mg: Number(pr.daily_dose_mg || 0),
         cumulative_mg: Number(pr.cum_mg || 0),
         weight_kg: Number(pr.weight_kg || p.weight_kg || 0),
         target_mg_per_kg: Number(pr.target_mg_per_kg || 135)

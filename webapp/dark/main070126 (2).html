@@ -355,14 +355,6 @@ try{
 
 /* Sub labels under Min/Opt/Max (mg/kg) */
 .seg-stack{ display:inline-flex; flex-direction:column; align-items:stretch; gap:4px; }
-
-/* На узких экранах (когда блок с режимами переносится на новую строку)
-   центрируем Мин/Опт/Макс строго по середине карточки. */
-@media (max-width: 420px){
-  #cardProgress .seg-stack{ width:100%; align-items:center; }
-  #cardProgress .seg,
-  #cardProgress .seg-kg{ width:min(340px, 100%); }
-}
 .seg-kg{
   display:grid;
   grid-template-columns:repeat(3,1fr);
@@ -2011,55 +2003,11 @@ input[type="time"]::-webkit-calendar-picker-indicator{
   position:relative;
   width:min(380px, 100%);
   aspect-ratio: 1 / 1;
-  /* ближе к строке "Кумулятивно" */
-  margin: 8px auto 4px;
-  /* чтобы при overflow:hidden не появлялся "квадрат" вокруг свечения */
-  border-radius: 999px;
+  margin: 14px auto 4px;
   display:grid;
   place-items:center;
-  contain: layout paint; /* PERF: isolate heavy gauge painting */
-  transform: translateZ(0);
-  will-change: transform;
   filter: drop-shadow(0 14px 28px rgba(0,0,0,.45));
 }
-/* === Soft “breathing” glow ONLY around the ball (doesn't reach the segmented arc) === */
-.rt-gauge::before{
-  content:"";
-  position:absolute;
-  inset:0;
-  border-radius:999px;
-  pointer-events:none;
-  z-index:0;
-
-  /* ball edge is ~32% radius; fade out before arc (~43%) */
-  background: radial-gradient(circle at 50% 50%,
-    rgba(0,0,0,0)        0%,
-    rgba(0,0,0,0)       26%,
-    rgba(34,211,238,.18) 31%,
-    rgba(98,197,255,.14) 34%,
-    rgba(167,139,250,.12) 37%,
-    rgba(0,0,0,0)       41%,
-    rgba(0,0,0,0)      100%);
-  filter: blur(12px);
-  opacity: .55;
-  transform: scale(.992);
-  transform-origin: 50% 50%;
-  animation: rtBallBreath 3.6s ease-in-out infinite;
-}
-
-/* keep layering deterministic */
-.rt-gauge__svg{ z-index: 1; }
-.rt-gauge__ball{ z-index: 2; }
-
-@keyframes rtBallBreath{
-  0%,100%{ opacity:.42; transform: scale(.986); }
-  50%    { opacity:.66; transform: scale(1.014); }
-}
-
-@media (prefers-reduced-motion: reduce){
-  .rt-gauge::before{ animation:none; }
-}
-
 .rt-gauge__svg{
   position:absolute;
   inset:0;
@@ -2104,7 +2052,7 @@ input[type="time"]::-webkit-calendar-picker-indicator{
   fill:none;
   stroke-linecap:round;
   stroke-linejoin:round;
-  stroke: rgba(255,255,255,.99);
+  stroke: rgba(255,255,255,.92);
   stroke-width: calc(var(--rtGaugeStroke) - 2px);
   opacity: 0;
   transition: opacity 240ms ease;
@@ -2120,13 +2068,10 @@ input[type="time"]::-webkit-calendar-picker-indicator{
 .rt-gauge__segs{ isolation:isolate; }
 .rt-gauge__segs--bg{ opacity:.92; }
 .rt-gauge__segs--fg{
-  /* IMPORTANT: no global glow — glow is applied only to the filled segments */
-  filter: none;
-}
-
-/* NO glow on filled segments */
-.rt-gauge__seg--fg.is-on:not(.rt-tip){
-  filter: none !important;
+  filter:
+    drop-shadow(0 0 8px rgba(20,184,166,.16))
+    drop-shadow(0 0 12px rgba(84,194,255,.18))
+    drop-shadow(0 0 16px rgba(167,139,250,.12));
 }
 .rt-gauge__marker{ display:none; }
 
@@ -2158,11 +2103,7 @@ input[type="time"]::-webkit-calendar-picker-indicator{
 
       box-shadow:
     0 0 0 1px rgba(34,211,238,.36),
-    0 0 18px rgba(20,184,166,.26),
-    0 0 34px rgba(34,211,238,.22),
-    0 0 56px rgba(84,194,255,.18),
-    inset 0 0 22px rgba(20,184,166,.14),
-    inset 0 0 44px rgba(84,194,255,.10),
+    0 0 22px rgba(20,184,166,.14),
 
     0 28px 70px rgba(0,0,0,.38),
     inset 0 1px 0 rgba(255,255,255,.42),
@@ -2171,11 +2112,15 @@ input[type="time"]::-webkit-calendar-picker-indicator{
   backdrop-filter: blur(10px) saturate(1.25);
   -webkit-backdrop-filter: blur(10px) saturate(1.25);
 
-  /* мягкая бирюзовая аура ТОЛЬКО вокруг шара (не вокруг сегментов дуги) */
-  filter: none;
+  /* внешний bloom отключён — иначе свечение выходит за рамки шара */
+  /* лёгкий bloom по краям + бирюзовое свечение как у "Опт." */
+  filter:
+    drop-shadow(0 0 10px rgba(34,211,238,.22))
+    drop-shadow(0 0 16px rgba(20,184,166,.18))
+    drop-shadow(0 0 18px rgba(173,255,246,.16))
+    drop-shadow(0 0 26px rgba(152,205,255,.14))
+    drop-shadow(0 0 32px rgba(208,175,255,.12));
 }
-
-
 
 
 /* Rays ring between outer disc and inner orb (SVG rays; NO circular outline) */
@@ -2456,9 +2401,6 @@ transform: translateX(var(--rtShiftX)) scale(var(--rtFit));
 @media (max-width: 390px){
   .rt-gauge{ width:min(340px, 100%); }
   .rt-gauge__sub{ font-size: 13px; }
-  /* На мобиле фильтры на контейнере иногда дают "квадрат" вокруг шара.
-     Внешнюю глубину всё равно дают тени/свечения на самом шаре и дуге. */
-  .rt-gauge{ filter:none; }
 }
 
 
@@ -3802,47 +3744,26 @@ const RING_C = 2*Math.PI*RING_R;   // ~289.03
     const g = document.getElementById('rtGaugeRays');
     if (!g || g.dataset.built === '1') return;
 
-    // PERF: render all rays into a single bitmap once.
-    // This keeps the same look but removes ~200 individual SVG <line> nodes (big FPS win on phones).
     g.innerHTML = '';
+    const N = 88;                // сколько “палочек”
+    const baseInner = 64;        // старт сразу за внутренним кольцом
 
-    const SIZE = 200;
-    const dpr = Math.min(2, (window.devicePixelRatio || 1));
-
-    const c = document.createElement('canvas');
-    c.width  = Math.round(SIZE * dpr);
-    c.height = Math.round(SIZE * dpr);
-
-    const ctx = c.getContext('2d');
-    if (!ctx){ g.dataset.built = '1'; return; }
-
-    ctx.scale(dpr, dpr);
-    ctx.clearRect(0,0,SIZE,SIZE);
-
-    // Same params as before (so the layout stays identical)
-    const N = 88;
-    const baseInner = 64;
-    const minEnd = 70;
-    const maxEnd = 92;
-
-    // Manual tuning (optional):
-    // 0.85 ≈ -15%, 0.80 ≈ -20%
-    const thinK = 1.00; // thickness multiplier
-    const dimK  = 1.00; // opacity multiplier
-
-    // composite closer to "screen" blend the CSS uses
-    ctx.globalCompositeOperation = 'lighter';
+    // Концы палочек: РЕАЛЬНО разная длина (примерно 2–4× разброс),
+    // при этом длинные почти доходят до внешней окружности.
+    const minEnd = 70;           // очень короткие (baseInner + ~8)
+    const maxEnd = 92;          // очень длинные (до границы внешнего диска)
 
     for (let i=0; i<N; i++){
       const t = __rtRand01(i);
 
-      // bias towards longer rays + some very short ones
-      const k = Math.pow(t, 0.34);
+      // bias к длинным (как на рефе), но с редкими “очень короткими”
+      const k = Math.pow(t, 0.34); // 0..1 (больше значений ближе к 1)
       let outer = minEnd + (maxEnd - minEnd) * k;
 
+      // доп. джиттер по длине и по углу, чтобы не возникал “контур-кольцо”
       outer += (__rtRand01(i + 321) - 0.5) * 3.6;
+      // clamp: не выходим за край внешнего диска
       outer = Math.max(minEnd, Math.min(maxEnd, outer));
-
       let inner = baseInner + (__rtRand01(i + 991) - 0.5) * 2.4;
       inner = Math.max(baseInner - 2.2, Math.min(baseInner + 3.6, inner));
 
@@ -3851,40 +3772,38 @@ const RING_C = 2*Math.PI*RING_R;   // ~289.03
       const p0 = ptAt(deg, inner);
       const p1 = ptAt(deg, outer);
 
-      // thickness/opacity depend on length (same logic)
+      // мягкий локальный glow (вдоль линии), чтобы не образовывалось кольцо-контур
+      const lnGlow = document.createElementNS('http://www.w3.org/2000/svg', 'line');
+      lnGlow.setAttribute('x1', p0.x); lnGlow.setAttribute('y1', p0.y);
+      lnGlow.setAttribute('x2', p1.x); lnGlow.setAttribute('y2', p1.y);
+      lnGlow.setAttribute('vector-effect','non-scaling-stroke');
+
+      const ln = document.createElementNS('http://www.w3.org/2000/svg', 'line');
+      ln.setAttribute('x1', p0.x); ln.setAttribute('y1', p0.y);
+      ln.setAttribute('x2', p1.x); ln.setAttribute('y2', p1.y);
+// Яркость/толщина зависят от длины (длинные светлее/толще)
       const lenK = Math.max(0, Math.min(1, (outer - inner) / (maxEnd - baseInner)));
-      const w  = (0.78 + lenK * 0.92 + (t * 0.10)) * thinK;
-      const op = Math.max(0.18, (0.42 + lenK * 0.56) * dimK);
+      const w  = 0.78 + lenK * 0.92 + (t * 0.10);
+      const op = 0.42 + lenK * 0.56;
+      // глобально сделать тоньше/тусклее
+const thinK = 0.42;   // 0.85 = -15%, 0.80 = -20%
+const dimK  = 0.50;   // 0.85 = -15%, 0.80 = -20%
 
-      ctx.lineCap = 'round';
+const w2  = w * thinK;
+const op2 = Math.max(0.18, op * dimK); // чтобы совсем не пропало
 
-      // soft local glow (slightly thicker, much weaker)
-      ctx.strokeStyle = `rgba(255,255,255,${Math.max(0.10, op * 0.28).toFixed(3)})`;
-      ctx.lineWidth = w + 1.0;
-      ctx.beginPath();
-      ctx.moveTo(p0.x, p0.y);
-      ctx.lineTo(p1.x, p1.y);
-      ctx.stroke();
+      // glow чуть толще и заметно слабее основного
+      lnGlow.setAttribute('stroke-width', (w + 1.0).toFixed(1.6));
+      lnGlow.setAttribute('stroke-opacity', Math.max(0.10, op * 0.28).toFixed(2));
+      lnGlow.setAttribute('stroke-linecap','round');
 
-      // main ray
-      ctx.strokeStyle = `rgba(255,255,255,${op.toFixed(3)})`;
-      ctx.lineWidth = w;
-      ctx.beginPath();
-      ctx.moveTo(p0.x, p0.y);
-      ctx.lineTo(p1.x, p1.y);
-      ctx.stroke();
+      ln.setAttribute('stroke-width', w.toFixed(2));
+      ln.setAttribute('stroke-opacity', op.toFixed(2));
+      ln.setAttribute('stroke-linecap','round');
+
+      g.appendChild(lnGlow);
+      g.appendChild(ln);
     }
-
-    const img = document.createElementNS('http://www.w3.org/2000/svg','image');
-    const dataURL = c.toDataURL('image/png');
-    img.setAttribute('href', dataURL);
-    try{ img.setAttributeNS('http://www.w3.org/1999/xlink','href', dataURL); }catch(_){ }
-    img.setAttribute('x','0');
-    img.setAttribute('y','0');
-    img.setAttribute('width','200');
-    img.setAttribute('height','200');
-    img.setAttribute('preserveAspectRatio','none');
-    g.appendChild(img);
 
     g.dataset.built = '1';
   }
@@ -4006,28 +3925,21 @@ const RING_C = 2*Math.PI*RING_R;   // ~289.03
     for (let i=0; i<cfg.segments; i++){
       const isOn = i < on;
       segFg[i].style.opacity = isOn ? '1' : '0';
-      segFg[i].classList.toggle('is-on', isOn);
 
       // сбрасываем подсветку
       segFg[i].classList.remove('rt-tip');
-      // IMPORTANT: no glow on обычных сегментах
-      segFg[i].removeAttribute('filter');
       if (segCore[i]){
         segCore[i].classList.remove('rt-tip');
         segCore[i].style.opacity = '0';
-        segCore[i].removeAttribute('filter');
       }
     }
 
     // подсветка “последнего” сегмента вместо круглого маркера
     if (tip >= 0 && segFg[tip]){
       segFg[tip].classList.add('rt-tip');
-      // glow только на последнем активном сегменте
-      segFg[tip].setAttribute('filter','url(#rtGaugeGlowTip)');
       if (segCore[tip]){
         segCore[tip].classList.add('rt-tip');
         segCore[tip].style.opacity = '1';
-        segCore[tip].setAttribute('filter','url(#rtGaugeGlowTip)');
       }
     }
   };
@@ -5507,89 +5419,6 @@ function updatePlanHint(){
     btn.hidden = false;
   }catch(_){}
 }
-/* === Planned dose: pull updates from server (doctor edits) === */
-async function pullPlanRange(fromISO, toISO){
-  try{
-    fromISO = String(fromISO||'').slice(0,10);
-    toISO   = String(toISO||'').slice(0,10);
-    if(!/^\d{4}-\d{2}-\d{2}$/.test(fromISO) || !/^\d{4}-\d{2}-\d{2}$/.test(toISO)) return;
-
-    const resp = await api(`/api/plan-dose/range?from=${encodeURIComponent(fromISO)}&to=${encodeURIComponent(toISO)}`);
-    if(!resp.ok) return;
-
-    const rows = await resp.json().catch(()=>null);
-    const plan = JSON.parse(localStorage.getItem('rt.plan.v1')||'{}') || {};
-
-    // Чистим диапазон, чтобы корректно обрабатывать «удаление плана» врачом
-    const d0 = new Date(fromISO + 'T00:00:00Z');
-    const d1 = new Date(toISO   + 'T00:00:00Z');
-    for(let d = new Date(d0); d <= d1; d.setUTCDate(d.getUTCDate()+1)){
-      const k = d.toISOString().slice(0,10);
-      delete plan[k];
-    }
-
-    if (Array.isArray(rows)){
-      for (const row of rows){
-        const d = String(row?.date || '').slice(0,10);
-        const mg = Math.round(Number(row?.planned_mg));
-        if (/^\d{4}-\d{2}-\d{2}$/.test(d) && Number.isFinite(mg) && mg > 0){
-          plan[d] = mg;
-        }
-      }
-    }
-
-    localStorage.setItem('rt.plan.v1', JSON.stringify(plan));
-    try{ localStorage.setItem('rt.plan.bump', String(Date.now())); }catch(_){}
-    return plan;
-  }catch(e){
-    console.warn('pullPlanRange failed', e);
-  }
-}
-
-function monthRangeISOFromDate(iso){
-  try{
-    iso = String(iso||'').slice(0,10);
-    const m = /^(\d{4})-(\d{2})-(\d{2})$/.exec(iso);
-    if(!m) return {fromISO:null, toISO:null};
-
-    const y = Number(m[1]), mo = Number(m[2]) - 1;
-    const from = new Date(Date.UTC(y, mo, 1));
-    const to   = new Date(Date.UTC(y, mo+1, 0));
-    return { fromISO: from.toISOString().slice(0,10), toISO: to.toISOString().slice(0,10) };
-  }catch(_){ return {fromISO:null, toISO:null}; }
-}
-
-async function refreshPlanFromServer(){
-  try{
-    const dateEl = document.getElementById('date');
-    const iso = String(dateEl?.value || todayISO()).slice(0,10);
-    const r = monthRangeISOFromDate(iso);
-    if (r.fromISO && r.toISO) await pullPlanRange(r.fromISO, r.toISO);
-
-    try{ updatePlanHint(); }catch(_){}
-    try{ renderCalPreview?.(); }catch(_){}
-  }catch(_){}
-}
-
-// бинд один раз
-(function bindPlanPullOnMain(){
-  try{
-    if (window.__rtPlanPullMainBound) return;
-    window.__rtPlanPullMainBound = true;
-
-    if (document.readyState === 'loading'){
-      document.addEventListener('DOMContentLoaded', ()=>{ refreshPlanFromServer(); }, { once:true });
-    } else {
-      refreshPlanFromServer();
-    }
-
-    window.addEventListener('focus', ()=>{ refreshPlanFromServer(); });
-    document.addEventListener('visibilitychange', ()=>{ if(!document.hidden) refreshPlanFromServer(); });
-
-    const dateEl = document.getElementById('date');
-    if (dateEl) dateEl.addEventListener('change', ()=>{ refreshPlanFromServer(); });
-  }catch(_){}
-})();
 
 /* === Date selection + edit locks (past/future restrictions) === */
 function _isoToUTCday(iso){

@@ -41,7 +41,7 @@ console.log('Boot server.js at', new Date().toISOString());
 const app = express();
 
 // ⬇️ ПОТОМ вешаем middleware
-app.use(express.json({ limit: '25mb' }));
+app.use(express.json({ limit: '10mb' }));
 app.use(express.text({ type: 'text/plain', limit: '10mb' }));
 app.use((req, _res, next) => {
   // Если пришёл text/plain, а внутри JSON — аккуратно распарсим в объект
@@ -117,35 +117,6 @@ async function ensureDayPlansTable(){
     ON derma.day_plans(patient_id, at_date);
   `);
 }
-
-
-// === photos: daily patient photos for doctor view (saved as data_url or remote url)
-async function ensurePhotosTable(){
-  await pool.query('SET search_path = derma, public');
-  await pool.query(`
-    CREATE TABLE IF NOT EXISTS derma.photos (
-      id         bigserial PRIMARY KEY,
-      patient_id integer NOT NULL REFERENCES derma.users(id) ON DELETE CASCADE,
-      at_date    date    NOT NULL,
-      kind       text    NOT NULL DEFAULT 'face',
-      url        text    NOT NULL,
-      meta       jsonb   DEFAULT '{}'::jsonb,
-      created_at timestamptz DEFAULT now()
-    );
-  `);
-
-  // one photo per slot per day
-  await pool.query(`
-    CREATE UNIQUE INDEX IF NOT EXISTS photos_patient_date_kind_uq
-      ON derma.photos(patient_id, at_date, kind);
-  `);
-
-  await pool.query(`
-    CREATE INDEX IF NOT EXISTS photos_patient_date_idx
-      ON derma.photos(patient_id, at_date);
-  `);
-}
-
 
 
 try { console.log('PG host:', new URL(dsn).hostname); } catch {}
@@ -1107,10 +1078,8 @@ app.get('/api/doctor/patient/:pid/day', tgAuth, async (req, res) => {
     );
     if (!ok.rowCount) return res.status(403).json({ error:'forbidden' });
 
-    await ensurePhotosTable();
-
     // параллельные запросы под твою схему
-    const [pat, diary, dayPlan, taken, photos, prog] = await Promise.all([
+    const [pat, diary, dose, photos, prog] = await Promise.all([
       pool.query(`
         select u.id,
                coalesce(nullif(u.full_name,''), nullif(u.tg_username,''), 'Пациент') as name,
@@ -1147,7 +1116,7 @@ app.get('/api/doctor/patient/:pid/day', tgAuth, async (req, res) => {
                at_date                         as taken_at
           from derma.photos
          where patient_id=$1 and at_date=$2::date
-         order by id desc`, [pid, ds]).catch((e)=>{ console.error('PHOTOS QUERY ERROR', e); return {rows:[]}; }),
+         order by id desc`, [pid, ds]).catch(()=>({rows:[]})),
 
       pool.query(`
         select daily_dose_mg, cum_mg, weight_kg,
@@ -1174,7 +1143,7 @@ app.get('/api/doctor/patient/:pid/day', tgAuth, async (req, res) => {
       },
       course: { start_date: p.start_date || null },
       dose: {
-        current_mg: Number(taken.rows?.[0]?.mg || 0),
+        current_mg: Number(dose.rows?.[0]?.mg || 0),
         plan_mg: (planDay.rows?.[0]?.planned_mg ?? null),
 recommended_mg: Number(pr.daily_dose_mg || 0),
         cumulative_mg: Number(pr.cum_mg || 0),
@@ -1209,9 +1178,6 @@ app.get('/api/doctor/patient/:pid/timeline', tgAuth, async (req, res) => {
       [did, pid]
     );
     if (!ok.rowCount) return res.status(403).json({ error:'forbidden' });
-
-
-    await ensurePhotosTable();
 
     // generate_series по дням и влеваем туда наличие записей/фото
     const q = await pool.query(`
@@ -1873,8 +1839,6 @@ app.get('/api/diary/day', tgAuth, async (req, res) => {
     const uid = await userIdByTg(req.tg || req.tgUser?.id);
     if (!uid) return res.status(401).json({ error: 'unauthorized' });
 
-    await ensurePhotosTable();
-
     const ds = String(req.query.date || new Date().toISOString().slice(0,10)).slice(0,10);
 
     const { rows } = await pool.query(`
@@ -1904,28 +1868,40 @@ app.post('/api/diary/day', tgAuth, async (req, res) => {
     const uid = await userIdByTg(req.tgUser?.id || req.tg);
     if (!uid) return res.status(401).json({ error: 'unauthorized' });
 
-    const dateISO  = String(req.body?.date || '').slice(0, 10);
-    const score    = Number(req.body?.feeling_score || 0);
-    const effects  = req.body?.side_effects || {};
-    const comment  = String(req.body?.comment || '');
+    const dateISO = String(req.body?.date || '').slice(0, 10);
+
+    // IMPORTANT:
+    // If a field is missing in the request body, we DO NOT overwrite the stored value.
+    // This prevents accidental wipes when some client-side autosave sends partial payloads.
+    const hasScore   = Object.prototype.hasOwnProperty.call(req.body || {}, 'feeling_score');
+    const hasEffects = Object.prototype.hasOwnProperty.call(req.body || {}, 'side_effects');
+    const hasComment = Object.prototype.hasOwnProperty.call(req.body || {}, 'comment');
+
+    const score   = hasScore   ? Number(req.body?.feeling_score || 0) : null;
+    const effects = hasEffects ? (req.body?.side_effects ?? {})       : null;
+    const comment = hasComment ? String(req.body?.comment ?? '')      : null;
 
     await pool.query('SET search_path = derma, public');
 
     const sql = `
       WITH upd AS (
         UPDATE diary
-           SET feeling_score = $3,
-               side_effects  = COALESCE($4::jsonb, '{}'::jsonb),
-               comment       = $5
+           SET feeling_score = CASE WHEN $6 THEN $3 ELSE feeling_score END,
+               side_effects  = CASE WHEN $7 THEN COALESCE($4::jsonb, '{}'::jsonb) ELSE side_effects END,
+               comment       = CASE WHEN $8 THEN $5 ELSE comment END
          WHERE patient_id = $1 AND at_date = $2::date
          RETURNING id
       )
       INSERT INTO diary (patient_id, at_date, feeling_score, side_effects, comment)
-      SELECT $1, $2::date, $3, COALESCE($4::jsonb, '{}'::jsonb), $5
+      SELECT $1,
+             $2::date,
+             COALESCE($3, 0),
+             COALESCE($4::jsonb, '{}'::jsonb),
+             COALESCE($5, '')
       WHERE NOT EXISTS (SELECT 1 FROM upd)
       RETURNING id;
     `;
-    await pool.query(sql, [uid, dateISO, score, effects, comment]);
+    await pool.query(sql, [uid, dateISO, score, effects, comment, hasScore, hasEffects, hasComment]);
     res.json({ ok: true });
   } catch (err) {
     console.error('DIARY UPSERT ERROR', err);
@@ -1934,13 +1910,13 @@ app.post('/api/diary/day', tgAuth, async (req, res) => {
 });
 
 
+
+
 // === UPSERT фото дня (по patient_id + date + kind)
 app.post('/api/diary/photo', tgAuth, async (req, res) => {
   try {
     const uid = await userIdByTg(req.tg || req.tgUser?.id);
     if (!uid) return res.status(401).json({ error:'unauthorized' });
-
-    await ensurePhotosTable();
 
     const ds   = String(req.body?.date || new Date().toISOString().slice(0,10)).slice(0,10);
     let kind   = String(req.body?.kind || 'face').toLowerCase();

@@ -1769,116 +1769,6 @@ window.addEventListener('storage',e=>{
     const n = Number(v);
     return Number.isFinite(n) && n > 0 ? Math.round(n) : null;
   }
-
-    // --- Server -> local pull for planned doses (чтобы изменения врача были видны пациенту) ---
-  let __planPullPromise = null;
-  let __planPullKey = '';
-
-  async function pullPlanRange(fromISO, toISO){
-    try{
-      if (typeof api !== 'function') return;
-      fromISO = String(fromISO||'').slice(0,10);
-      toISO   = String(toISO||'').slice(0,10);
-      if(!/^\d{4}-\d{2}-\d{2}$/.test(fromISO) || !/^\d{4}-\d{2}-\d{2}$/.test(toISO)) return;
-
-      // если пациент только что правил план локально — не перетираем его сервером
-      try{
-        const ts = Number(localStorage.getItem('rt.plan.local_edit_ts')||0);
-        if (ts && (Date.now() - ts) < 8000) return;
-      }catch(_){ }
-
-
-      const key = fromISO + '|' + toISO;
-      if (__planPullPromise && __planPullKey === key) return __planPullPromise;
-      __planPullKey = key;
-
-      __planPullPromise = (async ()=>{
-        const r = await api(`/api/plan-dose/range?from=${encodeURIComponent(fromISO)}&to=${encodeURIComponent(toISO)}`);
-        if (!r.ok) return;
-        const rows = await r.json();
-
-        const plan = loadPlan();
-
-        // Сервер — источник правды внутри диапазона
-        for (const k of Object.keys(plan)){
-          if (k >= fromISO && k <= toISO) delete plan[k];
-        }
-
-        if (Array.isArray(rows)){
-          for (const row of rows){
-            const d = String(row?.date || '').slice(0,10);
-            const mg = Number(row?.planned_mg);
-            if (d && d >= fromISO && d <= toISO && Number.isFinite(mg) && mg > 0){
-              plan[d] = Math.round(mg);
-            }
-          }
-        }
-
-        savePlan(plan);
-
-    try{ localStorage.setItem('rt.plan.local_edit_ts', String(Date.now())); }catch(_){ }
-      })();
-
-      return __planPullPromise;
-    }catch(_){}
-  }
-
-  function monthRangeISO(dt){
-    try{
-      const y = dt.getFullYear(), m = dt.getMonth();
-      const from = new Date(Date.UTC(y, m, 1));
-      const to   = new Date(Date.UTC(y, m+1, 0));
-      return { fromISO: from.toISOString().slice(0,10), toISO: to.toISOString().slice(0,10) };
-    }catch(_){ return {fromISO:null, toISO:null}; }
-  }
-
-  async function renderWithPlanPull(){
-    try{
-      const r = monthRangeISO(current);
-      if (r.fromISO && r.toISO) await pullPlanRange(r.fromISO, r.toISO);
-    }catch(_){}
-    render();
-  }
-
-// --- Server sync for planned doses (чтобы врач видел план по дням) ---
-  const __planSyncMap = new Map();
-  let __planSyncTimer = null;
-
-  function queuePlanDoseSync(ids, mg){
-    try{
-      if (!ids || !ids.length) return;
-
-      const n = Math.round(Number(mg) || 0);
-      const val = (Number.isFinite(n) && n > 0) ? n : null;
-
-      for (const id of ids){
-        const iso = String(id || '').slice(0,10);
-        if (/^\d{4}-\d{2}-\d{2}$/.test(iso)) __planSyncMap.set(iso, val);
-      }
-
-      clearTimeout(__planSyncTimer);
-      __planSyncTimer = setTimeout(async ()=>{
-        const batch = Array.from(__planSyncMap.entries());
-        __planSyncMap.clear();
-
-        for (const [dateISO, planned] of batch){
-          try{
-            const r = await api('/api/plan-dose', {
-              method: 'POST',
-              body: JSON.stringify({ date: dateISO, planned_mg: planned })
-            });
-            if (!r.ok){
-              const txt = await r.text().catch(()=> '');
-              console.warn('plan-dose sync failed:', r.status, txt);
-            }
-          }catch(e){
-            console.warn('plan-dose sync error:', e);
-          }
-        }
-      }, 400);
-    }catch(_){}
-  }
-
   function setPlanForIds(ids, mg){
     const plan = loadPlan();
     for (const id of ids){
@@ -1889,9 +1779,6 @@ window.addEventListener('storage',e=>{
       }
     }
     savePlan(plan);
-
-    // синхронизируем на сервер
-    try{ queuePlanDoseSync(ids, mg); }catch(_){ }
   }
 
   async function editPlan(ids){
@@ -2001,36 +1888,15 @@ window.addEventListener('storage',e=>{
   }
 
   function api(path, opts = {}) {
-    // window.API_BASE может быть: '' | '/api' | 'http(s)://host' | 'http(s)://host/api'
-       const API_BASE_RAW = String(window.API_BASE || '');
-    const API_BASE = API_BASE_RAW.replace(/\/+$/, '');
-    const p = String(path || '');
+    let url = /^https?:\/\//i.test(path) ? path : (API_BASE + path);
+    const params = [];
+    if (!initData && devTg) params.push('tg=' + encodeURIComponent(devTg)); // вне Telegram — шлём tg
+    params.push('v=calendar-2025-09-06');
+    url += (url.includes('?') ? '&' : '?') + params.join('&');
 
-    // не допускаем '/api/api/...'
-    const baseEndsWithApi = /\/api$/i.test(API_BASE);
-    const pathStartsWithApi = /^\/api(\/|$)/i.test(p);
-    const joinedPath = (baseEndsWithApi && pathStartsWithApi) ? p.replace(/^\/api/i, '') : p;
-
-    let urlStr;
-    if (/^https?:\/\//i.test(joinedPath)) {
-      urlStr = joinedPath;
-    } else if (API_BASE) {
-      urlStr = API_BASE + joinedPath;
-    } else {
-      urlStr = joinedPath;
-    }
-
-    const url = new URL(urlStr, location.origin);
-
-    if (!initData && devTg && !url.searchParams.has('tg')) {
-      url.searchParams.set('tg', String(devTg));
-    }
-    url.searchParams.set('v', 'calendar-2026-01-08-fix1');
-
-    const headers = { 'Content-Type': 'application/json', ...(opts.headers || {}) };
-    if (initData) headers['X-Telegram-InitData'] = initData; // в Telegram — заголовок
-
-    return fetch(url.toString(), { ...opts, headers, credentials: 'include' });
+    const headers = { 'Content-Type':'application/json', ...(opts.headers||{}) };
+    if (initData) headers['X-Telegram-InitData'] = initData;       // в Telegram — заголовок
+    return fetch(url, { ...opts, headers, credentials:'include' });
   }
 
   const todayISO = ()=>{ const d=new Date(); d.setMinutes(d.getMinutes()-d.getTimezoneOffset()); return d.toISOString().slice(0,10); };
@@ -2772,15 +2638,15 @@ if (btn){
   }
 };
 
-  document.getElementById('prev').onclick = ()=>{ current.setMonth(current.getMonth()-1); renderWithPlanPull(); };
-  document.getElementById('next').onclick = ()=>{ current.setMonth(current.getMonth()+1); renderWithPlanPull(); };
+  document.getElementById('prev').onclick = ()=>{ current.setMonth(current.getMonth()-1); render(); };
+  document.getElementById('next').onclick = ()=>{ current.setMonth(current.getMonth()+1); render(); };
   document.getElementById('todayBtn').onclick = async ()=>{
     const now = new Date();
     const id  = iso(now);
 
     // Переключаемся на месяц «сегодня» и перерисовываем сетку
     current = new Date(now.getFullYear(), now.getMonth(), 1);
-    await renderWithPlanPull();
+    render();
 
     // Подсветить ячейку «сегодня» (selected) и прокрутить к ней
     const cur = grid.querySelector(`.day[data-date="${id}"]`);
@@ -2924,8 +2790,8 @@ window.addEventListener('keydown', (e)=>{ if(e.key === 'Escape') closeSheet(); }
 
 });
 // на всякий — обновляемся, когда пользователь вернулся на страницу
-window.addEventListener('focus', ()=>{ try{ renderWithPlanPull(); }catch(_){ render(); } });
-document.addEventListener('visibilitychange', ()=>{ if (!document.hidden) { try{ renderWithPlanPull(); }catch(_){ render(); } } });
+window.addEventListener('focus', render);
+document.addEventListener('visibilitychange', ()=>{ if (!document.hidden) render(); });
 
 /* Надёжный короткий тап на мобильных — с порогом движения и без открытия во время drag-range */
 (function(){

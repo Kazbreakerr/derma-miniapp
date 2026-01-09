@@ -2022,44 +2022,6 @@ input[type="time"]::-webkit-calendar-picker-indicator{
   will-change: transform;
   filter: drop-shadow(0 14px 28px rgba(0,0,0,.45));
 }
-/* === Soft “breathing” glow ONLY around the ball (doesn't reach the segmented arc) === */
-.rt-gauge::before{
-  content:"";
-  position:absolute;
-  inset:0;
-  border-radius:999px;
-  pointer-events:none;
-  z-index:0;
-
-  /* ball edge is ~32% radius; fade out before arc (~43%) */
-  background: radial-gradient(circle at 50% 50%,
-    rgba(0,0,0,0)        0%,
-    rgba(0,0,0,0)       26%,
-    rgba(34,211,238,.18) 31%,
-    rgba(98,197,255,.14) 34%,
-    rgba(167,139,250,.12) 37%,
-    rgba(0,0,0,0)       41%,
-    rgba(0,0,0,0)      100%);
-  filter: blur(12px);
-  opacity: .55;
-  transform: scale(.992);
-  transform-origin: 50% 50%;
-  animation: rtBallBreath 3.6s ease-in-out infinite;
-}
-
-/* keep layering deterministic */
-.rt-gauge__svg{ z-index: 1; }
-.rt-gauge__ball{ z-index: 2; }
-
-@keyframes rtBallBreath{
-  0%,100%{ opacity:.42; transform: scale(.986); }
-  50%    { opacity:.66; transform: scale(1.014); }
-}
-
-@media (prefers-reduced-motion: reduce){
-  .rt-gauge::before{ animation:none; }
-}
-
 .rt-gauge__svg{
   position:absolute;
   inset:0;
@@ -2119,9 +2081,7 @@ input[type="time"]::-webkit-calendar-picker-indicator{
 /* Глоу на группе (а не на каждом сегменте), чтобы не было пиксельной “каши” */
 .rt-gauge__segs{ isolation:isolate; }
 .rt-gauge__segs--bg{ opacity:.92; }
-.rt-gauge__segs--fg{
-  /* IMPORTANT: no global glow — glow is applied only to the filled segments */
-  filter: none;
+.rt-gauge__segs--fg{ filter: none !important; 
 }
 
 /* NO glow on filled segments */
@@ -2175,7 +2135,8 @@ input[type="time"]::-webkit-calendar-picker-indicator{
   filter: none;
 }
 
-
+.rt-gauge__seg--fg.rt-tip{ filter: none !important; }
+.rt-gauge__seg--tipcore{ filter: none !important; }
 
 
 /* Rays ring between outer disc and inner orb (SVG rays; NO circular outline) */
@@ -2569,6 +2530,42 @@ transform: translateX(var(--rtShiftX)) scale(var(--rtFit));
 }
 .rt-gauge.show-pct .rt-gauge__text--pct{
   opacity: 1 !important;
+}
+.rt-gauge::before{
+  content:"";
+  position:absolute;
+  inset:0;
+  border-radius:999px;
+  pointer-events:none;
+  z-index:0;
+
+  /* шар ~32% радиуса, дуга ~43% — глоу заканчиваем до дуги */
+  background: radial-gradient(circle at 50% 50%,
+    rgba(0,0,0,0)         0%,
+    rgba(0,0,0,0)        26%,
+    rgba(34,211,238,.18) 31%,
+    rgba(98,197,255,.14) 34%,
+    rgba(167,139,250,.12) 37%,
+    rgba(0,0,0,0)        41%,
+    rgba(0,0,0,0)       100%);
+  filter: blur(12px);
+  opacity: .95;
+  transform: scale(.992);
+  transform-origin: 50% 50%;
+  animation: rtBallBreath 3.6s ease-in-out infinite;
+}
+
+/* слои */
+.rt-gauge__svg{ z-index: 1; }
+.rt-gauge__ball{ z-index: 2; }
+
+@keyframes rtBallBreath{
+  0%,100%{ opacity:.42; transform: scale(.986); }
+  50%    { opacity:.66; transform: scale(1.014); }
+}
+
+@media (prefers-reduced-motion: reduce){
+  .rt-gauge::before{ animation:none; }
 }
 
 
@@ -4010,24 +4007,18 @@ const RING_C = 2*Math.PI*RING_R;   // ~289.03
 
       // сбрасываем подсветку
       segFg[i].classList.remove('rt-tip');
-      // IMPORTANT: no glow on обычных сегментах
-      segFg[i].removeAttribute('filter');
       if (segCore[i]){
         segCore[i].classList.remove('rt-tip');
         segCore[i].style.opacity = '0';
-        segCore[i].removeAttribute('filter');
       }
     }
 
     // подсветка “последнего” сегмента вместо круглого маркера
     if (tip >= 0 && segFg[tip]){
       segFg[tip].classList.add('rt-tip');
-      // glow только на последнем активном сегменте
-      segFg[tip].setAttribute('filter','url(#rtGaugeGlowTip)');
       if (segCore[tip]){
         segCore[tip].classList.add('rt-tip');
         segCore[tip].style.opacity = '1';
-        segCore[tip].setAttribute('filter','url(#rtGaugeGlowTip)');
       }
     }
   };
@@ -5507,89 +5498,6 @@ function updatePlanHint(){
     btn.hidden = false;
   }catch(_){}
 }
-/* === Planned dose: pull updates from server (doctor edits) === */
-async function pullPlanRange(fromISO, toISO){
-  try{
-    fromISO = String(fromISO||'').slice(0,10);
-    toISO   = String(toISO||'').slice(0,10);
-    if(!/^\d{4}-\d{2}-\d{2}$/.test(fromISO) || !/^\d{4}-\d{2}-\d{2}$/.test(toISO)) return;
-
-    const resp = await api(`/api/plan-dose/range?from=${encodeURIComponent(fromISO)}&to=${encodeURIComponent(toISO)}`);
-    if(!resp.ok) return;
-
-    const rows = await resp.json().catch(()=>null);
-    const plan = JSON.parse(localStorage.getItem('rt.plan.v1')||'{}') || {};
-
-    // Чистим диапазон, чтобы корректно обрабатывать «удаление плана» врачом
-    const d0 = new Date(fromISO + 'T00:00:00Z');
-    const d1 = new Date(toISO   + 'T00:00:00Z');
-    for(let d = new Date(d0); d <= d1; d.setUTCDate(d.getUTCDate()+1)){
-      const k = d.toISOString().slice(0,10);
-      delete plan[k];
-    }
-
-    if (Array.isArray(rows)){
-      for (const row of rows){
-        const d = String(row?.date || '').slice(0,10);
-        const mg = Math.round(Number(row?.planned_mg));
-        if (/^\d{4}-\d{2}-\d{2}$/.test(d) && Number.isFinite(mg) && mg > 0){
-          plan[d] = mg;
-        }
-      }
-    }
-
-    localStorage.setItem('rt.plan.v1', JSON.stringify(plan));
-    try{ localStorage.setItem('rt.plan.bump', String(Date.now())); }catch(_){}
-    return plan;
-  }catch(e){
-    console.warn('pullPlanRange failed', e);
-  }
-}
-
-function monthRangeISOFromDate(iso){
-  try{
-    iso = String(iso||'').slice(0,10);
-    const m = /^(\d{4})-(\d{2})-(\d{2})$/.exec(iso);
-    if(!m) return {fromISO:null, toISO:null};
-
-    const y = Number(m[1]), mo = Number(m[2]) - 1;
-    const from = new Date(Date.UTC(y, mo, 1));
-    const to   = new Date(Date.UTC(y, mo+1, 0));
-    return { fromISO: from.toISOString().slice(0,10), toISO: to.toISOString().slice(0,10) };
-  }catch(_){ return {fromISO:null, toISO:null}; }
-}
-
-async function refreshPlanFromServer(){
-  try{
-    const dateEl = document.getElementById('date');
-    const iso = String(dateEl?.value || todayISO()).slice(0,10);
-    const r = monthRangeISOFromDate(iso);
-    if (r.fromISO && r.toISO) await pullPlanRange(r.fromISO, r.toISO);
-
-    try{ updatePlanHint(); }catch(_){}
-    try{ renderCalPreview?.(); }catch(_){}
-  }catch(_){}
-}
-
-// бинд один раз
-(function bindPlanPullOnMain(){
-  try{
-    if (window.__rtPlanPullMainBound) return;
-    window.__rtPlanPullMainBound = true;
-
-    if (document.readyState === 'loading'){
-      document.addEventListener('DOMContentLoaded', ()=>{ refreshPlanFromServer(); }, { once:true });
-    } else {
-      refreshPlanFromServer();
-    }
-
-    window.addEventListener('focus', ()=>{ refreshPlanFromServer(); });
-    document.addEventListener('visibilitychange', ()=>{ if(!document.hidden) refreshPlanFromServer(); });
-
-    const dateEl = document.getElementById('date');
-    if (dateEl) dateEl.addEventListener('change', ()=>{ refreshPlanFromServer(); });
-  }catch(_){}
-})();
 
 /* === Date selection + edit locks (past/future restrictions) === */
 function _isoToUTCday(iso){

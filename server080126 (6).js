@@ -1110,7 +1110,7 @@ app.get('/api/doctor/patient/:pid/day', tgAuth, async (req, res) => {
     await ensurePhotosTable();
 
     // параллельные запросы под твою схему
-    const [pat, diary, dayPlan, taken, photos, prog] = await Promise.all([
+    const [pat, diary, dose, photos, prog] = await Promise.all([
       pool.query(`
         select u.id,
                coalesce(nullif(u.full_name,''), nullif(u.tg_username,''), 'Пациент') as name,
@@ -1174,7 +1174,7 @@ app.get('/api/doctor/patient/:pid/day', tgAuth, async (req, res) => {
       },
       course: { start_date: p.start_date || null },
       dose: {
-        current_mg: Number(taken.rows?.[0]?.mg || 0),
+        current_mg: Number(dose.rows?.[0]?.mg || 0),
         plan_mg: (planDay.rows?.[0]?.planned_mg ?? null),
 recommended_mg: Number(pr.daily_dose_mg || 0),
         cumulative_mg: Number(pr.cum_mg || 0),

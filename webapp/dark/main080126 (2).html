@@ -5467,6 +5467,44 @@ function plannedMgForDate(iso){
 }
 
 
+
+// === Server sync for planned dose (чтобы врач видел план по дням) ===
+const __planSyncMap = new Map();
+let __planSyncTimer = null;
+
+function queuePlanDoseSync(iso, mg){
+  try{
+    if (typeof api !== 'function') return;
+    iso = String(iso||'').slice(0,10);
+    if(!/^\d{4}-\d{2}-\d{2}$/.test(iso)) return;
+
+    const v = Math.round(Number(mg) || 0);
+    __planSyncMap.set(iso, (Number.isFinite(v) && v > 0) ? v : null);
+
+    clearTimeout(__planSyncTimer);
+    __planSyncTimer = setTimeout(async ()=>{
+      const batch = Array.from(__planSyncMap.entries());
+      __planSyncMap.clear();
+
+      for (const [d, val] of batch){
+        try{
+          const r = await api('/api/plan-dose', {
+            method: 'POST',
+            body: JSON.stringify({ date: d, planned_mg: (val && val > 0) ? val : null })
+          });
+          if (!r.ok){
+            const txt = await r.text().catch(()=> '');
+            console.warn('plan-dose sync failed:', r.status, txt);
+          }
+        }catch(e){
+          console.warn('plan-dose sync error:', e);
+        }
+      }
+    }, 400);
+  }catch(_){}
+}
+
+
 function setPlannedMgForDate(iso, mg){
   try{
     iso = String(iso||'').slice(0,10);
@@ -5483,6 +5521,10 @@ function setPlannedMgForDate(iso, mg){
     else delete plan[iso];
 
     try{ localStorage.setItem(KEY, JSON.stringify(plan)); }catch(_){}
+
+    // синхронизируем на сервер (врач увидит план дозы по дням)
+    try{ queuePlanDoseSync(iso, mg); }catch(_){ }
+
     return true;
   }catch(_){ return false; }
 }
@@ -5507,89 +5549,6 @@ function updatePlanHint(){
     btn.hidden = false;
   }catch(_){}
 }
-/* === Planned dose: pull updates from server (doctor edits) === */
-async function pullPlanRange(fromISO, toISO){
-  try{
-    fromISO = String(fromISO||'').slice(0,10);
-    toISO   = String(toISO||'').slice(0,10);
-    if(!/^\d{4}-\d{2}-\d{2}$/.test(fromISO) || !/^\d{4}-\d{2}-\d{2}$/.test(toISO)) return;
-
-    const resp = await api(`/api/plan-dose/range?from=${encodeURIComponent(fromISO)}&to=${encodeURIComponent(toISO)}`);
-    if(!resp.ok) return;
-
-    const rows = await resp.json().catch(()=>null);
-    const plan = JSON.parse(localStorage.getItem('rt.plan.v1')||'{}') || {};
-
-    // Чистим диапазон, чтобы корректно обрабатывать «удаление плана» врачом
-    const d0 = new Date(fromISO + 'T00:00:00Z');
-    const d1 = new Date(toISO   + 'T00:00:00Z');
-    for(let d = new Date(d0); d <= d1; d.setUTCDate(d.getUTCDate()+1)){
-      const k = d.toISOString().slice(0,10);
-      delete plan[k];
-    }
-
-    if (Array.isArray(rows)){
-      for (const row of rows){
-        const d = String(row?.date || '').slice(0,10);
-        const mg = Math.round(Number(row?.planned_mg));
-        if (/^\d{4}-\d{2}-\d{2}$/.test(d) && Number.isFinite(mg) && mg > 0){
-          plan[d] = mg;
-        }
-      }
-    }
-
-    localStorage.setItem('rt.plan.v1', JSON.stringify(plan));
-    try{ localStorage.setItem('rt.plan.bump', String(Date.now())); }catch(_){}
-    return plan;
-  }catch(e){
-    console.warn('pullPlanRange failed', e);
-  }
-}
-
-function monthRangeISOFromDate(iso){
-  try{
-    iso = String(iso||'').slice(0,10);
-    const m = /^(\d{4})-(\d{2})-(\d{2})$/.exec(iso);
-    if(!m) return {fromISO:null, toISO:null};
-
-    const y = Number(m[1]), mo = Number(m[2]) - 1;
-    const from = new Date(Date.UTC(y, mo, 1));
-    const to   = new Date(Date.UTC(y, mo+1, 0));
-    return { fromISO: from.toISOString().slice(0,10), toISO: to.toISOString().slice(0,10) };
-  }catch(_){ return {fromISO:null, toISO:null}; }
-}
-
-async function refreshPlanFromServer(){
-  try{
-    const dateEl = document.getElementById('date');
-    const iso = String(dateEl?.value || todayISO()).slice(0,10);
-    const r = monthRangeISOFromDate(iso);
-    if (r.fromISO && r.toISO) await pullPlanRange(r.fromISO, r.toISO);
-
-    try{ updatePlanHint(); }catch(_){}
-    try{ renderCalPreview?.(); }catch(_){}
-  }catch(_){}
-}
-
-// бинд один раз
-(function bindPlanPullOnMain(){
-  try{
-    if (window.__rtPlanPullMainBound) return;
-    window.__rtPlanPullMainBound = true;
-
-    if (document.readyState === 'loading'){
-      document.addEventListener('DOMContentLoaded', ()=>{ refreshPlanFromServer(); }, { once:true });
-    } else {
-      refreshPlanFromServer();
-    }
-
-    window.addEventListener('focus', ()=>{ refreshPlanFromServer(); });
-    document.addEventListener('visibilitychange', ()=>{ if(!document.hidden) refreshPlanFromServer(); });
-
-    const dateEl = document.getElementById('date');
-    if (dateEl) dateEl.addEventListener('change', ()=>{ refreshPlanFromServer(); });
-  }catch(_){}
-})();
 
 /* === Date selection + edit locks (past/future restrictions) === */
 function _isoToUTCday(iso){

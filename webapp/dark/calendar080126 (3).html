@@ -1770,77 +1770,7 @@ window.addEventListener('storage',e=>{
     return Number.isFinite(n) && n > 0 ? Math.round(n) : null;
   }
 
-    // --- Server -> local pull for planned doses (чтобы изменения врача были видны пациенту) ---
-  let __planPullPromise = null;
-  let __planPullKey = '';
-
-  async function pullPlanRange(fromISO, toISO){
-    try{
-      if (typeof api !== 'function') return;
-      fromISO = String(fromISO||'').slice(0,10);
-      toISO   = String(toISO||'').slice(0,10);
-      if(!/^\d{4}-\d{2}-\d{2}$/.test(fromISO) || !/^\d{4}-\d{2}-\d{2}$/.test(toISO)) return;
-
-      // если пациент только что правил план локально — не перетираем его сервером
-      try{
-        const ts = Number(localStorage.getItem('rt.plan.local_edit_ts')||0);
-        if (ts && (Date.now() - ts) < 8000) return;
-      }catch(_){ }
-
-
-      const key = fromISO + '|' + toISO;
-      if (__planPullPromise && __planPullKey === key) return __planPullPromise;
-      __planPullKey = key;
-
-      __planPullPromise = (async ()=>{
-        const r = await api(`/api/plan-dose/range?from=${encodeURIComponent(fromISO)}&to=${encodeURIComponent(toISO)}`);
-        if (!r.ok) return;
-        const rows = await r.json();
-
-        const plan = loadPlan();
-
-        // Сервер — источник правды внутри диапазона
-        for (const k of Object.keys(plan)){
-          if (k >= fromISO && k <= toISO) delete plan[k];
-        }
-
-        if (Array.isArray(rows)){
-          for (const row of rows){
-            const d = String(row?.date || '').slice(0,10);
-            const mg = Number(row?.planned_mg);
-            if (d && d >= fromISO && d <= toISO && Number.isFinite(mg) && mg > 0){
-              plan[d] = Math.round(mg);
-            }
-          }
-        }
-
-        savePlan(plan);
-
-    try{ localStorage.setItem('rt.plan.local_edit_ts', String(Date.now())); }catch(_){ }
-      })();
-
-      return __planPullPromise;
-    }catch(_){}
-  }
-
-  function monthRangeISO(dt){
-    try{
-      const y = dt.getFullYear(), m = dt.getMonth();
-      const from = new Date(Date.UTC(y, m, 1));
-      const to   = new Date(Date.UTC(y, m+1, 0));
-      return { fromISO: from.toISOString().slice(0,10), toISO: to.toISOString().slice(0,10) };
-    }catch(_){ return {fromISO:null, toISO:null}; }
-  }
-
-  async function renderWithPlanPull(){
-    try{
-      const r = monthRangeISO(current);
-      if (r.fromISO && r.toISO) await pullPlanRange(r.fromISO, r.toISO);
-    }catch(_){}
-    render();
-  }
-
-// --- Server sync for planned doses (чтобы врач видел план по дням) ---
+  // --- Server sync for planned doses (чтобы врач видел план по дням) ---
   const __planSyncMap = new Map();
   let __planSyncTimer = null;
 
@@ -2772,15 +2702,15 @@ if (btn){
   }
 };
 
-  document.getElementById('prev').onclick = ()=>{ current.setMonth(current.getMonth()-1); renderWithPlanPull(); };
-  document.getElementById('next').onclick = ()=>{ current.setMonth(current.getMonth()+1); renderWithPlanPull(); };
+  document.getElementById('prev').onclick = ()=>{ current.setMonth(current.getMonth()-1); render(); };
+  document.getElementById('next').onclick = ()=>{ current.setMonth(current.getMonth()+1); render(); };
   document.getElementById('todayBtn').onclick = async ()=>{
     const now = new Date();
     const id  = iso(now);
 
     // Переключаемся на месяц «сегодня» и перерисовываем сетку
     current = new Date(now.getFullYear(), now.getMonth(), 1);
-    await renderWithPlanPull();
+    render();
 
     // Подсветить ячейку «сегодня» (selected) и прокрутить к ней
     const cur = grid.querySelector(`.day[data-date="${id}"]`);
@@ -2924,8 +2854,8 @@ window.addEventListener('keydown', (e)=>{ if(e.key === 'Escape') closeSheet(); }
 
 });
 // на всякий — обновляемся, когда пользователь вернулся на страницу
-window.addEventListener('focus', ()=>{ try{ renderWithPlanPull(); }catch(_){ render(); } });
-document.addEventListener('visibilitychange', ()=>{ if (!document.hidden) { try{ renderWithPlanPull(); }catch(_){ render(); } } });
+window.addEventListener('focus', render);
+document.addEventListener('visibilitychange', ()=>{ if (!document.hidden) render(); });
 
 /* Надёжный короткий тап на мобильных — с порогом движения и без открытия во время drag-range */
 (function(){
