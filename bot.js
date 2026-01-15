@@ -1,7 +1,7 @@
 require('dotenv').config();
 const TelegramBot = require('node-telegram-bot-api');
 
-const BOT_TOKEN = process.env.BOT_TOKEN;
+const BOT_TOKEN = String(process.env.BOT_TOKEN || '').trim();
 const WEBAPP_URL = process.env.WEBAPP_URL || '';
 if (!BOT_TOKEN) throw new Error('BOT_TOKEN is empty');
 
