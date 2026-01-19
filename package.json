@@ -11,15 +11,15 @@
     "npm": ">=9"
   },
   "packageManager": "npm@10.8.2",
-  "scripts": {
-    "start": "node server.js",
+ "scripts": {
+  "start": "node --dns-result-order=ipv4first server.js",
   "dev": "nodemon --quit server.js",
-    "audit": "npm audit",
-    "audit:prod": "npm audit --omit=dev",
-    "audit:fix": "npm audit fix --omit=dev || true",
-    "outdated": "npm outdated",
-    "postinstall": "node -e \"console.log('postinstall done')\""
-  },
+  "audit": "npm audit",
+  "audit:prod": "npm audit --omit=dev",
+  "audit:fix": "npm audit fix --omit=dev || true",
+  "outdated": "npm outdated",
+  "postinstall": "node -e \"console.log('postinstall done')\""
+},
   "dependencies": {
     "compression": "1.7.5",
     "cookie-parser": "^1.4.7",
