@@ -751,14 +751,8 @@ body.wheel-open{overflow:hidden; touch-action:none}
 
   const DEV_DEFAULT_TG = '1002';
   const qs = new URLSearchParams(location.search);
-  // DEV tg может «сломаться» (например, если в localStorage/URL попало "1005?tg=1005").
-  // Всегда нормализуем к одной строке с цифрами.
-  let devTgRaw = qs.get('tg') || localStorage.getItem('rt.dev.tg') || localStorage.getItem('rt_usr_id') || (isTgApp ? '' : DEV_DEFAULT_TG);
-  let devTg = (String(devTgRaw || '').match(/\d+/) || [''])[0];
-  try{
-    if (devTg) localStorage.setItem('rt.dev.tg', devTg);
-    else localStorage.removeItem('rt.dev.tg');
-  }catch(_){ }
+  let devTg = qs.get('tg') || localStorage.getItem('rt.dev.tg') || localStorage.getItem('rt_usr_id') || (isTgApp ? '' : DEV_DEFAULT_TG);
+  try{ if (devTg) localStorage.setItem('rt.dev.tg', devTg); }catch(_){ }
 
   function api(path, opts = {}) {
     const API_BASE = String(window.API_BASE||'').replace(/\/$/, '');
@@ -784,8 +778,7 @@ body.wheel-open{overflow:hidden; touch-action:none}
     try{
       const q = new URLSearchParams(location.search);
       const tgId = window.Telegram?.WebApp?.initDataUnsafe?.user?.id;
-      const raw = String(q.get('tg') || tgId || '');
-      return (raw.match(/\d+/) || [''])[0];
+      return String(q.get('tg') || tgId || '');
     }catch(_){ return ''; }
   }
 
@@ -1400,11 +1393,10 @@ try{
     });
   }
 
-  // ВАЖНО: нельзя диспатчить 'input' внутри обработчика 'input' — это бесконечная рекурсия.
   birthInput.addEventListener('input', ()=>{
-    updateBirthText();
-    syncBirthManual();
-  });
+  updateBirthText();
+  syncBirthManual();
+});
 
   // -------- Wheel (transform + inertia) --------
   function Wheel(root, values, labelFn, onPick){

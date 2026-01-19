@@ -2748,9 +2748,9 @@ if (btn){
 
     // 4) Серверная БД (если есть доступ: Telegram initData или dev ?tg=)
     try{
-      await api('/api/intakes', {
+      await api('/api/intakes/batch', {
         method: 'POST',
-        body: JSON.stringify({ mg, date: id })
+        body: JSON.stringify({ items: [{ date: id, mg }] })
       });
     }catch(_){ /* если 401 — ок, локально уже сохранено */ }
 

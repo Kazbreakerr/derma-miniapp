@@ -292,25 +292,6 @@
       opacity: .95;
       mix-blend-mode: screen;
     }
-
-    /* Soft inner glow behind the pie (premium, not 3D) */
-    .chart-wrap.pie::after{
-      content:"";
-      position:absolute;
-      left:50%;
-      top:48%;
-      width:min(340px, 74vw);
-      aspect-ratio: 1 / 1;
-      transform: translate(-50%, -50%);
-      background:
-        radial-gradient(circle at 34% 30%, rgba(72,231,214,.22), rgba(72,231,214,0) 60%),
-        radial-gradient(circle at 68% 72%, rgba(198,176,255,.18), rgba(198,176,255,0) 62%),
-        radial-gradient(circle at 55% 50%, rgba(127,208,255,.10), rgba(127,208,255,0) 66%);
-      filter: blur(12px);
-      opacity: .95;
-      pointer-events:none;
-      mix-blend-mode: screen;
-    }
     canvas{ display:block; width:100%; height: 250px; }
     @media (max-width:520px){
       canvas{ height: 235px; }
@@ -384,15 +365,7 @@
       box-shadow: 0 0 0 4px rgba(255,255,255,.04);
     }
     .lg-name{ font-weight:900; font-size: 13px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
-    .lg-val{
-      display:flex; align-items:baseline; justify-content:flex-end; gap:8px;
-      font-weight:950; font-size: 13px; color: rgba(236,248,255,.86);
-    }
-    .lg-val .pct{
-      font-weight: 850;
-      font-size: 12px;
-      color: rgba(236,248,255,.60);
-    }
+    .lg-val{ font-weight:950; font-size: 13px; color: rgba(236,248,255,.86); }
 
     /* Summary grid */
     .sum{
@@ -436,10 +409,9 @@
   .chart-insight{ font-size: 11px; font-weight: 750; }
 }
 
-/* Chart footer (month switch for Week view) */
+/\* Chart footer (month switch for Week view) */
 .chart-footer{
   display:none;
-  width: 100%;
   margin-top: 8px;
   padding: 2px 0 0;
   align-items:center;
@@ -1032,11 +1004,6 @@ function fmtDate(iso){
   return `${d}.${m}.${y}`;
 }
 function monthKey(iso){ return iso.slice(0,7); } // YYYY-MM
-function lastDayOfMonthISO(iso){
-  const d = parseISO(iso);
-  const last = new Date(d.getFullYear(), d.getMonth()+1, 0);
-  return toISO(last);
-}
 function monthLabel(iso){
   const d = parseISO(iso);
   return `${MONTHS[d.getMonth()]} ${d.getFullYear()}`;
@@ -1225,11 +1192,7 @@ function renderChart(series){
 
   const small = cssW < 420;
 
-  let padL = small ? 64 : 88;
-
-  // more room for plot area (esp. bars): reduce left padding for certain metrics
-  if (state.metric === 'se')   padL = small ? 48 : 64;
-  if (state.metric === 'dose') padL = small ? 58 : 76;  // меньше слева на телефонах
+  const padL = small ? 64 : 88;  // меньше слева на телефонах
   const padR = 16;
   const padT = 14;
   const padB = 44;
@@ -1611,11 +1574,6 @@ function renderPie(series){
   let filtered = items.filter(x=>x.value>0);
   if (!filtered.length) filtered = [{name:'Нет данных', value: 1}];
 
-  // sort slices + legend by descending share (looks "smarter")
-  if (!(filtered.length === 1 && filtered[0].name === 'Нет данных')){
-    filtered.sort((a,b)=> (b.value - a.value) || String(a.name).localeCompare(String(b.name),'ru'));
-  }
-
   const total = filtered.reduce((s,x)=> s + x.value, 0) || 1;
 
   // pastel palette
@@ -1631,92 +1589,107 @@ function renderPie(series){
   const cy = Math.round(h*0.48);
   const r  = Math.round(Math.min(w,h)*0.34);
 
-  // subtle shadow under the pie (very light — keep it "flat")
+  // subtle shadow under the pie
   ctx.save();
-  ctx.fillStyle = 'rgba(0,0,0,.20)';
+  ctx.fillStyle = 'rgba(0,0,0,.35)';
   ctx.beginPath();
-  ctx.ellipse(cx, cy + Math.round(r*0.30), Math.round(r*0.74), Math.round(r*0.24), 0, 0, Math.PI*2);
+  ctx.ellipse(cx, cy + Math.round(r*0.32), Math.round(r*0.78), Math.round(r*0.28), 0, 0, Math.PI*2);
   ctx.fill();
   ctx.restore();
 
-  // draw slices (almost flat, with soft separators + selection)
-  pieSectors = [];
-  let a0 = -Math.PI/2;
+  // draw slices (with depth, separators, selection)
+pieSectors = [];
+let a0 = -Math.PI/2;
+filtered.forEach((it, idx)=>{
+  const a = (it.value/total) * Math.PI*2;
+  const aMid = a0 + a/2;
 
-  filtered.forEach((it, idx)=>{
-    const a = (it.value/total) * Math.PI*2;
-    const aMid = a0 + a/2;
+  const col = palette[idx % palette.length];
 
-    const col = palette[idx % palette.length];
+  // selection "pop-out" offset
+  const sel = (state.selectedPie === idx);
+  const off = sel ? Math.round(r*0.05) : 0;
+  const ox = Math.cos(aMid) * off;
+  const oy = Math.sin(aMid) * off;
 
-    // selection "pop-out" (subtle)
-    const sel = (state.selectedPie === idx);
-    const off = sel ? Math.round(r*0.03) : 0;
-    const ox = Math.cos(aMid) * off;
-    const oy = Math.sin(aMid) * off;
+  // subtle slice shadow for depth
+  ctx.save();
+  ctx.shadowColor = 'rgba(0,0,0,.32)';
+  ctx.shadowBlur = sel ? 26 : 18;
+  ctx.shadowOffsetY = sel ? 10 : 8;
+  ctx.beginPath();
+  ctx.moveTo(cx+ox, cy+oy);
+  ctx.arc(cx+ox, cy+oy, r, a0, a0+a);
+  ctx.closePath();
+  ctx.fillStyle = col;
+  ctx.fill();
+  ctx.restore();
 
-    // fill
-    ctx.save();
-    if (sel){
-      ctx.shadowColor = 'rgba(0,0,0,.22)';
-      ctx.shadowBlur = 10;
-      ctx.shadowOffsetY = 6;
-    }
-    ctx.beginPath();
-    ctx.moveTo(cx+ox, cy+oy);
-    ctx.arc(cx+ox, cy+oy, r, a0, a0+a);
-    ctx.closePath();
-    ctx.fillStyle = col;
-    ctx.fill();
-    ctx.restore();
+  // inner highlight gradient per slice (soft texture)
+  ctx.save();
+  ctx.globalCompositeOperation = 'source-atop';
+  const sg = ctx.createRadialGradient(cx - r*0.25 + ox, cy - r*0.25 + oy, r*0.08, cx+ox, cy+oy, r*1.02);
+  sg.addColorStop(0, 'rgba(255,255,255,.22)');
+  sg.addColorStop(0.55, 'rgba(255,255,255,.06)');
+  sg.addColorStop(1, 'rgba(255,255,255,0)');
+  ctx.fillStyle = sg;
+  ctx.beginPath();
+  ctx.moveTo(cx+ox, cy+oy);
+  ctx.arc(cx+ox, cy+oy, r, a0, a0+a);
+  ctx.closePath();
+  ctx.fill();
+  ctx.restore();
 
-    // soft separators
-    ctx.save();
-    ctx.strokeStyle = sel ? 'rgba(255,255,255,.22)' : 'rgba(255,255,255,.16)';
-    ctx.lineWidth = sel ? 2.0 : 1.4;
-    ctx.beginPath();
-    ctx.moveTo(cx+ox, cy+oy);
-    ctx.arc(cx+ox, cy+oy, r, a0, a0+a);
-    ctx.closePath();
-    ctx.stroke();
-    ctx.restore();
+  // thicker soft separators
+  ctx.save();
+  ctx.strokeStyle = 'rgba(255,255,255,.16)';
+  ctx.lineWidth = sel ? 2.2 : 1.6;
+  ctx.shadowColor = 'rgba(0,0,0,.22)';
+  ctx.shadowBlur = sel ? 10 : 8;
+  ctx.beginPath();
+  ctx.moveTo(cx+ox, cy+oy);
+  ctx.arc(cx+ox, cy+oy, r, a0, a0+a);
+  ctx.closePath();
+  ctx.stroke();
+  ctx.restore();
 
-    it._color = col;
+  it._color = col;
 
-    pieSectors.push({
-      idx,
-      a0,
-      a1: a0 + a,
-      cx: cx+ox, cy: cy+oy, r,
-      name: it.name, value: it.value,
-      total,
-    });
-
-    a0 += a;
+  pieSectors.push({
+    idx,
+    a0,
+    a1: a0 + a,
+    cx: cx+ox, cy: cy+oy, r,
+    name: it.name, value: it.value,
+    total,
   });
 
-  // gentle highlight across the whole pie (very subtle)
+  a0 += a;
+});
+
+  // gentle highlight texture across whole pie
   ctx.save();
-  const hg = ctx.createRadialGradient(cx - r*0.30, cy - r*0.34, r*0.10, cx, cy, r*1.05);
-  hg.addColorStop(0, 'rgba(255,255,255,.14)');
-  hg.addColorStop(0.55, 'rgba(255,255,255,.05)');
+  ctx.globalCompositeOperation = 'source-atop';
+  const hg = ctx.createRadialGradient(cx - r*0.35, cy - r*0.35, r*0.10, cx, cy, r*1.05);
+  hg.addColorStop(0, 'rgba(255,255,255,.26)');
+  hg.addColorStop(0.55, 'rgba(255,255,255,.07)');
   hg.addColorStop(1, 'rgba(255,255,255,0)');
   ctx.fillStyle = hg;
   ctx.beginPath(); ctx.arc(cx,cy,r,0,Math.PI*2); ctx.fill();
   ctx.restore();
 
-  // soft rim (thin)
+  // soft rim
   ctx.save();
-  ctx.strokeStyle = 'rgba(255,255,255,.08)';
-  ctx.lineWidth = 2;
-  ctx.beginPath(); ctx.arc(cx,cy, r - 1, 0, Math.PI*2); ctx.stroke();
+  ctx.strokeStyle = 'rgba(255,255,255,.10)';
+  ctx.lineWidth = Math.max(2, Math.round(r*0.06));
+  ctx.beginPath(); ctx.arc(cx,cy, r - ctx.lineWidth/2, 0, Math.PI*2); ctx.stroke();
   ctx.restore();
 
   // center label removed (per UX)
-// legend
+
+  // legend
   els.legend.innerHTML = '';
   filtered.forEach(it=>{
-    const pct = total ? Math.round((it.value / total) * 100) : 0;
     const row = document.createElement('div');
     row.className = 'lg';
     row.innerHTML = `
@@ -1724,11 +1697,12 @@ function renderPie(series){
         <span class="dot" style="background:${it._color}"></span>
         <span class="lg-name">${escapeHtml(it.name)}</span>
       </div>
-      <div class="lg-val"><span class="n">${it.value}</span><span class="pct">${pct}%</span></div>
+      <div class="lg-val">${it.value}</div>
     `;
     els.legend.appendChild(row);
   });
 }
+
 /* ===================== Summary render ===================== */
 function renderSummary(series){
   const list = series.list;
@@ -1956,15 +1930,6 @@ els.pie.addEventListener('pointerdown', (e)=>{
     if (currentSeries) renderPie(currentSeries);
     return;
   }
-
-  // tap same sector again -> unselect
-  if (state.selectedPie === s.idx){
-    state.selectedPie = null;
-    hidePieTip();
-    if (currentSeries) renderPie(currentSeries);
-    return;
-  }
-
   state.selectedPie = s.idx;
   // re-render only the pie (no full rerender), then show tooltip
   if (currentSeries) renderPie(currentSeries);

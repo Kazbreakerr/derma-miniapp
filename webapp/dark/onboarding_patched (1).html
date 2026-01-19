@@ -598,8 +598,15 @@ body.wheel-open{overflow:hidden; touch-action:none}
               <div class="field">
                 <label for="alreadyMg">Уже принял(а), примерно (мг)</label>
                 <input id="alreadyMg" type="number" inputmode="numeric" placeholder="например, 2400" style="width:220px" />
-                <div class="tip">Нужно, чтобы учесть это на главной. Можно округлить.</div>
+                <div class="tip">Это общая доза за весь период до сегодняшнего дня (можно округлить).</div>
               </div>
+
+              <div class="field">
+                <label for="alreadyAvgMg">В среднем в день (мг)</label>
+                <input id="alreadyAvgMg" type="number" inputmode="numeric" placeholder="например, 20" style="width:220px" />
+                <div class="tip">Необязательно — нужно только если легче вспомнить среднюю дозу, чем суммарную.</div>
+              </div>
+            </div>
             </div>
 </div>
           </div>
@@ -751,14 +758,8 @@ body.wheel-open{overflow:hidden; touch-action:none}
 
   const DEV_DEFAULT_TG = '1002';
   const qs = new URLSearchParams(location.search);
-  // DEV tg может «сломаться» (например, если в localStorage/URL попало "1005?tg=1005").
-  // Всегда нормализуем к одной строке с цифрами.
-  let devTgRaw = qs.get('tg') || localStorage.getItem('rt.dev.tg') || localStorage.getItem('rt_usr_id') || (isTgApp ? '' : DEV_DEFAULT_TG);
-  let devTg = (String(devTgRaw || '').match(/\d+/) || [''])[0];
-  try{
-    if (devTg) localStorage.setItem('rt.dev.tg', devTg);
-    else localStorage.removeItem('rt.dev.tg');
-  }catch(_){ }
+  let devTg = qs.get('tg') || localStorage.getItem('rt.dev.tg') || localStorage.getItem('rt_usr_id') || (isTgApp ? '' : DEV_DEFAULT_TG);
+  try{ if (devTg) localStorage.setItem('rt.dev.tg', devTg); }catch(_){ }
 
   function api(path, opts = {}) {
     const API_BASE = String(window.API_BASE||'').replace(/\/$/, '');
@@ -784,8 +785,7 @@ body.wheel-open{overflow:hidden; touch-action:none}
     try{
       const q = new URLSearchParams(location.search);
       const tgId = window.Telegram?.WebApp?.initDataUnsafe?.user?.id;
-      const raw = String(q.get('tg') || tgId || '');
-      return (raw.match(/\d+/) || [''])[0];
+      return String(q.get('tg') || tgId || '');
     }catch(_){ return ''; }
   }
 
@@ -1136,7 +1136,21 @@ body.wheel-open{overflow:hidden; touch-action:none}
         if (manual) manual.classList.add('input-error');
         return { ok:false, msg:'Укажи дату начала курса — без неё календарь и расчёты не работают.' };
       }
+      if (i === 6) {
+      const alreadyOn = (alreadyBtn.getAttribute('aria-pressed')==='true');
+      if (alreadyOn) {
+        const taken = Math.max(0, Math.round(Number(document.getElementById('alreadyMg').value || 0)));
+    const avgMg = Math.max(0, Math.round(Number(document.getElementById('alreadyAvgMg')?.value || 0)));
+        const avg   = Math.max(0, Math.round(Number(document.getElementById('alreadyAvgMg')?.value || 0)));
+        if (!(taken > 0 || avg > 0)) {
+          document.getElementById('alreadyMg')?.classList.add('input-error');
+          document.getElementById('alreadyAvgMg')?.classList.add('input-error');
+          return { ok:false, msg:'Если ты уже на курсе — укажи либо суммарно сколько уже выпил(а), либо среднюю дозу в день.' };
+        }
+      }
       return { ok:true };
+    }
+    return { ok:true };
     }
     return { ok:true };
   }
@@ -1185,6 +1199,7 @@ body.wheel-open{overflow:hidden; touch-action:none}
     // already
     const alreadyOn = (alreadyBtn.getAttribute('aria-pressed')==='true');
     const taken = Math.max(0, Math.round(Number(document.getElementById('alreadyMg').value || 0)));
+    const avgMg = Math.max(0, Math.round(Number(document.getElementById('alreadyAvgMg')?.value || 0)));
 
     // reminders
     const bellOn = bell.dataset.on === '1';
@@ -1263,32 +1278,89 @@ try{
         const uid = getUid();
         if (uid && start_date) localStorage.setItem(`dermaApp:${uid}:plan_start`, start_date);
       }catch(_){ }
+      // 3) already taken prefill (раскидываем по дням с даты старта до сегодня, чтобы календарь/прогресс были заполнены)
+      if (alreadyOn && (taken > 0 || avgMg > 0)) {
+        // local ISO today
+        const today = (()=>{ const d=new Date(); d.setMinutes(d.getMinutes()-d.getTimezoneOffset()); return d.toISOString().slice(0,10); })();
+        let sISO = String(start_date || today).slice(0,10);
+        let eISO = String(today).slice(0,10);
+        if (!/^\d{4}-\d{2}-\d{2}$/.test(sISO)) sISO = eISO;
+        if (sISO > eISO) eISO = sISO;
 
-      // 3) already taken seed
-      if (alreadyOn && taken > 0) {
-        let seeded = false;
-        if (ENABLE_SEED_API) {
-          try {
-            const s = await api('/api/progress/seed', {
-              method:'POST',
-              body: JSON.stringify({ cum_mg: taken, as_of: (start_date || new Date().toISOString().slice(0,10)) })
-            });
-            seeded = s.ok;
-          } catch(_) {}
+        const toLocalISO = (dt)=>{
+          const d = new Date(dt);
+          d.setMinutes(d.getMinutes()-d.getTimezoneOffset());
+          return d.toISOString().slice(0,10);
+        };
+
+        // build inclusive date range (use noon to avoid DST edge cases)
+        const dates = [];
+        const cur = new Date(sISO + 'T12:00:00');
+        const end = new Date(eISO + 'T12:00:00');
+        while (cur <= end) {
+          dates.push(toLocalISO(cur));
+          cur.setDate(cur.getDate() + 1);
         }
-        if (!seeded && ENABLE_SEED_API) {
-          const d = start_date ? prevDay(start_date) : new Date().toISOString().slice(0,10);
-          try {
-            const r = await api('/api/intakes', { method:'POST', body: JSON.stringify({ mg: taken, date: d, note:'seed:already_taken' }) });
-            seeded = r.ok;
-          } catch(_) {}
+
+        const days = Math.max(1, dates.length);
+        let total = (taken > 0) ? taken : 0;
+        if (!(total > 0) && avgMg > 0) total = Math.round(avgMg * days);
+
+        // равномерно распределяем total по дням (квантуем по 10 мг, чтобы выглядело реалистичнее для капсул)
+        const quantum = 10;
+        let base = Math.floor(((total / days) / quantum)) * quantum;
+        if (!Number.isFinite(base) || base < 0) base = 0;
+        let rem = Math.max(0, Math.round(total - base * days));
+
+        const items = dates.map((d)=>{
+          let mg = base;
+          if (rem > 0) {
+            const add = Math.min(quantum, rem);
+            mg += add;
+            rem -= add;
+          }
+          return { date: d, mg: Math.round(mg) };
+        });
+        if (rem > 0 && items.length) {
+          items[items.length-1].mg = Math.round((items[items.length-1].mg || 0) + rem);
+          rem = 0;
         }
-        if (!seeded) {
-          const d = start_date ? prevDay(start_date) : new Date().toISOString().slice(0,10);
-          seedLocalDiary(d, taken);
-          try{ localStorage.setItem('derma_seed_cum_mg', String(taken)); }catch(_){ }
-        }
+
+        // сохраняем "среднюю" в локалку (для будущих экранов/подсказок, если понадобится)
+        try{
+          const avg = (avgMg > 0) ? avgMg : Math.round(total / days);
+          if (avg > 0) localStorage.setItem('rt_avg_mg', String(avg));
+        }catch(_){}
+
+        // 1) локальный дневник: ставим дозу по дням (не добавляем поверх уже заполненных дней)
+        try{
+          const diary = JSON.parse(localStorage.getItem('rt.diary.v1')||'{}') || {};
+          for (const it of items){
+            const d = String(it.date||'').slice(0,10);
+            const mg = Math.max(0, Math.round(Number(it.mg||0)));
+            if (!/^\d{4}-\d{2}-\d{2}$/.test(d)) continue;
+            const rec = diary[d] || {};
+            const curMg = Number(rec?.dose ?? rec?.mg ?? 0) || 0;
+            if (curMg > 0) continue; // уже есть данные — не трогаем
+            diary[d] = { ...rec, dose: mg, taken: (mg > 0), miss: false, seeded_from_onboarding: true };
+          }
+          localStorage.setItem('rt.diary.v1', JSON.stringify(diary));
+          localStorage.setItem('rt.diary.bump', Date.now().toString());
+          localStorage.removeItem('rt.diary.bump');
+        }catch(_){ }
+
+        // 2) сервер: batch-апдейт дневных доз (last-write-wins). Если нет авторизации/сети — ок, локалка всё равно покажет прогресс.
+        try{
+          await api('/api/intakes/batch', {
+            method:'POST',
+            body: JSON.stringify({ items })
+          });
+        }catch(_){ }
+
+        // не используем старый seed_cum_mg, чтобы не было дублей
+        try{ localStorage.removeItem('derma_seed_cum_mg'); }catch(_){ }
       }
+
 
       // 4) reminders
       await syncReminder(bellOn, time);
@@ -1400,9 +1472,8 @@ try{
     });
   }
 
-  // ВАЖНО: нельзя диспатчить 'input' внутри обработчика 'input' — это бесконечная рекурсия.
   birthInput.addEventListener('input', ()=>{
-    updateBirthText();
+    birthInput.dispatchEvent(new Event('input'));
     syncBirthManual();
   });
 

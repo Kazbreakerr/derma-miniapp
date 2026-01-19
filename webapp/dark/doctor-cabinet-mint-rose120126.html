@@ -946,502 +946,6 @@
   }
 </style>
 
-
-<style id="doc-profile-polish">
-/* =============================
-   PROFILE POLISH (Doctor)
-   ============================= */
-
-/* 1) Тумблер (если ui-tokens его не задаёт) */
-.switch{
-  width:52px;height:30px;border-radius:999px;
-  background:#E5E7EB;border:1px solid var(--stroke);
-  position:relative;cursor:pointer;flex:0 0 auto;
-  -webkit-tap-highlight-color: transparent;
-}
-.switch .knob{
-  position:absolute;top:3px;left:3px;
-  width:24px;height:24px;border-radius:50%;
-  background:#fff;
-  box-shadow:0 6px 14px rgba(15,23,42,.18);
-  transition:transform .2s ease, background .2s ease;
-}
-.switch.on{
-  background:rgba(42,209,232,.20);
-  border-color:rgba(42,209,232,.60);
-}
-.switch.on .knob{ transform:translateX(22px); }
-
-/* 2) Профиль: чтобы ФИО/мета не «обрезались» и нормально переносились */
-#sec-profile .profile{ align-items:flex-start; }
-#sec-profile .profile > div{ min-width:0; }
-#sec-profile #profName{ line-height:1.15; }
-#sec-profile #profMeta{
-  white-space:normal;
-  overflow-wrap:anywhere;
-  max-width: 100%;
-}
-
-/* 3) Ряд с кодом: кнопки компактнее и всегда влезают */
-#sec-profile .code-pill{ max-width:100%; }
-#sec-profile .row{ flex-wrap:wrap; }
-#sec-profile .btn-ghost{ border-radius:999px; }
-
-/* 4) CTA-блоки: визуально ближе к остальному UI (менее «крикливо») */
-#sec-profile .welcome-panel{
-  background: var(--grad2);
-  border: 1px solid var(--stroke);
-  box-shadow: 0 12px 28px rgba(15,23,42,.10);
-}
-#sec-profile .welcome-panel .neon-btn{
-  background: var(--grad1);
-  border: 0;
-  box-shadow: none;
-  color:#0b1511;
-}
-#sec-profile .welcome-panel .neon-sub{ color: rgba(11,21,17,.72); opacity: 1; }
-#sec-profile .welcome-panel .help{ color: var(--muted); }
-
-/* 5) Опасное действие: отделяем визуально */
-#sec-profile .reset-panel{
-  border-color: rgba(239,68,68,.28);
-}
-#sec-profile .reset-panel .chips .chip{
-  background: rgba(255,255,255,.70);
-}
-
-/* 6) Мобила: кнопки «Скопировать/QR/Поделиться» не распухают */
-@media (max-width:420px){
-  #sec-profile #copyCode,
-  #sec-profile #qrCode,
-  #sec-profile #shareCode{
-    padding:9px 10px;
-    font-size:13px;
-  }
-}
-
-/* =============================
-   UX requested tweaks (Profile)
-   ============================= */
-
-/* Clickable stats tile: "Всего пациентов" */
-#sec-profile .stat-tile{ position:relative; }
-#sec-profile .stat-tile--click{
-  cursor:pointer;
-  background: var(--grad2);
-  border-color: rgba(42,209,232,.18);
-}
-#sec-profile .stat-tile--click::after{
-  content:"›";
-  position:absolute;
-  top:12px; right:12px;
-  font-weight:900;
-  color: rgba(15,23,42,.35);
-}
-#sec-profile .stat-tile--click:hover{
-  border-color: rgba(42,209,232,.38);
-  box-shadow: 0 14px 28px rgba(15,23,42,.10);
-}
-#sec-profile .stat-tile--click:active{ transform: translateY(1px); }
-
-/* Hold reset: darken + blur the screen */
-#resetHoldOverlay{
-  position:fixed; inset:0;
-  background: rgba(2,6,23,.26);
-  backdrop-filter: blur(6px);
-  -webkit-backdrop-filter: blur(6px);
-  opacity:0;
-  pointer-events:none;
-  transition: opacity .16s ease;
-  z-index:900;
-}
-body.reset-hold #resetHoldOverlay{ opacity:1; }
-
-/* Hold reset: replace text with a clean icon while holding */
-#doctorHoldReset{ display:grid; place-items:center; text-align:center; }
-#doctorHoldReset .label, #doctorHoldReset .reset-icon{ position:relative; z-index:2; }
-#doctorHoldReset .label{ line-height:1.05; transition: opacity .12s ease; }
-
-/* centered icon container */
-#doctorHoldReset .reset-icon{
-  display:none;
-  position:absolute;
-  inset:0;
-  align-items:center;
-  justify-content:center;
-}
-
-/* the "chip" matches your square reset icon style */
-#doctorHoldReset .reset-icon__chip{
-  width:40px;
-  height:40px;
-  border-radius:14px;
-  display:flex;
-  align-items:center;
-  justify-content:center;
-  border:1px solid rgba(0,0,0,.08);
-  background:
-    radial-gradient(120% 120% at 20% 10%, rgba(255,255,255,.95), rgba(255,255,255,.55) 55%, rgba(255,255,255,.35) 100%),
-    linear-gradient(135deg, rgba(141,255,225,.20), rgba(245,176,255,.18));
-  box-shadow:
-    0 12px 30px rgba(2,6,23,.12),
-    inset 0 1px 0 rgba(255,255,255,.65);
-  color: var(--text);
-}
-#doctorHoldReset .reset-icon__chip svg{
-  width:20px; height:20px;
-  display:block;
-  stroke: currentColor;
-  stroke-width:2.2;
-  fill: none;
-  stroke-linecap: round;
-  stroke-linejoin: round;
-  opacity:.95;
-}
-
-@keyframes resetSpin { to { transform: rotate(360deg); } }
-
-#doctorHoldReset.holding{ position:relative; z-index:1001; }
-#doctorHoldReset.holding .label{ opacity:0; }
-#doctorHoldReset.holding .reset-icon{ display:flex; }
-#doctorHoldReset.holding .reset-icon__chip svg{ animation: resetSpin .95s linear infinite; }
-
-</style>
-
-<style id="reset-pro-css">
-/* =============================
-   Reset block — pro UI (Profile)
-   ============================= */
-#sec-profile .reset-pro{
-  padding:14px 14px;
-  border-radius:16px;
-  border:1px solid rgba(239,68,68,.18);
-  background:
-    radial-gradient(120% 140% at 0% 0%, rgba(239,68,68,.10), rgba(239,68,68,0) 55%),
-    linear-gradient(180deg, rgba(255,255,255,.92), rgba(255,255,255,.86));
-  box-shadow: 0 14px 30px rgba(15,23,42,.10);
-}
-
-#sec-profile .reset-pro__head{
-  display:flex;
-  gap:10px;
-  align-items:flex-start;
-  margin-bottom:12px;
-}
-
-#sec-profile .reset-pro__icon{
-  width:38px;height:38px;border-radius:14px;
-  display:grid;place-items:center;
-  font-weight:900;
-  color:#2b1212;
-  background: linear-gradient(135deg, rgba(255,215,200,.95), rgba(184,243,228,.65));
-  border:1px solid rgba(15,23,42,.08);
-  box-shadow: 0 10px 22px rgba(15,23,42,.10), inset 0 1px 0 rgba(255,255,255,.75);
-  flex:0 0 auto;
-}
-
-#sec-profile .reset-pro__title{
-  margin:0;
-  font-weight:900;
-  font-size:16px;
-  line-height:1.2;
-  letter-spacing:.2px;
-}
-
-#sec-profile .reset-pro__desc{
-  margin:4px 0 0 0;
-  color:var(--muted);
-  font-size:12.5px;
-  line-height:1.35;
-}
-
-#sec-profile .reset-pro__impact{
-  display:grid;
-  grid-template-columns: 1fr 1fr;
-  gap:8px;
-  margin:0 0 12px 0;
-}
-
-#sec-profile .reset-pro__impactItem{
-  display:flex;
-  align-items:center;
-  gap:8px;
-  padding:10px 10px;
-  border-radius:14px;
-  border:1px solid rgba(15,23,42,.08);
-  background: rgba(242,244,247,.70);
-  min-width:0;
-}
-
-#sec-profile .reset-pro__impactItem.is-del{
-  border-color: rgba(239,68,68,.22);
-  background: rgba(239,68,68,.06);
-}
-#sec-profile .reset-pro__impactItem.is-keep{
-  border-color: rgba(34,197,94,.20);
-  background: rgba(34,197,94,.06);
-}
-
-#sec-profile .reset-pro__dot{
-  width:10px;height:10px;border-radius:999px;
-  box-shadow: 0 0 10px currentColor;
-  flex:0 0 10px;
-}
-#sec-profile .reset-pro__impactItem.is-del .reset-pro__dot{ background:#ef4444; color:#ef4444; }
-#sec-profile .reset-pro__impactItem.is-keep .reset-pro__dot{ background:#22c55e; color:#22c55e; }
-
-#sec-profile .reset-pro__impactTop{
-  font-weight:900;
-  font-size:12px;
-  line-height:1.1;
-  color:var(--text);
-}
-#sec-profile .reset-pro__impactBottom{
-  font-size:12px;
-  line-height:1.2;
-  color:var(--muted);
-  white-space:nowrap;
-  overflow:hidden;
-  text-overflow:ellipsis;
-}
-
-#sec-profile .reset-pro__cta{
-  display:grid;
-  gap:8px;
-}
-
-#sec-profile .reset-pro__btn{
-  width:100%;
-  min-height:54px !important;
-  border-radius:16px !important;
-
-  background: linear-gradient(180deg, rgba(79,18,24,.96), rgba(43,18,18,.96));
-  border: 1.5px solid rgba(239,68,68,.50) !important;
-  box-shadow:
-    0 14px 28px rgba(239,68,68,.18),
-    0 2px 0 rgba(0,0,0,.22),
-    inset 0 1px 0 rgba(255,255,255,.10);
-  position:relative;
-  overflow:hidden;
-}
-
-#sec-profile .reset-pro__btn:hover{
-  transform: translateY(-1px);
-  box-shadow:
-    0 16px 34px rgba(239,68,68,.20),
-    0 2px 0 rgba(0,0,0,.22),
-    inset 0 1px 0 rgba(255,255,255,.14);
-}
-#sec-profile .reset-pro__btn:active{
-  transform: translateY(0);
-}
-
-#sec-profile .reset-pro__label{
-  display:grid;
-  gap:2px;
-  line-height:1.05;
-  text-align:center;
-}
-
-#sec-profile .reset-pro__label .t1{ font-size:16px; }
-#sec-profile .reset-pro__label .t2{ font-size:14px; opacity:.92; }
-
-#sec-profile #doctorHoldReset .holdbar{
-  opacity:.85;
-  background: linear-gradient(90deg, rgba(239,68,68,.34), rgba(255,215,200,.22), rgba(184,243,228,.20));
-}
-
-#sec-profile #doctorHoldReset.holding{
-  filter: saturate(1.05);
-}
-
-#sec-profile #doctorHoldReset.holding::after{
-  content:"";
-  position:absolute;
-  inset:-10px;
-  border-radius:16px;
-  pointer-events:none;
-  box-shadow: 0 0 28px rgba(239,68,68,.26);
-}
-
-#sec-profile .reset-pro__hint{
-  font-size:12.5px;
-  color:var(--muted);
-}
-
-/* Mobile: avoid two-line overflow */
-@media (max-width: 420px){
-  #sec-profile .reset-pro__impact{ grid-template-columns:1fr; }
-  #sec-profile .reset-pro__btn{ min-height:52px !important; }
-}
-</style>
-
-
-<style id="reset-pro-responsive-fix">
-/* === FIX: on narrow screens the reset button must not be clipped === */
-@media (max-width: 520px){
-  /* Stack the two CTA cards and let them grow naturally */
-  #sec-profile .cta-split--doc{
-    grid-template-columns: 1fr !important;
-  }
-  #sec-profile .cta-split--doc > .card{
-    min-height: unset !important;
-    height: auto !important;
-    overflow: visible !important;
-  }
-}
-</style>
-
-
-
-<style id="profile-danger-zone-v7">
-/* =============================
-   Profile: remove "quick settings" + cohesive danger zone
-   ============================= */
-
-#sec-profile .profile-actions{
-  margin-top:12px;
-  display:grid;
-  gap:12px;
-}
-
-/* On wide screens these two cards can sit side-by-side */
-@media (min-width: 860px){
-  #sec-profile .profile-actions{ grid-template-columns: 1fr 1fr; }
-}
-
-/* Reset card: same surface as the rest, soft red accent */
-#sec-profile .dz-card{
-  border:1px solid rgba(239,68,68,.16);
-  background: var(--card);
-  box-shadow: 0 12px 28px rgba(15,23,42,.10);
-}
-
-/* Header */
-#sec-profile .dz-head{ display:flex; gap:12px; align-items:flex-start; }
-#sec-profile .dz-icon{
-  width:40px; height:40px; flex:0 0 40px;
-  border-radius:14px;
-  border:1px solid var(--stroke);
-  background: var(--grad2);
-  display:grid; place-items:center;
-  box-shadow: 0 10px 22px rgba(15,23,42,.08), inset 0 1px 0 rgba(255,255,255,.65);
-  color: rgba(15,23,42,.85);
-}
-#sec-profile .dz-icon svg{ width:20px; height:20px; display:block; }
-
-#sec-profile .dz-title{ margin:0; font-size:16px; font-weight:800; line-height:1.2; }
-#sec-profile .dz-desc{ margin:3px 0 0; font-size:13px; color:var(--muted); line-height:1.35; }
-
-/* Chips: "Удалим / Останется" */
-#sec-profile .dz-chips{ display:flex; gap:8px; flex-wrap:wrap; margin-top:12px; }
-#sec-profile .dz-chip{
-  display:inline-flex; align-items:center; gap:8px;
-  padding:8px 10px;
-  border-radius:999px;
-  border:1px solid var(--stroke);
-  background:#F2F4F7;
-  font-size:12.5px;
-  color:var(--text);
-}
-#sec-profile .dz-chip .dot{
-  width:8px; height:8px; border-radius:50%;
-  box-shadow:0 0 10px currentColor;
-}
-#sec-profile .dz-chip--del{
-  border-color: rgba(239,68,68,.20);
-  background: rgba(239,68,68,.06);
-  color: #B42318;
-}
-#sec-profile .dz-chip--del .dot{ background:#EF4444; }
-#sec-profile .dz-chip--keep{
-  border-color: rgba(34,197,94,.20);
-  background: rgba(34,197,94,.06);
-  color: #067647;
-}
-#sec-profile .dz-chip--keep .dot{ background:#22C55E; }
-
-/* Actions */
-#sec-profile .dz-actions{
-  margin-top:12px;
-  display:flex;
-  gap:12px;
-  align-items:center;
-  flex-wrap:wrap;
-}
-#sec-profile .dz-hint{
-  margin:0;
-  font-size:12.5px;
-  color:var(--muted);
-}
-
-/* Hold button — softer & in palette */
-#sec-profile #doctorHoldReset{
-  min-height:46px;
-  border-radius:14px;
-  padding:0 14px;
-  position:relative;
-  overflow:hidden;
-  display:inline-flex;
-  align-items:center;
-  justify-content:center;
-  gap:10px;
-  white-space:nowrap;
-}
-#sec-profile #doctorHoldReset.btn-danger{
-  background: linear-gradient(135deg, rgba(255,215,200,.80), rgba(230,214,255,.62));
-  border:1px solid rgba(239,68,68,.28);
-  color:#0f172a;
-  box-shadow: 0 10px 22px rgba(239,68,68,.10), 0 12px 28px rgba(15,23,42,.08);
-}
-#sec-profile #doctorHoldReset.btn-danger:hover{
-  border-color: rgba(239,68,68,.40);
-}
-#sec-profile #doctorHoldReset .label{
-  display:flex;
-  flex-direction:column;
-  line-height:1.05;
-}
-#sec-profile #doctorHoldReset .label .t1{ font-weight:900; font-size:14px; }
-#sec-profile #doctorHoldReset .label .t2{ font-weight:800; font-size:13px; opacity:.90; }
-
-/* keep your progress bar + glow */
-#sec-profile #doctorHoldReset .holdbar{
-  opacity:.90;
-  background: linear-gradient(90deg, rgba(239,68,68,.24), rgba(255,215,200,.18), rgba(184,243,228,.16));
-}
-#sec-profile #doctorHoldReset.holding::after{
-  content:"";
-  position:absolute;
-  inset:-10px;
-  border-radius:16px;
-  pointer-events:none;
-  box-shadow: 0 0 26px rgba(239,68,68,.18);
-}
-
-/* Role card: same visual language */
-#sec-profile .role-card{
-  background: var(--grad2);
-  border:1px solid var(--stroke);
-  box-shadow: 0 12px 28px rgba(15,23,42,.10);
-}
-#sec-profile .role-card .neon-btn{
-  background: var(--grad1);
-  border:0;
-  box-shadow:none;
-  color:#0b1511;
-}
-#sec-profile .role-card .neon-sub{ color: rgba(11,21,17,.72); opacity:1; }
-#sec-profile .role-card .help{ color: var(--muted); margin-top:8px; }
-
-/* Mobile: button full-width, hint below */
-@media (max-width: 520px){
-  #sec-profile #doctorHoldReset{ width:100%; }
-  #sec-profile .dz-actions{ align-items:stretch; }
-  #sec-profile .dz-hint{ width:100%; }
-}
-</style>
-
 </head>
 <body>
  <script>
@@ -1582,7 +1086,7 @@ body.reset-hold #resetHoldOverlay{ opacity:1; }
                 <button class="btn-ghost" id="copyCode">Скопировать</button>
                 <button class="btn-ghost" id="qrCode">QR</button>
                 
-                </div>
+              </div>
             </div>
           </div>
         </div>
@@ -1590,53 +1094,35 @@ body.reset-hold #resetHoldOverlay{ opacity:1; }
         <div class="card" style="margin-top:12px">
           <div style="font-weight:700;margin-bottom:8px">Статистика</div>
           <div class="list" style="grid-template-columns:repeat(4,1fr)">
-            <div class="card stat-tile stat-tile--click" id="stTotalTile" role="button" tabindex="0" style="padding:12px"><div>Всего пациентов</div><div id="stTotal" style="font-size:22px;font-weight:800;margin-top:6px">0</div></div>
+            <div class="card" style="padding:12px"><div>Всего пациентов</div><div id="stTotal" style="font-size:22px;font-weight:800;margin-top:6px">0</div></div>
             <div class="card" style="padding:12px"><div>На курсе</div><div id="stOn" style="font-size:22px;font-weight:800;margin-top:6px">0</div></div>
             <div class="card" style="padding:12px"><div>Просрочены анализы</div><div id="stRed" style="font-size:22px;font-weight:800;margin-top:6px">0</div></div>
-            <div class="card" style="padding:12px"><div>Завершили курс</div><div id="stNeeds" style="font-size:22px;font-weight:800;margin-top:6px">0</div></div>
+            <div class="card" style="padding:12px"><div>Нужен ответ</div><div id="stNeeds" style="font-size:22px;font-weight:800;margin-top:6px">0</div></div>
           </div>
         </div>
-        <div class="profile-actions">
-  <section class="card dz-card" aria-label="Сбросить роль врача">
-    <div class="dz-head">
-      <div class="dz-icon" aria-hidden="true">
-        <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false">
-          <path d="M21 12a9 9 0 1 1-2.64-6.36" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/>
-          <path d="M21 3v6h-6" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/>
-        </svg>
-      </div>
-      <div class="dz-headtext">
-        <h3 class="dz-title">Сбросить роль врача</h3>
-        <p class="dz-desc">Удалим только данные врача на этом устройстве. Пациенты и данные на сервере не затрагиваем.</p>
-      </div>
-    </div>
+        <div class="cta-split cta-split--doc">
+  <!-- ЛЕВАЯ половина -->
+ <section class="card reset-panel">
+  <h3 class="reset-title">Сбросить роль врача</h3>
+  <p class="muted">Удалим только данные врача на этом устройстве.</p>
 
-    <div class="dz-chips" aria-label="Что изменится">
-      <span class="dz-chip dz-chip--del"><span class="dot" aria-hidden="true"></span><b>Удалим:</b>&nbsp;Профиль и настройки</span>
-      <span class="dz-chip dz-chip--keep"><span class="dot" aria-hidden="true"></span><b>Останется:</b>&nbsp;Пациенты и заявки</span>
-    </div>
+  <div class="chips">
+    <span class="chip bad"><i></i>Профиль и настройки</span>
+    <span class="chip good"><i></i>Пациенты останутся</span>
+  </div>
 
-    <div class="dz-actions">
-      <button class="btn btn-danger holdable" id="doctorHoldReset" data-hold-ms="2000" type="button">
-        <span class="label">
-          <span class="t1">Обнуление</span>
-          <span class="t2">данных</span>
-        </span>
-        <span class="reset-icon" aria-hidden="true">
-          <span class="reset-icon__chip">
-            <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false">
-              <path d="M21 12a9 9 0 1 1-2.64-6.36" />
-              <path d="M21 3v6h-6" />
-            </svg>
-          </span>
-        </span>
-        <span class="holdbar" aria-hidden="true"></span>
-      </button>
-      <p class="dz-hint">Зажмите 2 секунды, чтобы подтвердить</p>
-    </div>
-  </section>
+  <div class="action-row">
+    <button class="btn btn-reset holdable" id="doctorHoldReset" data-hold-ms="2000">
+      <span class="label">Обнуление</span>
+      <span class="holdbar" aria-hidden="true"></span>
+    </button>
+    <span class="hold-hint">зажмите 2 секунды</span>
+  </div>
+</section>
 
-  <section class="card role-card">
+
+  <!-- ПРАВАЯ половина -->
+  <section class="card welcome-panel">
     <a class="neon-btn" href="welcome-rt.html" data-vt-link title="Вернуться на приветственную страницу выбора роли">
       <span class="neon-title">К выбору роли&nbsp;›</span>
       <span class="neon-sub">перейти на приветственную</span>
@@ -1650,8 +1136,6 @@ body.reset-hold #resetHoldOverlay{ opacity:1; }
   </div>
 
   
-  <div id="resetHoldOverlay" aria-hidden="true"></div>
-
   <!-- Модал QR -->
   <div id="qrModal" style="position:fixed;inset:0;display:none;align-items:center;justify-content:center;background:rgba(0,0,0,.45);z-index:60">
     <div class="card" style="width:min(420px,96vw)">
@@ -1731,7 +1215,64 @@ function setSmallAvatar(url, init){
     box.innerHTML = (init || 'JD');
   }
 }    function setBigAvatar(url, init){ var img=q('#bigAvaImg'), txt=q('#bigAvaTxt'); if(!img||!txt) return; if(url){ img.referrerPolicy="no-referrer"; img.src=url; img.style.display='block'; txt.style.display='none'; } else { img.style.display='none'; txt.textContent=init||'JD'; txt.style.display='block'; } }
-    function setAvatarUrl(url){ if(!url) return; try{ sessionStorage.setItem('doctorAvatarUrl', url);}catch(e){} applyAvatar(); }
+async function syncDoctorProfileToServer(patch){
+  try{
+    patch = patch || {};
+    var prof = storage.get('doctorProfile', {}) || {};
+
+    // не затираем сервер значениями-заглушками
+    function norm(v, placeholders){
+      if (v == null) return null;
+      var s = String(v).trim();
+      if (!s) return null;
+      if (placeholders && placeholders.indexOf(s) !== -1) return null;
+      return s;
+    }
+
+    var payload = {
+      name:       norm(prof.name, ['ФИО врача','Врач']),
+      specialty:  norm(prof.specialty, ['Специализация']),
+      clinic:     norm(prof.clinic, ['Клиника']),
+      city:       norm(prof.city, ['Город']),
+      tg:         norm(prof.tg || prof.tg_handle, []),
+      contact:    norm(prof.contact || prof.contact_text, []),
+      avatar_url: null,
+    };
+
+    var av = patch.avatar_url || (sessionStorage.getItem('doctorAvatarUrl') || localStorage.getItem('doctorAvatarUrl') || null);
+    if (av && String(av).trim()) payload.avatar_url = String(av).trim();
+
+    Object.keys(patch).forEach(function(k){
+      if (k in payload) payload[k] = patch[k];
+    });
+
+    var hasAny = Object.keys(payload).some(function(k){ return payload[k] != null; });
+    if(!hasAny) return;
+
+    var r = await api('/api/doctor/profile', { method:'POST', body: payload });
+    if(!r || !r.ok) return;
+
+    var j = await r.json().catch(function(){ return null; });
+    if (j && j.profile){
+      try{ sessionStorage.setItem('doctorProfile', JSON.stringify(j.profile)); }catch(_){}
+      if (j.profile.avatar_url){
+        try{ sessionStorage.setItem('doctorAvatarUrl', j.profile.avatar_url); }catch(_){}
+        try{ localStorage.setItem('doctorAvatarUrl', j.profile.avatar_url); }catch(_){}
+      }
+    }
+  }catch(e){
+    console.warn('syncDoctorProfileToServer failed', e);
+  }
+}
+
+function setAvatarUrl(url){
+  if(!url) return;
+  try{ sessionStorage.setItem('doctorAvatarUrl', url);}catch(e){}
+  try{ localStorage.setItem('doctorAvatarUrl', url);}catch(e){}
+  applyAvatar();
+  syncDoctorProfileToServer({ avatar_url: url });
+}
+
     function tryTGAvatar(){
       try{
         if(!window.Telegram || !window.Telegram.WebApp) return false;
@@ -2010,13 +1551,8 @@ function updateRequestsTips(){
   var hint = q('#autoAcceptHint');
   if (hint) hint.style.display = settings.autoAccept ? 'block' : 'none';
 
-  // синхронизируем оба тумблера (во вкладке "Заявки" и в "Профиле")
-  ['#autoSwitch','#autoSwitchProfile'].forEach(function(sel){
-    var sw = q(sel);
-    if (!sw) return;
-    sw.classList.toggle('on', !!settings.autoAccept);
-    sw.setAttribute('aria-checked', settings.autoAccept ? 'true' : 'false');
-  });
+  var sw = q('#autoSwitch');
+  if (sw) sw.classList.toggle('on', !!settings.autoAccept);
 }
 
 async function setAutoAccept(val){
@@ -2045,24 +1581,11 @@ async function setAutoAccept(val){
   }
 }
 
-function bindAutoSwitch(sel){
-  var sw = q(sel);
-  if (!sw) return;
-  function toggle(){
-    var st = storage.get('doctorSettings',{autoAccept:false});
-    setAutoAccept(!st.autoAccept);
-  }
-  sw.addEventListener('click', function(){ toggle(); });
-  sw.addEventListener('keydown', function(e){
-    var k = e.key || e.code;
-    if (k === 'Enter' || k === ' ' || k === 'Spacebar'){
-      e.preventDefault();
-      toggle();
-    }
-  });
-}
-bindAutoSwitch('#autoSwitch');
-bindAutoSwitch('#autoSwitchProfile');
+var sw = q('#autoSwitch');
+if (sw) sw.addEventListener('click', function(){
+  var st = storage.get('doctorSettings',{autoAccept:false});
+  setAutoAccept(!st.autoAccept);
+});
 
 
     async function loadRequests(){
@@ -2133,13 +1656,7 @@ bindAutoSwitch('#autoSwitchProfile');
 
     function renderProfile(){
       var settings=storage.get('doctorSettings',{autoAccept:false});
-      ['#autoSwitch','#autoSwitchProfile'].forEach(function(sel){
-        var autos=q(sel);
-        if(autos){
-          autos.classList.toggle('on', !!settings.autoAccept);
-          autos.setAttribute('aria-checked', settings.autoAccept ? 'true' : 'false');
-        }
-      });
+      var autos=q('#autoSwitch'); if(autos) autos.classList.toggle('on', !!settings.autoAccept);
       var totals={
         total:state.patients.length,
         on:state.patients.filter(function(p){return p.course&&p.course.onCourse;}).length,
@@ -2148,29 +1665,6 @@ bindAutoSwitch('#autoSwitchProfile');
       };
       var t=q('#stTotal'), o=q('#stOn'), r=q('#stRed'), n=q('#stNeeds');
       if(t) t.textContent=totals.total; if(o) o.textContent=totals.on; if(r) r.textContent=totals.red; if(n) n.textContent=totals.needs;
-    }
-
-    // Быстрая навигация из статистики
-    function bindProfileQuickNav(){
-      var tile = document.getElementById('stTotalTile');
-      if (!tile) return;
-
-      function goPatients(){
-        try{ location.hash = '#/doctor/patients'; }catch(_){}
-        try{ setTab('patients'); }catch(_){}
-        try{ renderAll(); }catch(_){}
-        try{ window.scrollTo({ top: 0, behavior: 'smooth' }); }
-        catch(_e){ try{ window.scrollTo(0,0); }catch(__){} }
-      }
-
-      tile.addEventListener('click', function(e){ e.preventDefault(); goPatients(); });
-      tile.addEventListener('keydown', function(e){
-        var k = e.key || e.code;
-        if (k === 'Enter' || k === ' ' || k === 'Spacebar'){
-          e.preventDefault();
-          goPatients();
-        }
-      });
     }
 
     // Поиск / сортировка
@@ -2214,8 +1708,9 @@ bindAutoSwitch('#autoSwitchProfile');
       input.addEventListener('change', function(e){
         var f = e.target.files && e.target.files[0]; if (!f) return;
         var r = new FileReader();
-        r.onload = function(){ try{ sessionStorage.setItem('doctorAvatarUrl', r.result);}catch(_){}
-          applyAvatar(); };
+        r.onload = function(){
+  setAvatarUrl(r.result);
+};
         r.readAsDataURL(f);
       });
     })();
@@ -2268,7 +1763,6 @@ if (j && j.profile){
     async function init(){
       await hydrateCodeFromServer();
       initHeader();
-      bindProfileQuickNav();
 
       var saved = (sessionStorage.getItem('doctorAvatarUrl') || localStorage.getItem('doctorAvatarUrl'));
       if(!saved){
@@ -2279,7 +1773,7 @@ if (j && j.profile){
         }
       }
       applyAvatar();
-
+      syncDoctorProfileToServer();
       var h2=(location.hash||'').replace('#/doctor/',''); setTab(h2||'patients');
       await Promise.allSettled([ loadRequests(), loadPatients() ]);
 renderAll();
@@ -2296,24 +1790,15 @@ hideSkeletons();
   var holdMs = parseInt(btn.getAttribute('data-hold-ms'), 10) || 1200;
   var t = null, started = 0;
 
-  function setHoldUI(on){
-    try{ document.body.classList.toggle('reset-hold', !!on); }catch(_){}
-    var ov = document.getElementById('resetHoldOverlay');
-    if (ov) ov.setAttribute('aria-hidden', on ? 'false' : 'true');
-  }
-
   function startHold(){
     if (t) return;
     started = Date.now();
     btn.classList.add('holding');
-    setHoldUI(true);
     btn.style.setProperty('--hold-dur', (holdMs||2000) + 'ms');
     t = setTimeout(function(){
       t = null;
       btn.classList.remove('holding');
-    setHoldUI(false);
       btn.classList.add('success');
-      setHoldUI(false);
       doDoctorReset();               // действие
     }, holdMs);
   }
@@ -2321,7 +1806,6 @@ hideSkeletons();
     if (!t) return;
     clearTimeout(t); t = null;
     btn.classList.remove('holding');
-    setHoldUI(false);
   }
 
   btn.addEventListener('pointerdown', function(e){ e.preventDefault(); startHold(); }, { passive:false });
@@ -2846,36 +2330,42 @@ if (setPlanBtn) {
       '</div>';
     body.appendChild(secAct);
 
-    var acts = secAct.querySelectorAll('[data-act]');
-    for (var j=0;j<acts.length;j++){
-      acts[j].onclick = function(){
-        var action = this.getAttribute('data-act');
-        var msg = (action === 'send') ? (document.getElementById('pdReply').value || '').trim() : '';
-        document.dispatchEvent(new CustomEvent('patient:action', { detail:{ action:action, id:current.id, date: isoDate(current.date), message: msg } }));
-        if (action === 'send') document.getElementById('pdReply').value = '';
-        document.addEventListener('patient:action', async (e)=>{
-  try{
-    const d = e.detail || {};
-    if(d.action !== 'send') return;
+// --- Отправка комментария пациенту (привязка к открытому дню current.date) ---
+(function bindDoctorCommentSend(){
+  var input = document.getElementById('pdReply');
+  var btn   = secAct.querySelector('[data-act="send"]');
+  if(!btn) return;
 
-    const msg = String(d.message || '').trim();
+  btn.onclick = async function(){
+    var msg = (input && input.value ? String(input.value).trim() : '');
     if(!msg) return;
 
-    await api(`/api/doctor/patient/${encodeURIComponent(d.id)}/comment`, {
-      method:'POST',
-      body: JSON.stringify({
-        diary_date: d.date,
-        text: msg,
-        kind: 'comment'
-      })
-    });
-  }catch(err){
-    console.warn('comment send failed', err);
-  }
-});
-};
+    btn.disabled = true;
+    try{
+      var r = await api('/api/doctor/patient/' + encodeURIComponent(current.id) + '/comment', {
+        method:'POST',
+        body: {
+          diary_date: isoDate(current.date), // <-- день, который сейчас открыт у врача
+          text: msg,
+          kind: 'comment'
+        }
+      });
+
+      if(!r || !r.ok){
+        var t = '';
+        try{ t = await r.text(); }catch(_){}
+        throw new Error('HTTP ' + (r ? r.status : '??') + (t ? (' — ' + t) : ''));
+      }
+
+      if (input) input.value = '';
+    }catch(err){
+      console.warn('comment send failed', err);
+      alert('Не удалось отправить комментарий');
+    }finally{
+      btn.disabled = false;
     }
-  }
+  };
+})();
 
   async function loadAndRender(){
     var data = await fetchDay(current.id, current.date);
