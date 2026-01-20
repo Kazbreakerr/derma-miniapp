@@ -2415,7 +2415,6 @@ overflow: hidden;
 <script>
 /* ===== Storage ===== */
 const KEY = 'rt.diary.v2';
-const KEY_BAK = 'rt.diary.v2.bak';
 function photoKey(kind, date){ return `rt.photo.${kind}:${(date||'').slice(0,10)}`; }
 function toLocalISO(d){ const y=d.getFullYear(); const m=String(d.getMonth()+1).padStart(2,'0'); const dd=String(d.getDate()).padStart(2,'0'); return `${y}-${m}-${dd}`; }
 function todayISO(){ return toLocalISO(new Date()); }
@@ -2431,46 +2430,16 @@ function getStartISO(){
   const iso = fromQuery || todayISO();
   return /^\d{4}-\d{2}-\d{2}$/.test(iso) ? iso : todayISO();
 }
-function loadDB(){
-  const tryParse = (k) => {
-    try{
-      const raw = localStorage.getItem(k);
-      if (!raw) return null;
-      const v = JSON.parse(raw);
-      return v;
-    }catch(_){ return null; }
-  };
-
-  const v = tryParse(KEY);
-  if (v && v.version === 2) return v;
-
-  // если основной ключ битый/пустой — пробуем бэкап
-  const bak = tryParse(KEY_BAK);
-  if (bak && bak.version === 2){
-    try{ localStorage.setItem(KEY, JSON.stringify(bak)); }catch(_){}
-    return bak;
-  }
-
-  const fresh = { version: 2, baseline: null, entries: {} };
-  try{
-    const s = JSON.stringify(fresh);
-    localStorage.setItem(KEY, s);
-    localStorage.setItem(KEY_BAK, s);
-  }catch(_){}
-  return fresh;
-}
+function loadDB(){ try{const v=JSON.parse(localStorage.getItem(KEY)); if(v&&v.version===2) return v;}catch(e){} const fresh={version:2,baseline:null,entries:{}}; localStorage.setItem(KEY,JSON.stringify(fresh)); return fresh; }
 function saveDB(db){
   const payload = JSON.stringify(db);
   try{
     localStorage.setItem(KEY, payload);
-    // best-effort бэкап (на случай если другой файл случайно испортит основной ключ)
-    try{ localStorage.setItem(KEY_BAK, payload); }catch(_){}
   }catch(e){
     // пытаемся освободить место (фото лежат в отдельных ключах rt.photo.*)
     if (ensureSpace(approxBytes(payload))){
       try {
         localStorage.setItem(KEY, payload);
-        try{ localStorage.setItem(KEY_BAK, payload); }catch(_){}
       } catch(e2){
         console.warn('saveDB: quota after cleanup', e2);
         alert('Хранилище переполнено. Удалите пару старых фото в дневнике.');
@@ -2669,8 +2638,10 @@ window.addEventListener('pagehide', beaconSave);
 window.addEventListener('beforeunload', beaconSave);
 function setDate(d, dir = 0){
   // 0) Перед переключением дня досейвим текущее, иначе теряются правки
-  try { flushCurrentEntry(); } catch(_){}
-
+  // ВАЖНО: при первом init lastDateISO ещё пустой, поэтому НЕ сохраняем «пустой UI» поверх данных.
+  if (lastDateISO) {
+    try { flushCurrentEntry(); } catch(_){ }
+  }
   // 1) Переключаем дату + анимация
   datePicker.value = d;
   // синхронизация новой карусели дат (если она есть на странице)
@@ -4994,9 +4965,7 @@ const _qs = new URLSearchParams(location.search);
 const isLocal = ['localhost','127.0.0.1'].includes(location.hostname);
 
 // dev TG id: берём из ?tg, иначе (на localhost) — из localStorage или дефолт
-const qTg = _qs.get('tg') || '';
-try{ if (qTg) localStorage.setItem('rt.dev.tg', qTg); }catch(_){}
-const devTg = qTg || (localStorage.getItem('rt.dev.tg') || '');
+const devTg = _qs.get('tg') || (isLocal ? (localStorage.getItem('rt.dev.tg') || '1001') : '');
 
 // если на localhost в URL нет ?tg — допишем его один раз,
 if (isLocal && !_qs.get('tg')) {

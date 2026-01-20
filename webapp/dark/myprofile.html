@@ -520,6 +520,360 @@ body.light .kv dd .help--caps{ opacity:.9; }
     .doctor{ display:grid; grid-template-columns: 1fr auto; gap:10px; align-items:center; min-width:260px; }
     .doctor .actions{ display:flex; gap:8px }
 
+/* ======= Doctor Sheet (inner page modal) ======= */
+.docsheet-overlay{
+  position:fixed; inset:0;
+  background: rgba(7,12,20,.56);
+  backdrop-filter: blur(10px) saturate(1.12);
+  -webkit-backdrop-filter: blur(10px) saturate(1.12);
+  z-index: 220;
+}
+.docsheet{
+  position:fixed; inset:0;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  padding: 16px;
+  z-index: 221;
+}
+.docsheet[hidden], .docsheet-overlay[hidden]{ display:none !important; }
+body.docsheet-open{ overflow:hidden; }
+
+.docsheet-card{
+  width: min(430px, 100%);
+  max-height: min(90vh, 880px);
+  overflow:auto;
+  border-radius: 36px;
+  background: linear-gradient(180deg, #A7D3DF 0%, #D9F0F6 44%, #FFFFFF 100%);
+  border: 1px solid rgba(255,255,255,.72);
+  box-shadow: 0 36px 120px rgba(0,0,0,.58);
+  position: relative;
+  color: #0F2433;
+  font-family: ui-sans-serif, system-ui, -apple-system, "SF Pro Display", "Inter", "Segoe UI", Roboto, Arial, sans-serif;
+
+  transform: translateY(18px) scale(.985);
+  opacity: 0;
+  transition: transform .26s ease, opacity .26s ease;
+  scrollbar-width: thin;
+  scrollbar-color: rgba(16,50,74,.22) transparent;
+}
+.docsheet-card::-webkit-scrollbar{ width:8px; }
+.docsheet-card::-webkit-scrollbar-thumb{
+  background: rgba(16,50,74,.22);
+  border-radius: 999px;
+  border: 2px solid rgba(255,255,255,.75);
+}
+.docsheet.is-on .docsheet-card{
+  transform: translateY(0) scale(1);
+  opacity: 1;
+}
+
+.docsheet-close{
+  position:absolute;
+  top: 14px;
+  left: 14px;
+  width: 44px; height: 44px;
+  display:grid; place-items:center;
+  border-radius: 999px;
+  border: 1px solid rgba(255,255,255,.88);
+  background: rgba(255,255,255,.66);
+  color: #10324A;
+  cursor: pointer;
+  box-shadow: 0 14px 34px rgba(0,0,0,.14);
+  backdrop-filter: blur(8px) saturate(1.05);
+  -webkit-backdrop-filter: blur(8px) saturate(1.05);
+}
+.docsheet-close:hover{ transform: translateY(-1px); }
+.docsheet-close:active{ transform: translateY(0); }
+
+/* Hero (как на референсе: имя слева, фото справа большое) */
+.docsheet-hero{
+  padding: 18px 18px 10px;
+  padding-left: 78px; /* место под кнопку назад */
+  display:grid;
+  grid-template-columns: 1.2fr 1fr;
+  gap: 14px;
+  align-items:center;
+  min-height: 255px;
+}
+.docsheet-hero-left{ min-width: 0; }
+.docsheet-name{
+  font-weight: 900;
+  font-size: 28px;
+  letter-spacing: .2px;
+  line-height: 1.02;
+  margin: 0;
+  color: #10324A;
+}
+.docsheet-sub{
+  margin-top: 8px;
+  color: rgba(16,50,74,.72);
+  font-weight: 700;
+  font-size: 14px;
+  white-space: normal;
+  display: -webkit-box;
+  -webkit-line-clamp: 3;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+#dsCommentsMore{
+  width: 100%;
+  margin-top: 12px;
+  background: rgb(128, 226, 243);
+  border: 1px solid rgba(16,50,74,0.18);
+  color:#4f94c6;
+  font-weight: 800;
+}
+
+.docsheet-ava{
+  height: 230px;
+  border-radius: 28px;
+  overflow:hidden;
+  border: 1px solid rgba(255,255,255,.86);
+  background: rgba(255,255,255,.35);
+  box-shadow: 0 20px 60px rgba(15,36,51,.18);
+}
+.docsheet-ava img{ width:100%; height:100%; object-fit:cover; display:block; }
+
+/* Pills under photo */
+.docsheet-btnrow{
+  display:grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px;
+  padding: 0 18px 14px;
+}
+.ds-pill{
+  min-height: 44px;
+  border-radius: 999px;
+  display:inline-flex;
+  align-items:center;
+  justify-content:center;
+  gap: 10px;
+  padding: 0 14px;
+  font-weight: 800;
+  border: 1px solid rgba(255,255,255,.78);
+  background: rgba(255,255,255,.58);
+  color: #10324A;
+  box-shadow: 0 12px 28px rgba(0,0,0,.10);
+  cursor: pointer;
+  text-decoration: none;
+  user-select: none;
+  -webkit-tap-highlight-color: transparent;
+}
+.ds-pill svg{ width:18px; height:18px; }
+.ds-pill:active{ transform: translateY(1px); }
+.ds-pill.disabled{ opacity:.55; pointer-events:none; }
+
+.ds-pill.primary{
+  border: none;
+  background: linear-gradient(180deg, #0B4D6C 0%, #0A5B73 55%, #083E58 100%);
+  color: #fff;
+  box-shadow: 0 16px 36px rgba(8,62,88,.28);
+}
+.ds-pill.primary svg{ stroke: rgba(255,255,255,.95); }
+
+/* Make base .btn внутри карточки светлыми (не тянуть тёмные токены страницы) */
+.docsheet-card .btn{
+  border: 1px solid rgba(16,50,74,.12);
+  background: rgba(255,255,255,.62);
+  color: #10324A;
+  box-shadow: 0 12px 28px rgba(0,0,0,.09);
+}
+.docsheet-card .btn.ghost{
+  background: rgba(255,255,255,.40);
+}
+.docsheet-card .btn svg{ stroke: currentColor; }
+
+/* Details panel */
+.docsheet-details{
+  margin: 0 18px 14px;
+  padding: 12px 12px;
+  border-radius: 20px;
+  border: 1px solid rgba(255,255,255,.78);
+  background: rgba(255,255,255,.55);
+  box-shadow: 0 12px 28px rgba(0,0,0,.08);
+}
+.ds-kv{
+  display:grid;
+  grid-template-columns: 120px 1fr;
+  gap: 8px 12px;
+  align-items:center;
+  margin:0;
+}
+.ds-kv dt{ color: rgba(16,50,74,.62); font-weight: 700; }
+.ds-kv dd{ margin:0; font-weight: 800; color:#10324A; }
+
+/* Metrics row */
+.docsheet-stats{
+  display:grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px;
+  padding: 0 18px 14px;
+}
+.ds-stat{
+  border-radius: 18px;
+  border: 1px solid rgba(255,255,255,.78);
+  background: rgba(255,255,255,.58);
+  padding: 10px 12px;
+  box-shadow: 0 12px 28px rgba(0,0,0,.08);
+  display:flex; align-items:center; gap:10px;
+}
+.ds-stat-ico{
+  width: 34px; height: 34px;
+  border-radius: 12px;
+  background: rgba(16,50,74,.08);
+  display:grid; place-items:center;
+}
+.ds-stat-ico svg{ width:18px; height:18px; stroke:#10324A; }
+.ds-stat-top{ font-weight: 900; font-size: 14px; letter-spacing:.2px; color:#10324A; }
+.ds-stat-cap{ margin-top: 2px; color: rgba(16,50,74,.62); font-weight:700; font-size: 12px; }
+
+/* Primary + danger buttons */
+.docsheet-actions3{
+  display:grid;
+  grid-template-columns: 1fr;
+  gap: 10px;
+  padding: 0 18px 16px;
+}
+.docsheet-actions3 .btn{
+  border-radius: 18px;
+  min-height: 48px;
+  font-weight: 900;
+  letter-spacing: .15px;
+}
+.docsheet-actions3 .btn.primary{
+  border: none;
+  background: linear-gradient(180deg, #0B4D6C 0%, #083E58 100%);
+  color:#fff;
+}
+.docsheet-actions3 .btn.primary svg{ stroke: rgba(255,255,255,.95); }
+.docsheet-actions3 .btn.danger{
+  border: none;
+  background: linear-gradient(180deg, rgba(255,107,135,.98), rgba(255,90,99,.96));
+  color: #0F2433;
+}
+
+/* Comments block like white panel */
+.docsheet-comments{
+  margin: 0 18px 18px;
+  padding: 14px 14px 14px;
+  border-radius: 24px;
+  border: 1px solid rgba(255,255,255,.82);
+  background: rgba(255,255,255,.55);
+  box-shadow: 0 14px 34px rgba(0,0,0,.10);
+}
+.ds-h3row{
+  display:flex;
+  align-items:baseline;
+  justify-content:space-between;
+  gap:10px;
+  margin: 0 0 10px;
+}
+.ds-h3{
+  margin:0;
+  font-size: 15px;
+  font-weight: 900;
+  letter-spacing:.2px;
+  color:#10324A;
+}
+.ds-h3cap{ font-size:12.5px; color: rgba(16,50,74,.58); font-weight: 700; }
+
+.ds-comment{
+  border-radius: 18px;
+  border: 1px solid rgba(16,50,74,.10);
+  background: rgba(255,255,255,.82);
+  padding: 12px 12px;
+  margin-top: 10px;
+}
+.ds-comment-top{
+  display:flex; align-items:center; justify-content:space-between; gap:10px;
+}
+.ds-date{ color: rgba(16,50,74,.58); font-weight:700; font-size: 12.5px; white-space:nowrap; }
+.ds-chip{
+  display:inline-flex; align-items:center;
+  padding: 6px 10px;
+  border-radius: 999px;
+  border: 1px solid rgba(16,50,74,.10);
+  background: rgba(16,50,74,.04);
+  color: #10324A;
+  font-weight: 800;
+  font-size: 12px;
+}
+.ds-text{
+  margin-top: 8px;
+  font-weight: 750;
+  line-height: 1.35;
+  color:#0F2433;
+  display:-webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow:hidden;
+}
+.ds-comment-actions{
+  margin-top: 10px;
+  display:flex;
+  justify-content:flex-end;
+}
+.ds-comment-actions .btn{
+  min-height: 38px;
+  border-radius: 14px;
+  font-weight: 900;
+  padding: 0 12px;
+
+  /* делаем кнопку заметной и «читаемой» */
+  background: rgba(255,255,255,.78);
+  border: 1px solid rgba(16,50,74,.16);
+  color:#10324A;
+  box-shadow: 0 10px 22px rgba(12,28,44,.10);
+}
+body.dark .ds-comment-actions .btn{
+  background: rgba(255,255,255,.14);
+  border-color: rgba(255,255,255,.18);
+  color: rgba(255,255,255,.92);
+  box-shadow: 0 12px 26px rgba(0,0,0,.35);
+}
+.ds-comment-actions .btn{
+  background: rgb(52, 122, 163);
+  border: 1px solid rgba(16,50,74,.18);
+  color: #0F2433;
+  box-shadow: 0 10px 22px rgba(0,0,0,.08);
+}
+.ds-comment-actions .btn svg{
+  opacity: .85;
+  margin-right: 8px;
+}
+
+.ds-empty{
+  margin-top: 12px;
+  padding: 14px 12px;
+  border-radius: 18px;
+  border: 1px dashed rgba(16,50,74,.22);
+  color: rgba(16,50,74,.62);
+  font-weight: 800;
+  text-align:center;
+}
+
+/* Skeleton */
+.docsheet-skel{ padding: 6px 2px 0; }
+.skel{
+  border-radius: 14px;
+  height: 14px;
+  background: linear-gradient(90deg, rgba(16,50,74,.06), rgba(16,50,74,.12), rgba(16,50,74,.06));
+  background-size: 220% 100%;
+  animation: skelMove 1.2s ease-in-out infinite;
+  border: 1px solid rgba(16,50,74,.06);
+  margin-top: 10px;
+}
+.skel.s1{ height: 18px; width: 56%; }
+.skel.s2{ height: 14px; width: 82%; }
+.skel.s3{ height: 14px; width: 68%; }
+@keyframes skelMove{
+  0%{ background-position: 0% 0%; }
+  100%{ background-position: 220% 0%; }
+}
+/* ======= /Doctor Sheet ======= */
+
+
     .btn{ display:inline-flex; align-items:center; justify-content:center; gap:8px; min-height:44px; padding:0 14px; font-weight:600; border-radius:14px; border:1px solid var(--bd-1); background:var(--bg-2); cursor:pointer; }
     .btn svg{ width:18px; height:18px; min-width:18px; min-height:18px; }
     .btn:hover{ transform:translateY(-1px) }
@@ -1639,7 +1993,7 @@ html, body{ max-width:100vw; overflow-x:hidden; }
       <h3>Напоминания</h3>
       <div class="field">
         <div class="lhs">
-          <b>Напоминать ежедневно</b>
+          <b>Напоминать ежедневно о приёме</b>
           <span class="muted">Выберите время</span>
         </div>
         <div class="rhs">
@@ -1692,6 +2046,132 @@ html, body{ max-width:100vw; overflow-x:hidden; }
   </section>
 </div>
   </main>
+
+  <!-- Doctor sheet (inner page) -->
+  <div id="doctorSheetOverlay" class="docsheet-overlay" hidden></div>
+  <div id="doctorSheet" class="docsheet" hidden>
+    <div class="docsheet-card" role="dialog" aria-modal="true" aria-label="Карточка врача">
+      <button class="docsheet-close" id="doctorSheetClose" type="button" aria-label="Назад">
+        <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M15 18l-6-6 6-6"/>
+        </svg>
+      </button>
+
+      <div class="docsheet-hero">
+        <div class="docsheet-hero-left">
+          <div class="docsheet-name" id="dsName">—</div>
+          <div class="docsheet-sub" id="dsSubtitle">—</div>
+        </div>
+        <div class="docsheet-ava">
+          <img id="dsAvatar" alt="Фото врача">
+        </div>
+      </div>
+
+      <div class="docsheet-btnrow">
+        <button class="ds-pill" id="dsDetailsBtn" type="button">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+            <circle cx="12" cy="12" r="9"></circle>
+            <path d="M12 10v6"></path>
+            <path d="M12 7h.01"></path>
+          </svg>
+          <span class="lbl">Детали</span>
+        </button>
+
+        <a class="ds-pill primary" id="dsTelegramBtn" href="#" target="_blank" rel="noopener">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M22 2L11 13"></path>
+            <path d="M22 2l-7 20-4-9-9-4 20-7z"></path>
+          </svg>
+          <span class="lbl">Написать в Telegram</span>
+        </a>
+      </div>
+
+      <div class="docsheet-details" id="dsDetails" hidden>
+        <dl class="ds-kv">
+          <dt>Имя</dt><dd id="dsName2">—</dd>
+          <dt>Специализация</dt><dd id="dsSpec">—</dd>
+          <dt>Клиника</dt><dd id="dsClinic">—</dd>
+          <dt>Опыт</dt><dd id="dsExp">—</dd>
+          <dt>Пациентов</dt><dd id="dsPatients">—</dd>
+        </dl>
+      </div>
+
+      <div class="docsheet-stats">
+        <div class="ds-stat">
+          <div class="ds-stat-ico" aria-hidden="true">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+              <circle cx="12" cy="12" r="9"></circle>
+              <path d="M12 7v6l3 2"></path>
+            </svg>
+          </div>
+          <div>
+            <div class="ds-stat-top" id="dsExpShort">—</div>
+            <div class="ds-stat-cap">Опыт работы</div>
+          </div>
+        </div>
+
+        <div class="ds-stat">
+          <div class="ds-stat-ico" aria-hidden="true">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M17 21v-2a4 4 0 0 0-3-3.87"></path>
+              <path d="M7 21v-2a4 4 0 0 1 3-3.87"></path>
+              <circle cx="12" cy="7" r="4"></circle>
+            </svg>
+          </div>
+          <div>
+            <div class="ds-stat-top" id="dsPatientsShort">—</div>
+            <div class="ds-stat-cap">Текущих пациентов</div>
+          </div>
+        </div>
+      </div>
+
+      <div class="docsheet-actions3">
+        <button class="btn primary" id="dsSendReport" type="button">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-7"></path>
+            <path d="M7 10l5-5 5 5"></path>
+            <path d="M12 5v11"></path>
+          </svg>
+          <span class="lbl">Отправить отчёт</span>
+        </button>
+
+        <button class="btn danger" id="dsDetach" type="button">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M10 13a5 5 0 0 1 0-7l1-1a5 5 0 0 1 7 7l-1 1"></path>
+            <path d="M14 11a5 5 0 0 1 0 7l-1 1a5 5 0 0 1-7-7l1-1"></path>
+            <path d="M3 3l18 18"></path>
+          </svg>
+          <span class="lbl">Открепить врача</span>
+        </button>
+      </div>
+
+      <section class="docsheet-comments" id="dsCommentsBlock">
+        <div class="ds-h3row">
+          <h3 class="ds-h3">Комментарии врача</h3>
+          <span class="ds-h3cap" id="dsCommentsCount"></span>
+        </div>
+
+        <div id="dsCommentsList"></div>
+
+        <div class="ds-empty" id="dsCommentsEmpty" hidden>Комментариев пока нет</div>
+
+        <button class="btn ghost" id="dsCommentsMore" type="button" hidden>
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M12 5v14"></path>
+            <path d="M5 12h14"></path>
+          </svg>
+          Показать все комментарии
+        </button>
+
+        <div class="docsheet-skel" id="dsSkeleton" hidden>
+          <div class="skel s1"></div>
+          <div class="skel s2"></div>
+          <div class="skel s3"></div>
+        </div>
+      </section>
+    </div>
+  </div>
+  <!-- /Doctor sheet -->
 
   <!-- Bottom tabbar -->
   <nav class="tabbar">
@@ -2279,9 +2759,12 @@ function setDoctorReq(obj){ try{ if(obj) localStorage.setItem(DOCTOR_REQ_KEY, JS
     detachBtn.title = 'Открепить';
     detachBtn.textContent = 'Открепить';
     detachBtn.onclick = async () => {
-     await api('/api/doctor/attach', { method:'DELETE' });
+      const ok = confirm('Открепить врача? Это действие нельзя отменить.');
+      if(!ok) return;
+      await api('/api/doctor/attach', { method:'DELETE' });
       setDoctor(null);      // убираем из localStorage
       applyDoctor();        // перерисовываем UI
+      try{ closeDoctorSheet && closeDoctorSheet(); }catch(_){ }
     };
   }
 
@@ -2303,9 +2786,12 @@ function setDoctorReq(obj){ try{ if(obj) localStorage.setItem(DOCTOR_REQ_KEY, JS
       detachBtn.textContent = 'Отменить заявку';
       detachBtn.disabled = false;
       detachBtn.onclick = async () => {
+        const ok = confirm('Отменить заявку на прикрепление врача?');
+        if(!ok) return;
         await api('/api/doctor/request', { method:'DELETE' });
         setDoctorReq(null);
         applyDoctor();
+        try{ closeDoctorSheet && closeDoctorSheet(); }catch(_){ }
       };
     }
     return;
@@ -2322,6 +2808,420 @@ function setDoctorReq(obj){ try{ if(obj) localStorage.setItem(DOCTOR_REQ_KEY, JS
 
 
   applyDoctor();
+
+/* ======= Doctor sheet logic ======= */
+(function(){
+  const sheetOverlay = document.getElementById('doctorSheetOverlay');
+  const sheetWrap    = document.getElementById('doctorSheet');
+  const btnClose     = document.getElementById('doctorSheetClose');
+
+  const dsName       = document.getElementById('dsName');
+  const dsSubtitle   = document.getElementById('dsSubtitle');
+  const dsAvatar     = document.getElementById('dsAvatar');
+
+  const dsDetailsBtn = document.getElementById('dsDetailsBtn');
+  const dsDetails    = document.getElementById('dsDetails');
+
+  const dsName2      = document.getElementById('dsName2');
+  const dsSpec       = document.getElementById('dsSpec');
+  const dsClinic     = document.getElementById('dsClinic');
+  const dsExp        = document.getElementById('dsExp');
+  const dsPatients   = document.getElementById('dsPatients');
+
+  const dsExpShort      = document.getElementById('dsExpShort');
+  const dsPatientsShort = document.getElementById('dsPatientsShort');
+
+  const dsTelegramBtn = document.getElementById('dsTelegramBtn');
+  const dsSendReport  = document.getElementById('dsSendReport');
+  const dsDetach      = document.getElementById('dsDetach');
+
+  const dsCommentsList   = document.getElementById('dsCommentsList');
+  const dsCommentsEmpty  = document.getElementById('dsCommentsEmpty');
+  const dsCommentsMore   = document.getElementById('dsCommentsMore');
+  const dsCommentsCount  = document.getElementById('dsCommentsCount');
+  const dsSkeleton       = document.getElementById('dsSkeleton');
+
+  const head = document.getElementById('docHead');
+  const detachInline = document.getElementById('docDetachBtn');
+  const shareBtn = document.getElementById('shareBtn');
+
+  // prevent opening when user taps inline detach
+  detachInline?.addEventListener('click', (e)=>{ try{ e.stopPropagation(); }catch(_){ } }, true);
+
+  function pluralRu(n, one, few, many){
+    n = Math.abs(Number(n)) || 0;
+    const n10 = n % 10, n100 = n % 100;
+    if (n100 >= 11 && n100 <= 14) return many;
+    if (n10 === 1) return one;
+    if (n10 >= 2 && n10 <= 4) return few;
+    return many;
+  }
+
+  function fmtDT(iso){
+    if(!iso) return '—';
+    try{
+      const d = new Date(iso);
+      if (isNaN(d.getTime())) return String(iso);
+      const pad = (x)=> String(x).padStart(2,'0');
+      const dd = pad(d.getDate());
+      const mm = pad(d.getMonth()+1);
+      const yy = String(d.getFullYear()).slice(-2);
+      const hh = pad(d.getHours());
+      const mi = pad(d.getMinutes());
+      // время опционально: показываем, если не 00:00
+      return (hh === '00' && mi === '00') ? `${dd}.${mm}.${yy}` : `${dd}.${mm}.${yy} • ${hh}:${mi}`;
+    }catch(_){ return String(iso); }
+  }
+// Приводим любые даты к ISO YYYY-MM-DD (важно: в diary должен уходить именно ISO, не "10.01.26")
+function toIsoDateAny(v){
+  const s = String(v || '').trim();
+  if(!s) return '';
+  // ISO (или ISO с временем)
+  const mIso = s.match(/^(\d{4})-(\d{2})-(\d{2})/);
+  if(mIso) return `${mIso[1]}-${mIso[2]}-${mIso[3]}`;
+
+  // DD.MM.YY или DD.MM.YYYY
+  const mRu = s.match(/^(\d{1,2})\.(\d{1,2})\.(\d{2}|\d{4})$/);
+  if(mRu){
+    const dd = String(mRu[1]).padStart(2,'0');
+    const mm = String(mRu[2]).padStart(2,'0');
+    let yy = String(mRu[3]);
+    if(yy.length === 2) yy = '20' + yy;
+    return `${yy}-${mm}-${dd}`;
+  }
+
+  // fallback: пробуем Date
+  try{
+    const d = new Date(s);
+    if(!isNaN(d.getTime())){
+      const pad = (x)=> String(x).padStart(2,'0');
+      return `${d.getFullYear()}-${pad(d.getMonth()+1)}-${pad(d.getDate())}`;
+    }
+  }catch(_){}
+  return '';
+}
+
+function fmtDDMMYYfromIso(v){
+  const iso = toIsoDateAny(v);
+  if(!iso) return '';
+  const [y,m,d] = iso.split('-');
+  return `${d}.${m}.${String(y).slice(-2)}`;
+}
+
+  function placeholderAvatar(){
+    // reuse placeholder from мини-карточки врача (если она уже создана)
+    if (window.__docAvatarPlaceholder) return window.__docAvatarPlaceholder;
+    const svg = `
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 88 88">
+        <defs>
+          <linearGradient id="g" x1="0" x2="1" y1="0" y2="1">
+            <stop offset="0" stop-color="rgba(255,255,255,0.18)"/>
+            <stop offset="1" stop-color="rgba(255,255,255,0.06)"/>
+          </linearGradient>
+        </defs>
+        <rect x="4" y="4" width="80" height="80" rx="26" fill="url(#g)"/>
+        <circle cx="44" cy="36" r="14" fill="rgba(255,255,255,0.70)"/>
+        <path d="M22 74c2-14 14-22 22-22s20 8 22 22" fill="rgba(255,255,255,0.42)"/>
+      </svg>`;
+    return 'data:image/svg+xml;charset=utf-8,' + encodeURIComponent(svg.trim());
+  }
+
+  function normalizeTelegramLink(v){
+    const raw = String(v||'').trim();
+    if(!raw) return '';
+    // allow full links
+    if (/^https?:\/\//i.test(raw)) return raw;
+    // allow @username
+    const u = raw.replace(/^@/,'').replace(/^t\.me\//i,'').replace(/^tg:\/\//i,'');
+    if(!u) return '';
+    return 'https://t.me/' + u;
+  }
+
+  function openDiaryAt(ref){
+  // 1) сохраняем контекст (если потом захочешь открыть точно запись/коммент — пригодится)
+  try{ localStorage.setItem('rt_diary_jump', JSON.stringify(ref||{})); }catch(_){}
+
+  // 2) нормализуем дату, чтобы не уехать на «сегодня» из-за формата DD.MM.YY
+  const dateIso = toIsoDateAny(ref?.date || '');
+
+  // 3) сохраняем текущие query-параметры (tg=..., и т.д.) и добавляем date
+  const qs = new URLSearchParams(window.location.search);
+  if(dateIso){
+    qs.set('date', dateIso);
+    qs.set('day', dateIso); // совместимость, если diary у тебя читает day вместо date
+  }else{
+    qs.delete('date');
+    qs.delete('day');
+  }
+
+  const q = qs.toString();
+  const url = 'diary.html' + (q ? `?${q}` : '') + (dateIso ? `#day=${dateIso}` : '');
+  window.location.href = url;
+}
+
+
+  function setLoading(on){
+    if(dsSkeleton) dsSkeleton.hidden = !on;
+    if(dsCommentsEmpty) dsCommentsEmpty.hidden = true;
+    if(dsCommentsList) dsCommentsList.innerHTML = '';
+    if(dsCommentsMore) dsCommentsMore.hidden = true;
+    if(dsCommentsCount) dsCommentsCount.textContent = on ? '' : (dsCommentsCount.textContent||'');
+  }
+
+  function getDoctorLike(){
+    // attached has priority; then pending request data
+    try{
+      const d = (typeof getDoctor === 'function') ? getDoctor() : null;
+      if(d) return { status:'attached', doctor:d };
+    }catch(_){}
+    try{
+      const rq = (typeof getDoctorReq === 'function') ? getDoctorReq() : null;
+      if(rq && rq.status === 'pending') return { status:'pending', doctor: rq.doctor || {}, req: rq };
+    }catch(_){}
+    return null;
+  }
+
+  async function tryFetchComments(limit){
+    // try several endpoints; gracefully fall back
+    const eps = [
+  `/api/doctor/comments?limit=${limit}`,
+];
+    for (const url of eps){
+      try{
+        const r = (typeof api === 'function') ? await api(url) : await fetch(url, { credentials:'include' });
+        if(!r || !r.ok) continue;
+        const j = await r.json().catch(()=>null);
+        const arr = j?.items || j?.comments || j?.data || j?.rows || (Array.isArray(j) ? j : null);
+        if (Array.isArray(arr)) return { items: arr, total: j?.total || arr.length };
+      }catch(_){}
+    }
+    // local fallback (if you decide to store it later)
+    try{
+      const raw = localStorage.getItem('rt_doctor_comments') || '';
+      if(raw){
+        const arr = JSON.parse(raw);
+        if(Array.isArray(arr)) return { items: arr.slice(0, limit), total: arr.length };
+      }
+    }catch(_){}
+    return { items: [], total: 0 };
+  }
+
+  function renderComments(items, total){
+  if(!dsCommentsList) return;
+  dsCommentsList.innerHTML = '';
+  if(dsCommentsCount){
+    dsCommentsCount.textContent = total ? `${total} ${pluralRu(total,'комментарий','комментария','комментариев')}` : '';
+  }
+
+  if(!items || !items.length){
+    if(dsCommentsEmpty) dsCommentsEmpty.hidden = false;
+    return;
+  }
+
+  items.forEach((c)=>{
+    const created = c.created_at || c.createdAt || c.ts || c.datetime || c.date || '';
+    const text = String(c.text || c.message || c.body || '').trim();
+
+    const courseDay = c.course_day ?? c.courseDay ?? c.day ?? null;
+
+    // ВАЖНО: diary_date может прийти в разных форматах, нам нужен ISO
+    const diaryRaw  = c.diary_date || c.diaryDate || c.date_ref || c.ref_date || c.refDate || c.target_date || c.targetDate || '';
+    const diaryIso  = toIsoDateAny(diaryRaw);
+
+    const diaryEntryId = c.diary_entry_id || c.entryId || c.diaryEntryId || '';
+
+    const chip = (courseDay != null)
+      ? `к дню курса ${courseDay}`
+      : (diaryIso ? `к дню ${fmtDDMMYYfromIso(diaryIso)}` : '');
+
+    const el = document.createElement('div');
+    el.className = 'ds-comment';
+    el.innerHTML = `
+      <div class="ds-comment-top">
+        <div class="ds-date">${fmtDT(created)}</div>
+        ${chip ? `<span class="ds-chip">${chip}</span>` : ``}
+      </div>
+      <div class="ds-text">${text ? escapeHtml(text) : '—'}</div>
+      <div class="ds-comment-actions">
+        <button class="btn" type="button"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 3h7v7"/><path d="M10 14L21 3"/><path d="M5 7v14h14"/></svg>Открыть</button>
+      </div>
+    `;
+
+    const btn = el.querySelector('button');
+    btn?.addEventListener('click', ()=>{
+      // в diary передаём ТОЛЬКО ISO (YYYY-MM-DD)
+      openDiaryAt({
+        date: diaryIso || '',
+        entryId: diaryEntryId || '',
+        courseDay: courseDay ?? null,
+        commentId: c.id || c.comment_id || ''
+      });
+    });
+
+    dsCommentsList.appendChild(el);
+  });
+
+  if(dsCommentsMore){
+    dsCommentsMore.hidden = !(total > items.length);
+  }
+}
+
+
+  // basic escaping for user-provided comment text
+  function escapeHtml(s){
+    return String(s||'')
+      .replaceAll('&','&amp;')
+      .replaceAll('<','&lt;')
+      .replaceAll('>','&gt;')
+      .replaceAll('"','&quot;')
+      .replaceAll("'","&#039;");
+  }
+
+  async function loadComments(all){
+    setLoading(true);
+    const lim = all ? 50 : 3;
+    const res = await tryFetchComments(lim);
+    setLoading(false);
+    renderComments(res.items || [], res.total || (res.items||[]).length);
+  }
+
+  function setBtnLabel(btn, text){
+    if(!btn) return;
+    const s = btn.querySelector('.lbl');
+    if(s) s.textContent = text;
+    else btn.textContent = text;
+  }
+
+  function fillDoctorUI(dlike){
+    const d = dlike?.doctor || {};
+    const status = dlike?.status || 'attached';
+
+    const fullName = (d.name || d.fullName || d.full_name || 'Врач').toString();
+    const spec = (d.specialization || d.spec || d.speciality || d.role || d.profession || '').toString();
+    const clinic = (d.clinic || d.clinic_name || d.hospital || '').toString();
+    const clinicCity = (d.city || d.region || d.area || d.district || '').toString();
+    const clinicLine = [clinic, clinicCity].filter(Boolean).join(' • ');
+
+    const expYears = d.experience_years ?? d.expYears ?? d.experienceYears ?? d.experience ?? null;
+    const patients = d.patients ?? d.patientsCount ?? d.patients_count ?? d.current_patients ?? null;
+
+    const sub = [spec || 'Специализация', clinicLine].filter(Boolean).join(' • ');
+    if(dsName) dsName.textContent = fullName;
+    if(dsSubtitle) dsSubtitle.textContent = sub || '—';
+
+    if(dsName2) dsName2.textContent = fullName;
+    if(dsSpec) dsSpec.textContent = spec || '—';
+    if(dsClinic) dsClinic.textContent = clinicLine || '—';
+
+    const expText = (expYears != null && expYears !== '') ? `${expYears} ${pluralRu(expYears,'год','года','лет')}` : '—';
+    const patText = (patients != null && patients !== '') ? `${patients}` : '—';
+
+    if(dsExp) dsExp.textContent = expText;
+    if(dsPatients) dsPatients.textContent = patText;
+
+    if(dsExpShort) dsExpShort.textContent = expText;
+    if(dsPatientsShort) dsPatientsShort.textContent = (patients != null && patients !== '') ? `${patients}+` : '—';
+
+    // Avatar
+    const url = String(d.avatarUrl || d.avatar_url || d.avatar || '').trim();
+    const ph = placeholderAvatar();
+    if(dsAvatar){
+      dsAvatar.onerror = ()=>{ try{ dsAvatar.onerror=null; dsAvatar.src = ph; }catch(_){ } };
+      dsAvatar.src = url ? url : ph;
+    }
+
+    // Telegram
+    const tg = normalizeTelegramLink(d.telegram || d.tg || d.telegram_username || d.telegramUsername || d.tg_username || d.tgUsername || '');
+    if(dsTelegramBtn){
+      if(tg){
+        dsTelegramBtn.href = tg;
+        dsTelegramBtn.classList.remove('disabled');
+        dsTelegramBtn.setAttribute('aria-disabled','false');
+      }else{
+        dsTelegramBtn.href = '#';
+        dsTelegramBtn.classList.add('disabled');
+        dsTelegramBtn.setAttribute('aria-disabled','true');
+        dsTelegramBtn.title = 'У врача не указан Telegram';
+      }
+    }
+
+    // Actions
+    if(dsSendReport){
+      dsSendReport.disabled = false;
+      dsSendReport.onclick = ()=>{ try{ shareBtn?.click(); }catch(_){ } };
+    }
+
+    if(dsDetach){
+      // copy state from inline button (attached vs pending)
+      setBtnLabel(dsDetach, (status === 'pending') ? 'Отменить заявку' : 'Открепить врача');
+      dsDetach.onclick = ()=>{ try{ detachInline?.click(); }catch(_){ } };
+    }
+
+    // default: details closed on each open
+    if(dsDetails) dsDetails.hidden = true;
+    if(dsDetailsBtn) setBtnLabel(dsDetailsBtn, 'Детали');
+  }
+
+  function openDoctorSheet(){
+    const dlike = getDoctorLike();
+    if(!dlike) return;
+
+    // show
+    if(sheetOverlay) sheetOverlay.hidden = false;
+    if(sheetWrap) sheetWrap.hidden = false;
+    document.body.classList.add('docsheet-open');
+    // animate
+    requestAnimationFrame(()=>{ sheetWrap?.classList.add('is-on'); });
+
+    fillDoctorUI(dlike);
+
+    // comments
+    loadComments(false);
+
+    setTimeout(()=>{ try{ btnClose?.focus(); }catch(_){ } }, 0);
+  }
+
+  function closeDoctorSheet(){
+    sheetWrap?.classList.remove('is-on');
+    // wait for animation
+    setTimeout(()=>{
+      if(sheetOverlay) sheetOverlay.hidden = true;
+      if(sheetWrap) sheetWrap.hidden = true;
+      document.body.classList.remove('docsheet-open');
+    }, 200);
+  }
+
+  // expose for detach confirm (applyDoctor replacement tries to call it)
+  window.closeDoctorSheet = closeDoctorSheet;
+  window.openDoctorSheet  = openDoctorSheet;
+
+  // open on click doctor head (only when doctor attached/pending)
+  head?.addEventListener('click', (e)=>{
+    // ignore clicks on buttons inside
+    if(e?.target?.closest && e.target.closest('button, a, input')) return;
+    openDoctorSheet();
+  });
+
+  // close handlers
+  sheetOverlay?.addEventListener('click', closeDoctorSheet);
+  btnClose?.addEventListener('click', closeDoctorSheet);
+  document.addEventListener('keydown', (e)=>{ if(e.key === 'Escape' && !sheetWrap?.hidden) closeDoctorSheet(); });
+
+  // details toggle
+  dsDetailsBtn?.addEventListener('click', ()=>{
+    if(!dsDetails) return;
+    const isOpen = !dsDetails.hidden;
+    dsDetails.hidden = isOpen;
+    setBtnLabel(dsDetailsBtn, isOpen ? 'Детали' : 'Скрыть');
+  });
+
+  // show all comments
+  dsCommentsMore?.addEventListener('click', ()=>{
+    loadComments(true);
+  });
+})();
+ /* ======= /Doctor sheet logic ======= */
+
 let _reqPollTimer = null;
 
 async function checkRequestOnce(){
@@ -2332,10 +3232,15 @@ async function checkRequestOnce(){
 
     if (j.status === 'accepted'){
       setDoctor({
-        name: j.doctor?.name || 'Врач',
-        clinic: j.doctor?.clinic || '',
-        avatarUrl: j.doctor?.avatar_url || ''
-      });
+  name: j.doctor?.name || 'Врач',
+  specialization: j.doctor?.specialization || '',
+  clinic: j.doctor?.clinic || '',
+  city: j.doctor?.city || '',
+  tg: j.doctor?.tg || '',
+  current_patients: j.doctor?.current_patients ?? null,
+  avatarUrl: j.doctor?.avatar_url || ''
+});
+
       setDoctorReq(null);
       applyDoctor();
       stopRequestPolling();
@@ -2595,12 +3500,17 @@ document.addEventListener('visibilitychange', ()=>{
       const j = await r.json();
       if (j && j.doctor){
         setDoctor({
-          code: j.code || '',
-          name: j.doctor.name,
-          clinic: j.doctor.clinic || '',
-          phone: '',
-          avatarUrl: j.doctor.avatar_url || ''
-        });
+  code: j.doctor.code || j.code || '',
+  name: j.doctor.name,
+  specialization: j.doctor.specialization || '',
+  clinic: j.doctor.clinic || '',
+  city: j.doctor.city || '',
+  tg: j.doctor.tg || '',
+  current_patients: j.doctor.current_patients ?? null,
+  phone: '',
+  avatarUrl: j.doctor.avatar_url || ''
+});
+
         applyDoctor();
       }
     }

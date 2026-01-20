@@ -177,6 +177,13 @@
               <option value="">Выбрать…</option><option>Дерматолог</option><option>Дерматовенеролог</option><option>Косметолог</option><option>Другая</option>
             </select>
           </div>
+          <div class="dr-field">
+            <label class="dr-label">Опыт работы (лет)</label>
+            <input class="dr-input" id="expYears" type="number" min="0" max="80" step="1"
+                   inputmode="numeric" placeholder="5">
+            <div class="dr-hint">Сколько лет вы практикуете</div>
+          </div>
+          
           <div class="dr-field"><label class="dr-label">Город</label><input class="dr-input" id="city" placeholder="Москва"></div>
           <div class="dr-field"><label class="dr-label">Клиника</label><input class="dr-input" id="clinic" placeholder="Медцентр «Скин+»"></div>
         </div>
@@ -307,7 +314,12 @@
   const genCode=()=> Array.from({length:5},()=>ABC[Math.floor(Math.random()*ABC.length)]).join('');
   const step=(i)=> $$('#drStepper .dr-dot').forEach((d,idx)=>d.classList.toggle('active',idx<=i));
   const page=(i)=>['#page1','#page2','#page3'].forEach((sel,idx)=>$(sel).classList.toggle('active',idx===i))||step(i);
-  const valid1=()=>['#fio','#spec','#city','#clinic'].every(sel=>$(sel).value.trim());
+  const valid1 = () => {
+  const baseOk = ['#fio','#spec','#city','#clinic'].every(sel => $(sel).value.trim());
+  const exp = Number($('#expYears').value);
+  const expOk = Number.isFinite(exp) && exp >= 0 && exp <= 80;
+  return baseOk && expOk;
+};
 
   // API helper с раздельным dev-tg для врача
   function api(path, opts){
@@ -350,16 +362,17 @@
     if(!localStorage.getItem('doctorAvatarUrl'))
       applySmallAvatar(null, initialsFrom($('#fio').value));
   });
-  ['#fio','#spec','#city','#clinic'].forEach(s=>{
-    $(s).addEventListener('input',()=>next1.disabled=!valid1());
-    $(s).addEventListener('change',()=>next1.disabled=!valid1());
-  });
+  ['#fio','#spec','#city','#clinic','#expYears'].forEach(s=>{
+  $(s).addEventListener('input',()=>next1.disabled=!valid1());
+  $(s).addEventListener('change',()=>next1.disabled=!valid1());
+});
   next1.addEventListener('click',()=>{
     store.set('doctorProfile',{
       name:$('#fio').value.trim(),
       specialty:$('#spec').value.trim(),
       city:$('#city').value.trim(),
       clinic:$('#clinic').value.trim(),
+      experienceYears: Number($('#expYears').value), // ← добавили
       tg:$('#tg').value.trim(),
       contact:$('#contact').value.trim()
     });

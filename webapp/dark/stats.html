@@ -96,6 +96,57 @@
       font-weight: 750;
     }
 
+/* ===== UX polish v1: topbar like "big apps" ===== */
+.topbar{
+  display:grid;
+  grid-template-columns: 1fr auto 1fr;
+  align-items:center;
+  gap:10px;
+  margin-bottom: 12px;
+  flex-wrap: nowrap;
+}
+.nav-btn{
+  display:inline-flex; align-items:center; justify-content:center; gap:8px;
+  padding: 10px 12px;
+  border-radius: 999px;
+  background: var(--card2);
+  border: 1px solid var(--stroke);
+  box-shadow: var(--in-up), var(--in-dn), var(--sh-dn);
+  color: var(--ink); text-decoration:none;
+  font-weight: 850;
+  -webkit-tap-highlight-color: transparent;
+  transition: transform .08s ease, filter .12s ease;
+  white-space:nowrap;
+  max-width: 100%;
+}
+.nav-btn:active{ transform: translateY(1px) scale(.99); }
+.nav-left{ justify-self:start; }
+.nav-right{ justify-self:end; }
+.nav-center{ justify-self:center; text-align:center; line-height:1.05; }
+.title-h{
+  font-size: 20px;
+  font-weight: 950;
+  letter-spacing: .2px;
+}
+.title-s{
+  margin-top:4px;
+  font-size: 12.5px;
+  color: var(--muted);
+  font-weight: 750;
+}
+@media (max-width:520px){
+  .title-h{ font-size: 19px; }
+}
+@media (max-width:420px){
+  .nav-btn .lbl{ display:none; }
+  .nav-btn{ padding: 10px 12px; }
+  .title-h{ font-size: 18px; }
+  .title-s{ font-size: 12px; }
+}
+/* ===== end topbar ===== */
+
+
+
     /* Cards */
     .card{
       background: linear-gradient(180deg, rgba(255,255,255,.060), rgba(255,255,255,.034));
@@ -163,9 +214,58 @@
     .seg button:active{ transform: translateY(1px) scale(.99); }
     .seg button.active{
       color: rgba(7,22,24,.92);
-      background: linear-gradient(180deg, rgba(72,231,214,.95), rgba(127,208,255,.85));
-      box-shadow: 0 10px 20px rgba(0,0,0,.35), inset 0 1px 0 rgba(255,255,255,.35), inset 0 -2px 0 rgba(0,0,0,.30);
+      background: linear-gradient(180deg, rgba(72,231,214,.92), rgba(127,208,255,.80));
+      box-shadow: 0 8px 16px rgba(0,0,0,.30), inset 0 1px 0 rgba(255,255,255,.34), inset 0 -2px 0 rgba(0,0,0,.30);
     }
+
+    /* ===== UX polish v2: visual hierarchy for segmented controls ===== */
+    .seg.primary{
+      padding: 6px;
+      background: rgba(0,0,0,.22);
+      border: 1px solid rgba(255,255,255,.10);
+    }
+    .seg.primary button{
+      font-size: 13px;
+      padding: 9px 11px;
+      font-weight: 900;
+      color: var(--muted);
+    }
+
+    
+    .seg.secondary{
+      padding: 4px;
+      background: rgba(0,0,0,.10);
+      border: 1px solid rgba(255,255,255,.06);
+      box-shadow: none;
+      filter: saturate(.92);
+    }
+    .seg.secondary button{
+      position: relative;
+      font-size: 12px;
+      padding: 7px 9px;
+      font-weight: 800;
+      letter-spacing: .08px;
+      color: rgba(236,248,255,.52);
+    }
+    .seg.secondary button.active{
+      color: rgba(236,252,255,.92);
+      background: rgba(72,231,214,.16);
+      box-shadow:
+        inset 0 0 0 1px rgba(72,231,214,.28),
+        0 6px 12px rgba(0,0,0,.18);
+    }
+    .seg.secondary button.active::after{
+      content:"";
+      position:absolute;
+      left: 14px;
+      right: 14px;
+      bottom: 3px;
+      height: 2px;
+      border-radius: 2px;
+      background: rgba(72,231,214,.55);
+      opacity: .9;
+    }
+/* ===== end v2 ===== */
 
     @media (max-width:380px){
       .seg button{ padding: 8px 10px; font-size: 12px; }
@@ -190,6 +290,25 @@
         radial-gradient(120% 90% at 70% 100%, rgba(72,231,214,.10), transparent 60%);
       pointer-events:none;
       opacity: .95;
+      mix-blend-mode: screen;
+    }
+
+    /* Soft inner glow behind the pie (premium, not 3D) */
+    .chart-wrap.pie::after{
+      content:"";
+      position:absolute;
+      left:50%;
+      top:48%;
+      width:min(340px, 74vw);
+      aspect-ratio: 1 / 1;
+      transform: translate(-50%, -50%);
+      background:
+        radial-gradient(circle at 34% 30%, rgba(72,231,214,.22), rgba(72,231,214,0) 60%),
+        radial-gradient(circle at 68% 72%, rgba(198,176,255,.18), rgba(198,176,255,0) 62%),
+        radial-gradient(circle at 55% 50%, rgba(127,208,255,.10), rgba(127,208,255,0) 66%);
+      filter: blur(12px);
+      opacity: .95;
+      pointer-events:none;
       mix-blend-mode: screen;
     }
     canvas{ display:block; width:100%; height: 250px; }
@@ -265,7 +384,15 @@
       box-shadow: 0 0 0 4px rgba(255,255,255,.04);
     }
     .lg-name{ font-weight:900; font-size: 13px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
-    .lg-val{ font-weight:950; font-size: 13px; color: rgba(236,248,255,.86); }
+    .lg-val{
+      display:flex; align-items:baseline; justify-content:flex-end; gap:8px;
+      font-weight:950; font-size: 13px; color: rgba(236,248,255,.86);
+    }
+    .lg-val .pct{
+      font-weight: 850;
+      font-size: 12px;
+      color: rgba(236,248,255,.60);
+    }
 
     /* Summary grid */
     .sum{
@@ -293,51 +420,69 @@
     }
   
 
+/* Chart insight line (smart summary under chart) */
+.chart-insight{
+  margin-top: 8px;
+  padding: 0 10px;
+  text-align: center;
+  font-size: 12px;
+  font-weight: 800;
+  letter-spacing: .15px;
+  color: rgba(236,248,255,.72);
+  line-height: 1.25;
+}
+.chart-insight:empty{ display:none; }
+@media (max-width:420px){
+  .chart-insight{ font-size: 11px; font-weight: 750; }
+}
+
 /* Chart footer (month switch for Week view) */
 .chart-footer{
   display:none;
+  width: 100%;
   margin-top: 8px;
-  padding: 6px 6px 2px;
+  padding: 2px 0 0;
   align-items:center;
   justify-content:center;
-  gap: 10px;
 }
 .chart-footer.show{ display:flex; }
+
+/* compact month switch (used in Charts / Diagrams / Summary) */
 .month-switch{
   display:flex;
   align-items:center;
-  gap: 10px;
-  padding: 8px 10px;
+  gap: 8px;
+  padding: 6px 10px;
   border-radius: 999px;
-  background: rgba(0,0,0,.22);
-  border: 1px solid rgba(255,255,255,.10);
-  box-shadow: inset 0 1px 0 rgba(255,255,255,.08), inset 0 -2px 0 rgba(0,0,0,.28);
-  max-width: 100%;
+  background: rgba(0,0,0,.18);
+  border: 1px solid rgba(255,255,255,.08);
+  box-shadow: inset 0 1px 0 rgba(255,255,255,.10), 0 10px 20px rgba(0,0,0,.22);
 }
 .month-btn{
-  width: 34px; height: 34px;
+  width: 28px; height: 28px;
   border-radius: 999px;
-  border: 0;
-  background: rgba(255,255,255,.06);
   border: 1px solid rgba(255,255,255,.10);
-  box-shadow: inset 0 1px 0 rgba(255,255,255,.12), 0 10px 22px rgba(0,0,0,.30);
+  background: rgba(255,255,255,.06);
   color: rgba(236,248,255,.86);
   font-weight: 950;
+  line-height: 28px;
   cursor: pointer;
   -webkit-tap-highlight-color: transparent;
-  transition: transform .08s ease, filter .12s ease;
-  flex: 0 0 auto;
+  display:grid;
+  place-items:center;
+  transition: transform .08s ease, filter .12s ease, background .12s ease;
 }
 .month-btn:active{ transform: translateY(1px) scale(.99); }
+.month-btn:hover{ filter: brightness(1.04); }
 .month-label{
   font-weight: 900;
-  color: rgba(236,248,255,.72);
-  font-size: 12.5px;
+  color: rgba(236,248,255,.70);
+  font-size: 12px;
+  letter-spacing: .1px;
   white-space: nowrap;
+  max-width: min(240px, calc(100vw - 180px));
   overflow:hidden;
   text-overflow: ellipsis;
-  max-width: min(260px, calc(100vw - 210px));
-  letter-spacing: .1px;
 }
 
 /* Pie tooltip slightly different placement */
@@ -373,10 +518,10 @@
 
 /* Make pie/metric segmented labels fit on narrow screens without horizontal scroll */
 @media (max-width:520px){
-  #pieSeg, #metricSeg{
+  #rangeSeg, #pieSeg, #metricSeg{
     width: 100%;
   }
-  #pieSeg button, #metricSeg button{
+  #rangeSeg button, #pieSeg button, #metricSeg button{
     flex: 1 1 0;
     white-space: normal;
     text-align: center;
@@ -386,7 +531,7 @@
   }
 }
 @media (max-width:380px){
-  #pieSeg button, #metricSeg button{
+  #rangeSeg button, #pieSeg button, #metricSeg button{
     font-size: 11.2px;
     padding: 8px 7px;
   }
@@ -544,14 +689,20 @@
 </div>
 
 <div class="topbar">
-      <div class="left-actions">
-        <a class="pill-btn" href="myprofile.html" aria-label="Назад в профиль">← Назад</a>
-        <a class="pill-btn" href="main.html" aria-label="На главную">🏠 Главная</a>
+      <a class="nav-btn nav-left" href="myprofile.html" aria-label="Назад в профиль">
+        <span class="ico" aria-hidden="true">←</span>
+        <span class="lbl">Назад</span>
+      </a>
+
+      <div class="nav-center" aria-label="Заголовок">
+        <div class="title-h">Статистика</div>
+        <div class="title-s" id="subtitle">за курс</div>
       </div>
-      <div class="title">
-        <div class="h">Статистика</div>
-        <div class="s" id="subtitle">за курс</div>
-      </div>
+
+      <a class="nav-btn nav-right" href="main.html" aria-label="На главную">
+        <span class="ico" aria-hidden="true">🏠</span>
+        <span class="lbl">Главная</span>
+      </a>
     </div>
 
     <!-- GRAPHS -->
@@ -562,13 +713,13 @@
       </div>
 
       <div class="row">
-        <div class="seg" id="rangeSeg" role="tablist" aria-label="Период">
+        <div class="seg primary" id="rangeSeg" role="tablist" aria-label="Период">
           <button type="button" class="active" data-range="week">Неделя</button>
           <button type="button" data-range="month">Месяц</button>
           <button type="button" data-range="course">Курс</button>
         </div>
 
-        <div class="seg" id="metricSeg" role="tablist" aria-label="Метрика графика">
+        <div class="seg secondary" id="metricSeg" role="tablist" aria-label="Метрика графика">
           <button type="button" class="active" data-metric="mood">Самочувствие</button>
           <button type="button" data-metric="se">Побочки</button>
           <button type="button" data-metric="dose">Дозировка</button>
@@ -577,6 +728,7 @@
 
       <div class="chart-wrap">
         <canvas id="chart"></canvas>
+        <div class="chart-insight" id="chartInsight" aria-live="polite"></div>
         <div class="chart-footer" id="chartFooter" aria-live="polite"></div>
         <div class="tooltip" id="tip">
           <div class="t1" id="tipT1">—</div>
@@ -594,7 +746,7 @@
       </div>
 
       <div class="row">
-        <div class="seg" id="pieSeg" role="tablist" aria-label="Метрика диаграммы">
+        <div class="seg secondary" id="pieSeg" role="tablist" aria-label="Метрика диаграммы">
           <button type="button" class="active" data-pie="mood">Самочувствие</button>
           <button type="button" data-pie="se">Побочки </button>
           <button type="button" data-pie="dose">Дозы</button>
@@ -609,6 +761,7 @@
           <div class="t3" id="pieTipT3">—</div>
         </div>
         <div class="pie-caption" id="pieCaption">—</div>
+        <div class="chart-footer" id="pieFooter" aria-live="polite"></div>
         <div class="legend" id="legend"></div>
       </div>
     </section>
@@ -620,11 +773,13 @@
         <div class="hint" id="summaryHint">—</div>
       </div>
 
+      <div class="chart-footer" id="summaryFooter" aria-live="polite"></div>
       <div class="sum" id="sumGrid"></div>
     </section>
   </main>
 
 <script>
+
 /* ===================== DATA: read from your existing LocalStorage formats ===================== */
 const MOOD_SCALE = [
   { at: 0,   label: 'Очень плохо' },
@@ -683,6 +838,35 @@ function loadV2(){
   }catch(_){ return {version:2, baseline:null, entries:{}}; }
 }
 
+
+
+function isISODate(s){
+  return /^\d{4}-\d{2}-\d{2}$/.test(String(s||'').slice(0,10));
+}
+
+// Try to read course start date (YYYY-MM-DD) from profile storage (myprofile/main)
+function readCourseStartISO(){
+  let s = '';
+  try{ s = localStorage.getItem('rt_startISO') || ''; }catch(_){}
+  if (!isISODate(s)){
+    try{
+      const raw = sessionStorage.getItem('share:user') || '';
+      if (raw){
+        const o = JSON.parse(raw);
+        s = o.startISO || o.course_start || o.start_date || '';
+      }
+    }catch(_){}
+  }
+  if (!isISODate(s)){
+    try{
+      const o = JSON.parse(localStorage.getItem('rt_profile') || 'null');
+      if (o) s = o.startISO || o.course_start || o.start_date || '';
+    }catch(_){}
+  }
+  s = String(s||'').slice(0,10);
+  return isISODate(s) ? s : null;
+}
+
 function normalizeValenceTo100(v){
   if (v==null || !isFinite(Number(v))) return null;
   v = Number(v);
@@ -708,7 +892,9 @@ function buildSeries(range, anchorISO){
   const v2 = loadV2();
   const entries2 = v2.entries || {};
   const baseline = (v2.baseline && /^\d{4}-\d{2}-\d{2}$/.test(v2.baseline)) ? v2.baseline : null;
-  const anchor = (anchorISO && /^\d{4}-\d{2}-\d{2}$/.test(anchorISO)) ? anchorISO : todayISO();
+  let anchor = (anchorISO && /^\d{4}-\d{2}-\d{2}$/.test(anchorISO)) ? anchorISO : todayISO();
+
+let baselineForReturn = baseline;
 
 // range window
 let startISO, days;
@@ -727,14 +913,24 @@ if (range === 'week'){
   startISO = `${y}-${String(mo+1).padStart(2,'0')}-01`;
   days = lastDay;
 } else {
-  // course: from baseline if exists, else last 120 days (up to 360)
-  const start = baseline ? baseline : addDays(anchor, -119);
+  // course: prefer explicit course start from profile (rt_startISO), fallback to diary baseline, else last 120 days
+  const profStart = readCourseStartISO();
+  let courseStart = baselineForReturn;
+  if (profStart && (!courseStart || parseISO(profStart) < parseISO(courseStart))) courseStart = profStart;
+
+  // if anchor accidentally earlier than course start, clamp
+  if (courseStart && parseISO(anchor) < parseISO(courseStart)) anchor = courseStart;
+
+  const start = courseStart ? courseStart : addDays(anchor, -119);
   const diff = Math.max(1, Math.round((parseISO(anchor) - parseISO(start)) / 86400000) + 1);
   days = Math.min(360, diff);
-  startISO = baseline ? baseline : addDays(anchor, -(days-1));
+
+  // If course is longer than 360 days, show the last 360 while still keeping label "с <courseStart>"
+  startISO = (courseStart && diff <= 360) ? courseStart : addDays(anchor, -(days-1));
+  baselineForReturn = courseStart;
 }
 
-  
+
   const list = [];
   for (let i=0;i<days;i++){
     const iso = addDays(startISO, i);
@@ -761,7 +957,7 @@ if (range === 'week'){
       miss,
     });
   }
-  return { list, baseline };
+  return { list, baseline: baselineForReturn };
 }
 
 /* ===================== UI state ===================== */
@@ -780,7 +976,10 @@ const els = {
   sumGrid: document.getElementById('sumGrid'),
   summaryHint: document.getElementById('summaryHint'),
   pieCaption: document.getElementById('pieCaption'),
+  chartInsight: document.getElementById('chartInsight'),
   chartFooter: document.getElementById('chartFooter'),
+  pieFooter: document.getElementById('pieFooter'),
+  summaryFooter: document.getElementById('summaryFooter'),
   pieTip: document.getElementById('pieTip'),
   pieTipT1: document.getElementById('pieTipT1'),
   pieTipT2: document.getElementById('pieTipT2'),
@@ -791,8 +990,14 @@ let state = {
   range: 'week',
   metric: 'mood',
   pie: 'mood',
-  anchorISO: todayISO(), // last day of the displayed range
+  anchors: {
+    chart: todayISO(),
+    pie: todayISO(),
+    summary: todayISO(),
+  },
   selectedPie: null,
+  selectedChartISO: null,
+  hoverChartISO: null,
 };
 
 function showErr(err){
@@ -827,6 +1032,11 @@ function fmtDate(iso){
   return `${d}.${m}.${y}`;
 }
 function monthKey(iso){ return iso.slice(0,7); } // YYYY-MM
+function lastDayOfMonthISO(iso){
+  const d = parseISO(iso);
+  const last = new Date(d.getFullYear(), d.getMonth()+1, 0);
+  return toISO(last);
+}
 function monthLabel(iso){
   const d = parseISO(iso);
   return `${MONTHS[d.getMonth()]} ${d.getFullYear()}`;
@@ -878,21 +1088,133 @@ function drawEmpty(ctx, w, h, msg){
   ctx.restore();
 }
 
+/* Focus marker (vertical line + dot) */
+function metricAccent(metric){
+  if (metric === 'dose') return { dot:'rgba(198,176,255,.92)', glow:'rgba(198,176,255,.26)' };
+  if (metric === 'se')   return { dot:'rgba(127,208,255,.92)', glow:'rgba(127,208,255,.22)' };
+  return { dot:'rgba(72,231,214,.95)', glow:'rgba(72,231,214,.24)' };
+}
+function drawChartFocus(ctx, p, g){
+  const { y0, y1 } = g;
+  const acc = metricAccent(state.metric);
+
+  ctx.save();
+
+  // vertical focus line
+  ctx.strokeStyle = 'rgba(236,248,255,.20)';
+  ctx.lineWidth = 1.15;
+  ctx.setLineDash([7,6]);
+  ctx.beginPath();
+  ctx.moveTo(p.x, y0);
+  ctx.lineTo(p.x, y1);
+  ctx.stroke();
+  ctx.setLineDash([]);
+
+  // soft halo
+  ctx.fillStyle = acc.glow;
+  ctx.beginPath();
+  ctx.arc(p.x, p.y, 10, 0, Math.PI*2);
+  ctx.fill();
+
+  // dot
+  ctx.shadowColor = acc.glow;
+  ctx.shadowBlur = 14;
+  ctx.fillStyle = acc.dot;
+  ctx.beginPath();
+  ctx.arc(p.x, p.y, 5.6, 0, Math.PI*2);
+  ctx.fill();
+
+  ctx.shadowBlur = 0;
+  ctx.lineWidth = 2.0;
+  ctx.strokeStyle = 'rgba(236,248,255,.92)';
+  ctx.beginPath();
+  ctx.arc(p.x, p.y, 5.6, 0, Math.PI*2);
+  ctx.stroke();
+
+  ctx.restore();
+}
+
 /* Smooth line (quadratic) */
+function addSmoothCurve(ctx, pts, smooth){
+  if (pts.length < 2) return;
+  const s = (smooth==null) ? 0.95 : Number(smooth);
+  for (let i=0; i<pts.length-1; i++){
+    const p0 = pts[i-1] || pts[i];
+    const p1 = pts[i];
+    const p2 = pts[i+1];
+    const p3 = pts[i+2] || p2;
+    const cp1x = p1.x + (p2.x - p0.x) / 6 * s;
+    const cp1y = p1.y + (p2.y - p0.y) / 6 * s;
+    const cp2x = p2.x - (p3.x - p1.x) / 6 * s;
+    const cp2y = p2.y - (p3.y - p1.y) / 6 * s;
+    ctx.bezierCurveTo(cp1x, cp1y, cp2x, cp2y, p2.x, p2.y);
+  }
+}
+
 function strokeSmoothLine(ctx, pts){
   if (pts.length < 2) return;
   ctx.beginPath();
   ctx.moveTo(pts[0].x, pts[0].y);
-  for (let i=1; i<pts.length-1; i++){
-    const midX = (pts[i].x + pts[i+1].x)/2;
-    const midY = (pts[i].y + pts[i+1].y)/2;
-    ctx.quadraticCurveTo(pts[i].x, pts[i].y, midX, midY);
-  }
-  ctx.lineTo(pts[pts.length-1].x, pts[pts.length-1].y);
+  addSmoothCurve(ctx, pts, 0.95);
   ctx.stroke();
 }
 
 /* ===================== Chart render ===================== */
+function shortDayLabel(iso){
+  if (!iso) return '';
+  const dd = String(iso).slice(8,10);
+  const mm = String(iso).slice(5,7);
+  if (state.range === 'course') return `${dd}.${mm}`;
+  return dd;
+}
+function format1(x){
+  const n = Number(x);
+  if (!isFinite(n)) return '0';
+  const s = (Math.round(n*10)/10).toFixed(1);
+  return s.endsWith('.0') ? s.slice(0,-2) : s;
+}
+function updateChartInsight(series){
+  if (!els.chartInsight) return;
+  let t = '';
+
+  if (!series || !series.list || !series.list.length){
+    els.chartInsight.textContent = '';
+    return;
+  }
+
+  if (state.metric === 'mood'){
+    const pts = series.list.filter(d=>d.moodIdx!=null);
+    if (pts.length){
+      let best = pts[0], worst = pts[0];
+      let sum = 0;
+      pts.forEach(d=>{
+        sum += d.moodIdx;
+        if (d.moodIdx > best.moodIdx) best = d;
+        if (d.moodIdx < worst.moodIdx) worst = d;
+      });
+      const avgIdx = Math.max(0, Math.min(6, Math.round(sum / pts.length)));
+      t = `Лучший день: ${shortDayLabel(best.iso)} • Худший: ${shortDayLabel(worst.iso)} • Среднее: ${moodLabel(avgIdx)}`;
+    }
+  } else if (state.metric === 'se'){
+    const vals = series.list.map(d=>Number(d.seCount||0)).filter(v=>isFinite(v));
+    if (vals.length){
+      const max = Math.max(...vals);
+      const min = Math.min(...vals);
+      const avg = vals.reduce((a,b)=>a+b,0)/vals.length;
+      t = `Макс побочек: ${max} • Мин: ${min} • Среднее: ${format1(avg)}`;
+    }
+  } else if (state.metric === 'dose'){
+    const vals = series.list.map(d=>Number(d.dose||0)).filter(v=>isFinite(v));
+    const max = vals.length ? Math.max(...vals) : 0;
+    const takeDays = series.list.filter(d=>(d.dose||0)>0).length;
+    const avg = takeDays ? (series.list.reduce((a,d)=>a+(d.dose||0),0)/takeDays) : 0;
+    const misses = series.list.filter(d=>!!d.miss).length;
+    t = `Макс доза: ${max} мг • Средняя: ${format1(avg)} мг • Пропусков: ${misses}`;
+  }
+
+  els.chartInsight.textContent = t;
+}
+
 let hitPoints = []; // for tooltip hit testing
 let pieSectors = []; // for pie sector hit testing
 let currentSeries = null;
@@ -903,7 +1225,11 @@ function renderChart(series){
 
   const small = cssW < 420;
 
-  const padL = small ? 64 : 88;  // меньше слева на телефонах
+  let padL = small ? 64 : 88;
+
+  // more room for plot area (esp. bars): reduce left padding for certain metrics
+  if (state.metric === 'se')   padL = small ? 48 : 64;
+  if (state.metric === 'dose') padL = small ? 58 : 76;  // меньше слева на телефонах
   const padR = 16;
   const padT = 14;
   const padB = 44;
@@ -911,12 +1237,22 @@ function renderChart(series){
   const x0 = padL, x1 = w - padR;
   const y0 = padT, y1 = h - padB;
 
-  // grid
+// grid (align mood chart to key levels)
+if (state.metric === 'mood'){
+  const majors = [6,3,2,0];
+  majors.forEach((idx)=>{
+    const yy = y0 + (y1-y0) * ((6-idx)/6);
+    line(ctx, x0, yy, x1, yy, .07);
+  });
+  line(ctx, x0, y1, x1, y1, .14);
+} else {
   for (let i=0;i<4;i++){
     const yy = y0 + (y1-y0) * (i/3);
     line(ctx, x0, yy, x1, yy, .09);
   }
   line(ctx, x0, y1, x1, y1, .14);
+}
+
 
   const N = series.list.length || 1;
   const xAt = (i)=> x0 + (x1-x0) * (N===1 ? 0 : i/(N-1));
@@ -924,16 +1260,16 @@ function renderChart(series){
   hitPoints = [];
 
   if (state.metric === 'mood'){
-    // y labels: mood scale (7) — адаптивно для узких экранов
-    for (let i=0;i<7;i++){
-      const yy = y0 + (y1-y0) * (i/6);
-      const idx = 6-i; // top = 6
-      const label = small ? MOOD_SHORT[idx] : MOOD_SCALE[idx].label;
-      const fs = small ? 10.5 : 12;
-      const lh = small ? 11 : 12;
-      drawTextLines(ctx, label, x0-10, yy+4, fs, .56, 'right', lh);
-      line(ctx, x0, yy, x1, yy, .05);
-    }
+// y labels: mood scale (key levels only, full scale stays in tooltip)
+const majors = [6,3,2,0]; // Отлично, Нейтрально, Ниже нормы, Очень плохо
+majors.forEach((idx)=>{
+  const yy = y0 + (y1-y0) * ((6-idx)/6);
+  const label = small ? MOOD_SHORT[idx] : MOOD_SCALE[idx].label;
+  const fs = small ? 10.5 : 12;
+  const lh = small ? 11 : 12;
+  drawTextLines(ctx, label, x0-10, yy+4, fs, .56, 'right', lh);
+});
+
 
     // line points
     const pts = [];
@@ -955,12 +1291,7 @@ if (pts.length >= 2){
   ctx.beginPath();
   ctx.moveTo(pts[0].x, y1);
   ctx.lineTo(pts[0].x, pts[0].y);
-  for (let i=1; i<pts.length-1; i++){
-    const midX = (pts[i].x + pts[i+1].x)/2;
-    const midY = (pts[i].y + pts[i+1].y)/2;
-    ctx.quadraticCurveTo(pts[i].x, pts[i].y, midX, midY);
-  }
-  ctx.lineTo(pts[pts.length-1].x, pts[pts.length-1].y);
+  addSmoothCurve(ctx, pts, 0.95);
   ctx.lineTo(pts[pts.length-1].x, y1);
   ctx.closePath();
   ctx.fill();
@@ -1070,12 +1401,7 @@ if (pts.length >= 2){
   ctx.beginPath();
   ctx.moveTo(pts[0].x, y1);
   ctx.lineTo(pts[0].x, pts[0].y);
-  for (let i=1; i<pts.length-1; i++){
-    const midX = (pts[i].x + pts[i+1].x)/2;
-    const midY = (pts[i].y + pts[i+1].y)/2;
-    ctx.quadraticCurveTo(pts[i].x, pts[i].y, midX, midY);
-  }
-  ctx.lineTo(pts[pts.length-1].x, pts[pts.length-1].y);
+  addSmoothCurve(ctx, pts, 0.95);
   ctx.lineTo(pts[pts.length-1].x, y1);
   ctx.closePath();
   ctx.fill();
@@ -1106,8 +1432,21 @@ ctx.save();
     }
   }
 
-  // X labels
-  renderXAxis(ctx, w, h, series, {x0,x1,y1, padB});
+// Focus marker (selected on tap, or hover on desktop)
+const focusISO = state.hoverChartISO || state.selectedChartISO;
+if (focusISO){
+  const fp = hitPoints.find(p=>p.iso === focusISO);
+  if (fp){
+    drawChartFocus(ctx, fp, {x0,x1,y0,y1});
+  } else {
+    if (state.hoverChartISO === focusISO) state.hoverChartISO = null;
+    if (state.selectedChartISO === focusISO) state.selectedChartISO = null;
+  }
+}
+
+// X labels
+renderXAxis(ctx, w, h, series, {x0,x1,y1, padB});
+  updateChartInsight(series);
 }
 
 /* X-axis labels rules:
@@ -1219,13 +1558,19 @@ function pickPoint(ev){
   const y = (ev.clientY - rect.top)  * dpr;
 
   let best=null, bestD=1e9;
+
+  const xOnly = (state.metric === 'se'); // easier to tap bars
+
   hitPoints.forEach(p=>{
-    const dx=x - p.x, dy=y - p.y;
-    const dd = dx*dx + dy*dy;
+    const dx = x - p.x;
+    const dy = y - p.y;
+    const dd = xOnly ? (dx*dx) : (dx*dx + dy*dy);
     if (dd < bestD){ bestD=dd; best=p; }
   });
+
   if (!best) return null;
-  const thr = (state.metric === 'se') ? (30*dpr)*(30*dpr) : (26*dpr)*(26*dpr);
+
+  const thr = xOnly ? (36*dpr)*(36*dpr) : (26*dpr)*(26*dpr);
   if (bestD > thr) return null;
   return best;
 }
@@ -1266,6 +1611,11 @@ function renderPie(series){
   let filtered = items.filter(x=>x.value>0);
   if (!filtered.length) filtered = [{name:'Нет данных', value: 1}];
 
+  // sort slices + legend by descending share (looks "smarter")
+  if (!(filtered.length === 1 && filtered[0].name === 'Нет данных')){
+    filtered.sort((a,b)=> (b.value - a.value) || String(a.name).localeCompare(String(b.name),'ru'));
+  }
+
   const total = filtered.reduce((s,x)=> s + x.value, 0) || 1;
 
   // pastel palette
@@ -1281,107 +1631,92 @@ function renderPie(series){
   const cy = Math.round(h*0.48);
   const r  = Math.round(Math.min(w,h)*0.34);
 
-  // subtle shadow under the pie
+  // subtle shadow under the pie (very light — keep it "flat")
   ctx.save();
-  ctx.fillStyle = 'rgba(0,0,0,.35)';
+  ctx.fillStyle = 'rgba(0,0,0,.20)';
   ctx.beginPath();
-  ctx.ellipse(cx, cy + Math.round(r*0.32), Math.round(r*0.78), Math.round(r*0.28), 0, 0, Math.PI*2);
+  ctx.ellipse(cx, cy + Math.round(r*0.30), Math.round(r*0.74), Math.round(r*0.24), 0, 0, Math.PI*2);
   ctx.fill();
   ctx.restore();
 
-  // draw slices (with depth, separators, selection)
-pieSectors = [];
-let a0 = -Math.PI/2;
-filtered.forEach((it, idx)=>{
-  const a = (it.value/total) * Math.PI*2;
-  const aMid = a0 + a/2;
+  // draw slices (almost flat, with soft separators + selection)
+  pieSectors = [];
+  let a0 = -Math.PI/2;
 
-  const col = palette[idx % palette.length];
+  filtered.forEach((it, idx)=>{
+    const a = (it.value/total) * Math.PI*2;
+    const aMid = a0 + a/2;
 
-  // selection "pop-out" offset
-  const sel = (state.selectedPie === idx);
-  const off = sel ? Math.round(r*0.05) : 0;
-  const ox = Math.cos(aMid) * off;
-  const oy = Math.sin(aMid) * off;
+    const col = palette[idx % palette.length];
 
-  // subtle slice shadow for depth
-  ctx.save();
-  ctx.shadowColor = 'rgba(0,0,0,.32)';
-  ctx.shadowBlur = sel ? 26 : 18;
-  ctx.shadowOffsetY = sel ? 10 : 8;
-  ctx.beginPath();
-  ctx.moveTo(cx+ox, cy+oy);
-  ctx.arc(cx+ox, cy+oy, r, a0, a0+a);
-  ctx.closePath();
-  ctx.fillStyle = col;
-  ctx.fill();
-  ctx.restore();
+    // selection "pop-out" (subtle)
+    const sel = (state.selectedPie === idx);
+    const off = sel ? Math.round(r*0.03) : 0;
+    const ox = Math.cos(aMid) * off;
+    const oy = Math.sin(aMid) * off;
 
-  // inner highlight gradient per slice (soft texture)
-  ctx.save();
-  ctx.globalCompositeOperation = 'source-atop';
-  const sg = ctx.createRadialGradient(cx - r*0.25 + ox, cy - r*0.25 + oy, r*0.08, cx+ox, cy+oy, r*1.02);
-  sg.addColorStop(0, 'rgba(255,255,255,.22)');
-  sg.addColorStop(0.55, 'rgba(255,255,255,.06)');
-  sg.addColorStop(1, 'rgba(255,255,255,0)');
-  ctx.fillStyle = sg;
-  ctx.beginPath();
-  ctx.moveTo(cx+ox, cy+oy);
-  ctx.arc(cx+ox, cy+oy, r, a0, a0+a);
-  ctx.closePath();
-  ctx.fill();
-  ctx.restore();
+    // fill
+    ctx.save();
+    if (sel){
+      ctx.shadowColor = 'rgba(0,0,0,.22)';
+      ctx.shadowBlur = 10;
+      ctx.shadowOffsetY = 6;
+    }
+    ctx.beginPath();
+    ctx.moveTo(cx+ox, cy+oy);
+    ctx.arc(cx+ox, cy+oy, r, a0, a0+a);
+    ctx.closePath();
+    ctx.fillStyle = col;
+    ctx.fill();
+    ctx.restore();
 
-  // thicker soft separators
-  ctx.save();
-  ctx.strokeStyle = 'rgba(255,255,255,.16)';
-  ctx.lineWidth = sel ? 2.2 : 1.6;
-  ctx.shadowColor = 'rgba(0,0,0,.22)';
-  ctx.shadowBlur = sel ? 10 : 8;
-  ctx.beginPath();
-  ctx.moveTo(cx+ox, cy+oy);
-  ctx.arc(cx+ox, cy+oy, r, a0, a0+a);
-  ctx.closePath();
-  ctx.stroke();
-  ctx.restore();
+    // soft separators
+    ctx.save();
+    ctx.strokeStyle = sel ? 'rgba(255,255,255,.22)' : 'rgba(255,255,255,.16)';
+    ctx.lineWidth = sel ? 2.0 : 1.4;
+    ctx.beginPath();
+    ctx.moveTo(cx+ox, cy+oy);
+    ctx.arc(cx+ox, cy+oy, r, a0, a0+a);
+    ctx.closePath();
+    ctx.stroke();
+    ctx.restore();
 
-  it._color = col;
+    it._color = col;
 
-  pieSectors.push({
-    idx,
-    a0,
-    a1: a0 + a,
-    cx: cx+ox, cy: cy+oy, r,
-    name: it.name, value: it.value,
-    total,
+    pieSectors.push({
+      idx,
+      a0,
+      a1: a0 + a,
+      cx: cx+ox, cy: cy+oy, r,
+      name: it.name, value: it.value,
+      total,
+    });
+
+    a0 += a;
   });
 
-  a0 += a;
-});
-
-  // gentle highlight texture across whole pie
+  // gentle highlight across the whole pie (very subtle)
   ctx.save();
-  ctx.globalCompositeOperation = 'source-atop';
-  const hg = ctx.createRadialGradient(cx - r*0.35, cy - r*0.35, r*0.10, cx, cy, r*1.05);
-  hg.addColorStop(0, 'rgba(255,255,255,.26)');
-  hg.addColorStop(0.55, 'rgba(255,255,255,.07)');
+  const hg = ctx.createRadialGradient(cx - r*0.30, cy - r*0.34, r*0.10, cx, cy, r*1.05);
+  hg.addColorStop(0, 'rgba(255,255,255,.14)');
+  hg.addColorStop(0.55, 'rgba(255,255,255,.05)');
   hg.addColorStop(1, 'rgba(255,255,255,0)');
   ctx.fillStyle = hg;
   ctx.beginPath(); ctx.arc(cx,cy,r,0,Math.PI*2); ctx.fill();
   ctx.restore();
 
-  // soft rim
+  // soft rim (thin)
   ctx.save();
-  ctx.strokeStyle = 'rgba(255,255,255,.10)';
-  ctx.lineWidth = Math.max(2, Math.round(r*0.06));
-  ctx.beginPath(); ctx.arc(cx,cy, r - ctx.lineWidth/2, 0, Math.PI*2); ctx.stroke();
+  ctx.strokeStyle = 'rgba(255,255,255,.08)';
+  ctx.lineWidth = 2;
+  ctx.beginPath(); ctx.arc(cx,cy, r - 1, 0, Math.PI*2); ctx.stroke();
   ctx.restore();
 
   // center label removed (per UX)
-
-  // legend
+// legend
   els.legend.innerHTML = '';
   filtered.forEach(it=>{
+    const pct = total ? Math.round((it.value / total) * 100) : 0;
     const row = document.createElement('div');
     row.className = 'lg';
     row.innerHTML = `
@@ -1389,12 +1724,11 @@ filtered.forEach((it, idx)=>{
         <span class="dot" style="background:${it._color}"></span>
         <span class="lg-name">${escapeHtml(it.name)}</span>
       </div>
-      <div class="lg-val">${it.value}</div>
+      <div class="lg-val"><span class="n">${it.value}</span><span class="pct">${pct}%</span></div>
     `;
     els.legend.appendChild(row);
   });
 }
-
 /* ===================== Summary render ===================== */
 function renderSummary(series){
   const list = series.list;
@@ -1458,6 +1792,20 @@ function fmtInt(n){
 }
 
 /* ===================== Wiring ===================== */
+let chartRAF = 0;
+function requestChartRedraw(){
+  if (chartRAF) return;
+  chartRAF = requestAnimationFrame(()=>{
+    chartRAF = 0;
+    if (currentSeries) renderChart(currentSeries);
+  });
+}
+function clearChartFocus(){
+  state.selectedChartISO = null;
+  state.hoverChartISO = null;
+}
+
+
 function attachSeg(segEl, key, attr){
   segEl.addEventListener('click', (e)=>{
     const b = e.target && e.target.closest ? e.target.closest('button') : null;
@@ -1470,14 +1818,16 @@ function attachSeg(segEl, key, attr){
       if (v === 'month'){
         const d = new Date();
         const last = new Date(d.getFullYear(), d.getMonth()+1, 0);
-        state.anchorISO = toISO(last);
+        state.anchors.chart = state.anchors.pie = state.anchors.summary = toISO(last);
       } else {
-        state.anchorISO = todayISO();
+        state.anchors.chart = state.anchors.pie = state.anchors.summary = todayISO();
       }
       state.selectedPie = null;
+      clearChartFocus();
       hideTip(); hidePieTip();
     }
     if (key === 'pie'){ state.selectedPie = null; hidePieTip(); }
+    if (key === 'metric'){ clearChartFocus(); hideTip(); }
     segEl.querySelectorAll('button').forEach(x=> x.classList.toggle('active', x===b));
     rerender();
   });
@@ -1487,22 +1837,68 @@ attachSeg(els.rangeSeg,  'range',  'data-range');
 attachSeg(els.metricSeg, 'metric', 'data-metric');
 attachSeg(els.pieSeg,    'pie',    'data-pie');
 
-// Tooltip interactions
+// Independent month switching per block (Charts / Diagrams / Summary)
+function handleMonthClick(e){
+  const btn = e.target && e.target.closest ? e.target.closest('.month-btn') : null;
+  if (!btn) return;
+  const sw = e.target.closest('.month-switch');
+  if (!sw) return;
+  const role = sw.getAttribute('data-role');
+  const dir = Number(btn.getAttribute('data-dir') || 0);
+  if (!dir || state.range !== 'month') return;
+
+  if (role === 'chart') state.anchors.chart = shiftMonth(state.anchors.chart, dir);
+  else if (role === 'pie') state.anchors.pie = shiftMonth(state.anchors.pie, dir);
+  else if (role === 'summary') state.anchors.summary = shiftMonth(state.anchors.summary, dir);
+
+  if (role === 'chart'){ hideTip(); clearChartFocus(); }
+  rerender();
+}
+els.chartFooter?.addEventListener('click', handleMonthClick);
+els.pieFooter?.addEventListener('click', handleMonthClick);
+els.summaryFooter?.addEventListener('click', handleMonthClick);
+
+// Tooltip + focus interactions
 els.chart.addEventListener('pointerdown', (e)=>{
   const p = pickPoint(e);
-  if (!p){ hideTip();
-  return; }
+  if (!p){
+    hideTip();
+    clearChartFocus();
+    requestChartRedraw();
+    return;
+  }
+  state.selectedChartISO = p.iso;
+  state.hoverChartISO = null;
   showTip(p, e.clientX, e.clientY);
+  requestChartRedraw();
+  try{ window.Telegram?.WebApp?.HapticFeedback?.impactOccurred?.('light'); }catch(_){}
 }, {passive:true});
+
 els.chart.addEventListener('pointermove', (e)=>{
-  // on desktop: hover
+  // on desktop: hover shows tooltip and focus, but doesn't overwrite the saved tap-selection
   if (e.pointerType === 'mouse'){
     const p = pickPoint(e);
-    if (!p){ hideTip(); return; }
+    if (!p){
+      if (state.hoverChartISO){
+        state.hoverChartISO = null;
+        requestChartRedraw();
+      }
+      hideTip();
+      return;
+    }
+    state.hoverChartISO = p.iso;
     showTip(p, e.clientX, e.clientY);
+    requestChartRedraw();
   }
 }, {passive:true});
-els.chart.addEventListener('pointerleave', hideTip, {passive:true});
+
+els.chart.addEventListener('pointerleave', ()=>{
+  if (state.hoverChartISO){
+    state.hoverChartISO = null;
+    requestChartRedraw();
+  }
+  hideTip();
+}, {passive:true});
 // Pie interactions: tap a slice to get explanation
 function piePick(ev){
   const rect = els.pie.getBoundingClientRect();
@@ -1560,6 +1956,15 @@ els.pie.addEventListener('pointerdown', (e)=>{
     if (currentSeries) renderPie(currentSeries);
     return;
   }
+
+  // tap same sector again -> unselect
+  if (state.selectedPie === s.idx){
+    state.selectedPie = null;
+    hidePieTip();
+    if (currentSeries) renderPie(currentSeries);
+    return;
+  }
+
   state.selectedPie = s.idx;
   // re-render only the pie (no full rerender), then show tooltip
   if (currentSeries) renderPie(currentSeries);
@@ -1571,73 +1976,48 @@ els.pie.addEventListener('pointerleave', hidePieTip, {passive:true});
 
 window.addEventListener('resize', ()=> rerender(), {passive:true});
 
-function rerender(){
-  const series = buildSeries(state.range, state.anchorISO);
-  currentSeries = series;
-
-
-// Month switch footer (only for Month view)
-if (state.range === 'month'){
-  els.chartFooter.classList.add('show');
-
-  // label from anchor month
-  els.chartFooter.innerHTML = `
-    <div class="month-switch">
-      <button class="month-btn" type="button" id="mPrev" aria-label="Предыдущий месяц">‹</button>
-      <div class="month-label" id="mLabel">${escapeHtml(monthLabel(state.anchorISO))}</div>
-      <button class="month-btn" type="button" id="mNext" aria-label="Следующий месяц">›</button>
+function shiftMonth(anchorISO, dir){
+  const d = parseISO(anchorISO);
+  d.setDate(15);
+  d.setMonth(d.getMonth() + dir);
+  return lastDayOfMonthISO(toISO(d));
+}
+function renderMonthFooter(container, role, anchorISO){
+  if (!container) return;
+  if (state.range !== 'month'){
+    container.classList.remove('show');
+    container.innerHTML = '';
+    return;
+  }
+  container.classList.add('show');
+  container.innerHTML = `
+    <div class="month-switch" data-role="${role}">
+      <button class="month-btn" type="button" data-dir="-1" aria-label="Предыдущий месяц">‹</button>
+      <div class="month-label">${escapeHtml(monthLabel(anchorISO))}</div>
+      <button class="month-btn" type="button" data-dir="1" aria-label="Следующий месяц">›</button>
     </div>`;
-
-  const prev = document.getElementById('mPrev');
-  const next = document.getElementById('mNext');
-
-  const lastDayOfMonthISO = (iso)=>{
-    const d = parseISO(iso);
-    const y = d.getFullYear(), m = d.getMonth();
-    const last = new Date(y, m+1, 0).getDate();
-    d.setDate(last);
-    return toISO(d);
-  };
-
-  prev?.addEventListener('click', ()=>{
-    const d = parseISO(state.anchorISO);
-    d.setDate(15); // safe middle of month
-    d.setMonth(d.getMonth()-1);
-    state.anchorISO = lastDayOfMonthISO(toISO(d));
-    hideTip(); hidePieTip();
-    rerender();
-  });
-
-  next?.addEventListener('click', ()=>{
-    const d = parseISO(state.anchorISO);
-    d.setDate(15);
-    d.setMonth(d.getMonth()+1);
-    state.anchorISO = lastDayOfMonthISO(toISO(d));
-    hideTip(); hidePieTip();
-    rerender();
-  });
-
-} else {
-  els.chartFooter.classList.remove('show');
-  els.chartFooter.innerHTML = '';
 }
 
+function rerender(){
+  const chartSeries = buildSeries(state.range, state.anchors.chart);
+  const pieSeries = buildSeries(state.range, state.anchors.pie);
+  const sumSeries = buildSeries(state.range, state.anchors.summary);
 
+  currentSeries = chartSeries;
+  currentPieSeries = pieSeries;
 
-  if (state.range === 'week'){
-    els.subtitle.textContent = 'за неделю';
-  } else if (state.range === 'month'){
-    if (series.list.length) els.subtitle.textContent = `за месяц • ${monthSpanLabel(series.list[0].iso, series.list[series.list.length-1].iso)}`;
-    else els.subtitle.textContent = 'за месяц';
-  } else {
-    els.subtitle.textContent = 'за курс';
-  }
+  if (state.range === 'week') els.subtitle.textContent = 'за неделю';
+  else if (state.range === 'month') els.subtitle.textContent = 'за месяц';
+  else els.subtitle.textContent = 'за курс';
 
-  renderChart(series);
-  renderPie(series);
-  renderSummary(series);
-  hideTip();
+  renderMonthFooter(els.chartFooter, 'chart', state.anchors.chart);
+  renderMonthFooter(els.pieFooter, 'pie', state.anchors.pie);
+  renderMonthFooter(els.summaryFooter, 'summary', state.anchors.summary);
 
+  renderChart(chartSeries);
+  renderPie(pieSeries);
+  renderSummary(sumSeries);
+  hideTip(); hidePieTip();
 }
 
 // initial
@@ -1651,6 +2031,7 @@ function safeBoot(){
 }
 
 safeBoot();
+
 </script>
 <!-- RT: conditional buffering loader (BODY end) -->
 <script id="rt-buffer-loader-js">
