@@ -1,13 +1,22 @@
 // ====== imports / setup ======
+process.env.NODE_ENV ||= 'production';
 require('dotenv').config();
-process.env.NODE_ENV ||= ((process.env.RENDER || process.env.RENDER_SERVICE_ID || process.env.RENDER_EXTERNAL_HOSTNAME) ? 'production' : 'development');
 process.on('uncaughtException', err => console.error('UNCAUGHT', err));
 process.on('unhandledRejection', err => console.error('UNHANDLED', err));
 const { bot, WEBAPP_URL } = require('./bot'); // импорт один раз
 // === Telegram helper (кнопки для отметки приёма)
-function appUrlFor(tgId) {
+function appUrlFor(tgId, extraQuery = '') {
   const base = (process.env.WEBAPP_URL || WEBAPP_URL || '').replace(/\/+$/,'');
-  return `${base}/main?tg=${tgId}`;
+  const q = new URLSearchParams();
+  if (tgId) q.set('tg', String(tgId)); // полезно для твоего dev-режима и отладки
+  if (extraQuery) {
+    // extraQuery вида "tab=calendar" или "from=tg"
+    extraQuery.replace(/^\?/, '').split('&').forEach(p => {
+      const [k,v] = p.split('=');
+      if (k) q.set(k, v ?? '');
+    });
+  }
+  return `${base}/?${q.toString()}`;
 }
 
 async function sendReminder(tgId, text) {
@@ -60,129 +69,12 @@ app.use(cors({
 
 
 // ====== DB pool ======
-const dsn = String(process.env.DATABASE_URL || '').trim().replace(/^['"]|['"]$/g,'');
+const dsn = process.env.DATABASE_URL;
 if (!dsn) throw new Error('DATABASE_URL is empty');
 
-let __pgUrl = null;
-try { __pgUrl = new URL(dsn); } catch (_) {}
-
-const __isProdEnv = String(process.env.NODE_ENV || '').toLowerCase() === 'production';
-console.log('[ENV] NODE_ENV=', process.env.NODE_ENV, 'RENDER=', !!(process.env.RENDER || process.env.RENDER_SERVICE_ID || process.env.RENDER_EXTERNAL_HOSTNAME));
-
-// SSL: можно форсировать через PG_SSL (1/0/true/false). Если не задано — авто:
-// - если в URL есть sslmode=require/prefer/verify* => SSL ON
-// - иначе SSL ON для внешних хостов, OFF для localhost
-const PG_SSL_RAW = String(process.env.PG_SSL ?? '').trim().toLowerCase();
-const PG_SSL_SET = PG_SSL_RAW.length > 0;
-let useSSL;
-if (PG_SSL_SET) {
-  useSSL = (PG_SSL_RAW === '1' || PG_SSL_RAW === 'true' || PG_SSL_RAW === 'on' || PG_SSL_RAW === 'require');
-} else {
-  const host = __pgUrl?.hostname || '';
-  const sslmode = String(__pgUrl?.searchParams?.get('sslmode') || '').toLowerCase();
-  if (sslmode) {
-    useSSL = !['disable','off','false','0'].includes(sslmode);
-  } else {
-    useSSL = !!host && !['localhost','127.0.0.1'].includes(host);
-  }
-}
-console.log('[PG] ssl enabled:', useSSL, PG_SSL_SET ? '(forced by PG_SSL)' : '(auto)');
-
-// Пул: в dev больше коннектов, чтобы не ловить таймауты на параллельных запросах
-const PG_POOL_MAX = Number(process.env.PG_POOL_MAX || (__isProdEnv ? 5 : 8));
-
 const pool = new Pool({
-  connectionString: dsn,
-  ssl: useSSL ? { rejectUnauthorized: false } : false,
-
-  max: PG_POOL_MAX,
-
-  // быстрее фейлимся вместо зависаний на минуту
-  connectionTimeoutMillis: Number(process.env.PG_CONN_TIMEOUT_MS || 8000),
-  idleTimeoutMillis: 30000,
-
-  // для удалённой БД чаще стабильнее с keepAlive
-  keepAlive: true,
-  keepAliveInitialDelayMillis: 10000,
+  connectionString: dsn
 });
-
-// полезно видеть реальные ошибки пула
-pool.on('error', (err) => {
-  console.error('[PG] pool error:', err?.code, err?.message || err);
-});
-
-pool.on('connect', (client) => {
-  // чтобы запросы без схемы шли в derma
-  client.query('SET search_path TO derma, public').catch(()=>{});
-});
-
-function redactPgUrl(raw){
-  try{
-    if(!raw) return '(missing)';
-    const u = new URL(String(raw).trim().replace(/^['"]|['"]$/g,''));
-    const user = u.username || '';
-    const host = u.host || '';
-    const db   = (u.pathname || '').replace(/^\//,'');
-    const ssl  = u.searchParams.get('sslmode') || (String(raw).includes('sslmode=') ? 'present' : '');
-    return `postgres://${user}:***@${host}/${db}${ssl ? `?sslmode=${ssl}` : ''}`;
-  }catch{
-    return '(bad DATABASE_URL)';
-  }
-}
-
-console.log('[PG] EFFECTIVE DATABASE_URL =', redactPgUrl(process.env.DATABASE_URL));
-
-// ===== PG query wrapper =====
-// 1) Шунтируем лишние `SET search_path ...` (search_path и так выставляется в pool.on('connect')).
-// 2) Ретрай (1 раз) включаем только в production или если явно выставлен PG_RETRY=1.
-const __poolQuery = pool.query.bind(pool);
-const __isProd = String(process.env.NODE_ENV || '').toLowerCase() === 'production';
-const __pgRetryRaw = String(process.env.PG_RETRY || (__isProd ? '1' : '0')).trim().toLowerCase();
-const __pgRetryEnabled = !['0','false','off','no'].includes(__pgRetryRaw);
-console.log('[PG] retry enabled:', __pgRetryEnabled, '(PG_RETRY=', process.env.PG_RETRY || '', ')');
-
-function __isSetSearchPath(args){
-  try {
-    const q0 = args[0];
-    const sql = (typeof q0 === 'string') ? q0 : (q0 && typeof q0.text === 'string' ? q0.text : '');
-    return !!(sql && /^\s*set\s+search_path\b/i.test(sql));
-  } catch (_) { return false; }
-}
-
-if (!__pgRetryEnabled) {
-  // Без ретрая (быстрее для локальной разработки)
-  pool.query = async (...args) => {
-    if (__isSetSearchPath(args)) return { rows: [], rowCount: 0 };
-    return __poolQuery(...args);
-  };
-} else {
-  const __sleep = (ms) => new Promise(r => setTimeout(r, ms));
-  pool.query = async (...args) => {
-    if (__isSetSearchPath(args)) return { rows: [], rowCount: 0 };
-    try {
-      return await __poolQuery(...args);
-    } catch (e) {
-      const msg = String(e?.message || e || '');
-      const isTransient = (e) => {
-        const msg  = String(e && (e.message || e) || '').toLowerCase();
-        const code = String(e && e.code || '').toUpperCase();
-        if (msg.includes('connection terminated unexpectedly')) return true;
-        // Это чаще очередь/перегруз или проблемы сети; ретрай здесь только увеличивает задержки.
-        if (msg.includes('timeout exceeded when trying to connect')) return false;
-        if (msg.includes('could not connect to server')) return true;
-        if (msg.includes('terminating connection due to administrator command')) return true;
-        if (['ECONNRESET','EPIPE','ETIMEDOUT','ENETUNREACH','EHOSTUNREACH'].includes(code)) return true;
-        if (['57P01','57P02','57P03','08006','08003','53300','40001'].includes(code)) return true;
-        return false;
-      };
-      if (!isTransient(e)) throw e;
-      console.warn('[PG] transient error -> retry once:', msg);
-      await __sleep(250);
-      return __poolQuery(...args);
-    }
-  };
-}
-
 // ==== helpers: нормализация дат и вставка дозы ====
 function isoTsOrZ(iso) {
   // 'YYYY-MM-DD' => начало дня в UTC; иначе — корректный ISO
@@ -215,202 +107,57 @@ async function addIntake(pool, userId, iso, mg) {
     throw e;
   }
 }
-
-// ==== intakes helpers (поддержка разных схем таблицы derma.intakes) ====
-// Возвращает число (numeric) либо null, если таблица/колонки недоступны.
-async function sumTakenMgForDayFromIntakes(patientId, dayISO){
-  const d = String(dayISO || '').slice(0,10);
-  if (!/^\d{4}-\d{2}-\d{2}$/.test(d)) return null;
-
-  // 1) schema with DATE column "day"
-  try {
-    const r = await pool.query(
-      `SELECT COALESCE(SUM(mg),0)::numeric AS mg
-         FROM derma.intakes
-        WHERE user_id=$1 AND day=$2::date`,
-      [patientId, d]
-    );
-    return Number(r.rows?.[0]?.mg || 0);
-  } catch (e) {
-    // ignore and try other schema
-  }
-
-  // 2) schema with TIMESTAMPTZ column "at"
-  try {
-    const r = await pool.query(
-      `SELECT COALESCE(SUM(mg),0)::numeric AS mg
-         FROM derma.intakes
-        WHERE user_id=$1 AND ("at"::date)=$2::date`,
-      [patientId, d]
-    );
-    return Number(r.rows?.[0]?.mg || 0);
-  } catch (e) {
-    return null;
-  }
-}
-
-// Список дневных сумм из derma.intakes (если доступно). Возвращает [{date:'YYYY-MM-DD', mg:number}, ...] либо null.
-async function listDailyFromIntakes(patientId, limit=60){
-  const lim = Math.min(Math.max(Number(limit)||60, 1), 180);
-
-  // 1) schema with DATE column "day"
-  try {
-    const r = await pool.query(
-      `SELECT day::date AS date, COALESCE(SUM(mg),0)::numeric AS mg
-         FROM derma.intakes
-        WHERE user_id=$1
-        GROUP BY 1
-        ORDER BY 1 DESC
-        LIMIT $2`,
-      [patientId, lim]
-    );
-    return r.rows.map(x => ({ date: String(x.date).slice(0,10), mg: Number(x.mg||0) }));
-  } catch (e) {
-    // ignore and try other schema
-  }
-
-  // 2) schema with TIMESTAMPTZ column "at"
-  try {
-    const r = await pool.query(
-      `SELECT ("at"::date) AS date, COALESCE(SUM(mg),0)::numeric AS mg
-         FROM derma.intakes
-        WHERE user_id=$1
-        GROUP BY 1
-        ORDER BY 1 DESC
-        LIMIT $2`,
-      [patientId, lim]
-    );
-    return r.rows.map(x => ({ date: String(x.date).slice(0,10), mg: Number(x.mg||0) }));
-  } catch (e) {
-    return null;
-  }
-}
-// === intakes indexes: critical for speed when table grows ===
-let __ensureIntakesIdxPromise = null;
-async function ensureIntakesIndexes() {
-  if (__ensureIntakesIdxPromise) return __ensureIntakesIdxPromise;
-  __ensureIntakesIdxPromise = (async () => {
-    // Try both known schemas: column "day" (date) or column "at" (timestamptz)
-    try { await pool.query(`CREATE INDEX IF NOT EXISTS intakes_user_day_idx ON derma.intakes(user_id, day);`); } catch (_) {}
-    try { await pool.query(`CREATE INDEX IF NOT EXISTS intakes_user_at_idx ON derma.intakes(user_id, "at");`); } catch (_) {}
-  })();
-  return __ensureIntakesIdxPromise;
-}
-
-// ===== ensure-once guards (avoid concurrent DDL storms) =====
-let _ensureDayPlansOnce = null;
-let _ensurePhotosOnce = null;
-let _ensureDoctorCommentsOnce = null;
-let _ensureDoctorProfilesOnce = null;
 // === day_plans: planned daily dose per patient per date (set by patient or doctor)
-let __ensureDayPlansPromise = null;
-
 async function ensureDayPlansTable(){
-  if (__ensureDayPlansPromise) return __ensureDayPlansPromise;
-
-  __ensureDayPlansPromise = (async () => {
-    await pool.query('SET search_path = derma, public');
-    await pool.query(`
-      CREATE TABLE IF NOT EXISTS derma.day_plans (
-        patient_id  integer NOT NULL REFERENCES derma.users(id) ON DELETE CASCADE,
-        at_date     date    NOT NULL,
-        planned_mg  integer,
-        set_by      text    DEFAULT 'patient',
-        set_by_id   integer,
-        updated_at  timestamptz DEFAULT now(),
-        PRIMARY KEY(patient_id, at_date)
-      );
-    `);
-    await pool.query(`
-      CREATE INDEX IF NOT EXISTS day_plans_patient_date_idx
-      ON derma.day_plans(patient_id, at_date);
-    `);
-  })();
-
-  return __ensureDayPlansPromise;
+  await pool.query('SET search_path = derma, public');
+  await pool.query(`
+    CREATE TABLE IF NOT EXISTS derma.day_plans (
+      patient_id  integer NOT NULL REFERENCES derma.users(id) ON DELETE CASCADE,
+      at_date     date    NOT NULL,
+      planned_mg  integer,
+      set_by      text    DEFAULT 'patient',
+      set_by_id   integer,
+      updated_at  timestamptz DEFAULT now(),
+      PRIMARY KEY(patient_id, at_date)
+    );
+  `);
+  await pool.query(`
+    CREATE INDEX IF NOT EXISTS day_plans_patient_date_idx
+    ON derma.day_plans(patient_id, at_date);
+  `);
 }
-
 
 
 // === photos: daily patient photos for doctor view (saved as data_url or remote url)
-let __ensurePhotosPromise = null;
-
 async function ensurePhotosTable(){
-  if (__ensurePhotosPromise) return __ensurePhotosPromise;
+  await pool.query('SET search_path = derma, public');
+  await pool.query(`
+    CREATE TABLE IF NOT EXISTS derma.photos (
+      id         bigserial PRIMARY KEY,
+      patient_id integer NOT NULL REFERENCES derma.users(id) ON DELETE CASCADE,
+      at_date    date    NOT NULL,
+      kind       text    NOT NULL DEFAULT 'face',
+      url        text    NOT NULL,
+      meta       jsonb   DEFAULT '{}'::jsonb,
+      created_at timestamptz DEFAULT now()
+    );
+  `);
 
-  __ensurePhotosPromise = (async () => {
-    await pool.query('SET search_path = derma, public');
-    await pool.query(`
-      CREATE TABLE IF NOT EXISTS derma.photos (
-        id         bigserial PRIMARY KEY,
-        patient_id integer NOT NULL REFERENCES derma.users(id) ON DELETE CASCADE,
-        at_date    date    NOT NULL,
-        kind       text    NOT NULL DEFAULT 'face',
-        url        text    NOT NULL,
-        meta       jsonb   DEFAULT '{}'::jsonb,
-        created_at timestamptz DEFAULT now()
-      );
-    `);
+  // one photo per slot per day
+  await pool.query(`
+    CREATE UNIQUE INDEX IF NOT EXISTS photos_patient_date_kind_uq
+      ON derma.photos(patient_id, at_date, kind);
+  `);
 
-    await pool.query(`
-      CREATE INDEX IF NOT EXISTS photos_patient_date_idx
+  await pool.query(`
+    CREATE INDEX IF NOT EXISTS photos_patient_date_idx
       ON derma.photos(patient_id, at_date);
-    `);
-  })();
-
-  return __ensurePhotosPromise;
+  `);
 }
 
 
-// === doctor_comments: comments from doctor to patient (visible in patient doctor card)
-async function ensureDoctorCommentsTable(){
-  if (_ensureDoctorCommentsOnce) return _ensureDoctorCommentsOnce;
-  _ensureDoctorCommentsOnce = (async () => {
-    await pool.query('SET search_path = derma, public');
-    await pool.query(`
-      CREATE TABLE IF NOT EXISTS derma.doctor_comments (
-        id         bigserial PRIMARY KEY,
-        doctor_id  integer NOT NULL REFERENCES derma.users(id) ON DELETE CASCADE,
-        patient_id integer NOT NULL REFERENCES derma.users(id) ON DELETE CASCADE,
-        diary_date date,
-        kind       text    NOT NULL DEFAULT 'comment',
-        text       text    NOT NULL,
-        created_at timestamptz DEFAULT now()
-      );
-    `);
-    await pool.query(`
-      CREATE INDEX IF NOT EXISTS doctor_comments_patient_created_idx
-        ON derma.doctor_comments(patient_id, created_at DESC);
-    `);
-    await pool.query(`
-      CREATE INDEX IF NOT EXISTS doctor_comments_doctor_patient_idx
-        ON derma.doctor_comments(doctor_id, patient_id);
-    `);
-  })();
-  return _ensureDoctorCommentsOnce;
-}
 
-
-// === doctor_profiles: optional experience_years (years of practice)
-async function ensureDoctorProfilesExperienceColumn(){
-  if (_ensureDoctorProfilesOnce) return _ensureDoctorProfilesOnce;
-  _ensureDoctorProfilesOnce = (async () => {
-    await pool.query('SET search_path = derma, public');
-    await pool.query(`
-      ALTER TABLE IF EXISTS derma.doctor_profiles
-        ADD COLUMN IF NOT EXISTS experience_years integer
-    `);
-    try{
-      await pool.query(`
-        ALTER TABLE derma.doctor_profiles
-          ADD CONSTRAINT doctor_profiles_experience_years_chk
-          CHECK (experience_years IS NULL OR (experience_years >= 0 AND experience_years <= 80))
-      `);
-    }catch(_){}
-  })();
-  return _ensureDoctorProfilesOnce;
-}
-
+try { console.log('PG host:', new URL(dsn).hostname); } catch {}
 
 // ====== TG WebApp auth helpers ======
 // Берём токен из ENV, а если его забыли — из уже созданного экземпляра бота
@@ -447,12 +194,7 @@ function parseAndVerifyInitData(initData) {
   return { user };
 }
 
-function parseTgIdLike(v) {
-  const m = String(v ?? '').match(/\d+/); // берём первую группу цифр
-  const n = m ? Number(m[0]) : NaN;
-  return (n && !Number.isNaN(n)) ? n : null;
-}
-
+// DEV-дружественная аутентификация: initData (Telegram) или ?tg=<num> (dev).
 // DEV-дружественная аутентификация: initData (Telegram) или ?tg=<num> (dev).
 async function tgAuth(req, res, next) {
   try {
@@ -465,29 +207,10 @@ async function tgAuth(req, res, next) {
     let tgId = null, fullName = null;
     let parsed = null;
 
-    const rawHeader =
-  req.get('X-Telegram-InitData') ||
-  req.get('x-telegram-initdata') ||
-  req.get('tgwebappdata') ||          // часто так шлют
-  req.get('tg-webapp-data') ||        // иногда так
-  req.get('Telegram-InitData') ||     // иногда так
-  '';
+    const rawHeader = req.get('X-Telegram-InitData') || req.get('x-telegram-initdata') || '';
     const rawQuery  = req.query.tgWebAppData || req.query.initData || '';
 
-    let parseErr = null;
-if (rawHeader) {
-  try { parsed = parseAndVerifyInitData(rawHeader); }
-  catch (e) { parseErr = e; }
-}
-if (!parsed && rawQuery) {
-  try { parsed = parseAndVerifyInitData(rawQuery); }
-  catch (e) { parseErr = e; }
-}
-
-// Если нет tgId — логируем причину (временно, для отладки)
-if (!parsed && (rawHeader || rawQuery) && parseErr) {
-  console.warn('initData verify failed:', String(parseErr.message || parseErr));
-}
+    if (rawHeader) { try { parsed = parseAndVerifyInitData(rawHeader); } catch (_) {} }
     if (!parsed && rawQuery) { try { parsed = parseAndVerifyInitData(rawQuery); } catch (_) {} }
 
     if (parsed?.user?.id) {
@@ -501,67 +224,45 @@ if (!parsed && (rawHeader || rawQuery) && parseErr) {
 
     // 2) DEV: из ?tg=… или X-Dev-TG (локальная разработка)
     if (!tgId) {
-      const devTgRaw = req.query.tg || req.header('X-Dev-TG');
-if (devTgRaw && (isLocal || process.env.ALLOW_DEV_TG === '1')) {
-  const n = parseTgIdLike(devTgRaw);
-  if (!n) return res.status(401).json({ error: 'BOT_INVALID' });
-  tgId = n;
-  fullName = fullName || `Dev User ${tgId}`;
-  req.tgUser = { id: tgId };
-}
-
-    }
-
-    // 3) Фолбэк: просто цифра в ?tg=… (для запуска в браузере без Telegram)
-    if (!tgId) {
-      const n = parseTgIdLike(req.query.tg);
-      if (n) {
+      const devTg = req.query.tg || req.header('X-Dev-TG');
+      if (devTg && (isLocal || process.env.ALLOW_DEV_TG === '1')) {
+        const n = Number(devTg);
+        if (!n || Number.isNaN(n)) return res.status(401).json({ error: 'BOT_INVALID' });
         tgId = n;
-        fullName = fullName || `Web User ${tgId}`;
+        fullName = fullName || `Dev User ${tgId}`;
         req.tgUser = { id: tgId };
       }
     }
-    
+
+    // 3) Фолбэк: просто цифра в ?tg=… (для запуска в браузере без Telegram)
+    if (!tgId && /^\d+$/.test(String(req.query.tg || ''))) {
+      tgId = Number(req.query.tg);
+      fullName = fullName || `Web User ${tgId}`;
+      req.tgUser = { id: tgId };
+    }
 
     if (!tgId) return res.status(401).json({ error: 'BOT_INVALID' });
     fullName = (fullName && fullName.trim()) || `User ${tgId}`;
 
-    // 4) Создаём пользователя (если отсутствует) и получаем uid.
-    // ВАЖНО: НЕ делаем UPDATE на каждом запросе — это убивало скорость и могло забивать пул.
+    // 4) Создаём пользователя с обязательным full_name
     const ins = await pool.query(
       `INSERT INTO derma.users (tg_id, role, full_name)
-       VALUES ($1::bigint, 'patient', $2)
+       VALUES ($1, 'patient', $2)
        ON CONFLICT (tg_id) DO NOTHING
        RETURNING id`,
       [tgId, fullName]
     );
 
-    let uid = ins.rows[0]?.id || null;
-
-    if (!uid) {
-      // читаем существующего
-      const r = await pool.query(
-        'SELECT id, full_name FROM derma.users WHERE tg_id=$1::bigint',
-        [tgId]
+    // 5) Если пользователь уже существовал — подстрахуем, чтобы full_name не оставался NULL
+    if (ins.rowCount === 0) {
+      await pool.query(
+        `UPDATE derma.users
+           SET full_name = COALESCE(full_name, $2)
+         WHERE tg_id = $1`,
+        [tgId, fullName]
       );
-      uid = r.rows[0]?.id || null;
-
-      // подстрахуем full_name ТОЛЬКО если он пустой
-      const curName = String(r.rows[0]?.full_name || '').trim();
-      if (uid && fullName && !curName) {
-        await pool.query(
-          `UPDATE derma.users
-              SET full_name = $2
-            WHERE id = $1
-              AND (full_name IS NULL OR btrim(full_name)='')`,
-          [uid, fullName]
-        );
-      }
     }
 
-    if (!uid) return res.status(500).json({ error: 'USER_CREATE_FAILED' });
-
-    req.uid = uid;
     req.isFreshUser = ins.rowCount > 0;
     req.tg = tgId;
     return next();
@@ -576,8 +277,9 @@ async function ensureUser(req) {
   try {
     let tgId = Number(req.tg) || null;
     if (!tgId && req.tgUser?.id) tgId = Number(req.tgUser.id);
-    if (!tgId && (req.query?.tg || req.body?.tg)) tgId = parseTgIdLike(req.query.tg || req.body.tg);
+    if (!tgId && (req.query?.tg || req.body?.tg)) tgId = Number(req.query.tg || req.body.tg);
     if (!tgId || Number.isNaN(tgId)) return null;
+
     await pool.query('SET search_path = derma, public');
 
     const ins = await pool.query(
@@ -665,7 +367,7 @@ app.get('/api/state/next/index', tgAuth, async (req, res) => {
     }
 
     // 2) Повторный вход — решаем по роли и статусу онбординга
-    const uid = req.uid;
+    const uid = await userIdByTg(req.tg || req.tgUser?.id);
     let page = '/dark/main.html'; // по умолчанию — пациент
 
     if (uid) {
@@ -699,7 +401,7 @@ app.get('/api/state/next/index', tgAuth, async (req, res) => {
 app.get('/api/state/next/welcome', tgAuth, async (req, res) => {
   try {
     await pool.query('SET search_path = derma, public');
-    const uid = req.uid;
+    const uid = await userIdByTg(req.tg || req.tgUser?.id);
     if (!uid) return res.status(401).json({ ok: false, error: 'unauthorized' });
 
     const { isDoctor, onbDone } = await decideDoctorState(uid);
@@ -787,34 +489,6 @@ app.get('/api/debug', async (req, res) => {
     res.status(500).json({ error: String(e) });
   }
 });
-app.get('/api/db-diag', async (req, res) => {
-  if (process.env.ALLOW_DB_DIAG !== '1') return res.status(404).end();
-  try{
-    const who = await pool.query(`
-      select
-        current_database() as db,
-        session_user as session_user,
-        current_user as current_user,
-        current_setting('search_path') as search_path,
-        inet_server_addr() as server_ip,
-        inet_client_addr() as client_ip,
-        now() as now
-    `);
-
-    const counts = await pool.query(`
-      select
-        (select count(*)::int from derma.users) as users,
-        (select count(*)::int from derma.diary) as diary,
-        (select count(*)::int from derma.intakes) as intakes,
-        (select count(*)::int from derma.day_plans) as day_plans,
-        (select count(*)::int from derma.patient_doctors) as patient_doctors
-    `);
-
-    res.json({ ok:true, who: who.rows[0], counts: counts.rows[0] });
-  }catch(e){
-    res.status(500).json({ ok:false, error: String(e && e.message || e), code: e && e.code });
-  }
-});
 
 // публичный FAQ (без tgAuth)
 app.get('/api/faq', async (_, res) => {
@@ -843,24 +517,12 @@ app.get('/api/_routes', (req, res) => {
   res.json(routes.sort());
 });
 
-// маркер "версии" бэка (чтобы фронт мог понять, что сервер живой)
-app.get('/api/_build', (_req, res) => {
-  res.json({
-    ok: true,
-    build:
-      process.env.BUILD_ID ||
-      process.env.RENDER_GIT_COMMIT ||
-      process.env.GIT_COMMIT ||
-      null
-  });
-});
-
-
 // ====== protected routes ======
 app.get('/api/progress', tgAuth, async (req, res) => {
   try {
-    const uid = req.uid;
-    if (!uid) return res.status(401).json({ error: 'unauthorized' });
+    await ensureUser(req);
+    const uid = await userIdByTg(req.tg);
+    if (!uid) return res.status(400).json({ error: 'missing tg (or user not found)' });
 
     const { rows } = await pool.query(`
       SELECT plan_id, patient_id, cum_mg, weight_kg, cum_mg_per_kg,
@@ -908,8 +570,7 @@ app.get('/api/progress', tgAuth, async (req, res) => {
 // последние отметки (GET)
 app.get('/api/dose', tgAuth, async (req, res) => {
   try {
-    const uid = req.uid;
-    if (!uid) return res.status(401).json({ error: 'unauthorized' });
+    const uid = await userIdByTg(req.tg);
     if (!uid) return res.status(400).json({ error: 'missing tg (or user not found)' });
 
     const limit = Math.min(Number(req.query.limit || 14), 90);
@@ -931,8 +592,7 @@ app.get('/api/dose', tgAuth, async (req, res) => {
 // сохранить отметку (POST)
 app.post('/api/dose', tgAuth, async (req, res) => {
   try {
-    const uid = req.uid;
-    if (!uid) return res.status(401).json({ error: 'unauthorized' });
+    const uid = await userIdByTg(req.tg);
     if (!uid) return res.status(400).json({ error: 'missing tg (or user not found)' });
 
     const mg = Number(req.body?.mg);
@@ -958,13 +618,11 @@ app.post('/api/dose', tgAuth, async (req, res) => {
 // Aliases for intakes (совместимость со старым фронтом)
 app.get('/api/intakes', tgAuth, async (req, res) => {
   try {
-    const uid = req.uid;
-    if (!uid) return res.status(401).json({ error: 'unauthorized' });
+    const uid = await userIdByTg(req.tg);
+    if (!uid) return res.status(400).json({ error: 'missing tg' });
 
     const limit = Math.min(Number(req.query.limit || 14), 90);
-
-    // Быстрый путь: читаем из derma.dose_logs (дневная сумма, маленькая таблица)
-    const rLogs = await pool.query(
+    const { rows } = await pool.query(
       `SELECT date, mg_taken AS mg
          FROM derma.dose_logs
         WHERE patient_id=$1
@@ -972,15 +630,7 @@ app.get('/api/intakes', tgAuth, async (req, res) => {
         LIMIT $2`,
       [uid, limit]
     );
-    if ((rLogs.rows || []).length) return res.json(rLogs.rows);
-
-    // Фолбэк: если dose_logs пустой (старые инсталляции) — пробуем derma.intakes
-    // (может быть тяжелее без индекса, поэтому сначала создадим индексы один раз)
-    await ensureIntakesIndexes();
-    const fromIntakes = await listDailyFromIntakes(uid, limit);
-    if (Array.isArray(fromIntakes)) return res.json(fromIntakes);
-
-    return res.json([]);
+    res.json(rows);
   } catch (e) {
     console.error('INTAKES LIST ERROR:', e);
     res.status(500).json({ error: e.message });
@@ -990,7 +640,7 @@ app.get('/api/intakes', tgAuth, async (req, res) => {
 // Безопасная вставка (принимаем date = 'YYYY-MM-DD' или iso; upsert по дате)
 app.post('/api/intakes', tgAuth, async (req, res) => {
   try {
-    const uid = req.uid;
+    const uid = await userIdByTg(req.tg);
     if (!uid) return res.status(401).json({ error: 'unauthorized' });
 
     const mg = Number(req.body?.mg);
@@ -1005,80 +655,20 @@ app.post('/api/intakes', tgAuth, async (req, res) => {
       d = isNaN(dt.getTime()) ? new Date().toISOString().slice(0,10) : dt.toISOString().slice(0,10);
     }
 
-    // Критично: часть схем считает прогресс из derma.intakes (event-log), а часть — из derma.dose_logs (daily summary).
-    // Поэтому пишем в оба источника. Если derma.intakes отсутствует — не валим запрос.
-
-    let wroteIntakes = false;
-    try {
-      await addIntake(pool, uid, d, mg);
-      wroteIntakes = true;
-    } catch (e) {
-      // Таблицы/колонки может не быть — тогда работаем только через dose_logs.
-      wroteIntakes = false;
-    }
-
-    // dose_logs ведём как дневную сумму (инкремент), чтобы несколько добавлений в день работали корректно.
     await pool.query(
       `INSERT INTO derma.dose_logs (patient_id, date, mg_taken)
        VALUES ($1,$2,$3)
        ON CONFLICT (patient_id, date) DO UPDATE
-         SET mg_taken = COALESCE(derma.dose_logs.mg_taken,0) + EXCLUDED.mg_taken`,
+         SET mg_taken = EXCLUDED.mg_taken`,
       [uid, d, mg]
     );
 
-    res.json({ ok: true, date: d, mg, wrote_intakes: wroteIntakes });
+    res.json({ ok: true, date: d, mg });
   } catch (e) {
     console.error('INTAKES POST ERROR:', e);
     res.status(500).json({ error: e.message || 'INTAKES_INSERT_FAILED' });
   }
 });
-
-
-// Batch upsert daily intakes from local diary (to sync doctor view)
-// POST /api/intakes/batch { items: [{date:'YYYY-MM-DD', mg:number}, ...] }
-app.post('/api/intakes/batch', tgAuth, async (req, res) => {
-  try {
-    const uid = req.uid;
-    if (!uid) return res.status(401).json({ error: 'unauthorized' });
-
-    const raw = (req.body && (req.body.items || req.body.data || req.body.intakes)) ?? req.body;
-    const arr = Array.isArray(raw) ? raw : [];
-    if (!arr.length) return res.json({ ok:true, count:0 });
-
-    // normalize + last-write-wins per date
-    const map = new Map();
-    for (const it of arr) {
-      const d = String(it?.date || it?.day || it?.at || '').slice(0,10);
-      if (!/^\d{4}-\d{2}-\d{2}$/.test(d)) continue;
-      let mg = Number(it?.mg ?? it?.dose ?? it?.mg_taken ?? 0);
-      if (!Number.isFinite(mg) || mg < 0) mg = 0;
-      mg = Math.round(mg);
-      map.set(d, mg);
-    }
-
-    const dates = [...map.keys()].sort(); // ASC for stability
-    const mgs   = dates.map(d => map.get(d));
-
-    if (!dates.length) return res.json({ ok:true, count:0 });
-
-    await pool.query('SET search_path = derma, public');
-
-    // Ensure dose_logs has a unique constraint on (patient_id, date) in your schema.
-    await pool.query(`
-      INSERT INTO derma.dose_logs (patient_id, date, mg_taken)
-      SELECT $1::int, x.d::date, x.mg::numeric
-        FROM (SELECT unnest($2::date[]) AS d, unnest($3::numeric[]) AS mg) x
-      ON CONFLICT (patient_id, date)
-      DO UPDATE SET mg_taken = EXCLUDED.mg_taken
-    `, [uid, dates, mgs]);
-
-    res.json({ ok:true, count: dates.length });
-  } catch (e) {
-    console.error('INTAKES BATCH ERROR:', e);
-    res.status(500).json({ error: e.message || 'INTAKES_BATCH_FAILED' });
-  }
-});
-
 
 // Persist user's selected dose mode (optional)
 app.post('/api/dose-mode', tgAuth, async (req, res) => {
@@ -1103,8 +693,7 @@ app.post('/api/dose-mode', tgAuth, async (req, res) => {
 // Reset only intakes and progress-related settings (keep profile)
 app.post('/api/reset', tgAuth, async (req, res) => {
   try {
-    const uid = req.uid;
-    if (!uid) return res.status(401).json({ error: 'unauthorized' });
+    const uid = await userIdByTg(req.tg);
     if (!uid) return res.status(400).json({ error: 'missing tg' });
 
     const del = await pool.query('DELETE FROM derma.dose_logs WHERE patient_id=$1', [uid]);
@@ -1132,7 +721,7 @@ app.post('/api/reset', tgAuth, async (req, res) => {
 app.get('/api/me', tgAuth, async (req, res) => {
   try {
     // УЖЕ аутентифицированы и ensureUser ВЫЗВАН в tgAuth → тут только читаем
-    const uid = req.uid;
+    const uid = await userIdByTg(req.tg || req.tgUser?.id);
     if (!uid) return res.status(401).json({ error: 'unauthorized' });
 
     const { rows } = await pool.query(
@@ -1156,7 +745,7 @@ app.get('/api/me', tgAuth, async (req, res) => {
 app.post('/api/me', tgAuth, async (req, res) => {
   try {
     // Никаких повторных ensureUser — берём текущего пользователя из tg
-    const uid = req.uid;
+    const uid = await userIdByTg(req.tg || req.tgUser?.id);
     if (!uid) return res.status(401).json({ error: 'unauthorized' });
 
     const { weight_kg, height_cm, sex, birth_date, full_name, tz, accepted, allergies, terms_version,
@@ -1212,8 +801,7 @@ const { rows } = await pool.query(
 app.post('/api/doctor/code', tgAuth, async (req, res) => {
   try {
     await pool.query('SET search_path = derma, public');
-    await ensureDoctorProfilesExperienceColumn();
-    const uid = req.uid;
+    const uid = await userIdByTg(req.tg || req.tgUser?.id);
     if (!uid) return res.status(401).json({ error: 'unauthorized' });
 
     const { profile = {}, code: passedCode, settings = {} } = req.body || {};
@@ -1266,31 +854,21 @@ if (takenAny.rowCount && takenAny.rows[0].doctor_id !== uid) {
     );
 
     // 4) апсерт профиля
-    
-// опыт работы (лет) — сохраняем как integer 0..80
-const expRaw = (profile.experienceYears ?? profile.experience_years ?? profile.experience ?? null);
-let expYears = null;
-if (expRaw !== undefined && expRaw !== null && String(expRaw).trim() !== '') {
-  const n = parseInt(expRaw, 10);
-  if (Number.isFinite(n) && n >= 0 && n <= 80) expYears = n;
-}
-
-const prof = {
+    const prof = {
       specialty:   profile.specialty ?? null,
       city:        profile.city ?? null,
       clinic:      profile.clinic ?? null,
       tg:          (profile.tg ?? profile.tg_handle ?? null)?.replace(/^@/,'') || null,
       contact:     profile.contact ?? profile.contact_text ?? null,
-      avatar_url:  (profile.avatarUrl ?? profile.avatar_url ?? req.body?.avatarUrl ?? req.body?.avatar_url ?? null),
-      experience_years: expYears,
+      avatar_url:  profile.avatarUrl ?? profile.avatar_url ?? null,
       accepting:   settings.accepting === true,
       auto_accept: settings.autoAccept === true,
     };
 
     await pool.query(`
       INSERT INTO doctor_profiles
-        (user_id, specialty, city, clinic, tg_handle, contact_text, avatar_url, experience_years, accepting, auto_accept)
-      VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10)
+        (user_id, specialty, city, clinic, tg_handle, contact_text, avatar_url, accepting, auto_accept)
+      VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9)
       ON CONFLICT (user_id) DO UPDATE SET
         specialty    = COALESCE(EXCLUDED.specialty,    doctor_profiles.specialty),
         city         = COALESCE(EXCLUDED.city,         doctor_profiles.city),
@@ -1298,11 +876,10 @@ const prof = {
         tg_handle    = COALESCE(EXCLUDED.tg_handle,    doctor_profiles.tg_handle),
         contact_text = COALESCE(EXCLUDED.contact_text, doctor_profiles.contact_text),
         avatar_url   = COALESCE(EXCLUDED.avatar_url,   doctor_profiles.avatar_url),
-        experience_years = COALESCE(EXCLUDED.experience_years, doctor_profiles.experience_years),
         accepting    = EXCLUDED.accepting,
         auto_accept  = EXCLUDED.auto_accept,
         updated_at   = now()
-    `, [uid, prof.specialty, prof.city, prof.clinic, prof.tg, prof.contact, prof.avatar_url, prof.experience_years, prof.accepting, prof.auto_accept]);
+    `, [uid, prof.specialty, prof.city, prof.clinic, prof.tg, prof.contact, prof.avatar_url, prof.accepting, prof.auto_accept]);
 
     // 5) помечаем, что это врач + сохраняем ФИО
     await pool.query('UPDATE users SET is_doctor=true WHERE id=$1', [uid]);
@@ -1322,13 +899,12 @@ const prof = {
 app.get('/api/doctor/me', tgAuth, async (req, res) => {
   try{
     await pool.query('SET search_path = derma, public');
-    await ensureDoctorProfilesExperienceColumn();
-    const uid = req.uid;
+    const uid = await userIdByTg(req.tg || req.tgUser?.id);
 
     const u  = await pool.query('SELECT is_doctor, full_name FROM derma.users WHERE id=$1',[uid]);
     const dc = await pool.query('SELECT code FROM derma.doctor_codes WHERE doctor_id=$1 AND active',[uid]);
     const dp = await pool.query(`
-      SELECT specialty, city, clinic, tg_handle, contact_text, avatar_url, experience_years, accepting, auto_accept
+      SELECT specialty, city, clinic, tg_handle, contact_text, avatar_url, accepting, auto_accept
         FROM derma.doctor_profiles WHERE user_id=$1`, [uid]);
 
     const profRow = dp.rows[0] || {};
@@ -1340,7 +916,6 @@ app.get('/api/doctor/me', tgAuth, async (req, res) => {
       tg:         profRow.tg_handle ?? null,
       contact:    profRow.contact_text ?? null,
       avatar_url: profRow.avatar_url ?? null,
-      experience_years: profRow.experience_years ?? null,
       accepting:  profRow.accepting ?? null,
       auto_accept:profRow.auto_accept ?? null,
     };
@@ -1361,7 +936,7 @@ app.get('/api/doctor/me', tgAuth, async (req, res) => {
 app.post('/api/doctor/settings', tgAuth, async (req, res) => {
   try{
     await pool.query('SET search_path = derma, public');
-    const uid = req.uid;
+    const uid = await userIdByTg(req.tg || req.tgUser?.id);
 
     // принимаем только явные boolean, иначе не трогаем поле
     const body = req.body || {};
@@ -1390,82 +965,6 @@ app.post('/api/doctor/settings', tgAuth, async (req, res) => {
   }
 });
 
-// Обновление профиля врача (специализация/клиника/город/телеграм/аватар) из кабинета
-app.post('/api/doctor/profile', tgAuth, async (req, res) => {
-  try{
-    await pool.query('SET search_path = derma, public');
-    await ensureDoctorProfilesExperienceColumn();
-    const uid = req.uid;
-    if (!uid) return res.status(401).json({ error:'unauthorized' });
-
-    const b = req.body || {};
-    const clean = (v, max) => {
-      if (v === undefined || v === null) return null;
-      const s = String(v).trim();
-      if (!s) return null;
-      return s.slice(0, max);
-    };
-
-    const name       = clean(b.name, 180);
-    const specialty  = clean(b.specialty ?? b.specialization, 180);
-    const clinic     = clean(b.clinic, 180);
-    const city       = clean(b.city, 180);
-    const tg_handle  = clean(String(b.tg ?? b.tg_handle ?? b.telegram ?? '').replace(/^@/,''), 80);
-    const contact    = clean(b.contact ?? b.contact_text, 400);
-    const avatar_url = clean(b.avatar_url ?? b.avatarUrl ?? b.avatar, 1200);
-
-const expRaw = b.experience_years ?? b.experienceYears ?? b.experience ?? null;
-let experience_years = null;
-if (expRaw !== undefined && expRaw !== null && String(expRaw).trim() !== '') {
-  const n = parseInt(expRaw, 10);
-  if (Number.isFinite(n) && n >= 0 && n <= 80) experience_years = n;
-}
-
-
-    // Upsert профиля: обновляем только то, что пришло (null не затирает поля)
-    await pool.query(
-      `INSERT INTO derma.doctor_profiles (user_id, specialty, clinic, city, tg_handle, contact_text, avatar_url, experience_years)
-       VALUES ($1,$2,$3,$4,$5,$6,$7,$8)
-       ON CONFLICT (user_id) DO UPDATE SET
-         specialty    = COALESCE(EXCLUDED.specialty,    derma.doctor_profiles.specialty),
-         clinic       = COALESCE(EXCLUDED.clinic,       derma.doctor_profiles.clinic),
-         city         = COALESCE(EXCLUDED.city,         derma.doctor_profiles.city),
-         tg_handle    = COALESCE(EXCLUDED.tg_handle,    derma.doctor_profiles.tg_handle),
-         contact_text = COALESCE(EXCLUDED.contact_text, derma.doctor_profiles.contact_text),
-         avatar_url   = COALESCE(EXCLUDED.avatar_url,   derma.doctor_profiles.avatar_url),
-         experience_years = COALESCE(EXCLUDED.experience_years, derma.doctor_profiles.experience_years),
-         updated_at   = now()`,
-      [uid, specialty, clinic, city, tg_handle, contact, avatar_url, experience_years]
-    );
-
-    if (name) {
-      await pool.query('UPDATE derma.users SET full_name=$2 WHERE id=$1', [uid, name]);
-    }
-
-    // вернуть актуальный профиль (как в /api/doctor/me)
-    const u  = await pool.query('SELECT full_name FROM derma.users WHERE id=$1',[uid]);
-    const dp = await pool.query(`
-      SELECT specialty, city, clinic, tg_handle, contact_text, avatar_url, experience_years, accepting, auto_accept
-        FROM derma.doctor_profiles WHERE user_id=$1`, [uid]);
-
-    const profRow = dp.rows[0] || {};
-    res.json({ ok:true, profile:{
-      name:        u.rows?.[0]?.full_name || null,
-      specialty:   profRow.specialty ?? null,
-      clinic:      profRow.clinic ?? null,
-      city:        profRow.city ?? null,
-      tg:          profRow.tg_handle ?? null,
-      contact:     profRow.contact_text ?? null,
-      avatar_url:  profRow.avatar_url ?? null,
-      experience_years: profRow.experience_years ?? null,
-      accepting:   profRow.accepting ?? null,
-      auto_accept: profRow.auto_accept ?? null,
-    }});
-  }catch(e){
-    console.error('DOCTOR PROFILE ERROR:', e);
-    res.status(500).json({ error: e.message });
-  }
-});
 
 app.get('/api/doctor/validate', tgAuth, async (req, res) => {
   try {
@@ -1524,17 +1023,7 @@ app.get('/api/doctor/patients', tgAuth, async (req, res) => {
 
     const ids = base.rows.map(r => r.patient_id);
 
-	    // Прогресс/кумулятив — берём из v_patient_progress (это то, что видит пациент на главной)
-	    // Фолбэк на sum(dose_logs), если вьюхи/плана нет.
-	    const prog = await pool.query(
-	      `SELECT patient_id, cum_mg, weight_kg, daily_dose_mg
-	         FROM derma.v_patient_progress
-	        WHERE patient_id = ANY($1)`,
-	      [ids]
-	    ).catch(()=>({ rows: [] }));
-	    const progMap = new Map((prog.rows||[]).map(r => [r.patient_id, r]));
-
-	    // дозировки: фолбэк (на случай отсутствия плана/v_patient_progress)
+    // дозировки: среднее за 7 дней и кумулятив
     const doses = await pool.query(`
       SELECT patient_id,
              AVG(CASE WHEN date >= CURRENT_DATE - INTERVAL '6 day'
@@ -1545,18 +1034,6 @@ app.get('/api/doctor/patients', tgAuth, async (req, res) => {
        GROUP BY patient_id
     `, [ids]);
     const doseMap = new Map(doses.rows.map(r => [r.patient_id, r]));
-
-
-    // кумулятив и цели — из v_patient_progress (это то, что видит пациент на main)
-    const vp = await pool.query(`
-      SELECT patient_id,
-             cum_mg::numeric                  AS cum_mg,
-             weight_kg::numeric               AS weight_kg,
-             target_opt_cum_mg_per_kg::numeric AS target_mg_per_kg
-        FROM derma.v_patient_progress
-       WHERE patient_id = ANY($1)
-    `, [ids]).catch(()=>({ rows:[] }));
-    const vpMap = new Map(vp.rows.map(r => [r.patient_id, r]));
 
     // последние анализы ALT/AST/TG/CHOL
     const labs = await pool.query(`
@@ -1590,13 +1067,12 @@ app.get('/api/doctor/patients', tgAuth, async (req, res) => {
     const labsMap = new Map(labs.rows.map(r => [r.user_id, r.labs]));
 
     // сборка под фронт (нужен progress_pct)
-	    const out = base.rows.map(r => {
-	      const d = doseMap.get(r.patient_id) || {};
-	      const pr = progMap.get(r.patient_id) || {};
-	      const w = Number(pr.weight_kg || r.weight_kg) || 0;
-	      const goal = w * 135; // дефолтная цель (док. цели можно позже подтянуть из users)
-	      const total = Number((pr.cum_mg != null ? pr.cum_mg : d.total_mg) || 0);
-	      const progress_pct = goal > 0 ? Math.min(100, Math.round(total / goal * 100)) : 0;
+    const out = base.rows.map(r => {
+      const d = doseMap.get(r.patient_id) || {};
+      const w = Number(r.weight_kg) || 0;
+      const goal = w * 135; // дефолтная цель
+      const total = Number(d.total_mg || 0);
+      const progress_pct = goal > 0 ? Math.min(100, Math.round(total / goal * 100)) : 0;
 
       return {
         patient_id:   r.patient_id,
@@ -1604,7 +1080,7 @@ app.get('/api/doctor/patients', tgAuth, async (req, res) => {
         weight_kg:    r.weight_kg,
         sex:          r.sex,
         photo_url:    r.photo_url,
-	        avg7:         Number(d.avg7 || 0),
+        avg7:         Number(d.avg7 || 0),
         total_mg:     total,
         progress_pct,
         // last_report — можно взять max(date) из dose_logs, если нужно:
@@ -1630,138 +1106,96 @@ app.get('/api/doctor/patient/:pid/day', tgAuth, async (req, res) => {
 
     const did  = await userIdByTg(req.tg || req.tgUser?.id);
     const pid  = Number(req.params.pid);
-    const ds   = String(req.query.date || new Date().toISOString().slice(0,10)).slice(0,10);
+    const ds   = (req.query.date || new Date().toISOString().slice(0,10));
 
     // доступ врача к пациенту
     const ok = await pool.query(
-      `SELECT 1 FROM derma.patient_doctors
-        WHERE doctor_id=$1 AND patient_id=$2 AND unbound_at IS NULL`,
+      `select 1 from patient_doctors
+        where doctor_id=$1 and patient_id=$2 and unbound_at is null`,
       [did, pid]
     );
     if (!ok.rowCount) return res.status(403).json({ error:'forbidden' });
 
     await ensurePhotosTable();
-    await ensureDayPlansTable();
 
-    const [patR, diaryR, planR, photosR, progR] = await Promise.all([
+    // параллельные запросы под твою схему
+    const [pat, diary, dayPlan, taken, photos, prog] = await Promise.all([
       pool.query(`
-        SELECT u.id,
-               COALESCE(NULLIF(u.full_name,''), NULLIF(u.tg_username,''), 'Пациент') AS name,
-               COALESCE(NULLIF(u.photo_url,''), NULLIF(u.tg_photo_url,''))          AS avatar_url,
+        select u.id,
+               coalesce(nullif(u.full_name,''), nullif(u.tg_username,''), 'Пациент') as name,
+               coalesce(nullif(u.photo_url,''), nullif(u.tg_photo_url,''))           as avatar_url,
                u.weight_kg, u.sex,
                p.start_date
-          FROM derma.users u
-          LEFT JOIN derma.plans p ON p.patient_id = u.id
-         WHERE u.id = $1
-         LIMIT 1`, [pid]),
+          from derma.users u
+          left join derma.plans p on p.patient_id = u.id
+         where u.id = $1
+         limit 1`, [pid]),
 
       pool.query(`
-        SELECT feeling_score as mood,
-               side_effects  as side_effects,
-               comment       as note
-          FROM derma.diary
-         WHERE patient_id=$1 AND at_date=$2::date
-         ORDER BY id DESC
-         LIMIT 1`, [pid, ds]).catch(()=>({ rows:[] })),
+        select
+          feeling_score              as mood,
+          side_effects               as side_effects,
+          comment                    as note
+        from derma.diary
+        where patient_id=$1 and at_date=$2::date
+        order by id desc
+        limit 1`, [pid, ds]).catch(()=>({rows:[]})),
+        pool.query(`
+          select planned_mg
+            from derma.day_plans
+           where patient_id=$1 and at_date=$2::date
+           limit 1`, [pid, ds]).catch(()=>({rows:[]})),
+      pool.query(`
+        select coalesce(sum(mg_taken),0)::numeric as mg
+          from derma.dose_logs
+         where patient_id=$1 and date=$2::date`, [pid, ds]).catch(()=>({rows:[{mg:0}]})),
 
       pool.query(`
-        SELECT planned_mg
-          FROM derma.day_plans
-         WHERE patient_id=$1 AND at_date=$2::date
-         LIMIT 1`, [pid, ds]).catch(()=>({ rows:[] })),
+        select id, url,
+               coalesce(meta->>'kind','face') as kind,
+               at_date                         as taken_at
+          from derma.photos
+         where patient_id=$1 and at_date=$2::date
+         order by id desc`, [pid, ds]).catch((e)=>{ console.error('PHOTOS QUERY ERROR', e); return {rows:[]}; }),
 
       pool.query(`
-        SELECT id, url,
-               COALESCE(meta->>'kind','face') AS kind,
-               at_date                        AS taken_at
-          FROM derma.photos
-         WHERE patient_id=$1 AND at_date=$2::date
-         ORDER BY id DESC`, [pid, ds]).catch((e)=>{ console.error('PHOTOS QUERY ERROR', e); return { rows:[] }; }),
-
-      pool.query(`
-        SELECT daily_dose_mg, cum_mg, weight_kg,
-               target_opt_cum_mg_per_kg AS target_mg_per_kg
-          FROM derma.v_patient_progress
-         WHERE patient_id=$1
-         LIMIT 1`, [pid]).catch(()=>({ rows:[] }))
+        select daily_dose_mg, cum_mg, weight_kg,
+               target_opt_cum_mg_per_kg as target_mg_per_kg
+          from derma.v_patient_progress
+         where patient_id=$1
+         limit 1`, [pid]).catch(()=>({rows:[]}))
     ]);
 
-    const p  = patR.rows?.[0]  || {};
-    const pr = progR.rows?.[0] || {};
-
-    // факт приёма: сначала пробуем intakes (если таблица есть), иначе dose_logs
-    let takenMg = null;
-    try { takenMg = await sumTakenMgForDayFromIntakes(pid, ds); } catch(_){ takenMg = null; }
-    if (takenMg == null) {
-      const t = await pool.query(
-        `SELECT COALESCE(SUM(mg_taken),0)::numeric AS mg
-           FROM derma.dose_logs
-          WHERE patient_id=$1 AND date=$2::date`,
-        [pid, ds]
-      ).catch(()=>({ rows:[{mg:0}] }));
-      takenMg = Number(t.rows?.[0]?.mg || 0);
-    }
-
-    const planned = (planR.rows?.[0]?.planned_mg ?? null);
-
+    const p = pat.rows?.[0] || {};
+    const pr = prog.rows?.[0] || {};
+    await ensureDayPlansTable();
+    const planDay = await pool.query(
+      `SELECT planned_mg FROM derma.day_plans WHERE patient_id=$1 AND at_date=$2::date`,
+      [pid, ds]
+    );
+    const planned = planDay.rows[0]?.planned_mg ?? null;
+    
     res.json({
       date: ds,
       patient: {
-        id: p.id,
-        name: p.name,
-        avatar_url: p.avatar_url,
-        weight_kg: p.weight_kg,
-        sex: p.sex
+        id: p.id, name: p.name, avatar_url: p.avatar_url,
+        weight_kg: p.weight_kg, sex: p.sex
       },
       course: { start_date: p.start_date || null },
       dose: {
-        current_mg: Number(takenMg || 0),
-        plan_mg: planned,
-        recommended_mg: Number(pr.daily_dose_mg || 0),
+        current_mg: Number(taken.rows?.[0]?.mg || 0),
+        plan_mg: (planDay.rows?.[0]?.planned_mg ?? null),
+recommended_mg: Number(pr.daily_dose_mg || 0),
         cumulative_mg: Number(pr.cum_mg || 0),
         weight_kg: Number(pr.weight_kg || p.weight_kg || 0),
         target_mg_per_kg: Number(pr.target_mg_per_kg || 135)
       },
-      diary: diaryR.rows?.[0] || null,
-      photos: (photosR.rows||[]).map(r => ({ id:r.id, url:r.url, kind:r.kind, taken_at:r.taken_at }))
+      diary: diary.rows?.[0] || null,
+      photos: photos.rows.map(r => ({ id:r.id, url:r.url, kind:r.kind, taken_at:r.taken_at }))
     });
   } catch (e) {
     console.error('DOCTOR DAY SNAPSHOT ERROR:', e);
     res.status(500).json({ error: e.message });
-  }
-});
-app.post('/api/doctor/patient/:pid/comment', tgAuth, async (req, res) => {
-  try{
-    await pool.query('SET search_path = derma, public');
-    await ensureDoctorCommentsTable();
-
-    const did = await userIdByTg(req.tg || req.tgUser?.id);
-    const pid = Number(req.params.pid);
-
-    const text = String(req.body?.text || '').trim();
-    const diary_date = req.body?.diary_date ? String(req.body.diary_date).slice(0,10) : null;
-    const kind = String(req.body?.kind || 'comment').slice(0,30);
-
-    if(!text) return res.status(400).json({ error:'empty text' });
-
-    // validate that doctor attached to patient
-    const rel = await pool.query(`
-      SELECT 1
-        FROM derma.patient_doctors
-       WHERE doctor_id=$1 AND patient_id=$2 AND unbound_at IS NULL
-       LIMIT 1`, [did, pid]);
-
-    if(!rel.rowCount) return res.status(403).json({ error:'not attached' });
-
-    await pool.query(`
-      INSERT INTO derma.doctor_comments(doctor_id, patient_id, diary_date, kind, text)
-      VALUES($1,$2,$3,$4,$5)
-    `, [did, pid, diary_date, kind, text]);
-
-    res.json({ ok:true });
-  }catch(e){
-    console.error('DOCTOR COMMENT POST ERROR:', e);
-    res.status(500).json({ error:e.message });
   }
 });
 
@@ -1788,9 +1222,8 @@ app.get('/api/doctor/patient/:pid/timeline', tgAuth, async (req, res) => {
 
     await ensurePhotosTable();
 
-	    // generate_series по дням и влеваем туда наличие записей/фото
-	    // ВАЖНО: «принятое за день» берём из derma.intakes, если таблица доступна (иначе старые дни могут быть 0/кривые у врача)
-	    const baseSQL = (doseSQL) => `
+    // generate_series по дням и влеваем туда наличие записей/фото
+    const q = await pool.query(`
       with d as (
         select generate_series($2::date, $3::date, interval '1 day')::date as day
       ),
@@ -1808,9 +1241,12 @@ app.get('/api/doctor/patient/:pid/timeline', tgAuth, async (req, res) => {
            and coalesce(meta->>'kind','face') in ('face','body')
          group by 1
       ),
-	      dose as (
-	        ${doseSQL}
-	      )
+      dose as (
+        select date as day, coalesce(sum(mg_taken),0)::numeric as mg
+          from dose_logs
+         where patient_id=$1 and date between $2::date and $3::date
+         group by 1
+      )
       select d.day,
              coalesce(dose.mg,0)::numeric     as dose_mg,
              coalesce(shot.photos,0)::int     as photos_count,
@@ -1820,21 +1256,7 @@ app.get('/api/doctor/patient/:pid/timeline', tgAuth, async (req, res) => {
         left join shot  on shot.day  = d.day
         left join diary on diary.day = d.day
        order by d.day desc
-	    `;
-
-	    let q;
-	    // 1) intakes(day)
-	    try{
-	      q = await pool.query(baseSQL(`select day::date as day, coalesce(sum(mg),0)::numeric as mg\n          from derma.intakes\n         where user_id=$1 and day between $2::date and $3::date\n         group by 1`), [pid, s0, s1]);
-	    }catch(_){
-	      // 2) intakes(at)
-	      try{
-	        q = await pool.query(baseSQL(`select ("at"::date) as day, coalesce(sum(mg),0)::numeric as mg\n            from derma.intakes\n           where user_id=$1 and ("at"::date) between $2::date and $3::date\n           group by 1`), [pid, s0, s1]);
-	      }catch(_){
-	        // 3) fallback: dose_logs
-	        q = await pool.query(baseSQL(`select date as day, coalesce(sum(mg_taken),0)::numeric as mg\n            from dose_logs\n           where patient_id=$1 and date between $2::date and $3::date\n           group by 1`), [pid, s0, s1]).catch(()=>({ rows:[] }));
-	      }
-	    }
+    `, [pid, s0, s1]).catch(()=>({ rows:[] }));
 
     res.json(q.rows);
   } catch (e) {
@@ -1847,7 +1269,7 @@ app.get('/api/doctor/patient/:pid/timeline', tgAuth, async (req, res) => {
 // GET /api/plan-dose?date=YYYY-MM-DD
 app.get('/api/plan-dose', tgAuth, async (req, res) => {
   try {
-    const uid = req.uid;
+    const uid = await userIdByTg(req.tg || req.tgUser?.id);
     if (!uid) return res.status(401).json({ error:'unauthorized' });
 
     await ensureDayPlansTable();
@@ -1871,7 +1293,7 @@ app.get('/api/plan-dose', tgAuth, async (req, res) => {
 // GET /api/plan-dose/range?from=YYYY-MM-DD&to=YYYY-MM-DD
 app.get('/api/plan-dose/range', tgAuth, async (req, res) => {
   try {
-    const uid = req.uid;
+    const uid = await userIdByTg(req.tg || req.tgUser?.id);
     if (!uid) return res.status(401).json({ error:'unauthorized' });
 
     await ensureDayPlansTable();
@@ -1899,7 +1321,7 @@ app.get('/api/plan-dose/range', tgAuth, async (req, res) => {
 // POST /api/plan-dose { date, planned_mg }  (patient sets own plan)
 app.post('/api/plan-dose', tgAuth, async (req, res) => {
   try {
-    const uid = req.uid;
+    const uid = await userIdByTg(req.tg || req.tgUser?.id);
     if (!uid) return res.status(401).json({ error:'unauthorized' });
 
     await ensureDayPlansTable();
@@ -2034,35 +1456,23 @@ app.get('/api/doctor/attached', tgAuth, async (req, res) => {
     const pid = await userIdByTg(req.tg || req.tgUser?.id);
 
     const { rows } = await pool.query(`
-      SELECT
-  u.id AS doctor_id,
-  COALESCE(u.full_name,'Врач') AS name,
-  dp.specialty AS specialization,
-  dp.clinic,
-  dp.city,
-  dp.tg_handle AS tg,
-  dp.accepting,
-  dp.auto_accept,
-  dc.code AS code,
-  (SELECT COUNT(*)::int
-     FROM derma.patient_doctors pd2
-    WHERE pd2.doctor_id = u.id
-      AND pd2.unbound_at IS NULL) AS current_patients,
-  COALESCE(
-    dp.avatar_url,
-    NULLIF(u.tg_photo_url,''),
-    CASE WHEN NULLIF(u.tg_username,'') IS NOT NULL
-         THEN 'https://unavatar.io/telegram/' || u.tg_username
-         ELSE NULL
-    END
-  ) AS avatar_url
-FROM derma.patient_doctors pd
-JOIN derma.users u ON u.id = pd.doctor_id
-LEFT JOIN derma.doctor_profiles dp ON dp.user_id = u.id
-LEFT JOIN derma.doctor_codes dc ON dc.doctor_id = u.id AND dc.active
-WHERE pd.patient_id=$1 AND pd.unbound_at IS NULL
-LIMIT 1
-`, [pid]);
+      SELECT u.id AS doctor_id,
+       COALESCE(u.full_name,'Врач') AS name,
+       dp.clinic, dp.city, dp.accepting, dp.auto_accept,
+       COALESCE(
+         dp.avatar_url,
+         NULLIF(u.tg_photo_url,''),
+         CASE WHEN NULLIF(u.tg_username,'') IS NOT NULL
+              THEN 'https://unavatar.io/telegram/' || u.tg_username
+              ELSE NULL
+         END
+       ) AS avatar_url
+        FROM derma.patient_doctors pd
+        JOIN derma.users u ON u.id = pd.doctor_id
+        LEFT JOIN derma.doctor_profiles dp ON dp.user_id = u.id
+        LEFT JOIN derma.doctor_codes dc ON dc.doctor_id = u.id AND dc.active
+       WHERE pd.patient_id=$1 AND pd.unbound_at IS NULL
+       LIMIT 1`, [pid]);
 
     if (!rows.length) return res.json(null);
     res.json({ ok: true, code: rows[0].code || null, doctor: rows[0] });
@@ -2071,46 +1481,6 @@ LIMIT 1
     res.status(500).json({ error: e.message });
   }
 });
-app.get('/api/doctor/comments', tgAuth, async (req, res) => {
-  try{
-    await pool.query('SET search_path = derma, public');
-    await ensureDoctorCommentsTable();
-
-    const pid = await userIdByTg(req.tg || req.tgUser?.id);
-    const limit = Math.min(Math.max(Number(req.query?.limit)||3,1),50);
-
-    // current attached doctor
-    const doc = await pool.query(`
-      SELECT doctor_id
-        FROM derma.patient_doctors
-       WHERE patient_id=$1 AND unbound_at IS NULL
-       LIMIT 1`, [pid]);
-
-    const did = doc.rows[0]?.doctor_id || null;
-
-    const totalQ = await pool.query(
-      `SELECT COUNT(*)::int AS total
-         FROM derma.doctor_comments
-        WHERE patient_id=$1 AND ($2::int IS NULL OR doctor_id=$2)`,
-      [pid, did]
-    );
-
-    const itemsQ = await pool.query(
-      `SELECT id, doctor_id, patient_id, diary_date, kind, text, created_at
-         FROM derma.doctor_comments
-        WHERE patient_id=$1 AND ($2::int IS NULL OR doctor_id=$2)
-        ORDER BY created_at DESC
-        LIMIT $3`,
-      [pid, did, limit]
-    );
-
-    res.json({ ok:true, total: totalQ.rows[0]?.total || 0, items: itemsQ.rows });
-  }catch(e){
-    console.error('DOCTOR COMMENTS GET ERROR:', e);
-    res.status(500).json({ error:e.message });
-  }
-});
-
 // ===== DOCTOR REQUESTS FLOW =====
 // Пациент создаёт заявку по коду врача
 app.post('/api/doctor/request', tgAuth, async (req, res) => {
@@ -2208,45 +1578,17 @@ app.get('/api/doctor/request', tgAuth, async (req, res) => {
 
     // 1) есть принятый врач?
     const acc = await pool.query(`
-      SELECT
-  u.id AS doctor_id,
-  COALESCE(u.full_name,'Врач') AS name,
-  dp.specialty AS specialization,
-  dp.clinic,
-  dp.city,
-  dp.tg_handle AS tg,
-  (SELECT COUNT(*)::int
-     FROM derma.patient_doctors pd2
-    WHERE pd2.doctor_id = u.id
-      AND pd2.unbound_at IS NULL) AS current_patients,
-  COALESCE(
-    dp.avatar_url,
-    NULLIF(u.tg_photo_url,''),
-    CASE WHEN NULLIF(u.tg_username,'') IS NOT NULL
-         THEN 'https://unavatar.io/telegram/' || u.tg_username
-         ELSE NULL
-    END
-  ) AS avatar_url
-FROM derma.patient_doctors pd
-JOIN derma.users u ON u.id=pd.doctor_id
-LEFT JOIN derma.doctor_profiles dp ON dp.user_id=u.id
-WHERE pd.patient_id=$1 AND pd.unbound_at IS NULL
-LIMIT 1
-`, [pid]);
+      SELECT u.id AS doctor_id, COALESCE(u.full_name,'Врач') AS name,
+             dp.clinic, dp.city, dp.avatar_url
+        FROM derma.patient_doctors pd
+        JOIN derma.users u ON u.id=pd.doctor_id
+        LEFT JOIN derma.doctor_profiles dp ON dp.user_id=u.id
+       WHERE pd.patient_id=$1 AND pd.unbound_at IS NULL
+       LIMIT 1`, [pid]);
     if (acc.rowCount) {
       const d = acc.rows[0];
       return res.json({ ok:true, status:'accepted',
-        doctor:{
-          id: d.doctor_id,
-          name: d.name,
-          specialization: d.specialization,
-          clinic: d.clinic,
-          city: d.city,
-          tg: d.tg,
-          current_patients: d.current_patients,
-          avatar_url: d.avatar_url
-        }
-        });
+        doctor:{ id:d.doctor_id, name:d.name, clinic:d.clinic, city:d.city, avatar_url:d.avatar_url }});
     }
 
     // 2) иначе проверяем «pending»
@@ -2443,8 +1785,7 @@ app.delete('/api/doctor/attach', tgAuth, async (req, res) => {
 // план курса
 app.get('/api/plan', tgAuth, async (req, res) => {
   try {
-    const uid = req.uid;
-    if (!uid) return res.status(401).json({ error: 'unauthorized' });
+    const uid = await userIdByTg(req.tg);
     const r = await pool.query(
       'SELECT patient_id, drug, capsule_mg, start_date FROM derma.plans WHERE patient_id=$1',
       [uid]
@@ -2483,8 +1824,8 @@ app.post('/api/plan', tgAuth, async (req, res) => {
       }
     }
 
-    const patientId = req.uid;
-    if (!patientId) return res.status(401).json({ error: 'unauthorized' });
+    const patientId = await userIdByTg(req.tg || req.tgUser?.id);
+    if (!patientId) return res.status(400).json({ error: 'no user' });
 
     const sql = `
       INSERT INTO derma.plans (patient_id, drug, capsule_mg, start_date)
@@ -2521,8 +1862,7 @@ function labStatus(code, value, sex = 'O') {
 
 app.get('/api/labs', tgAuth, async (req, res) => {
   try {
-    const uid = req.uid;
-    if (!uid) return res.status(401).json({ error: 'unauthorized' });
+    const uid = await userIdByTg(req.tg);
     const { rows } = await pool.query(
       `SELECT lr.id, lt.code, lt.name, lr.date, lr.value_num, lr.units_txt, lr.status
          FROM derma.lab_results lr
@@ -2539,7 +1879,7 @@ app.get('/api/labs', tgAuth, async (req, res) => {
 app.get('/api/diary/day', tgAuth, async (req, res) => {
   try {
     await pool.query('SET search_path = derma, public');
-    const uid = req.uid;
+    const uid = await userIdByTg(req.tg || req.tgUser?.id);
     if (!uid) return res.status(401).json({ error: 'unauthorized' });
 
     await ensurePhotosTable();
@@ -2573,10 +1913,7 @@ app.post('/api/diary/day', tgAuth, async (req, res) => {
     const uid = await userIdByTg(req.tgUser?.id || req.tg);
     if (!uid) return res.status(401).json({ error: 'unauthorized' });
 
-    let dateISO = String(req.body?.date || '').slice(0,10);
-    if (!/^\d{4}-\d{2}-\d{2}$/.test(dateISO)) {
-      dateISO = new Date().toISOString().slice(0,10);
-    }
+    const dateISO  = String(req.body?.date || '').slice(0, 10);
     const score    = Number(req.body?.feeling_score || 0);
     const effects  = req.body?.side_effects || {};
     const comment  = String(req.body?.comment || '');
@@ -2609,7 +1946,7 @@ app.post('/api/diary/day', tgAuth, async (req, res) => {
 // === UPSERT фото дня (по patient_id + date + kind)
 app.post('/api/diary/photo', tgAuth, async (req, res) => {
   try {
-    const uid = req.uid;
+    const uid = await userIdByTg(req.tg || req.tgUser?.id);
     if (!uid) return res.status(401).json({ error:'unauthorized' });
 
     await ensurePhotosTable();
@@ -2645,8 +1982,7 @@ app.post('/api/diary/photo', tgAuth, async (req, res) => {
 
 app.post('/api/labs', tgAuth, async (req, res) => {
   try {
-    const uid = req.uid;
-    if (!uid) return res.status(401).json({ error: 'unauthorized' });
+    const uid = await userIdByTg(req.tg);
     const { code, date, value_num, units_txt } = req.body || {};
     if (!code || !date) return res.status(400).json({ error: 'code and date required' });
 
@@ -2667,7 +2003,7 @@ app.post('/api/labs', tgAuth, async (req, res) => {
 });
 app.get('/api/summary', tgAuth, async (req, res) => {
   try {
-    const uid = req.uid;
+    const uid = await userIdByTg(req.tg);
     if (!uid) return res.status(401).json({ error: 'unauthorized' });
 
     const q = await pool.query(`
@@ -2718,14 +2054,6 @@ app.get('/api/_health', async (req, res) => {
     res.status(500).json({ ok: false, db: false, error: String(e) });
   }
 });
-app.get('/api/_pool', (_req, res) => {
-  res.json({
-    total: pool.totalCount,
-    idle: pool.idleCount,
-    waiting: pool.waitingCount
-  });
-});
-
 // === Перехват старых путей на новые файлы (ДОЛЖНО идти до static) ===
 app.get(['/main', '/plan', '/profile'], (req, res) => {
   const q = req.originalUrl.includes('?') ? req.originalUrl.slice(req.originalUrl.indexOf('?')) : '';
