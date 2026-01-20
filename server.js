@@ -51,6 +51,19 @@ const app = express();
 
 // ⬇️ ПОТОМ вешаем middleware
 app.use(express.json({ limit: '25mb' }));
+// ===== TELEGRAM WEBHOOK ENDPOINT =====
+// Telegram будет слать апдейты сюда (см. bot.setWebHook(`${base}/tg/webhook`))
+app.post('/tg/webhook', (req, res) => {
+  try {
+    // Важно: быстро отвечаем 200, чтобы Telegram не ретраил
+    bot.processUpdate(req.body);
+    res.sendStatus(200);
+  } catch (e) {
+    console.error('TG WEBHOOK ERROR:', e);
+    res.sendStatus(200); // всё равно 200, иначе Telegram будет долбить
+  }
+});
+
 app.use(express.text({ type: 'text/plain', limit: '10mb' }));
 app.use((req, _res, next) => {
   // Если пришёл text/plain, а внутри JSON — аккуратно распарсим в объект
