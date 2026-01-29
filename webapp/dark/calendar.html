@@ -394,6 +394,32 @@ body:not(.plan-mode) .day.weekend{
       border-radius: 17px;
     }
     .day.muted{ opacity:.55; }
+
+    /* Дни до начала курса: слегка размываем/приглушаем и отключаем клики, чтобы не путать пользователя */
+    .day.prestart{
+      opacity: .18;
+      filter: blur(.6px) saturate(.7);
+      pointer-events: none;
+    }
+
+    /* День старта курса — заметный акцент */
+    .day.course-start{
+      box-shadow:
+        0 0 0 2px rgba(66,227,184,.78),
+        0 0 0 1px rgba(255,255,255,.12) inset,
+        0 10px 28px rgba(66,227,184,.18),
+        var(--shadow-soft);
+    }
+    .day.course-start .day-num::after{
+      content:"старт";
+      display:inline-block;
+      margin-left:6px;
+      font-size:10px;
+      font-weight:700;
+      letter-spacing:.08em;
+      text-transform:uppercase;
+      opacity:.75;
+    }
     .day.today{
       box-shadow: 0 0 0 2px rgba(255,255,255,.16), 0 8px 24px rgba(66,227,184,.25), var(--shadow-soft);
     }
@@ -2438,6 +2464,12 @@ function putV2Notes(iso, text){
   const startCol = (first.getDay() + 6) % 7; // Пн=0
   const todayIso = iso(new Date());
 
+  // Дата старта курса (для подсветки и приглушения «до курса»)
+  const courseStartISO = (()=>{
+    const v = String(localStorage.getItem('rt_startISO') || '').slice(0,10);
+    return (/^\d{4}-\d{2}-\d{2}$/.test(v)) ? v : '';
+  })();
+
   // текущая неделя (Пн–Вс) относительно «сегодня»
   const _now = new Date();
   const weekStart = new Date(_now);
@@ -2465,6 +2497,16 @@ const planMg = getPlanMg(id);
 
 const cell = document.createElement('div');
 cell.className = 'day' + (isToday ? ' today' : '') + ((!isPlanMode() && missed) ? ' missed' : '');
+
+// pre-start / start-day выделение
+if (courseStartISO){
+  if (id < courseStartISO){
+    cell.classList.add('prestart');
+    cell.classList.remove('missed'); // до курса не показываем «пропуски»
+  } else if (id === courseStartISO){
+    cell.classList.add('course-start');
+  }
+}
 
 // выходные (Сб/Вс) — лёгкое отличие по фону
 const dow = date.getDay();

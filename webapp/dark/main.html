@@ -70,7 +70,20 @@ try{
       --muted-ink: rgba(255,255,255,.65);
     }
     *{box-sizing:border-box}
-    html,body{height:100%}
+    html{
+  min-height:100%;
+  background-image: var(--bg-grad);
+  background-color:#0b0f16;
+  background-repeat:no-repeat;
+  background-size:cover;
+  background-attachment: fixed; /* чтобы градиент не “перезапускался” */
+}
+
+body{
+  min-height:100%;
+  margin:0;
+  background: transparent !important; /* убираем второй слой, который даёт шов */
+}
     body{margin:0;background:var(--bg);color:var(--text-high);
          font-family:ui-sans-serif,system-ui,-apple-system,Segoe UI,Roboto,Inter,Sora,Helvetica,Arial;
          font-size:16px;line-height:1.5}
@@ -4357,6 +4370,10 @@ if (startW.getMonth() === endW.getMonth() && startW.getFullYear() === endW.getFu
 const ml = document.getElementById('calMonthLabel');
 if (ml) ml.textContent = label;
   const currentIso = (document.getElementById('date')?.value||'').slice(0,10);
+  const startISO = (()=>{
+    const v = String((window.PLAN && (window.PLAN.start_date || window.PLAN.startISO)) || localStorage.getItem('rt_startISO') || '').slice(0,10);
+    return (/^\d{4}-\d{2}-\d{2}$/.test(v)) ? v : '';
+  })();
   const dAll = diaryGet();
   
   for(let i=0;i<7;i++){
@@ -4376,6 +4393,10 @@ const rec  = dAll?.[iso] || {};
 
     const cell = document.createElement('div');
     cell.className = 'day' + (iso === todayISO() ? ' today' : '') + (iso === currentIso ? ' selected' : '') + (monthStart ? ' month-boundary' : '');
+    if (startISO){
+      if (iso < startISO) cell.classList.add('prestart');
+      else if (iso === startISO) cell.classList.add('course-start');
+    }
     cell.setAttribute('data-iso', iso);
 
   // сброс каждый рендер (иначе стили “наследуются”)
@@ -6415,6 +6436,31 @@ window.addEventListener('storage', (e) => {
 /* контент поверх свечения */
 #calPreview .day .day-num{ position: relative; z-index: 2; }
 #calPreview .day .marks{ z-index: 2; }
+
+/* Дни до начала курса — приглушаем, чтобы не путать */
+#calPreview .day.prestart{
+  opacity:.18;
+  filter: blur(.6px) saturate(.7);
+  pointer-events:none;
+}
+
+/* День старта курса — заметный акцент */
+#calPreview .day.course-start{
+  box-shadow:
+    0 0 0 2px rgba(66,227,184,.78),
+    0 0 0 1px rgba(255,255,255,.12) inset,
+    0 10px 28px rgba(66,227,184,.18);
+}
+#calPreview .day.course-start .day-num::after{
+  content:"старт";
+  display:inline-block;
+  margin-left:6px;
+  font-size:10px;
+  font-weight:700;
+  letter-spacing:.08em;
+  text-transform:uppercase;
+  opacity:.75;
+}
 
 
 </style>
