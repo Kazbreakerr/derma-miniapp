@@ -48,7 +48,7 @@ if (!(hasNs || hasOld)) {
   })();
 </script>
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>Roaccutane Tracker </title>
+  <title>Retiora</title>
   <script>
 try{
   const qs  = new URLSearchParams(location.search);
@@ -86,7 +86,15 @@ try{
   background-attachment:fixed,fixed,fixed,fixed;
 }
     .wrap{max-width:900px;margin:0 auto;padding:24px 24px 40px}
-    h1{font-size:28px;line-height:34px;margin:0 0 16px;font-weight:600}
+    h1{margin:0 0 14px;text-align:center}
+    .brandTitle{font-weight:900;letter-spacing:.2px}
+    .brandName{font-size:30px;line-height:34px;display:inline-block}
+    .brandDash{opacity:.75}
+    .brandTag{font-size:18px;line-height:22px;font-weight:800;opacity:.92;display:inline-block;vertical-align:baseline}
+    @media (max-width: 420px){
+      .brandName{font-size:26px;line-height:30px}
+      .brandTag{font-size:15px;line-height:19px}
+    }
     .card{
   position:relative;
   background:
@@ -131,7 +139,7 @@ try{
     inset -6px -6px 12px rgba(255,255,255,.04),
     0 1px 0 rgba(255,255,255,.08);
 }
-    input:focus,select:focus,textarea:focus{border-color:var(--primary-700);box-shadow:0 0 0 2px var(--focus-ring)}
+    input:focus,select:focus,textarea:focus{border-color:var(--primary);box-shadow:0 0 0 2px var(--focus-ring)}
     .chips{display:flex;gap:16px;flex-wrap:wrap}
     .checklist{display:grid;grid-template-columns:repeat(auto-fit,minmax(230px,1fr));gap:10px;margin-top:4px}
     .cta{
@@ -204,6 +212,215 @@ body::before{
   background-image:url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><filter id='n'><feTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='1' stitchTiles='stitch'/></filter><rect width='100%' height='100%' filter='url(%23n)'/></svg>");
   mix-blend-mode:overlay;
 }
+
+/* ===== Plan block helpers ===== */
+.tip{font-size:13px;color:var(--text-low);margin-top:6px}
+.input-error{border-color:var(--danger)!important;box-shadow:0 0 0 2px rgba(239,68,68,.35)!important}
+
+.req-badge{
+  display:inline-flex;align-items:center;gap:8px;
+  padding:6px 10px;border-radius:10px;border:1px solid #315072;
+  background:linear-gradient(180deg,#132034,#0e1626);
+  color:#EAF2FF;font-size:13px;font-weight:800;white-space:nowrap;
+}
+.req-badge svg{width:14px;height:14px;stroke:#7AA2FF}
+
+.rec{
+  background:linear-gradient(180deg,#0F1A2B 0%, #0D1727 100%);
+  border:1px solid rgba(255,255,255,.06);
+  border-radius:14px;
+  padding:14px;
+  box-shadow: inset 0 1px 0 rgba(255,255,255,.03);
+}
+.rec-title{margin:0 0 8px;font-size:18px;font-weight:800}
+.rec-list{margin:0 0 10px 18px;padding:0}
+.rec-list li{margin:6px 0}
+
+.ghost{
+  height:46px;padding:0 16px;border-radius:999px;border:1px solid rgba(255,255,255,.08);
+  background:linear-gradient(180deg,#132034 0%,#0E1626 100%);
+  color:var(--text-high);cursor:pointer;font-weight:800;
+  box-shadow: 8px 10px 18px rgba(0,0,0,.35), -4px -4px 10px rgba(255,255,255,.05);
+}
+.ghost:disabled{opacity:.45;cursor:not-allowed}
+
+/* ===== Wheel picker (glass, dark, mobile-first) ===== */
+.wheel-field{
+  width:100%;
+  display:flex; align-items:center; justify-content:space-between;
+  gap:10px;
+  background:linear-gradient(180deg,#101A2C 0%, #0E1726 100%);
+  border:1px solid rgba(255,255,255,.06);
+  color:var(--text-high);
+  border-radius:14px;
+  padding:12px 14px;
+  font-size:16px; line-height:24px;
+  box-shadow:
+    inset 6px 6px 12px rgba(0,0,0,.35),
+    inset -6px -6px 12px rgba(255,255,255,.04),
+    0 1px 0 rgba(255,255,255,.08);
+  cursor:pointer;
+}
+.wheel-field:focus{outline:none;border-color:var(--primary);box-shadow:0 0 0 3px var(--focus-ring)}
+.wheel-field__text{white-space:nowrap; overflow:hidden; text-overflow:ellipsis}
+.wheel-field__chev{opacity:.7}
+
+.wheel-modal{position:fixed; inset:0; z-index:9999;}
+.wheel-modal[hidden]{display:none}
+.wheel-backdrop{
+  position:absolute; inset:0;
+  background:rgba(0,0,0,.55);
+  backdrop-filter: blur(6px);
+}
+
+.wheel-sheet{
+  position:fixed;
+  left:50%;
+  top:50%;
+  transform:translate(-50%,-50%);
+  width:min(520px, calc(100% - 24px));
+  max-height:calc(100vh - 24px);
+
+  border-radius:20px;
+  border:1px solid rgba(255,255,255,.08);
+  background:
+    radial-gradient(120% 160% at 15% 0%, rgba(20,184,166,.10) 0%, rgba(18,28,46,0) 60%),
+    linear-gradient(180deg, #142034 0%, #0F1A2B 55%, #0D1727 100%);
+  box-shadow: 0 18px 50px rgba(0,0,0,.65), inset 0 1px 0 rgba(255,255,255,.03);
+
+  padding:14px 14px calc(14px + env(safe-area-inset-bottom, 0px));
+  overflow:hidden;
+}
+.wheel-sheet__glow{
+  position:absolute; inset:0; pointer-events:none;
+  background:
+    radial-gradient(80% 120% at 12% 0%, rgba(20,184,166,.16) 0%, rgba(18,28,46,0) 60%),
+    radial-gradient(65% 90% at 100% 0%, rgba(96,165,250,.12) 0%, rgba(18,28,46,0) 65%);
+  opacity:.9;
+}
+
+.wheel-sheet__head{position:relative; display:flex; align-items:flex-start; justify-content:space-between; gap:12px; padding:2px 2px 10px}
+.wheel-title{font-weight:900; font-size:18px; line-height:24px}
+.wheel-sub{color:var(--text-low); font-size:13px}
+.wheel-x{
+  height:40px; width:40px; border-radius:12px;
+  border:1px solid rgba(255,255,255,.08);
+  background:linear-gradient(180deg,#132034 0%,#0E1626 100%);
+  color:var(--text-high);
+  box-shadow: 8px 10px 18px rgba(0,0,0,.35), -4px -4px 10px rgba(255,255,255,.05);
+  cursor:pointer;
+}
+
+.wheel-cols{
+  /* единые переменные для колёс + фокус-строки */
+  --wheel-h: 220px;
+  --item-h: 44px;
+  --pad-top: 10px;
+  --label-h: 14px;
+  --label-gap: 6px;
+
+  position:relative;
+  display:grid;
+  grid-template-columns: 1fr 1.2fr 1fr;
+  gap:10px;
+  padding:var(--pad-top) 6px 6px;
+  border-radius:16px;
+  border:1px solid rgba(255,255,255,.06);
+  background:rgba(10,16,28,.35);
+  backdrop-filter: blur(10px);
+}
+
+.wheel-label{
+  color:var(--text-low);
+  font-size:12px;
+  line-height:var(--label-h);
+  height:var(--label-h);
+  margin:0 0 var(--label-gap) 6px;
+}
+
+.wheel{
+  --wheel-h: 220px;
+  --item-h: 44px;
+
+  height:var(--wheel-h);
+  position:relative;
+  overflow:hidden;
+  touch-action:none;
+  user-select:none;
+
+  border-radius:14px;
+  background:linear-gradient(180deg, rgba(16,26,44,.55), rgba(14,23,38,.35));
+  border:1px solid rgba(255,255,255,.06);
+  box-shadow: inset 6px 6px 12px rgba(0,0,0,.28), inset -6px -6px 12px rgba(255,255,255,.04);
+}
+
+.wheel-list{
+  position:absolute;
+  left:0; right:0; top:0;
+  will-change: transform;
+}
+
+.wheel::before,
+.wheel::after{
+  content:"";
+  position:absolute;
+  left:0; right:0;
+  height:46px;
+  pointer-events:none;
+  z-index:2;
+}
+.wheel::before{
+  top:0;
+  background:linear-gradient(180deg, rgba(13,23,39,.95) 0%, rgba(13,23,39,0) 100%);
+  backdrop-filter: blur(7px);
+}
+.wheel::after{
+  bottom:0;
+  background:linear-gradient(0deg, rgba(13,23,39,.95) 0%, rgba(13,23,39,0) 100%);
+  backdrop-filter: blur(7px);
+}
+
+.wheel-item{
+  height:var(--item-h);
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  font-weight:800;
+  letter-spacing:.2px;
+  color:var(--text-low);
+  cursor:grab;
+}
+.wheel-item:active{ cursor:grabbing; }
+.wheel-item.is-active{
+  color:var(--text-high);
+  font-weight:900;
+}
+
+.wheel-focus{
+  position:absolute;
+  left:8px; right:8px;
+
+  /* центр именно в области wheel (после заголовков) */
+  top: calc(var(--pad-top) + var(--label-h) + var(--label-gap) + (var(--wheel-h) / 2));
+  height: var(--item-h);
+
+  transform:translateY(-50%);
+  border-radius:14px;
+  border:1px solid rgba(96,165,250,.35);
+  background:linear-gradient(180deg, rgba(255,255,255,.08), rgba(255,255,255,.02));
+  box-shadow: 0 10px 22px rgba(0,0,0,.35), inset 0 1px 0 rgba(255,255,255,.10);
+  pointer-events:none;
+}
+
+.wheel-actions{display:flex; gap:12px; justify-content:flex-end; padding:12px 2px 2px}
+
+body.wheel-open{overflow:hidden; touch-action:none}
+
+.desktop-only{display:none}
+@media (min-width: 900px){
+  .desktop-only{display:block}
+}
+
 </style>
 
 
@@ -291,7 +508,7 @@ body::before{
        
       </button>
     </div>
-<h1>Roaccutane Tracker </h1>
+<h1 class="brandTitle"><span class="brandName">Retiora</span> <span class="brandDash">—</span> <span class="brandTag">Retinoid &amp; Isotretinoin Tracker</span></h1>
 
     <section class="card" aria-labelledby="profile-title">
       <div class="glow"></div>
@@ -329,10 +546,23 @@ body::before{
         </div>
       </div>
 
-      <div class="field" style="margin-top:8px;max-width:240px">
-        <label for="p_birth">Дата рождения</label>
-        <input id="p_birth" type="date">
-      </div>
+<div class="field" style="margin-top:8px;max-width:240px">
+  <label for="birthBtn">Дата рождения</label>
+
+  <!-- значение хранится тут (YYYY-MM-DD) -->
+  <input id="p_birth" type="hidden" />
+
+  <button id="birthBtn" type="button" class="wheel-field" aria-haspopup="dialog" aria-controls="birthModal">
+    <span id="birthText" class="wheel-field__text muted">Не выбрано</span>
+    <span class="wheel-field__chev" aria-hidden="true">▾</span>
+  </button>
+
+  <div class="desktop-only" style="margin-top:10px">
+    <div class="muted" style="font-size:13px;margin-bottom:6px">Или введите вручную (на компьютере)</div>
+    <input id="birthManual" type="date" />
+  </div>
+</div>
+
 
       <div style="margin-top:12px">
         <div><b>Аллергии</b> <span class="muted">(выберите из списка или укажите свою):</span></div>
@@ -354,12 +584,163 @@ body::before{
           <label><input id="noAllergies" type="checkbox"> Нет аллергий</label>
         </div>
       </div>
+</section>
+
+    <section class="card" aria-labelledby="plan-title" style="margin-top:16px">
+      <div class="glow"></div>
+      <div class="title">
+        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#60A5FA" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+          <rect x="3" y="4" width="18" height="18" rx="2"/><path d="M3 10h18"/><path d="M8 2v4"/><path d="M16 2v4"/>
+        </svg>
+        <h2 id="plan-title">План курса</h2>
+      </div>
+
+      <div class="field" style="max-width:340px">
+        <label for="plan_drug">Препарат</label>
+        <select id="plan_drug">
+          <option value="roaccutane">Роаккутан</option>
+          <option value="aknekutan">Акнекутан</option>
+          <option value="sotret">Сотрет</option>
+          <option value="verocutan">Верокутан</option>
+        </select>
+      </div>
+
+      <div class="field" style="margin-top:10px;max-width:360px">
+        <label for="startBtn">
+          Дата начала курса:
+          <span class="req-badge" title="Без указания даты план не сохранится">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+              <circle cx="12" cy="12" r="10"></circle>
+              <line x1="12" y1="16" x2="12" y2="12"></line>
+              <line x1="12" y1="8" x2="12" y2="8"></line>
+            </svg>
+            Обязательно
+          </span>
+        </label>
+
+        <!-- значение хранится тут (YYYY-MM-DD) -->
+        <input id="start" type="hidden" />
+
+        <button id="startBtn" type="button" class="wheel-field" aria-haspopup="dialog" aria-controls="startModal">
+          <span id="startText" class="wheel-field__text muted">Не выбрано</span>
+          <span class="wheel-field__chev" aria-hidden="true">▾</span>
+        </button>
+
+        <div class="desktop-only" style="margin-top:10px">
+          <div class="muted" style="font-size:13px;margin-bottom:6px">Или введите вручную (на компьютере)</div>
+          <input id="startManual" type="date" />
+        </div>
+
+        <div id="dateHint" class="tip">Укажите реальную дату начала — это нужно для календаря и расчётов.</div>
+      </div>
+
+      <div class="rec" style="margin-top:14px">
+        <div class="rec-title">Рекомендуемая кумулятивная доза</div>
+        <ul class="rec-list">
+          <li>Минимальная (120 мг/кг): <span id="minDose">—</span> мг</li>
+          <li>Оптимальная (135 мг/кг): <span id="optDose">—</span> мг</li>
+          <li>Максимальная (150 мг/кг): <span id="maxDose">—</span> мг</li>
+        </ul>
+
+        <div class="tip">
+          Суточная доза обычно рассчитывается врачом исходя из массы тела, переносимости и схемы лечения.
+        </div>
+
+        <div class="tip">
+          ⚠️ <b>Индивидуальные схемы (не для всех пациентов)</b>:
+          160–180&nbsp;мг/кг — при тяжёлых формах и высоком риске рецидива,
+          только по показаниям и под контролем врача.
+        </div>
+      </div>
 
       <div class="inline" style="margin-top:14px">
         <button id="btnSaveProfile" class="cta" disabled>Сохранить профиль</button>
         <div id="profMsg" class="muted"></div>
       </div>
     </section>
+
+    <!-- ===== Start date wheel picker (modal) ===== -->
+    <div id="startModal" class="wheel-modal" role="dialog" aria-modal="true" aria-labelledby="startModalTitle" hidden>
+      <div class="wheel-backdrop" data-close-start></div>
+
+      <div class="wheel-sheet" role="document">
+        <div class="wheel-sheet__glow"></div>
+
+        <div class="wheel-sheet__head">
+          <div>
+            <div id="startModalTitle" class="wheel-title">Дата начала курса</div>
+            <div class="wheel-sub">Активна центральная строка — остальные полупрозрачные и слегка размытые.</div>
+          </div>
+          <button type="button" class="wheel-x" data-close-start aria-label="Закрыть">✕</button>
+        </div>
+
+        <div class="wheel-cols" aria-label="Выбор даты начала курса">
+          <div class="wheel-col">
+            <div class="wheel-label">День</div>
+            <div class="wheel" id="startWheelDay" tabindex="0"></div>
+          </div>
+
+          <div class="wheel-col">
+            <div class="wheel-label">Месяц</div>
+            <div class="wheel" id="startWheelMonth" tabindex="0"></div>
+          </div>
+
+          <div class="wheel-col">
+            <div class="wheel-label">Год</div>
+            <div class="wheel" id="startWheelYear" tabindex="0"></div>
+          </div>
+
+          <div class="wheel-focus" aria-hidden="true"></div>
+        </div>
+
+        <div class="wheel-actions">
+          <button type="button" class="ghost" id="startCancel">Отмена</button>
+          <button type="button" class="cta" id="startOk">Готово</button>
+        </div>
+      </div>
+    </div>
+
+
+<!-- ===== Birth date wheel picker (modal) ===== -->
+<div id="birthModal" class="wheel-modal" role="dialog" aria-modal="true" aria-labelledby="birthModalTitle" hidden>
+  <div class="wheel-backdrop" data-close-birth></div>
+
+  <div class="wheel-sheet" role="document">
+    <div class="wheel-sheet__glow"></div>
+
+    <div class="wheel-sheet__head">
+      <div>
+        <div id="birthModalTitle" class="wheel-title">Дата рождения</div>
+        <div class="wheel-sub">Активна центральная строка — остальные полупрозрачные и слегка размытые.</div>
+      </div>
+      <button type="button" class="wheel-x" data-close-birth aria-label="Закрыть">✕</button>
+    </div>
+
+    <div class="wheel-cols" aria-label="Выбор даты рождения">
+      <div class="wheel-col">
+        <div class="wheel-label">День</div>
+        <div class="wheel" id="birthWheelDay" tabindex="0"></div>
+      </div>
+
+      <div class="wheel-col">
+        <div class="wheel-label">Месяц</div>
+        <div class="wheel" id="birthWheelMonth" tabindex="0"></div>
+      </div>
+
+      <div class="wheel-col">
+        <div class="wheel-label">Год</div>
+        <div class="wheel" id="birthWheelYear" tabindex="0"></div>
+      </div>
+
+      <div class="wheel-focus" aria-hidden="true"></div>
+    </div>
+
+    <div class="wheel-actions">
+      <button type="button" class="ghost" id="birthCancel">Отмена</button>
+      <button type="button" class="cta" id="birthOk">Готово</button>
+    </div>
+  </div>
+</div>
 
     <footer>Приложение не даёт медицинских рекомендаций. Решения — только с врачом.</footer>
   </div>
@@ -479,17 +860,42 @@ function api(path, opts = {}) {
     });
 
     // ====== Enable Save only with plausible weight ======
+    function updateRecDoses(){
+      const w = Number(document.getElementById('p_weight').value || 0);
+      const set = (id,val)=>{ const el=document.getElementById(id); if(el) el.textContent = (val===null? '—' : String(val)); };
+      if (w>0){
+        set('minDose', Math.round(120*w));
+        set('optDose', Math.round(135*w));
+        set('maxDose', Math.round(150*w));
+      } else {
+        set('minDose', null); set('optDose', null); set('maxDose', null);
+      }
+    }
+
+    function hasISODate(v){ return /^\d{4}-\d{2}-\d{2}$/.test(String(v||'')); }
+
     function syncSaveBtn(){
       const w = Number(document.getElementById('p_weight').value || 0);
-      const ok = w>20 && w<200;
-      const btn = document.getElementById('btnSaveProfile');
+      const startISO = document.getElementById('start')?.value || '';
+      const ok = (w>20 && w<200) && hasISODate(startISO);
+
+      const btn  = document.getElementById('btnSaveProfile');
       const hint = document.getElementById('profileHint');
+
       btn.disabled = !ok;
-      hint.textContent = ok ? 'Готово к сохранению' : 'Заполните вес, чтобы продолжить';
+      if (!(w>20 && w<200)) hint.textContent = 'Заполните вес, чтобы продолжить';
+      else if (!hasISODate(startISO)) hint.textContent = 'Укажите дату начала курса';
+      else hint.textContent = 'Готово к сохранению';
+
       hint.style.color = ok ? '#5EEAD4' : '';
+      updateRecDoses();
       return ok;
     }
-    ['input','change','keyup','blur'].forEach(ev => document.getElementById('p_weight').addEventListener(ev, syncSaveBtn, {passive:true}));
+
+    // вес влияет и на валидацию, и на расчёт доз
+    ['input','change','keyup','blur'].forEach(ev =>
+      document.getElementById('p_weight').addEventListener(ev, syncSaveBtn, {passive:true})
+    );
 
     // ====== Prefill from server ======
     (async function loadMe(){
@@ -502,6 +908,7 @@ function api(path, opts = {}) {
         if (me.weight_kg) document.getElementById('p_weight').value = me.weight_kg;
         if (me.height_cm) document.getElementById('p_height').value = me.height_cm;
         if (me.birth_date) document.getElementById('p_birth').value = me.birth_date;
+        try{ document.getElementById('p_birth').dispatchEvent(new Event('input')); }catch(_){ }
         (me.allergies||[]).forEach(v=>{
           const cb = document.querySelector('input[name="alg"][value="'+v+'"]');
           if (cb) cb.checked = true; else if (String(v).startsWith('other:')){ document.getElementById('alg_other').value = String(v).slice(6); }
@@ -510,42 +917,920 @@ function api(path, opts = {}) {
       }catch(_){ /* ignore */ }
     })();
 
-    // ====== Save ======
-     document.getElementById('btnSaveProfile').addEventListener('click', async ()=>{
-      
-    const msg = document.getElementById('profMsg');
-    const sex = (document.querySelector('input[name="sex"]:checked')||{}).value || null;
-    const weight_kg = Number(document.getElementById('p_weight').value || 0);
-    const height_cm = Number(document.getElementById('p_height').value || 0) || null;
-    const birth_date = document.getElementById('p_birth').value || null;
-    const checked = [...document.querySelectorAll('input[name="alg"]:checked')].map(i=>i.value);
-    const other = document.getElementById('alg_other').value.trim();
-    const noAll = document.getElementById('noAllergies').checked;
-    const allergies = noAll ? [] : (other ? [...checked, `other:${other}`] : checked);
+  // ====== Prefill plan (drug + start date) ======
+  (async function loadPlan(){
+    const q = new URLSearchParams(location.search);
+    if (q.get('fresh') === '1') return; // если явно просят «чистую» форму — не подставляем
 
-    msg.textContent = 'Сохраняю...';
+    const startInput = document.getElementById('start');
+    const drugSel = document.getElementById('plan_drug');
+
+    // 1) сначала из сервера
     try{
-      const r = await api('/api/me', { method:'POST', body: JSON.stringify({ sex, weight_kg, height_cm, birth_date, allergies }) });
-      if (!r.ok){ let text='Ошибка '+r.status; try{const j=await r.json(); if(j&&j.error) text=j.error;}catch{} msg.textContent=text; return; }
-      msg.textContent = 'Сохранено';
-     try { localStorage.setItem('rt_allergies', JSON.stringify(allergies)); } catch(_){}
-      try{ localStorage.setItem('derma_next','plan'); }catch(_){}
-      const qs = location.search || '';
-      try{
-  const sp = new URLSearchParams(location.search);
-  const tgInit = window.Telegram?.WebApp?.initDataUnsafe?.user?.id;
-  const uid = sp.get('tg') || tgInit || '';
-  if (uid && weight_kg > 0) {
-    localStorage.setItem(`dermaApp:${uid}:weight_kg`, String(weight_kg));
-  }
-  // (необязательная совместимость со старым кодом)
-  if (weight_kg > 0) localStorage.setItem('rt.weight_kg', String(weight_kg));
-}catch(_){}
-      setTimeout(()=>location.replace('./plan.html' + qs), 200);
-    }catch(_){ msg.textContent='Ошибка сети'; }
-  }, { once:true });  // защита от двойного клика
+      const r = await api('/api/plan');
+      if (r.ok){
+        const plan = await r.json();
+        if (plan){
+          if (plan.drug && drugSel) drugSel.value = String(plan.drug);
+          if (plan.start_date && startInput) startInput.value = String(plan.start_date).slice(0,10);
+          // небольшой кеш для welcome/main
+          try{
+            const drugName = drugSel?.options?.[drugSel.selectedIndex]?.textContent?.trim() || '';
+            if (drugName) localStorage.setItem('rt_drug', drugName);
+            if (startInput?.value) localStorage.setItem('rt_startISO', startInput.value);
+          }catch(_){}
+        }
+      }
+    }catch(_){}
 
-    // начальная валидация
+    // 2) если на сервере пусто — попробуем из localStorage
+    try{
+      if (drugSel && !drugSel.value){
+        const lsDrug = localStorage.getItem('rt_drug_key') || localStorage.getItem('rt_plan_drug') || '';
+        if (lsDrug) drugSel.value = lsDrug;
+      }
+      if (startInput && !startInput.value){
+        const lsStart = localStorage.getItem('rt_startISO') || localStorage.getItem('plan_start') || '';
+        if (lsStart) startInput.value = lsStart.slice(0,10);
+      }
+    }catch(_){}
+
+    // обновить UI/валидацию
+    try{ startInput?.dispatchEvent(new Event('input')); }catch(_){}
+    try{ syncSaveBtn(); }catch(_){}
+  })();
+
+    // ====== Save ======
+    document.getElementById('btnSaveProfile').addEventListener('click', async ()=>{
+      const btn = document.getElementById('btnSaveProfile');
+      const msg = document.getElementById('profMsg');
+
+      // финальная валидация
+      if (!syncSaveBtn()){
+        msg.textContent = 'Проверьте обязательные поля';
+        return;
+      }
+
+      const sex = (document.querySelector('input[name="sex"]:checked')||{}).value || null;
+      const weight_kg = Number(document.getElementById('p_weight').value || 0);
+      const height_cm = Number(document.getElementById('p_height').value || 0) || null;
+      const birth_date = document.getElementById('p_birth').value || null;
+
+      const checked = [...document.querySelectorAll('input[name="alg"]:checked')].map(i=>i.value);
+      const other = document.getElementById('alg_other').value.trim();
+      const noAll = document.getElementById('noAllergies').checked;
+      const allergies = noAll ? [] : (other ? [...checked, `other:${other}`] : checked);
+
+      // план курса
+      const drug = document.getElementById('plan_drug').value;
+      const start_date = document.getElementById('start').value || null;
+
+      btn.disabled = true;
+      msg.textContent = 'Сохраняю...';
+
+      try{
+        // 1) профиль
+        const r1 = await api('/api/me', {
+          method:'POST',
+          body: JSON.stringify({ sex, weight_kg, height_cm, birth_date, allergies })
+        });
+        if (!r1.ok){
+          let text = 'Ошибка ' + r1.status;
+          try{ const j=await r1.json(); if(j&&j.error) text=j.error; }catch(_){}
+          msg.textContent = text;
+          btn.disabled = false;
+          return;
+        }
+
+        // 2) план курса
+        if (!start_date){
+          msg.textContent = 'Укажите дату начала курса';
+          btn.disabled = false;
+          document.getElementById('startBtn')?.classList?.add('input-error');
+          return;
+        }
+
+        const r2 = await api('/api/plan', {
+          method:'POST',
+          body: JSON.stringify({ drug, start_date, capsule_mg: undefined })
+        });
+        if (!r2.ok){
+          let text = 'Ошибка ' + r2.status;
+          try{ const j=await r2.json(); if(j&&j.error) text=j.error; }catch(_){}
+          msg.textContent = text;
+          btn.disabled = false;
+          return;
+        }
+
+        msg.textContent = 'Сохранено';
+
+        // кэшируем, чтобы другие страницы сразу подхватили
+        try { localStorage.setItem('rt_allergies', JSON.stringify(allergies)); } catch(_){}
+        try {
+          const drugName = document.getElementById('plan_drug')?.options?.[document.getElementById('plan_drug').selectedIndex]?.textContent?.trim() || '';
+          if (drugName) localStorage.setItem('rt_drug', drugName);
+          if (start_date) localStorage.setItem('rt_startISO', start_date);
+        } catch(_){}
+
+        // привязка к tg uid (как у тебя в других страницах)
+        try{
+          const sp = new URLSearchParams(location.search);
+          const tgInit = window.Telegram?.WebApp?.initDataUnsafe?.user?.id;
+          const uid = sp.get('tg') || tgInit || '';
+          if (uid){
+            if (weight_kg > 0) localStorage.setItem(`dermaApp:${uid}:weight_kg`, String(weight_kg));
+            if (start_date)   localStorage.setItem(`dermaApp:${uid}:plan_start`, start_date);
+          }
+          if (weight_kg > 0) localStorage.setItem('rt.weight_kg', String(weight_kg)); // совместимость
+        }catch(_){}
+
+        try{ localStorage.setItem('derma_next','myprofile'); }catch(_){}
+        const qs = location.search || '';
+        setTimeout(()=>location.replace('./myprofile.html' + qs), 150);
+      }catch(_){
+        msg.textContent = 'Ошибка сети';
+        btn.disabled = false;
+      }
+    });
+
+    // ===== Start date wheel picker logic (modal) =====
+(function initStartWheelPicker(){
+  const startInput  = document.getElementById('start'); // hidden YYYY-MM-DD
+  const startBtn    = document.getElementById('startBtn');
+  const startText   = document.getElementById('startText');
+  const startManual = document.getElementById('startManual');
+
+  const modal   = document.getElementById('startModal');
+  const wheelDayEl   = document.getElementById('startWheelDay');
+  const wheelMonthEl = document.getElementById('startWheelMonth');
+  const wheelYearEl  = document.getElementById('startWheelYear');
+
+  const btnOk     = document.getElementById('startOk');
+  const btnCancel = document.getElementById('startCancel');
+
+  const MONTHS = ['января','февраля','марта','апреля','мая','июня','июля','августа','сентября','октября','ноября','декабря'];
+
+  const NOW = new Date();
+  const NOW_Y = NOW.getFullYear();
+  const NOW_M = NOW.getMonth();
+  const NOW_D = NOW.getDate();
+
+  const YEAR_MIN = NOW_Y - 30;
+  const YEAR_MAX = NOW_Y; // без будущих годов
+
+  let draft = { d:1, m:0, y:NOW_Y };
+  let beforeOpenISO = '';
+
+  const pad2 = (n)=> String(n).padStart(2,'0');
+  const toISO = (y,m,d)=> `${y}-${pad2(m+1)}-${pad2(d)}`;
+  const TODAY_ISO = toISO(NOW_Y, NOW_M, NOW_D);
+
+  function daysInMonth(y, m){ return new Date(y, m+1, 0).getDate(); }
+
+  function parseISO(iso){
+    const m = /^(\d{4})-(\d{2})-(\d{2})$/.exec(iso||'');
+    if(!m) return null;
+    const y = +m[1], mm = +m[2]-1, d = +m[3];
+    if (mm<0 || mm>11) return null;
+    const maxD = daysInMonth(y, mm);
+    if (d<1 || d>maxD) return null;
+    return { y, m:mm, d };
+  }
+
+  function formatHuman({y,m,d}){ return `${d} ${MONTHS[m]} ${y}`; }
+
+  function updateStartText(){
+    const p = parseISO(startInput.value);
+    if (!p){
+      startText.textContent = 'Не выбрано';
+      startText.classList.add('muted');
+      return;
+    }
+    startText.textContent = formatHuman(p);
+    startText.classList.remove('muted');
+  }
+
+  function syncStartManual(){
+    if (!startManual) return;
+    startManual.value = startInput.value || '';
+    startManual.max = TODAY_ISO;
+  }
+
+  if (startManual){
+    startManual.addEventListener('input', ()=>{
+      startInput.value = startManual.value || '';
+      startInput.dispatchEvent(new Event('input'));
+    });
+  }
+
+  startInput.addEventListener('input', ()=>{
+    startBtn?.classList.remove('input-error');
+    startManual?.classList.remove('input-error');
+    updateStartText();
+    syncStartManual();
+  });
+
+  // -------- Wheel (transform + inertia) --------
+  function Wheel(root, values, labelFn, onPick){
+    this.root = root;
+    this.values = values.slice();
+    this.labelFn = labelFn || ((v)=>String(v));
+    this.onPick = onPick || (()=>{});
+    this.list = document.createElement('div');
+    this.list.className = 'wheel-list';
+    root.innerHTML = '';
+    root.appendChild(this.list);
+
+    this.itemH = 44;
+    this.pos = 0;
+    this.v = 0;
+    this.drag = null;
+    this.anim = null;
+    this.snapT = null;
+
+    this._recalc();
+    this._build();
+    this._bind();
+    this._update(true);
+  }
+
+  Wheel.prototype._recalc = function(){
+    const cs = getComputedStyle(this.root);
+    const ih = parseFloat(cs.getPropertyValue('--item-h')) || 44;
+    this.itemH = ih;
+    this.h = this.root.clientHeight || 220;
+    this.center = this.h/2 - this.itemH/2;
+    this.max = Math.max(0, this.values.length - 1);
+  };
+
+  Wheel.prototype._build = function(){
+    this.list.innerHTML = '';
+    const frag = document.createDocumentFragment();
+    this.values.forEach((v, i)=>{
+      const it = document.createElement('div');
+      it.className = 'wheel-item';
+      it.dataset.index = String(i);
+      it.dataset.value = String(v);
+      it.textContent = this.labelFn(v);
+      it.addEventListener('click', ()=>{ this.setIndex(i, true); });
+      frag.appendChild(it);
+    });
+    this.list.appendChild(frag);
+    this._recalc();
+  };
+
+  Wheel.prototype.setValues = function(values, keepValue){
+    const prev = (keepValue !== undefined) ? keepValue : this.getValue();
+    this.values = values.slice();
+    this._build();
+    let idx = this.values.findIndex(v => String(v) === String(prev));
+    if (idx < 0) idx = Math.min(this.max, Math.max(0, Math.round(this.pos)));
+    this.setIndex(idx, false);
+  };
+
+  Wheel.prototype.getValue = function(){
+    const i = Math.min(this.max, Math.max(0, Math.round(this.pos)));
+    return this.values[i];
+  };
+
+  Wheel.prototype.setValue = function(value, animate){
+    const i = this.values.findIndex(v => String(v) === String(value));
+    this.setIndex(i >= 0 ? i : 0, !!animate);
+  };
+
+  Wheel.prototype.setIndex = function(i, animate){
+    i = Math.min(this.max, Math.max(0, i));
+    if (!animate){
+      this._stopAnim();
+      this.pos = i;
+      this._update(true);
+      this.onPick(this.getValue());
+      return;
+    }
+    this._animateTo(i);
+  };
+
+  Wheel.prototype._stopAnim = function(){
+    if (this.anim) cancelAnimationFrame(this.anim);
+    this.anim = null;
+  };
+
+  Wheel.prototype._animateTo = function(target){
+    this._stopAnim();
+    const start = this.pos;
+    const diff = target - start;
+    const t0 = performance.now();
+    const dur = 220;
+    const ease = (t)=> 1 - Math.pow(1 - t, 3);
+
+    const step = (now)=>{
+      const p = Math.min(1, (now - t0) / dur);
+      this.pos = start + diff * ease(p);
+      this._update(false);
+      if (p < 1) this.anim = requestAnimationFrame(step);
+      else {
+        this.anim = null;
+        this.pos = target;
+        this._update(true);
+        this.onPick(this.getValue());
+      }
+    };
+    this.anim = requestAnimationFrame(step);
+  };
+
+  Wheel.prototype._queueSnap = function(){
+    clearTimeout(this.snapT);
+    this.snapT = setTimeout(()=> this._snap(), 120);
+  };
+
+  Wheel.prototype._snap = function(){
+    this._animateTo(Math.round(this.pos));
+  };
+
+  Wheel.prototype._applyBounds = function(next){
+    if (next < 0) return next / 3;
+    if (next > this.max) return this.max + (next - this.max) / 3;
+    return next;
+  };
+
+  Wheel.prototype._update = function(final){
+    const y = this.center - this.pos * this.itemH;
+    this.list.style.transform = `translate3d(0, ${y}px, 0)`;
+
+    const sel = Math.round(this.pos);
+    const items = this.list.children;
+    for (let i=0; i<items.length; i++){
+      const it = items[i];
+      const dist = Math.abs(i - sel);
+      it.classList.toggle('is-active', dist === 0);
+      if (dist === 0){ it.style.opacity='1'; it.style.filter='none'; }
+      else if (dist === 1){ it.style.opacity='0.55'; it.style.filter='blur(0.6px)'; }
+      else if (dist === 2){ it.style.opacity='0.28'; it.style.filter='blur(1px)'; }
+      else { it.style.opacity='0.16'; it.style.filter='blur(1.2px)'; }
+    }
+
+    if (final){
+      this.pos = Math.min(this.max, Math.max(0, this.pos));
+      const yy = this.center - this.pos * this.itemH;
+      this.list.style.transform = `translate3d(0, ${yy}px, 0)`;
+    }
+  };
+
+  Wheel.prototype._bind = function(){
+    this.root.addEventListener('pointerdown', (e)=>{
+      if (e.pointerType === 'mouse' && e.button !== 0) return;
+      this._stopAnim();
+      clearTimeout(this.snapT);
+      this.root.setPointerCapture(e.pointerId);
+      this.drag = { startY:e.clientY, startPos:this.pos, lastY:e.clientY, lastT:performance.now() };
+      this.v = 0;
+      e.preventDefault();
+    }, { passive:false });
+
+    this.root.addEventListener('pointermove', (e)=>{
+      if (!this.drag) return;
+      const dy = e.clientY - this.drag.startY;
+      const raw = this.drag.startPos - (dy / this.itemH);
+      this.pos = this._applyBounds(raw);
+
+      const now = performance.now();
+      const dt = Math.max(1, now - this.drag.lastT);
+      const vy = (e.clientY - this.drag.lastY) / dt;
+      this.v = (-vy / this.itemH);
+
+      this.drag.lastY = e.clientY;
+      this.drag.lastT = now;
+
+      this._update(false);
+    });
+
+    const end = ()=>{
+      if (!this.drag) return;
+      this.drag = null;
+
+      const frictionPer16 = 0.90;
+      let v = this.v;
+      let last = performance.now();
+
+      const step = (now)=>{
+        const dt = now - last;
+        last = now;
+
+        let next = this.pos + v * dt;
+        if (next < 0 || next > this.max) v *= 0.55;
+        next = this._applyBounds(next);
+
+        this.pos = next;
+        this._update(false);
+
+        const k = Math.pow(frictionPer16, dt/16);
+        v *= k;
+
+        if (Math.abs(v) < 0.002){
+          this.anim = null;
+          this.pos = Math.min(this.max, Math.max(0, this.pos));
+          this._snap();
+          return;
+        }
+        this.anim = requestAnimationFrame(step);
+      };
+
+      this._stopAnim();
+      this.anim = requestAnimationFrame(step);
+    };
+
+    this.root.addEventListener('pointerup', end);
+    this.root.addEventListener('pointercancel', end);
+
+    this.root.addEventListener('wheel', (e)=>{
+      e.preventDefault();
+      this._stopAnim();
+      const k = 0.22;
+      const raw = this.pos + (e.deltaY / this.itemH) * k;
+      this.pos = this._applyBounds(raw);
+      this._update(false);
+      this._queueSnap();
+    }, { passive:false });
+
+    this.root.addEventListener('keydown', (e)=>{
+      if (e.key === 'ArrowUp'){ e.preventDefault(); this.setIndex(Math.round(this.pos)-1, true); }
+      if (e.key === 'ArrowDown'){ e.preventDefault(); this.setIndex(Math.round(this.pos)+1, true); }
+      if (e.key === 'PageUp'){ e.preventDefault(); this.setIndex(Math.round(this.pos)-5, true); }
+      if (e.key === 'PageDown'){ e.preventDefault(); this.setIndex(Math.round(this.pos)+5, true); }
+    });
+  };
+
+  const years = [];
+  for (let y=YEAR_MIN; y<=YEAR_MAX; y++) years.push(y);
+
+  let dayWheel, monthWheel, yearWheel;
+
+  function maxMonthForYear(y){ return (y === NOW_Y) ? NOW_M : 11; }
+
+  function rebuildMonths(){
+    const maxM = maxMonthForYear(draft.y);
+    const months = Array.from({length:maxM+1}, (_,i)=>i);
+    draft.m = Math.min(draft.m, maxM);
+    monthWheel.setValues(months, draft.m);
+    monthWheel.setValue(draft.m, false);
+  }
+
+  function rebuildDays(){
+    let maxD = daysInMonth(draft.y, draft.m);
+    if (draft.y === NOW_Y && draft.m === NOW_M) maxD = Math.min(maxD, NOW_D); // без будущих дней
+    const days = Array.from({length:maxD}, (_,i)=>i+1);
+    draft.d = Math.min(draft.d, maxD);
+    dayWheel.setValues(days, draft.d);
+    dayWheel.setValue(draft.d, false);
+  }
+
+  function clampDraftToToday(){
+    const iso = toISO(draft.y, draft.m, draft.d);
+    if (iso > TODAY_ISO){
+      draft = { d: NOW_D, m: NOW_M, y: NOW_Y };
+    }
+  }
+
+  function openModal(){
+    beforeOpenISO = startInput.value || '';
+    const parsed = parseISO(beforeOpenISO);
+    if (parsed) draft = { ...parsed };
+    else draft = { d: NOW_D, m: NOW_M, y: NOW_Y };
+
+    clampDraftToToday();
+
+    if (!monthWheel){
+      dayWheel = new Wheel(wheelDayEl, [1], (v)=>String(v), (v)=>{ draft.d = parseInt(v,10) || 1; });
+      monthWheel = new Wheel(wheelMonthEl, [0], (i)=>MONTHS[i], (v)=>{ draft.m = parseInt(v,10) || 0; rebuildDays(); });
+      yearWheel = new Wheel(wheelYearEl, years, (v)=>String(v), (v)=>{ draft.y = parseInt(v,10) || NOW_Y; rebuildMonths(); rebuildDays(); });
+    }
+
+    yearWheel.setValue(draft.y, false);
+    rebuildMonths();
+    rebuildDays();
+    dayWheel.setValue(draft.d, false);
+
+    modal.hidden = false;
+    document.body.classList.add('wheel-open');
+    try{ startBtn.blur(); }catch(_){}
+  }
+
+  function closeModal(keep){
+    if (!keep) startInput.value = beforeOpenISO || '';
+    modal.hidden = true;
+    document.body.classList.remove('wheel-open');
+    startInput.dispatchEvent(new Event('input'));
+  }
+
+  startBtn.addEventListener('click', openModal);
+  modal.querySelectorAll('[data-close-start]').forEach(el=> el.addEventListener('click', ()=>closeModal(false)));
+  btnCancel.addEventListener('click', ()=>closeModal(false));
+
+  btnOk.addEventListener('click', ()=>{
+    clampDraftToToday();
+    startInput.value = toISO(draft.y, draft.m, draft.d);
+    closeModal(true);
+  });
+
+  document.addEventListener('keydown', (e)=>{
+    if (modal.hidden) return;
+    if (e.key === 'Escape') closeModal(false);
+  });
+
+  // обновить состояние кнопки сохранения
+  try{ startInput.addEventListener('input', ()=>{ try{ syncSaveBtn(); }catch(_){} }, {passive:true}); }catch(_){}
+
+  // initial
+  startInput.dispatchEvent(new Event('input'));
+})();
+
+    // ===== Birth date wheel picker logic (modal) =====
+(function initBirthWheelPicker(){
+  const birthInput  = document.getElementById('p_birth'); // hidden YYYY-MM-DD
+  const birthBtn    = document.getElementById('birthBtn');
+  const birthText   = document.getElementById('birthText');
+  const birthManual = document.getElementById('birthManual');
+
+  const modal   = document.getElementById('birthModal');
+  const wheelDayEl   = document.getElementById('birthWheelDay');
+  const wheelMonthEl = document.getElementById('birthWheelMonth');
+  const wheelYearEl  = document.getElementById('birthWheelYear');
+
+  const btnOk     = document.getElementById('birthOk');
+  const btnCancel = document.getElementById('birthCancel');
+
+  const MONTHS = ['января','февраля','марта','апреля','мая','июня','июля','августа','сентября','октября','ноября','декабря'];
+
+  const NOW = new Date();
+  const NOW_Y = NOW.getFullYear();
+  const NOW_M = NOW.getMonth();
+  const NOW_D = NOW.getDate();
+
+  const YEAR_MIN = Math.max(1920, NOW_Y - 100);
+  const YEAR_MAX = NOW_Y; // без будущих годов
+
+  let draft = { d:1, m:0, y:Math.max(YEAR_MIN, NOW_Y - 25) };
+  let beforeOpenISO = '';
+
+  const pad2 = (n)=> String(n).padStart(2,'0');
+  const toISO = (y,m,d)=> `${y}-${pad2(m+1)}-${pad2(d)}`;
+  const TODAY_ISO = toISO(NOW_Y, NOW_M, NOW_D);
+
+  function daysInMonth(y, m){ return new Date(y, m+1, 0).getDate(); }
+
+  function parseISO(iso){
+    const m = /^(\d{4})-(\d{2})-(\d{2})$/.exec(iso||'');
+    if(!m) return null;
+    const y = +m[1], mm = +m[2]-1, d = +m[3];
+    if (mm<0 || mm>11) return null;
+    const maxD = daysInMonth(y, mm);
+    if (d<1 || d>maxD) return null;
+    return { y, m:mm, d };
+  }
+
+  function formatHuman({y,m,d}){ return `${d} ${MONTHS[m]} ${y}`; }
+
+  function updateBirthText(){
+    const p = parseISO(birthInput.value);
+    if (!p){
+      birthText.textContent = 'Не выбрано';
+      birthText.classList.add('muted');
+      return;
+    }
+    birthText.textContent = formatHuman(p);
+    birthText.classList.remove('muted');
+  }
+
+  function syncBirthManual(){
+    if (!birthManual) return;
+    birthManual.value = birthInput.value || '';
+    birthManual.max = TODAY_ISO;
+  }
+
+  if (birthManual){
+    birthManual.addEventListener('input', ()=>{
+      birthInput.value = birthManual.value || '';
+      birthInput.dispatchEvent(new Event('input'));
+    });
+  }
+
+  birthInput.addEventListener('input', ()=>{
+    updateBirthText();
+    syncBirthManual();
+  });
+
+  // -------- Wheel (transform + inertia) --------
+  function Wheel(root, values, labelFn, onPick){
+    this.root = root;
+    this.values = values.slice();
+    this.labelFn = labelFn || ((v)=>String(v));
+    this.onPick = onPick || (()=>{});
+    this.list = document.createElement('div');
+    this.list.className = 'wheel-list';
+    root.innerHTML = '';
+    root.appendChild(this.list);
+
+    this.itemH = 44;
+    this.pos = 0;
+    this.v = 0;
+    this.drag = null;
+    this.anim = null;
+    this.snapT = null;
+
+    this._recalc();
+    this._build();
+    this._bind();
+    this._update(true);
+  }
+
+  Wheel.prototype._recalc = function(){
+    const cs = getComputedStyle(this.root);
+    const ih = parseFloat(cs.getPropertyValue('--item-h')) || 44;
+    this.itemH = ih;
+    this.h = this.root.clientHeight || 220;
+    this.center = this.h/2 - this.itemH/2;
+    this.max = Math.max(0, this.values.length - 1);
+  };
+
+  Wheel.prototype._build = function(){
+    this.list.innerHTML = '';
+    const frag = document.createDocumentFragment();
+    this.values.forEach((v, i)=>{
+      const it = document.createElement('div');
+      it.className = 'wheel-item';
+      it.dataset.index = String(i);
+      it.dataset.value = String(v);
+      it.textContent = this.labelFn(v);
+      it.addEventListener('click', ()=>{ this.setIndex(i, true); });
+      frag.appendChild(it);
+    });
+    this.list.appendChild(frag);
+    this._recalc();
+  };
+
+  Wheel.prototype.setValues = function(values, keepValue){
+    const prev = (keepValue !== undefined) ? keepValue : this.getValue();
+    this.values = values.slice();
+    this._build();
+    let idx = this.values.findIndex(v => String(v) === String(prev));
+    if (idx < 0) idx = Math.min(this.max, Math.max(0, Math.round(this.pos)));
+    this.setIndex(idx, false);
+  };
+
+  Wheel.prototype.getValue = function(){
+    const i = Math.min(this.max, Math.max(0, Math.round(this.pos)));
+    return this.values[i];
+  };
+
+  Wheel.prototype.setValue = function(value, animate){
+    const i = this.values.findIndex(v => String(v) === String(value));
+    this.setIndex(i >= 0 ? i : 0, !!animate);
+  };
+
+  Wheel.prototype.setIndex = function(i, animate){
+    i = Math.min(this.max, Math.max(0, i));
+    if (!animate){
+      this._stopAnim();
+      this.pos = i;
+      this._update(true);
+      this.onPick(this.getValue());
+      return;
+    }
+    this._animateTo(i);
+  };
+
+  Wheel.prototype._stopAnim = function(){
+    if (this.anim) cancelAnimationFrame(this.anim);
+    this.anim = null;
+  };
+
+  Wheel.prototype._animateTo = function(target){
+    this._stopAnim();
+    const start = this.pos;
+    const diff = target - start;
+    const t0 = performance.now();
+    const dur = 220;
+    const ease = (t)=> 1 - Math.pow(1 - t, 3);
+
+    const step = (now)=>{
+      const p = Math.min(1, (now - t0) / dur);
+      this.pos = start + diff * ease(p);
+      this._update(false);
+      if (p < 1) this.anim = requestAnimationFrame(step);
+      else {
+        this.anim = null;
+        this.pos = target;
+        this._update(true);
+        this.onPick(this.getValue());
+      }
+    };
+    this.anim = requestAnimationFrame(step);
+  };
+
+  Wheel.prototype._queueSnap = function(){
+    clearTimeout(this.snapT);
+    this.snapT = setTimeout(()=> this._snap(), 120);
+  };
+
+  Wheel.prototype._snap = function(){
+    this._animateTo(Math.round(this.pos));
+  };
+
+  Wheel.prototype._applyBounds = function(next){
+    if (next < 0) return next / 3;
+    if (next > this.max) return this.max + (next - this.max) / 3;
+    return next;
+  };
+
+  Wheel.prototype._update = function(final){
+    const y = this.center - this.pos * this.itemH;
+    this.list.style.transform = `translate3d(0, ${y}px, 0)`;
+
+    const sel = Math.round(this.pos);
+    const items = this.list.children;
+    for (let i=0; i<items.length; i++){
+      const it = items[i];
+      const dist = Math.abs(i - sel);
+      it.classList.toggle('is-active', dist === 0);
+      if (dist === 0){ it.style.opacity='1'; it.style.filter='none'; }
+      else if (dist === 1){ it.style.opacity='0.55'; it.style.filter='blur(0.6px)'; }
+      else if (dist === 2){ it.style.opacity='0.28'; it.style.filter='blur(1px)'; }
+      else { it.style.opacity='0.16'; it.style.filter='blur(1.2px)'; }
+    }
+
+    if (final){
+      this.pos = Math.min(this.max, Math.max(0, this.pos));
+      const yy = this.center - this.pos * this.itemH;
+      this.list.style.transform = `translate3d(0, ${yy}px, 0)`;
+    }
+  };
+
+  Wheel.prototype._bind = function(){
+    this.root.addEventListener('pointerdown', (e)=>{
+      if (e.pointerType === 'mouse' && e.button !== 0) return;
+      this._stopAnim();
+      clearTimeout(this.snapT);
+      this.root.setPointerCapture(e.pointerId);
+      this.drag = { startY:e.clientY, startPos:this.pos, lastY:e.clientY, lastT:performance.now() };
+      this.v = 0;
+      e.preventDefault();
+    }, { passive:false });
+
+    this.root.addEventListener('pointermove', (e)=>{
+      if (!this.drag) return;
+      const dy = e.clientY - this.drag.startY;
+      const raw = this.drag.startPos - (dy / this.itemH);
+      this.pos = this._applyBounds(raw);
+
+      const now = performance.now();
+      const dt = Math.max(1, now - this.drag.lastT);
+      const vy = (e.clientY - this.drag.lastY) / dt;
+      this.v = (-vy / this.itemH);
+
+      this.drag.lastY = e.clientY;
+      this.drag.lastT = now;
+
+      this._update(false);
+    });
+
+    const end = ()=>{
+      if (!this.drag) return;
+      this.drag = null;
+
+      const frictionPer16 = 0.90;
+      let v = this.v;
+      let last = performance.now();
+
+      const step = (now)=>{
+        const dt = now - last;
+        last = now;
+
+        let next = this.pos + v * dt;
+        if (next < 0 || next > this.max) v *= 0.55;
+        next = this._applyBounds(next);
+
+        this.pos = next;
+        this._update(false);
+
+        const k = Math.pow(frictionPer16, dt/16);
+        v *= k;
+
+        if (Math.abs(v) < 0.002){
+          this.anim = null;
+          this.pos = Math.min(this.max, Math.max(0, this.pos));
+          this._snap();
+          return;
+        }
+        this.anim = requestAnimationFrame(step);
+      };
+
+      this._stopAnim();
+      this.anim = requestAnimationFrame(step);
+    };
+
+    this.root.addEventListener('pointerup', end);
+    this.root.addEventListener('pointercancel', end);
+
+    this.root.addEventListener('wheel', (e)=>{
+      e.preventDefault();
+      this._stopAnim();
+      const k = 0.22;
+      const raw = this.pos + (e.deltaY / this.itemH) * k;
+      this.pos = this._applyBounds(raw);
+      this._update(false);
+      this._queueSnap();
+    }, { passive:false });
+
+    this.root.addEventListener('keydown', (e)=>{
+      if (e.key === 'ArrowUp'){ e.preventDefault(); this.setIndex(Math.round(this.pos)-1, true); }
+      if (e.key === 'ArrowDown'){ e.preventDefault(); this.setIndex(Math.round(this.pos)+1, true); }
+      if (e.key === 'PageUp'){ e.preventDefault(); this.setIndex(Math.round(this.pos)-5, true); }
+      if (e.key === 'PageDown'){ e.preventDefault(); this.setIndex(Math.round(this.pos)+5, true); }
+    });
+  };
+
+  const years = [];
+  for (let y=YEAR_MIN; y<=YEAR_MAX; y++) years.push(y);
+
+  let dayWheel, monthWheel, yearWheel;
+
+  function maxMonthForYear(y){ return (y === NOW_Y) ? NOW_M : 11; }
+
+  function rebuildMonths(){
+    const maxM = maxMonthForYear(draft.y);
+    const months = Array.from({length:maxM+1}, (_,i)=>i);
+    draft.m = Math.min(draft.m, maxM);
+    monthWheel.setValues(months, draft.m);
+    monthWheel.setValue(draft.m, false);
+  }
+
+  function rebuildDays(){
+    let maxD = daysInMonth(draft.y, draft.m);
+    if (draft.y === NOW_Y && draft.m === NOW_M) maxD = Math.min(maxD, NOW_D);
+    const days = Array.from({length:maxD}, (_,i)=>i+1);
+    draft.d = Math.min(draft.d, maxD);
+    dayWheel.setValues(days, draft.d);
+    dayWheel.setValue(draft.d, false);
+  }
+
+  function clampDraftToToday(){
+    const iso = toISO(draft.y, draft.m, draft.d);
+    if (iso > TODAY_ISO){
+      draft = { d: NOW_D, m: NOW_M, y: NOW_Y };
+    }
+  }
+
+  function openModal(){
+    beforeOpenISO = birthInput.value || '';
+    const parsed = parseISO(beforeOpenISO);
+    if (parsed) draft = { ...parsed };
+    else draft = { d: NOW_D, m: NOW_M, y: Math.max(YEAR_MIN, NOW_Y - 25) };
+
+    clampDraftToToday();
+
+    if (!monthWheel){
+      dayWheel = new Wheel(wheelDayEl, [1], (v)=>String(v), (v)=>{ draft.d = parseInt(v,10) || 1; });
+      monthWheel = new Wheel(wheelMonthEl, [0], (i)=>MONTHS[i], (v)=>{ draft.m = parseInt(v,10) || 0; rebuildDays(); });
+      yearWheel = new Wheel(wheelYearEl, years, (v)=>String(v), (v)=>{ draft.y = parseInt(v,10) || NOW_Y; rebuildMonths(); rebuildDays(); });
+    }
+
+    yearWheel.setValue(draft.y, false);
+    rebuildMonths();
+    rebuildDays();
+    dayWheel.setValue(draft.d, false);
+
+    modal.hidden = false;
+    document.body.classList.add('wheel-open');
+    try{ birthBtn.blur(); }catch(_){}
+  }
+
+  function closeModal(keep){
+    if (!keep) birthInput.value = beforeOpenISO || '';
+    modal.hidden = true;
+    document.body.classList.remove('wheel-open');
+    birthInput.dispatchEvent(new Event('input'));
+  }
+
+  birthBtn.addEventListener('click', openModal);
+  modal.querySelectorAll('[data-close-birth]').forEach(el=> el.addEventListener('click', ()=>closeModal(false)));
+  btnCancel.addEventListener('click', ()=>closeModal(false));
+
+  btnOk.addEventListener('click', ()=>{
+    clampDraftToToday();
+    birthInput.value = toISO(draft.y, draft.m, draft.d);
+    closeModal(true);
+  });
+
+  document.addEventListener('keydown', (e)=>{
+    if (modal.hidden) return;
+    if (e.key === 'Escape') closeModal(false);
+  });
+
+  // initial
+  birthInput.dispatchEvent(new Event('input'));
+})();
+
+// начальная валидация
     syncSaveBtn();
   
     // ====== Back to welcome ======

@@ -549,8 +549,176 @@ html[data-theme="light"] .cancel{
     }
   </style>
   
+
+<style id="reset-crack-fx">
+  :root{
+    --crackP: 0;   /* 0..1 */
+    --crackX: 50%;
+    --crackY: 72%;
+    --crackHoleR: 96px; /* радиус "чистой зоны" вокруг кнопки */
+  }
+
+  /* ===== Crack overlay (distributed) ===== */
+  #crackFx{
+    position: fixed;
+    inset: 0;
+    pointer-events: none;
+    z-index: 55; /* above vignette blur (50), below button (60) */
+    opacity: 0;
+    transition: opacity .12s linear;
+    transform-origin: var(--crackX) var(--crackY);
+    transform: scale(calc(1 + (var(--crackP) * 0.02)));
+    mix-blend-mode: screen;
+    filter: drop-shadow(0 18px 40px rgba(0,0,0,.35));
+
+    /* вырезаем "чистую зону" под кнопкой */
+    -webkit-mask-image: radial-gradient(circle at var(--crackX) var(--crackY),
+      transparent 0 calc(var(--crackHoleR) - 10px),
+      rgba(0,0,0,1) calc(var(--crackHoleR) + 6px));
+    mask-image: radial-gradient(circle at var(--crackX) var(--crackY),
+      transparent 0 calc(var(--crackHoleR) - 10px),
+      rgba(0,0,0,1) calc(var(--crackHoleR) + 6px));
+    -webkit-mask-repeat: no-repeat;
+    mask-repeat: no-repeat;
+    -webkit-mask-size: 100% 100%;
+    mask-size: 100% 100%;
+  }
+
+  body.is-arming #crackFx,
+  body.is-deleting #crackFx{ opacity: 1; }
+
+  #crackSvg{ width:100%; height:100%; }
+
+  /* premium glass cracks: thin, low-contrast, with subtle depth */
+  #crackSvg .cr{
+    fill:none;
+    stroke-linecap:round;
+    stroke-linejoin:round;
+    stroke: rgba(255,255,255,.15);
+    stroke-width: 1.22;
+    filter: blur(.12px);
+  }
+
+  /* branches quieter */
+  #crackSvg .b1, #crackSvg .b2, #crackSvg .b3, #crackSvg .b4{
+    stroke-width: 1.05;
+    stroke: rgba(255,255,255,.12);
+  }
+
+  /* micro cracks very subtle */
+  #crackSvg .m1, #crackSvg .m2{
+    stroke-width: 0.92;
+    stroke: rgba(255,255,255,.095);
+  }
+
+  /* depth pass */
+  #crackSvg{
+    filter:
+      drop-shadow(0 0 0.55px rgba(0,0,0,.40))
+      drop-shadow(0 0 1.05px rgba(255,255,255,.09));
+  }
+
+  /* ===== Hold warning (appears while pressing) ===== */
+  #holdWarn{
+    position:fixed;
+    left:50%;
+    top: calc(var(--crackY) - 116px);
+    transform: translate(-50%, 10px);
+    width:min(520px, calc(100vw - 44px));
+    padding:12px 14px;
+    border-radius:16px;
+    background: rgba(14, 22, 38, .62);
+    border:1px solid rgba(255,255,255,.10);
+    box-shadow: 0 18px 44px rgba(0,0,0,.55), inset 0 1px 0 rgba(255,255,255,.10);
+    backdrop-filter: blur(10px);
+    -webkit-backdrop-filter: blur(10px);
+    z-index:58; /* выше трещин */
+    opacity:0;
+    pointer-events:none;
+    transition: opacity .18s ease, transform .22s ease;
+  }
+  #holdWarn .hw-title{
+    font-weight:900;
+    letter-spacing:.2px;
+    color: rgba(255, 228, 228, .98);
+    font-size:14px;
+    line-height:1.15;
+    margin:0 0 4px;
+  }
+  #holdWarn .hw-sub{
+    font-weight:750;
+    color: rgba(236, 248, 255, .74);
+    font-size:13px;
+    line-height:1.2;
+  }
+
+  body.is-arming #holdWarn{
+    opacity:1;
+    transform: translate(-50%, 0);
+  }
+
+  @media (max-width: 380px){
+    #holdWarn{ top: calc(var(--crackY) - 104px); padding:10px 12px; border-radius:14px; }
+    #holdWarn .hw-title{ font-size:13px; }
+    #holdWarn .hw-sub{ font-size:12.5px; }
+  }
+
+  @media (prefers-reduced-motion: reduce){
+    #crackFx{ transition:none; transform:none; }
+    #holdWarn{ transition:none; transform: translate(-50%, 0); }
+  }
+</style>
+
 </head>
 <body>
+  <div id="crackFx" aria-hidden="true">
+    <svg id="crackSvg" viewBox="0 0 1000 1000" preserveAspectRatio="none">
+      <!-- premium distributed cracks (even coverage; button area is masked out) -->
+      <!-- cluster: top-left -->
+      <path class="cr main1" d="M140 210 C190 250, 240 300, 285 350 C330 405, 370 455, 410 510" />
+      <path class="cr b1"    d="M285 350 C260 370, 235 395, 210 430" />
+      <path class="cr b2"    d="M330 405 C360 392, 395 385, 430 382" />
+      <path class="cr m1"    d="M240 300 C220 330, 205 360, 195 395" />
+
+      <!-- cluster: top-right -->
+      <path class="cr main2" d="M860 220 C820 265, 780 310, 740 360 C690 420, 650 475, 610 530" />
+      <path class="cr b3"    d="M740 360 C770 380, 800 408, 830 445" />
+      <path class="cr b4"    d="M690 420 C655 405, 620 395, 585 390" />
+      <path class="cr m2"    d="M780 310 C800 340, 814 370, 822 404" />
+
+      <!-- cluster: mid-left (subtle) -->
+      <path class="cr main1" d="M110 520 C180 505, 250 498, 320 500 C390 502, 460 515, 530 540" />
+      <path class="cr b2"    d="M320 500 C300 530, 282 565, 270 610" />
+      <path class="cr m1"    d="M250 498 C235 475, 220 455, 200 438" />
+
+      <!-- cluster: mid-right (subtle) -->
+      <path class="cr main2" d="M890 540 C820 520, 750 510, 680 512 C610 514, 540 530, 475 560" />
+      <path class="cr b3"    d="M680 512 C705 545, 728 585, 748 635" />
+      <path class="cr m2"    d="M750 510 C770 488, 792 468, 820 450" />
+
+      <!-- cluster: bottom-left -->
+      <path class="cr main1" d="M210 880 C250 835, 292 790, 340 750 C395 705, 452 670, 520 640" />
+      <path class="cr b1"    d="M340 750 C310 745, 275 745, 240 750" />
+      <path class="cr b2"    d="M395 705 C405 735, 418 770, 438 820" />
+      <path class="cr m1"    d="M292 790 C270 805, 250 822, 230 845" />
+
+      <!-- cluster: bottom-right -->
+      <path class="cr main2" d="M790 880 C750 835, 708 790, 660 750 C605 705, 548 670, 480 640" />
+      <path class="cr b3"    d="M660 750 C690 745, 725 745, 760 750" />
+      <path class="cr b4"    d="M605 705 C595 735, 582 770, 562 820" />
+      <path class="cr m2"    d="M708 790 C730 805, 750 822, 770 845" />
+
+      <!-- long hairlines (very subtle) -->
+      <path class="cr m1"    d="M80 120 C220 170, 360 215, 520 250 C680 285, 820 320, 940 360" />
+      <path class="cr m2"    d="M60 360 C220 345, 380 340, 540 350 C700 360, 840 380, 960 410" />
+      <path class="cr m1"    d="M120 950 C260 900, 400 860, 540 840 C700 820, 840 805, 930 790" /></svg>
+  </div>
+
+  <div id="holdWarn" aria-hidden="true">
+    <div class="hw-title">⚠️ Данные будут обнулены</div>
+    <div class="hw-sub">Отпустите кнопку, если сомневаетесь. </div>
+  </div>
+
   <div id="rt-loader" aria-hidden="true">
     <div class="rt-loader-card">
       <div class="rt-loader-dot"><span class="rt-loader-ico">💊</span></div>
@@ -741,9 +909,58 @@ html[data-theme="light"] .cancel{
     const msg = document.getElementById('msg');
     let raf = null, start = 0, holding = false, duration = 2000;
 
+    // ===== Crack FX (premium) =====
+    const crackFx  = document.getElementById('crackFx');
+    const crackSvg = document.getElementById('crackSvg');
+    const crackPaths = crackSvg ? [...crackSvg.querySelectorAll('path.cr')] : [];
+    const crackMeta = crackPaths.map(p => {
+      const len = p.getTotalLength();
+      p.style.strokeDasharray  = String(len);
+      p.style.strokeDashoffset = String(len);
+      return { p, len };
+    });
+
+    function updateCrackOrigin(){
+      try{
+        const r = btn.getBoundingClientRect();
+        const cx = (r.left + r.right) / 2;
+        const cy = (r.top  + r.bottom) / 2;
+
+        // центр эффектов = центр кнопки
+        document.documentElement.style.setProperty('--crackX', (cx / window.innerWidth  * 100).toFixed(2) + '%');
+        document.documentElement.style.setProperty('--crackY', (cy / window.innerHeight * 100).toFixed(2) + '%');
+
+        // радиус "чистой зоны" — чтобы трещины НЕ попадали на кнопку
+        const hole = (Math.max(r.width, r.height) / 2) + 22; // px
+        document.documentElement.style.setProperty('--crackHoleR', Math.round(hole) + 'px');
+      }catch(_){}
+    }
+    function resetCracks(){
+      document.documentElement.style.setProperty('--crackP','0');
+      crackMeta.forEach(({p,len}) => { p.style.strokeDashoffset = String(len); });
+    }
+    updateCrackOrigin();
+    window.addEventListener('resize', updateCrackOrigin, { passive:true });
+
+
     function setProgress(p){
       const val = Math.max(0, Math.min(1, p));
       btn.style.setProperty('--p', (val*100)+'%');
+
+      // crack intensity (0..1)
+      document.documentElement.style.setProperty('--crackP', String(val));
+
+      // draw cracks progressively: mains -> branches -> micro
+      for (const {p, len} of crackMeta){
+        const cls = p.classList;
+        const startAt =
+          (cls.contains('m1') || cls.contains('m2')) ? 0.34 :
+          (cls.contains('b1') || cls.contains('b2') || cls.contains('b3') || cls.contains('b4')) ? 0.46 :
+          0.20; // основные появляются раньше
+
+        const t = Math.max(0, Math.min(1, (val - startAt) / (1 - startAt)));
+        p.style.strokeDashoffset = String(len * (1 - t));
+      }
     }
 
     function onDown(e){
@@ -752,9 +969,12 @@ if (navigator.vibrate) {
   navigator.vibrate(20);
 }
       if (btn.disabled) return;
-      
+      try{ document.getElementById('holdWarn')?.setAttribute('aria-hidden','false'); }catch(_){ }
+
       try{ document.body.classList.add('is-arming'); }catch(_){}holding = true;
       start = performance.now();
+      updateCrackOrigin();
+      resetCracks();
       setProgress(0);
       tick();
       e.preventDefault?.();
@@ -764,6 +984,8 @@ if (navigator.vibrate) {
       try{ document.body.classList.remove('is-arming'); }catch(_){}
       if (raf){ cancelAnimationFrame(raf); raf = null; }
       setProgress(0);
+      resetCracks();
+      try{ document.getElementById('holdWarn')?.setAttribute('aria-hidden','true'); }catch(_){ }
     }
     function tick(){
       if (!holding) return;
@@ -785,8 +1007,13 @@ if (navigator.vibrate) {
 
     async function confirmDelete(){
       try{
-        try{ document.body.classList.remove('is-arming'); document.body.classList.add('is-deleting'); }catch(_){}
+        try{ document.body.classList.remove('is-arming'); document.body.classList.add('is-deleting');
+          updateCrackOrigin();
+          document.documentElement.style.setProperty('--crackP','1');
+          crackMeta.forEach(({p,len})=>{ p.style.strokeDashoffset = '0'; });
+        }catch(_){ }
         btn.disabled = true; msg.textContent = 'Удаляю…';
+        try{ document.getElementById('holdWarn')?.setAttribute('aria-hidden','true'); }catch(_){ }
         const r = await api('/api/reset', { method:'POST', body:'{}' });
         if(!r.ok){ msg.textContent = 'Ошибка ' + r.status; btn.disabled=false; setProgress(0); try{ document.body.classList.remove('is-deleting'); }catch(_){} return; }
         try{

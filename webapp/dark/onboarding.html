@@ -1265,29 +1265,85 @@ try{
       }catch(_){ }
 
       // 3) already taken seed
+      // Важно: это должно попадать и в UI (calendar/main), и в БД, чтобы не было двойного учёта.
+      // Поэтому: 1) раскладываем дозу по дням (равномерно), 2) пишем в local diary, 3) одним батчем пишем в БД.
       if (alreadyOn && taken > 0) {
+        // локальный «сегодня» (чтобы совпадало с календарём)
+        const localISO = (dt)=>{
+          const d = new Date(dt);
+          d.setMinutes(d.getMinutes() - d.getTimezoneOffset());
+          return d.toISOString().slice(0,10);
+        };
+        const todayLocal = localISO(new Date());
+
+        const startISO = (start_date || '').slice(0,10);
+        const fromISO  = (startISO && /^\d{4}-\d{2}-\d{2}$/.test(startISO)) ? startISO : todayLocal;
+        const toISO    = todayLocal;
+
+        // соберём список дат включительно: fromISO..toISO
+        const dates = [];
+        try{
+          const a = new Date(fromISO+'T00:00:00');
+          const b = new Date(toISO+'T00:00:00');
+          // если дата начала в будущем — просто кладём на неё
+          if (isNaN(a.getTime()) || isNaN(b.getTime()) || a > b){
+            dates.push(fromISO);
+          } else {
+            const cur = new Date(a);
+            for (let i=0; i<800; i++){
+              const iso = localISO(cur);
+              dates.push(iso);
+              if (iso === toISO) break;
+              cur.setDate(cur.getDate() + 1);
+            }
+          }
+        }catch(_){ dates.push(fromISO); }
+
+        const n = Math.max(1, dates.length);
+        const base = Math.floor(taken / n);
+        const rem  = taken - base * n;
+
+        // делаем ровный «плато» и остаток кладём в последний день — выглядит естественнее, чем 1мг-размазня.
+        const items = dates.map((iso, idx)=>{
+          const add = (idx === n-1) ? rem : 0;
+          return { date: iso, mg: Math.max(0, Math.round(base + add)) };
+        });
+
+        // 1) local diary — абсолютные значения (не «прибавить», а «поставить»)
+        try{
+          const d = JSON.parse(localStorage.getItem('rt.diary.v1')||'{}');
+          for (const it of items){
+            d[it.date] = { ...(d[it.date]||{}), dose: it.mg, taken: it.mg > 0, __seed:'onboarding' };
+            delete d[it.date].miss;
+          }
+          localStorage.setItem('rt.diary.v1', JSON.stringify(d));
+          localStorage.setItem('rt.diary.bump', Date.now().toString());
+          localStorage.removeItem('rt.diary.bump');
+        }catch(_){ }
+
+        // 2) server — сначала «не перезаписывать», чтобы не убить реальные записи при повторном онбординге
         let seeded = false;
-        if (ENABLE_SEED_API) {
-          try {
-            const s = await api('/api/progress/seed', {
+        try{
+          const r = await api('/api/intakes/seed-batch', {
+            method:'POST',
+            body: JSON.stringify({ items })
+          });
+          seeded = r.ok;
+        }catch(_){ }
+
+        // 3) fallback: всё же апсерт батчем (на случай, если seed-batch ещё не развернут)
+        if (!seeded){
+          try{
+            const r = await api('/api/intakes/batch', {
               method:'POST',
-              body: JSON.stringify({ cum_mg: taken, as_of: (start_date || new Date().toISOString().slice(0,10)) })
+              body: JSON.stringify({ items })
             });
-            seeded = s.ok;
-          } catch(_) {}
-        }
-        if (!seeded && ENABLE_SEED_API) {
-          const d = start_date ? prevDay(start_date) : new Date().toISOString().slice(0,10);
-          try {
-            const r = await api('/api/intakes', { method:'POST', body: JSON.stringify({ mg: taken, date: d, note:'seed:already_taken' }) });
             seeded = r.ok;
-          } catch(_) {}
+          }catch(_){ }
         }
-        if (!seeded) {
-          const d = start_date ? prevDay(start_date) : new Date().toISOString().slice(0,10);
-          seedLocalDiary(d, taken);
-          try{ localStorage.setItem('derma_seed_cum_mg', String(taken)); }catch(_){ }
-        }
+
+        // 4) последний fallback: если нет авторизации/сервера — оставим хотя бы локально (UI будет заполнен)
+        // (кумулятив и прогресс тогда будут считаться только после нормальной авторизации)
       }
 
       // 4) reminders
