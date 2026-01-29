@@ -507,6 +507,7 @@ body.wheel-open{overflow:hidden; touch-action:none}
               <div class="field">
                 <label for="height">Рост (см)</label>
                 <input id="height" type="number" inputmode="decimal" placeholder="175" style="width:150px" />
+                <div class="tip">Рост можно не указывать.</div>
               </div>
             </div>
           </div>
@@ -1038,6 +1039,7 @@ body.wheel-open{overflow:hidden; touch-action:none}
     remTime.disabled = !on;
     if (remindWrap) remindWrap.hidden = !on;
     await syncReminder(on, remTime.value || '09:00');
+    requestAnimationFrame(updateViewportHeight);
   });
   remTime.addEventListener('change', async ()=>{
     const t = remTime.value || '09:00';
@@ -1051,10 +1053,12 @@ body.wheel-open{overflow:hidden; touch-action:none}
     capsNow.disabled = !on;
     if (capsWrap) capsWrap.hidden = !on;
     storeBuyState(on, parseInt(capsNow.value || '0', 10) || 0);
+    requestAnimationFrame(updateViewportHeight);
   });
   capsNow.addEventListener('input', ()=>{
     const on = buyBell.dataset.on === '1';
     storeBuyState(on, parseInt(capsNow.value || '0', 10) || 0);
+    requestAnimationFrame(updateViewportHeight);
   });
 
   // ==== Prefill from server (если есть) ====
@@ -1115,29 +1119,75 @@ body.wheel-open{overflow:hidden; touch-action:none}
 
   function validateStep(i){
     clearErrors();
+
+    // 1) Пол + дата рождения — обязательны
     if (i === 1) {
-      // optional — allow empty
+      const sex = document.querySelector('input[name="sex"]:checked');
+      const birth = (document.getElementById('birth')?.value || '').trim();
+      const problems = [];
+      if (!sex) problems.push('Выбери пол.');
+      if (!birth) {
+        problems.push('Укажи дату рождения.');
+        document.getElementById('birthBtn')?.classList.add('input-error');
+        document.getElementById('birthManual')?.classList.add('input-error');
+      }
+      if (problems.length) return { ok:false, msg: problems.join(' ') };
       return { ok:true };
     }
+
+    // 2) Вес — обязателен, рост — не обязателен
     if (i === 2) {
-      const w = Number(document.getElementById('weight').value || 0);
+      const w = Number(document.getElementById('weight')?.value || 0);
+      const hRaw = (document.getElementById('height')?.value || '').trim();
+      const h = hRaw ? Number(hRaw) : 0;
       if (!(w > 20 && w < 200)) {
-        document.getElementById('weight').classList.add('input-error');
+        document.getElementById('weight')?.classList.add('input-error');
         return { ok:false, msg:'Укажи вес (примерно 20–200 кг), чтобы продолжить.' };
       }
-      return { ok:true };
-    }
-    if (i === 5) {
-      const start = document.getElementById('start').value || '';
-      if (!start) {
-        const btn = document.getElementById('startBtn');
-        const manual = document.getElementById('startManual');
-        if (btn) btn.classList.add('input-error');
-        if (manual) manual.classList.add('input-error');
-        return { ok:false, msg:'Укажи дату начала курса — без неё календарь и расчёты не работают.' };
+      if (hRaw && !(h > 80 && h < 250)) {
+        document.getElementById('height')?.classList.add('input-error');
+        return { ok:false, msg:'Рост можно не указывать, но если указываешь — проверь значение (примерно 80–250 см).' };
       }
       return { ok:true };
     }
+
+    // 3) Аллергии — обязательны (хотя бы один выбор / «Другое» / «Нет аллергий»)
+    if (i === 3) {
+      const noAll = !!document.getElementById('noAll')?.checked;
+      const anyChecked = document.querySelectorAll('input[name="alg"]:checked').length > 0;
+      const other = (document.getElementById('algOther')?.value || '').trim();
+      if (!(noAll || anyChecked || other)) {
+        document.getElementById('algOther')?.classList.add('input-error');
+        return { ok:false, msg:'Укажи аллергии: выбери пункт, напиши «Другое» или отметь «Нет аллергий».' };
+      }
+      return { ok:true };
+    }
+
+    // 5) Дата начала курса — обязательна и не может быть в будущем
+    if (i === 5) {
+      const start = (document.getElementById('start')?.value || '').trim();
+      if (!start) {
+        document.getElementById('startBtn')?.classList.add('input-error');
+        document.getElementById('startManual')?.classList.add('input-error');
+        return { ok:false, msg:'Укажи дату начала курса — без неё календарь и расчёты не работают.' };
+      }
+      // защита от будущих дат
+      const m = /^(\d{4})-(\d{2})-(\d{2})$/.exec(start);
+      if (m) {
+        const y = +m[1], mo = +m[2]-1, d = +m[3];
+        const dt = new Date(y, mo, d);
+        dt.setHours(0,0,0,0);
+        const today = new Date();
+        today.setHours(0,0,0,0);
+        if (dt > today) {
+          document.getElementById('startBtn')?.classList.add('input-error');
+          document.getElementById('startManual')?.classList.add('input-error');
+          return { ok:false, msg:'Дата начала курса не может быть в будущем.' };
+        }
+      }
+      return { ok:true };
+    }
+
     return { ok:true };
   }
 
@@ -1410,13 +1460,28 @@ try{
 
   const MONTHS = ['января','февраля','марта','апреля','мая','июня','июля','августа','сентября','октября','ноября','декабря'];
   const YEAR_MIN = 1920;
-  const YEAR_MAX = 2026;
+  const TODAY = new Date();
+  TODAY.setHours(0,0,0,0);
+  const TODAY_Y = TODAY.getFullYear();
+  const TODAY_M = TODAY.getMonth();
+  const TODAY_D = TODAY.getDate();
+  const YEAR_MAX = TODAY_Y;
 
   let draft = { d:1, m:0, y:2000 };
   let beforeOpenISO = '';
 
   const pad2 = (n)=> String(n).padStart(2,'0');
   const toISO = (y,m,d)=> `${y}-${pad2(m+1)}-${pad2(d)}`;
+
+  function clampBirthToToday(iso){
+    const m = /^(\d{4})-(\d{2})-(\d{2})$/.exec(iso||'');
+    if (!m) return iso;
+    const y=+m[1], mo=+m[2]-1, d=+m[3];
+    const dt = new Date(y,mo,d);
+    dt.setHours(0,0,0,0);
+    if (dt > TODAY) return toISO(TODAY_Y, TODAY_M, TODAY_D);
+    return iso;
+  }
 
   function daysInMonth(y, m){ return new Date(y, m+1, 0).getDate(); }
 
@@ -1450,7 +1515,8 @@ try{
 
   if (birthManual){
     birthManual.addEventListener('input', ()=>{
-      const iso = birthManual.value || '';
+      const iso = clampBirthToToday(birthManual.value || '');
+      birthManual.value = iso;
       birthInput.value = iso;
       birthInput.dispatchEvent(new Event('input'));
     });
@@ -1730,8 +1796,17 @@ try{
 
   let dayWheel, monthWheel, yearWheel;
 
+  function rebuildMonths(){
+    const maxM = (draft.y === TODAY_Y) ? TODAY_M : 11;
+    draft.m = Math.min(draft.m, maxM);
+    const months = Array.from({length:maxM+1}, (_,i)=>i);
+    monthWheel.setValues(months, draft.m);
+    monthWheel.setValue(draft.m, false);
+  }
+
   function rebuildDays(){
-    const maxD = daysInMonth(draft.y, draft.m);
+    let maxD = daysInMonth(draft.y, draft.m);
+    if (draft.y === TODAY_Y && draft.m === TODAY_M) maxD = Math.min(maxD, TODAY_D);
     const days = Array.from({length:maxD}, (_,i)=>i+1);
     draft.d = Math.min(draft.d, maxD);
     dayWheel.setValues(days, draft.d);
@@ -1756,13 +1831,14 @@ try{
 
       yearWheel = new Wheel(wheelYearEl, years, (v)=>String(v), (v)=>{
         draft.y = parseInt(v,10) || 2000;
+        rebuildMonths();
         rebuildDays();
       });
     }
 
     // apply values
-    monthWheel.setValue(draft.m, false);
     yearWheel.setValue(draft.y, false);
+    rebuildMonths();
     rebuildDays();
     dayWheel.setValue(draft.d, false);
 
@@ -1784,7 +1860,7 @@ try{
   btnCancel.addEventListener('click', ()=>closeModal(false));
 
   btnOk.addEventListener('click', ()=>{
-    const iso = toISO(draft.y, draft.m, draft.d);
+    const iso = clampBirthToToday(toISO(draft.y, draft.m, draft.d));
     birthInput.value = iso;
     closeModal(true);
   });
@@ -1814,15 +1890,39 @@ try{
   const btnCancel = document.getElementById('startCancel');
 
   const MONTHS = ['января','февраля','марта','апреля','мая','июня','июля','августа','сентября','октября','ноября','декабря'];
-  const NOW_Y = new Date().getFullYear();
+  const TODAY = new Date();
+  TODAY.setHours(0,0,0,0);
+  const TODAY_Y = TODAY.getFullYear();
+  const TODAY_M = TODAY.getMonth();
+  const TODAY_D = TODAY.getDate();
+  const NOW_Y = TODAY_Y;
   const YEAR_MIN = NOW_Y - 30;
-  const YEAR_MAX = NOW_Y + 2;
+  const YEAR_MAX = NOW_Y;
 
   let draft = { d:1, m:0, y:NOW_Y };
   let beforeOpenISO = '';
 
+  function clampDraft(){
+    // clamp month/day when selected year == today
+    const maxM = (draft.y === TODAY_Y) ? TODAY_M : 11;
+    draft.m = Math.min(draft.m, maxM);
+    let maxD = daysInMonth(draft.y, draft.m);
+    if (draft.y === TODAY_Y && draft.m === TODAY_M) maxD = Math.min(maxD, TODAY_D);
+    draft.d = Math.min(draft.d, maxD);
+  }
+
   const pad2 = (n)=> String(n).padStart(2,'0');
   const toISO = (y,m,d)=> `${y}-${pad2(m+1)}-${pad2(d)}`;
+
+  function clampStartToToday(iso){
+    const m = /^(\d{4})-(\d{2})-(\d{2})$/.exec(iso||'');
+    if (!m) return iso;
+    const y=+m[1], mo=+m[2]-1, d=+m[3];
+    const dt = new Date(y,mo,d);
+    dt.setHours(0,0,0,0);
+    if (dt > TODAY) return toISO(TODAY_Y, TODAY_M, TODAY_D);
+    return iso;
+  }
 
   function daysInMonth(y, m){ return new Date(y, m+1, 0).getDate(); }
 
@@ -1856,7 +1956,9 @@ try{
 
   if (startManual){
     startManual.addEventListener('input', ()=>{
-      startInput.value = startManual.value || '';
+      const iso = clampStartToToday(startManual.value || '');
+      startManual.value = iso;
+      startInput.value = iso;
       startInput.dispatchEvent(new Event('input'));
     });
   }
@@ -2104,8 +2206,17 @@ try{
 
   let dayWheel, monthWheel, yearWheel;
 
+  function rebuildMonths(){
+    const maxM = (draft.y === TODAY_Y) ? TODAY_M : 11;
+    draft.m = Math.min(draft.m, maxM);
+    const months = Array.from({length:maxM+1}, (_,i)=>i);
+    monthWheel.setValues(months, draft.m);
+    monthWheel.setValue(draft.m, false);
+  }
+
   function rebuildDays(){
-    const maxD = daysInMonth(draft.y, draft.m);
+    let maxD = daysInMonth(draft.y, draft.m);
+    if (draft.y === TODAY_Y && draft.m === TODAY_M) maxD = Math.min(maxD, TODAY_D);
     const days = Array.from({length:maxD}, (_,i)=>i+1);
     draft.d = Math.min(draft.d, maxD);
     dayWheel.setValues(days, draft.d);
@@ -2121,14 +2232,16 @@ try{
       draft = { d: now.getDate(), m: now.getMonth(), y: now.getFullYear() };
     }
 
+    clampDraft();
+
     if (!monthWheel){
       dayWheel = new Wheel(wheelDayEl, [1], (v)=>String(v), (v)=>{ draft.d = parseInt(v,10) || 1; });
       monthWheel = new Wheel(wheelMonthEl, MONTHS.map((_,i)=>i), (i)=>MONTHS[i], (v)=>{ draft.m = parseInt(v,10) || 0; rebuildDays(); });
-      yearWheel = new Wheel(wheelYearEl, years, (v)=>String(v), (v)=>{ draft.y = parseInt(v,10) || NOW_Y; rebuildDays(); });
+      yearWheel = new Wheel(wheelYearEl, years, (v)=>String(v), (v)=>{ draft.y = parseInt(v,10) || NOW_Y; rebuildMonths(); rebuildDays(); });
     }
 
-    monthWheel.setValue(draft.m, false);
     yearWheel.setValue(draft.y, false);
+    rebuildMonths();
     rebuildDays();
     dayWheel.setValue(draft.d, false);
 
@@ -2149,7 +2262,7 @@ try{
   btnCancel.addEventListener('click', ()=>closeModal(false));
 
   btnOk.addEventListener('click', ()=>{
-    startInput.value = toISO(draft.y, draft.m, draft.d);
+    startInput.value = clampStartToToday(toISO(draft.y, draft.m, draft.d));
     closeModal(true);
   });
 
