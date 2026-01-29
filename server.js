@@ -657,7 +657,9 @@ app.post('/api/intakes', tgAuth, async (req, res) => {
     if (!uid) return res.status(401).json({ error: 'unauthorized' });
 
     const mg = Number(req.body?.mg);
-    if (!Number.isFinite(mg) || mg <= 0) return res.status(400).json({ error: 'mg>0 required' });
+    // В calendar/main это значение трактуется как «доза за день», поэтому разрешаем 0
+    // (например, чтобы обнулить день). Запрещаем только отрицательные и NaN.
+    if (!Number.isFinite(mg) || mg < 0) return res.status(400).json({ error: 'mg>=0 required' });
 
     // поддерживаем и {date:'YYYY-MM-DD'}, и {iso:'...'}
     let d = String(req.body?.date || '').slice(0, 10);
@@ -680,6 +682,107 @@ app.post('/api/intakes', tgAuth, async (req, res) => {
   } catch (e) {
     console.error('INTAKES POST ERROR:', e);
     res.status(500).json({ error: e.message || 'INTAKES_INSERT_FAILED' });
+  }
+});
+
+// Batch upsert (нужно для массового проставления дней и сидирования истории)
+// POST /api/intakes/batch  { items:[{date:'YYYY-MM-DD', mg:0..}, ...] }
+app.post('/api/intakes/batch', tgAuth, async (req, res) => {
+  try {
+    const uid = await userIdByTg(req.tg);
+    if (!uid) return res.status(401).json({ error: 'unauthorized' });
+
+    const items = Array.isArray(req.body?.items) ? req.body.items : [];
+    if (!items.length) return res.json({ ok: true, inserted: 0 });
+    if (items.length > 400) return res.status(400).json({ error: 'too many items (max 400)' });
+
+    // нормализуем и валидируем
+    const norm = [];
+    for (const it of items) {
+      const mg = Number(it?.mg);
+      if (!Number.isFinite(mg) || mg < 0) return res.status(400).json({ error: 'mg>=0 required' });
+      const d = String(it?.date || '').slice(0,10);
+      if (!/^\d{4}-\d{2}-\d{2}$/.test(d)) return res.status(400).json({ error: 'bad date' });
+      norm.push({ date: d, mg: Math.round(mg) });
+    }
+
+    await pool.query('BEGIN');
+    try {
+      // jsonb_to_recordset — аккуратно и быстро
+      await pool.query(
+        `WITH data AS (
+           SELECT (x->>'date')::date AS date,
+                  (x->>'mg')::int   AS mg
+             FROM jsonb_array_elements($2::jsonb) x
+         )
+         INSERT INTO derma.dose_logs (patient_id, date, mg_taken)
+         SELECT $1, date, mg FROM data
+         ON CONFLICT (patient_id, date) DO UPDATE
+           SET mg_taken = EXCLUDED.mg_taken`,
+        [uid, JSON.stringify(norm)]
+      );
+      await pool.query('COMMIT');
+    } catch (e) {
+      await pool.query('ROLLBACK');
+      throw e;
+    }
+
+    res.json({ ok: true, inserted: norm.length });
+  } catch (e) {
+    console.error('INTAKES BATCH ERROR:', e);
+    res.status(500).json({ error: e.message || 'INTAKES_BATCH_FAILED' });
+  }
+});
+
+// Seed-batch: вставляем только отсутствующие дни (без перезаписи)
+// Используем для «уже на курсе» в онбординге, чтобы не убить реальные записи.
+// POST /api/intakes/seed-batch { items:[{date, mg}, ...] }
+app.post('/api/intakes/seed-batch', tgAuth, async (req, res) => {
+  try {
+    const uid = await userIdByTg(req.tg);
+    if (!uid) return res.status(401).json({ error: 'unauthorized' });
+
+    const items = Array.isArray(req.body?.items) ? req.body.items : [];
+    if (!items.length) return res.json({ ok: true, inserted: 0 });
+    if (items.length > 800) return res.status(400).json({ error: 'too many items (max 800)' });
+
+    const norm = [];
+    for (const it of items) {
+      const mg = Number(it?.mg);
+      if (!Number.isFinite(mg) || mg < 0) return res.status(400).json({ error: 'mg>=0 required' });
+      const d = String(it?.date || '').slice(0,10);
+      if (!/^\d{4}-\d{2}-\d{2}$/.test(d)) return res.status(400).json({ error: 'bad date' });
+      norm.push({ date: d, mg: Math.round(mg) });
+    }
+
+    await pool.query('BEGIN');
+    let inserted = 0;
+    try {
+      const r = await pool.query(
+        `WITH data AS (
+           SELECT (x->>'date')::date AS date,
+                  (x->>'mg')::int   AS mg
+             FROM jsonb_array_elements($2::jsonb) x
+         ), ins AS (
+         INSERT INTO derma.dose_logs (patient_id, date, mg_taken)
+         SELECT $1, date, mg FROM data
+         ON CONFLICT (patient_id, date) DO NOTHING
+         RETURNING 1
+         )
+         SELECT count(*)::int AS inserted FROM ins`,
+        [uid, JSON.stringify(norm)]
+      );
+      inserted = Number(r.rows?.[0]?.inserted || 0);
+      await pool.query('COMMIT');
+    } catch (e) {
+      await pool.query('ROLLBACK');
+      throw e;
+    }
+
+    res.json({ ok: true, inserted, total: norm.length, skipped: norm.length - inserted });
+  } catch (e) {
+    console.error('INTAKES SEED-BATCH ERROR:', e);
+    res.status(500).json({ error: e.message || 'INTAKES_SEED_BATCH_FAILED' });
   }
 });
 
