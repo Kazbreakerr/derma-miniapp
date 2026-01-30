@@ -874,15 +874,19 @@ app.post('/api/reset', tgAuth, async (req, res) => {
     // (оставляем tg_id, is_doctor и doctor assets — для этого есть отдельные кнопки/флоу)
     const u = await pool.query(
       `update users set
+         full_name = null,
+         tz = null,
          sex = null,
          birth_date = null,
          weight_kg = null,
          height_cm = null,
-          allergies = NULL::text[],
+         -- allergies column may be text[] or jsonb across deployments; NULL is safe for both
+         allergies = NULL,
          goal_mgkg = null,
          goal_mg = null,
          accepted_terms_at = null,
-         terms_version = null
+         terms_version = null,
+         updated_at = now()
        where id = $1`,
       [uid]
     );
