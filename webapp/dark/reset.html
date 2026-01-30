@@ -1025,6 +1025,52 @@ if (navigator.vibrate) {
             'derma_alarm_id','derma_consent','derma_next','derma_splash_seen'
           ];
           keys.forEach(k=>{ try{ localStorage.removeItem(k); }catch(_ ){} })
+
+          // === RESET: план курса, онбординг, профильные поля и кэш ===
+          const moreKeys = [
+            // план курса
+            'rt_startISO','plan_start','rt_plan_done','rt_plan_drug','rt_drug_key','rt_drug',
+            'rt.plan.v1','rt.plan.bump',
+
+            // профиль/онбординг
+            'rt_profile','rt.weight_kg','rt_weightKG','rt_heightCM','rt_height_cm',
+            'rt_sex','rt_gender','rt_birth','rt_birthdate','rt_dob',
+            'rt_allergies','rt_goal_mgkg','rt_goal_mg',
+            'rt_takenMg','rt_todayMg',
+
+            // капсулы / быстрые настройки
+            'rt.capsule_mg','rt_capsule_mg','rt_capsuleMg','rt_capsuleMG',
+            'rt_pill_mg','rt_pillMg',
+            'rt_capsules_left','rt_capsules_threshold','rt_capsules_alert_enabled',
+
+            // разные UI‑кэши
+            'rt.day-slate.shown.v2','rt.daySlate.last','rt.daySlate.force',
+            'rt.moodTintOn','rt.moodTintOn.main','rt.moodTint.bump',
+          ];
+          moreKeys.forEach(k=>{ try{ localStorage.removeItem(k); }catch(_ ){} })
+
+          // именные ключи по uid (используются в main/profile)
+          if (uid){
+            try{ localStorage.removeItem(`dermaApp:${uid}:weight_kg`); }catch(_ ){}
+            try{ localStorage.removeItem(`dermaApp:${uid}:plan_start`); }catch(_ ){}
+            try{ localStorage.removeItem(`dermaApp:${uid}:planStart`); }catch(_ ){}
+          }
+
+          // sessionStorage снапшоты (myprofile)
+          try{ sessionStorage.removeItem('share:user'); }catch(_ ){}
+
+          // best-effort: удалим все rt.* ключи кроме явно докторских
+          try{
+            for (let i = localStorage.length - 1; i >= 0; i--){
+              const k = localStorage.key(i);
+              if(!k) continue;
+              if (k.startsWith('rt.') || k.startsWith('rt_') || k.startsWith('rt-')){
+                // не трогаем врачебные/кабинетные ключи, если они есть
+                if (/doctor/i.test(k)) continue;
+                try{ localStorage.removeItem(k); }catch(_ ){}
+              }
+            }
+          }catch(_ ){}
           // === RESET ONBOARDING & TOUR (чтобы обучение началось заново) ===
 try { localStorage.removeItem('rt.tour.v1'); } catch(_) {}
 try { localStorage.removeItem('rt.tour.done.v1'); } catch(_) {}
