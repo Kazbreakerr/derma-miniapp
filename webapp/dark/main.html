@@ -1605,7 +1605,7 @@ const need = enabled && getTodayMg()<=0;
     });
   }
   window.addEventListener('storage',e=>{
-    if(['rt.diary.v1','rt.diary.bump','derma_today_iso','derma_today_mg','rt.moodTintOn','rt.moodTint.bump'].includes(e.key)){
+    if(['rt.diary.v1','rt.diary.bump','derma_today_iso','derma_today_mg','rt.moodTintOn','rt.moodTintOn.main','rt.moodTint.bump'].includes(e.key)){
     try { applyDiaryToMain(diaryGet()); } catch(_){}
     try { renderCalPreview(); } catch(_){}
     try { updateSummary(); } catch(_){}
@@ -2149,7 +2149,7 @@ input[type="time"]::-webkit-calendar-picker-indicator{
 .rt-gauge{
   --rtGaugeStroke: 6px;
   position:relative;
-  width:min(380px, 100%);
+  width:min(330px, 100%);
   aspect-ratio: 1 / 1;
   /* ближе к строке "Кумулятивно" */
   margin: 8px auto 4px;
@@ -3423,10 +3423,15 @@ function moodGlow(idx){
     default: return 'transparent';
   }
 }
-// === Global toggle: "Цвет под настроение" (shared with diary/calendar) ===
-const TINT_KEY = 'rt.moodTintOn';
+// === Toggle: "Цвет под настроение" — только для Главной ===
+const TINT_KEY = 'rt.moodTintOn.main';
+const TINT_KEY_LEGACY = 'rt.moodTintOn';
+
 function isTintOn(){
-  return (localStorage.getItem(TINT_KEY) ?? '1') !== '0'; // default ON
+  const v = localStorage.getItem(TINT_KEY);
+  if (v !== null) return v !== '0';
+  // fallback на старый общий ключ (если где-то ещё остался)
+  return (localStorage.getItem(TINT_KEY_LEGACY) ?? '1') !== '0';
 }
 
 // фоновый “цвет дня” (как в calendar.html)

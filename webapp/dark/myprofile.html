@@ -2329,9 +2329,7 @@ if (af) af.textContent = ((STATE.name||'U').trim().charAt(0)||'U').toUpperCase()
     if((_el=document.getElementById('today'))) _el.textContent = Math.round(STATE.todayMg || 0) + ' мг';
     if((_el=document.getElementById('lastDose'))) _el.textContent = (STATE.lastDoseMg||0) + ' мг';
 
-const doc = STATE.doctor||{};
-set('doctorMeta', [doc.name, doc.clinic, doc.phone].filter(Boolean).join(' • '));
-
+// doctorMeta is controlled by applyDoctor() to avoid conflicts
     const st = (STATE.labs||{}).status||'miss';
     const pill = document.getElementById('labStatus');
     pill.textContent = st==='ok' ? 'OK' : (st==='warn' ? 'Внимание' : 'Не сдано');
@@ -2788,9 +2786,31 @@ function setDoctorReq(obj){ try{ if(obj) localStorage.setItem(DOCTOR_REQ_KEY, JS
       detachBtn.onclick = async () => {
         const ok = confirm('Отменить заявку на прикрепление врача?');
         if(!ok) return;
-        await api('/api/doctor/request', { method:'DELETE' });
+
+        // Optimistic UI: сразу скрываем заявку (чтобы не «зависало» при медленной сети)
+        const prev = getDoctorReq();
+        try{
+          detachBtn.disabled = true;
+          detachBtn.textContent = 'Отменяем…';
+        }catch(_){}
+
         setDoctorReq(null);
+        try{ if(typeof stopRequestPolling === 'function') stopRequestPolling(); }catch(_){}
         applyDoctor();
+
+        try{
+          const r = await api('/api/doctor/request', { method:'DELETE' });
+          if(!r.ok){
+            setDoctorReq(prev);
+            applyDoctor();
+            alert('Не удалось отменить заявку. Проверьте соединение и попробуйте ещё раз.');
+          }
+        }catch(_){
+          setDoctorReq(prev);
+          applyDoctor();
+          alert('Не удалось отменить заявку. Проверьте соединение и попробуйте ещё раз.');
+        }
+
         try{ closeDoctorSheet && closeDoctorSheet(); }catch(_){ }
       };
     }
@@ -3338,50 +3358,64 @@ document.addEventListener('visibilitychange', ()=>{
     const tintMain = document.getElementById('tintMainSwitch');
     const tintCal  = document.getElementById('tintCalendarSwitch');
 
-    const TINT_KEY = 'rt.moodTintOn'; // общий ключ для главной + календаря
+
+    // независимые тумблеры окраски по самочувствию
+    const TINT_MAIN_KEY   = 'rt.moodTintOn.main';
+    const TINT_CAL_KEY    = 'rt.moodTintOn.calendar';
+    const TINT_LEGACY_KEY = 'rt.moodTintOn'; // старый общий ключ (для миграции)
+    const TINT_BUMP_KEY   = 'rt.moodTint.bump';
+
+    function readFlag(key){
+      try{
+        const v = localStorage.getItem(key);
+        return (v == null ? '1' : v) !== '0'; // default ON
+      }catch(_){ return true; }
+    }
+    function writeFlag(key, on){
+      try{
+        localStorage.setItem(key, on ? '1' : '0');
+        localStorage.setItem(TINT_BUMP_KEY, String(Date.now()));
+      }catch(_){}
+    }
+    // миграция: если раньше был общий ключ — разложим его в два, чтобы всё не «сломалось»
+    (function migrateTint(){
+      try{
+        const legacy = localStorage.getItem(TINT_LEGACY_KEY);
+        if (legacy == null) return;
+        if (localStorage.getItem(TINT_MAIN_KEY) == null) localStorage.setItem(TINT_MAIN_KEY, legacy);
+        if (localStorage.getItem(TINT_CAL_KEY)  == null) localStorage.setItem(TINT_CAL_KEY, legacy);
+      }catch(_){}
+    })();
+
     const DOCTOR_FALLBACK = 'data:image/svg+xml,%3Csvg%20xmlns%3D%27http%3A//www.w3.org/2000/svg%27%20viewBox%3D%270%200%2096%2096%27%3E%0A%3Cdefs%3E%0A%3ClinearGradient%20id%3D%27g%27%20x1%3D%270%27%20y1%3D%270%27%20x2%3D%271%27%20y2%3D%271%27%3E%0A%3Cstop%20offset%3D%270%27%20stop-color%3D%27%2323E3CC%27/%3E%3Cstop%20offset%3D%270.55%27%20stop-color%3D%27%2338BDF8%27/%3E%3Cstop%20offset%3D%271%27%20stop-color%3D%27%23A86DFF%27/%3E%0A%3C/linearGradient%3E%0A%3C/defs%3E%0A%3Crect%20x%3D%274%27%20y%3D%274%27%20width%3D%2788%27%20height%3D%2788%27%20rx%3D%2744%27%20fill%3D%27rgba%28255%2C255%2C255%2C0.08%29%27%20stroke%3D%27rgba%28255%2C255%2C255%2C0.18%29%27/%3E%0A%3Ccircle%20cx%3D%2748%27%20cy%3D%2744%27%20r%3D%2718%27%20fill%3D%27rgba%28255%2C255%2C255%2C0.10%29%27%20stroke%3D%27url%28%23g%29%27%20stroke-width%3D%273%27/%3E%0A%3Cpath%20d%3D%27M22%2082c4-14%2016-22%2026-22s22%208%2026%2022%27%20fill%3D%27rgba%28255%2C255%2C255%2C0.06%29%27%20stroke%3D%27url%28%23g%29%27%20stroke-width%3D%273%27%20stroke-linecap%3D%27round%27/%3E%0A%3Cpath%20d%3D%27M67%2035h8m-4-4v8%27%20stroke%3D%27url%28%23g%29%27%20stroke-width%3D%273%27%20stroke-linecap%3D%27round%27/%3E%0A%3C/svg%3E';
 
+    
     function setSwitch(el, on){
       if(!el) return;
       el.setAttribute('aria-checked', on ? 'true' : 'false');
     }
 
-    function getTintOn(){
-      try{ return (localStorage.getItem(TINT_KEY) ?? '1') !== '0'; }catch(_){
-        return true;
-      }
-    }
-
-    function setTintOn(on){
-      try{
-        localStorage.setItem(TINT_KEY, on ? '1' : '0');
-        localStorage.setItem('rt.moodTint.bump', String(Date.now()));
-      }catch(_){}
-      setSwitch(tintMain, on);
-      setSwitch(tintCal, on);
-    }
-
     function syncTint(){
-      const on = getTintOn();
-      setSwitch(tintMain, on);
-      setSwitch(tintCal, on);
+      setSwitch(tintMain, readFlag(TINT_MAIN_KEY));
+      setSwitch(tintCal,  readFlag(TINT_CAL_KEY));
     }
 
-    function toggleTint(){
-      setTintOn(!getTintOn());
+    function toggleTintFor(key){
+      writeFlag(key, !readFlag(key));
+      syncTint();
     }
 
-    function onMiniSwitchActivate(el){
-      el?.addEventListener('click', (e)=>{ e.preventDefault(); e.stopPropagation(); toggleTint(); });
-      el?.addEventListener('keydown', (e)=>{
-        if(e.key === 'Enter' || e.key === ' '){ e.preventDefault(); toggleTint(); }
+    function bindMiniSwitch(el, key){
+      if(!el) return;
+      el.addEventListener('click', (e)=>{ e.preventDefault(); e.stopPropagation(); toggleTintFor(key); });
+      el.addEventListener('keydown', (e)=>{
+        if(e.key === 'Enter' || e.key === ' '){ e.preventDefault(); toggleTintFor(key); }
       });
     }
 
-    onMiniSwitchActivate(tintMain);
-    onMiniSwitchActivate(tintCal);
-
-    // doctor avatar in menu (optional)
+    bindMiniSwitch(tintMain, TINT_MAIN_KEY);
+    bindMiniSwitch(tintCal,  TINT_CAL_KEY);
+// doctor avatar in menu (optional)
     async function resolveDoctorSelf(){
       if(!docLink || !docImg) return;
       // default fallback
@@ -3488,7 +3522,7 @@ document.addEventListener('visibilitychange', ()=>{
 
     // keep tint synced if changed elsewhere
     window.addEventListener('storage', (e)=>{
-      if(e.key === TINT_KEY) syncTint();
+      if([TINT_MAIN_KEY, TINT_CAL_KEY, TINT_LEGACY_KEY, TINT_BUMP_KEY].includes(e.key)) syncTint();
     });
   })();
 

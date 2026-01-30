@@ -501,13 +501,14 @@ body.wheel-open{overflow:hidden; touch-action:none}
 </script>
   <div class="wrap">
         <div class="backbar">
-      
-          <polyline points="15 18 9 12 15 6"></polyline>
-          <line x1="9" y1="12" x2="21" y2="12"></line>
-        </svg>
-       
-      </button>
-    </div>
+  <button id="btnBack" type="button" class="back" aria-label="Назад">
+    <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+      <polyline points="15 18 9 12 15 6"></polyline>
+      <line x1="9" y1="12" x2="21" y2="12"></line>
+    </svg>
+    <span>Назад</span>
+  </button>
+</div>
 <h1 class="brandTitle"><span class="brandName">Retiora</span> <span class="brandDash">—</span> <span class="brandTag">Retinoid &amp; Isotretinoin Tracker</span></h1>
 
     <section class="card" aria-labelledby="profile-title">
@@ -1838,7 +1839,7 @@ function api(path, opts = {}) {
       const btn = document.getElementById('btnBack');
       if (btn) btn.addEventListener('click', ()=>{
         const qs = location.search || '';
-        location.replace('./welcome-rt.html' + qs);
+        location.replace('./myprofile.html' + qs);
       });
     })();
 </script>

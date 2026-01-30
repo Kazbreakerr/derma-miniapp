@@ -2208,10 +2208,14 @@ async function finalizeRange() {
   const pad = n => String(n).padStart(2,'0');
   const iso = d => `${d.getFullYear()}-${pad(d.getMonth()+1)}-${pad(d.getDate())}`;
   const getDiary = () => { try{ return JSON.parse(localStorage.getItem('rt.diary.v1')||'{}'); } catch(e){ return {}; } };
-  // Тумблер "Цвет под настроение" (должен работать в этом же скрипте)
-const TINT_KEY = 'rt.moodTintOn';
+ // Тумблер "Цвет под настроение" — только для страницы Calendar
+const TINT_KEY = 'rt.moodTintOn.calendar';
+const TINT_KEY_LEGACY = 'rt.moodTintOn';
+
 function isTintOn(){
-  return (localStorage.getItem(TINT_KEY) ?? '1') !== '0';
+  const v = localStorage.getItem(TINT_KEY);
+  if (v !== null) return v !== '0';
+  return (localStorage.getItem(TINT_KEY_LEGACY) ?? '1') !== '0';
 }
   function moodEmoji(v){
     if(v == null) return '—';
@@ -2996,8 +3000,7 @@ if (btn){
 })();
 window.addEventListener('keydown', (e)=>{ if(e.key === 'Escape') closeSheet(); });
   window.addEventListener('storage', (e)=>{
-    if (e.key === 'rt.diary.v1' || e.key === 'rt.diary.bump' || e.key === 'rt.diary.v2' || e.key === 'rt.moodTintOn' || e.key === PLAN_KEY || e.key === 'rt.plan.bump') render();
-
+    if (e.key === 'rt.diary.v1' || e.key === 'rt.diary.bump' || e.key === 'rt.diary.v2' || e.key === 'rt.moodTintOn' || e.key === 'rt.moodTintOn.calendar' || e.key === PLAN_KEY || e.key === 'rt.plan.bump') render();
 
 });
 // на всякий — обновляемся, когда пользователь вернулся на страницу
