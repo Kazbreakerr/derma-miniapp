@@ -809,24 +809,89 @@ app.post('/api/dose-mode', tgAuth, async (req, res) => {
 // Reset only intakes and progress-related settings (keep profile)
 app.post('/api/reset', tgAuth, async (req, res) => {
   try {
-    const uid = await userIdByTg(req.tg);
-    if (!uid) return res.status(400).json({ error: 'missing tg' });
+    const uid = await userIdByTg(req.tg || req.tgUser?.id);
+    if (!uid) return res.status(401).json({ ok: false, error: 'unauthorized' });
 
-    const del = await pool.query('DELETE FROM derma.dose_logs WHERE patient_id=$1', [uid]);
+    // Полный сброс данных пациента (всё, что может влиять на кумулятив/онбординг/план/дневник/фото).
+    // Важно: TG-идентичность пользователя (tg_id) сохраняем.
+    await pool.query('BEGIN');
+    await pool.query('SET LOCAL search_path = derma, public');
 
-    // Also try to wipe reminder-related rows if such table(s) exist.
-    let removedRem = 0;
-    try {
-      const r1 = await pool.query('DELETE FROM derma.reminders WHERE patient_id=$1', [uid]);
-      removedRem += r1.rowCount || 0;
-    } catch(_){ /* table may not exist - ignore */ }
-    try {
-      const r2 = await pool.query('DELETE FROM derma.reminders_local WHERE patient_id=$1', [uid]);
-      removedRem += r2.rowCount || 0;
-    } catch(_){ /* table may not exist - ignore */ }
+    const counts = {
+      dose_logs: 0,
+      intakes: 0,
+      day_plans: 0,
+      plans: 0,
+      diary: 0,
+      photos: 0,
+      labs: 0,
+      reminders: 0,
+      doctor_links: 0,
+      doctor_requests: 0,
+      user_reset: 0,
+    };
 
-    res.json({ ok: true, removed: del.rowCount, removed_reminders: removedRem });
+    const safeDel = async (sql, params, key) => {
+      try {
+        const r = await pool.query(sql, params);
+        counts[key] += (r.rowCount || 0);
+      } catch (_) {
+        // таблицы могут отсутствовать на старых деплоях — это нормально
+      }
+    };
+
+    // 1) Интейки/дозы (основа кумулятива)
+    await safeDel('DELETE FROM dose_logs WHERE patient_id=$1', [uid], 'dose_logs');
+    // на всякий случай: если где-то ещё живёт старая таблица intakes
+    await safeDel('DELETE FROM intakes WHERE patient_id=$1', [uid], 'intakes');
+    await safeDel('DELETE FROM intakes WHERE user_id=$1', [uid], 'intakes');
+
+    // 2) План курса + план по дням
+    await safeDel('DELETE FROM day_plans WHERE patient_id=$1', [uid], 'day_plans');
+    await safeDel('DELETE FROM plans WHERE patient_id=$1', [uid], 'plans');
+
+    // 3) Дневник + фото
+    await safeDel('DELETE FROM diary WHERE patient_id=$1', [uid], 'diary');
+    await safeDel('DELETE FROM photos WHERE patient_id=$1', [uid], 'photos');
+
+    // 4) Анализы (если есть)
+    await safeDel('DELETE FROM lab_results WHERE patient_id=$1', [uid], 'labs');
+    await safeDel('DELETE FROM labs WHERE patient_id=$1', [uid], 'labs');
+
+    // 5) Напоминания (если есть)
+    await safeDel('DELETE FROM reminders WHERE patient_id=$1', [uid], 'reminders');
+    await safeDel('DELETE FROM reminders_local WHERE patient_id=$1', [uid], 'reminders');
+
+    // 6) Связь с врачом — разрываем, чтобы после сброса пациент был «чистым»
+    await safeDel(
+      "UPDATE patient_doctors SET unbound_at=now(), status='unbound' WHERE patient_id=$1 AND unbound_at IS NULL",
+      [uid],
+      'doctor_links'
+    );
+    await safeDel('DELETE FROM doctor_requests WHERE patient_id=$1', [uid], 'doctor_requests');
+
+    // 7) Сбрасываем онбординг‑поля в users (всё, что заполняется в onboarding/profile)
+    // (оставляем tg_id, is_doctor и doctor assets — для этого есть отдельные кнопки/флоу)
+    const u = await pool.query(
+      `update users set
+         sex = null,
+         birth_date = null,
+         weight_kg = null,
+         height_cm = null,
+         allergies = '[]'::jsonb,
+         goal_mgkg = null,
+         goal_mg = null,
+         accepted_terms_at = null,
+         terms_version = null
+       where id = $1`,
+      [uid]
+    );
+    counts.user_reset = u.rowCount || 0;
+
+    await pool.query('COMMIT');
+    return res.json({ ok: true, uid, cleared: counts });
   } catch (e) {
+    try { await pool.query('ROLLBACK'); } catch(_) {}
     console.error('RESET ERROR:', e);
     res.status(500).json({ error: e.message });
   }
